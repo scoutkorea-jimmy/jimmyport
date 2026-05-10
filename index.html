@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jimmy Park</title>
+    <title>박지민 | Jimmy Park</title>
     <meta
       name="description"
-      content="Jimmy Park의 개인 홈페이지. 프로젝트, 미디어, 스카우팅과 커뮤니티 작업을 한곳에 모았습니다."
+      content="박지민의 개인 홈페이지. 프로젝트, 기록, 커뮤니티 활동을 깔끔하게 정리한 원페이지 프로필입니다."
     />
-    <meta name="theme-color" content="#f5f1e8" />
-    <meta property="og:title" content="Jimmy Park" />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta property="og:title" content="박지민 | Jimmy Park" />
     <meta
       property="og:description"
       content="프로젝트를 만들고, 이야기를 정리하고, 사람과 커뮤니티를 연결합니다."
@@ -18,101 +18,125 @@
     <meta property="og:url" content="https://jimmypark.net/" />
     <meta property="og:image" content="https://jimmypark.net/assets/hero-workspace.png" />
     <link rel="canonical" href="https://jimmypark.net/" />
-    <link rel="preload" href="assets/hero-workspace.png" as="image" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="site-header" aria-label="주요 탐색">
-      <a class="brand" href="#top" aria-label="Jimmy Park 홈">
-        <span class="brand-mark">JP</span>
-        <span>Jimmy Park</span>
-      </a>
-      <nav class="nav-links" aria-label="페이지 섹션">
-        <a href="#work">Work</a>
-        <a href="#notes">Notes</a>
-        <a href="#contact">Contact</a>
-      </nav>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#top" aria-label="박지민 홈">박지민</a>
+        <nav class="nav-links" aria-label="페이지 섹션">
+          <a href="#profile">Profile</a>
+          <a href="#work">Work</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </div>
     </header>
 
     <main id="top">
-      <section class="hero" aria-labelledby="hero-title">
-        <picture>
-          <img
-            class="hero-image"
-            src="assets/hero-workspace.png"
-            alt="노트북과 노트, 카메라가 놓인 현대적인 작업 공간"
-          />
-        </picture>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-          <p class="eyebrow">jimmypark.net</p>
-          <h1 id="hero-title">Jimmy Park</h1>
-          <p class="hero-copy">
-            프로젝트를 만들고, 이야기를 정리하고, 사람과 커뮤니티를 연결합니다.
+      <section class="hero container" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Jimmy Park</p>
+          <h1 id="hero-title">박지민</h1>
+          <p class="lead">
+            프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는
+            방식을 고민합니다.
           </p>
-          <div class="hero-actions">
-            <a class="button primary" href="#work">작업 보기</a>
-            <a class="button secondary" href="mailto:hello@jimmypark.net">연락하기</a>
+          <div class="hero-meta" aria-label="핵심 활동">
+            <span>Media</span>
+            <span>Scouting</span>
+            <span>Community</span>
+            <span>Digital Tools</span>
           </div>
         </div>
+        <aside class="portrait-panel" aria-label="박지민 프로필 요약">
+          <div class="portrait-image">
+            <img
+              src="assets/hero-workspace.png"
+              alt="노트북과 노트가 놓인 차분한 작업 공간"
+            />
+          </div>
+          <dl class="quick-facts">
+            <div>
+              <dt>Based in</dt>
+              <dd>Korea</dd>
+            </div>
+            <div>
+              <dt>Focus</dt>
+              <dd>미디어, 교육, 커뮤니티</dd>
+            </div>
+          </dl>
+        </aside>
       </section>
 
-      <section class="intro" aria-label="소개">
-        <p>
-          기술, 미디어, 스카우팅, 교육과 커뮤니티를 오가며 쌓은 일을 하나의
-          흐름으로 정리하는 개인 홈페이지입니다.
-        </p>
+      <section class="section container profile" id="profile" aria-labelledby="profile-title">
+        <div class="section-label">Profile</div>
+        <div>
+          <h2 id="profile-title">차분하게 만들고, 오래 남게 정리합니다.</h2>
+          <p>
+            박지민은 스카우팅, 교육, 미디어, 디지털 운영의 접점에서 프로젝트를
+            기획하고 실행합니다. 현장의 이야기를 읽기 쉬운 형태로 정리하고,
+            반복되는 일을 줄이는 도구와 구조를 만드는 데 관심이 있습니다.
+          </p>
+        </div>
       </section>
 
-      <section class="section" id="work" aria-labelledby="work-title">
+      <section class="section container" id="work" aria-labelledby="work-title">
         <div class="section-heading">
-          <p class="eyebrow">Selected Work</p>
-          <h2 id="work-title">지금 만들고 있는 것들</h2>
+          <div class="section-label">Work</div>
+          <h2 id="work-title">주요 작업</h2>
         </div>
-        <div class="work-grid">
-          <article class="work-card">
-            <p class="card-kicker">Media</p>
-            <h3>Gilwell Media</h3>
-            <p>스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.</p>
+        <div class="work-list">
+          <article>
+            <span>01</span>
+            <div>
+              <h3>Gilwell Media</h3>
+              <p>스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.</p>
+            </div>
           </article>
-          <article class="work-card">
-            <p class="card-kicker">Community</p>
-            <h3>Scout Korea</h3>
-            <p>사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.</p>
+          <article>
+            <span>02</span>
+            <div>
+              <h3>Scout Korea</h3>
+              <p>사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.</p>
+            </div>
           </article>
-          <article class="work-card">
-            <p class="card-kicker">Product</p>
-            <h3>Digital Tools</h3>
-            <p>반복되는 일을 덜어내고 현장의 판단을 돕는 작고 단단한 도구를 만듭니다.</p>
+          <article>
+            <span>03</span>
+            <div>
+              <h3>Digital Tools</h3>
+              <p>운영자가 더 쉽게 판단하고 움직일 수 있도록 작고 단단한 도구를 만듭니다.</p>
+            </div>
           </article>
         </div>
       </section>
 
-      <section class="section split" id="notes" aria-labelledby="notes-title">
-        <div class="section-heading">
-          <p class="eyebrow">Notes</p>
-          <h2 id="notes-title">관심사</h2>
-        </div>
-        <div class="notes-list">
-          <p>스카우트 운동과 청소년 교육</p>
-          <p>로컬 커뮤니티와 국제 네트워크</p>
-          <p>디지털 퍼블리싱과 운영 자동화</p>
-          <p>좋은 기록, 좋은 도구, 좋은 팀워크</p>
+      <section class="section container interests" aria-labelledby="interests-title">
+        <div class="section-label">Interests</div>
+        <div>
+          <h2 id="interests-title">관심사</h2>
+          <ul>
+            <li>스카우트 운동과 청소년 교육</li>
+            <li>로컬 커뮤니티와 국제 네트워크</li>
+            <li>디지털 퍼블리싱과 운영 자동화</li>
+            <li>좋은 기록, 좋은 도구, 좋은 팀워크</li>
+          </ul>
         </div>
       </section>
 
-      <section class="contact" id="contact" aria-labelledby="contact-title">
+      <section class="contact container" id="contact" aria-labelledby="contact-title">
         <div>
           <p class="eyebrow">Contact</p>
           <h2 id="contact-title">함께 이야기할 일이 있다면</h2>
         </div>
-        <a class="button primary" href="mailto:hello@jimmypark.net">hello@jimmypark.net</a>
+        <a class="mail-link" href="mailto:hello@jimmypark.net">hello@jimmypark.net</a>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>© <span id="year"></span> Jimmy Park</span>
-      <a href="#top">Back to top</a>
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> 박지민</span>
+        <a href="#top">Back to top</a>
+      </div>
     </footer>
 
     <script src="script.js"></script>
