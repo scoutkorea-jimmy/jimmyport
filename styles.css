@@ -93,6 +93,29 @@ p {
   gap: 28px;
 }
 
+.language-switch {
+  border: 1px solid var(--line);
+  display: flex;
+  padding: 3px;
+}
+
+.language-switch button {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-width: 42px;
+  padding: 8px 10px;
+}
+
+.language-switch button.active {
+  background: var(--ink);
+  color: var(--bg);
+}
+
 .nav-links a:hover,
 .footer-inner a:hover,
 .mail-link:hover {
@@ -245,6 +268,100 @@ dd {
   max-width: 680px;
 }
 
+.portfolio-heading {
+  align-items: start;
+}
+
+.admin-link {
+  border-bottom: 1px solid currentColor;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.92rem;
+  margin-top: 10px;
+}
+
+.section-intro {
+  color: var(--muted);
+  line-height: 1.75;
+  max-width: 680px;
+}
+
+.portfolio-list {
+  display: grid;
+  gap: 26px;
+}
+
+.portfolio-item {
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1fr);
+  padding: 18px;
+}
+
+.portfolio-media {
+  aspect-ratio: 16 / 9;
+  background: var(--accent-soft);
+  overflow: hidden;
+}
+
+.portfolio-media iframe {
+  border: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.portfolio-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 8px 10px 0;
+}
+
+.portfolio-number {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.portfolio-role {
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.portfolio-body p {
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.portfolio-body strong {
+  color: var(--accent);
+  margin-right: 10px;
+}
+
+.portfolio-meta {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 16px;
+}
+
+.portfolio-meta a {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.empty-state {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 24px;
+}
+
 .interests ul {
   display: grid;
   gap: 12px;
@@ -294,16 +411,145 @@ dd {
   min-height: 84px;
 }
 
+.admin-main {
+  padding-bottom: 96px;
+}
+
+.admin-hero {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 56px;
+  padding-top: 96px;
+}
+
+.admin-hero h1 {
+  font-size: clamp(3rem, 8vw, 6.4rem);
+}
+
+.admin-hero code {
+  background: var(--accent-soft);
+  padding: 0.1em 0.3em;
+}
+
+.admin-layout {
+  display: grid;
+  gap: 36px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1fr);
+  padding-top: 48px;
+}
+
+.portfolio-form,
+.admin-output {
+  display: grid;
+  gap: 18px;
+}
+
+.portfolio-form label {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.88rem;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.portfolio-form input,
+.portfolio-form textarea,
+#json-output {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  padding: 13px 14px;
+  width: 100%;
+}
+
+.portfolio-form textarea,
+#json-output {
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.form-actions button {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: var(--bg);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 13px 16px;
+}
+
+.form-actions button:nth-child(2) {
+  background: transparent;
+  color: var(--ink);
+}
+
+.admin-output h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.admin-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-card {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 120px 1fr;
+  padding: 12px;
+}
+
+.admin-card img {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  width: 100%;
+}
+
+.admin-card span {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.admin-card h3 {
+  margin-bottom: 4px;
+}
+
+.admin-card p {
+  color: var(--muted);
+  margin-bottom: 0;
+}
+
 @media (max-width: 820px) {
+  .header-inner {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding-bottom: 14px;
+    padding-top: 14px;
+  }
+
   .nav-links {
-    display: none;
+    gap: 16px;
+    order: 3;
+    width: 100%;
   }
 
   .hero,
   .profile,
   .interests,
   .section-heading,
-  .work-list article {
+  .work-list article,
+  .portfolio-item,
+  .admin-layout {
     grid-template-columns: 1fr;
   }
 
@@ -339,6 +585,14 @@ dd {
 
   .mail-link {
     width: 100%;
+  }
+
+  .portfolio-body {
+    padding: 0;
+  }
+
+  .admin-card {
+    grid-template-columns: 96px 1fr;
   }
 }
 
