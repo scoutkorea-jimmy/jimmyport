@@ -8,7 +8,7 @@
       name="description"
       content="박지민의 개인 홈페이지. 프로젝트, 기록, 커뮤니티 활동을 깔끔하게 정리한 원페이지 프로필입니다."
     />
-    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="theme-color" content="#fbfaf7" />
     <meta property="og:title" content="박지민 | Jimmy Park" />
     <meta
       property="og:description"
@@ -26,6 +26,7 @@
         <a class="brand" href="#top" aria-label="박지민 홈" data-i18n="brand">박지민</a>
         <nav class="nav-links" aria-label="페이지 섹션">
           <a href="#profile">Profile</a>
+          <a href="#work">Work</a>
           <a href="#portfolio">Portfolio</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -39,7 +40,7 @@
     <main id="top">
       <section class="hero container" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">Jimmy Park</p>
+          <p class="eyebrow" data-i18n="heroEyebrow">Media · Community · Scouting</p>
           <h1 id="hero-title" data-i18n="heroTitle">박지민</h1>
           <p class="lead" data-i18n="heroLead">
             프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는
@@ -51,6 +52,10 @@
             <span>Community</span>
             <span>Digital Tools</span>
           </div>
+          <div class="hero-actions">
+            <a class="text-link" href="#portfolio" data-i18n="viewPortfolio">포트폴리오 보기</a>
+            <a class="text-link" href="mailto:hello@jimmypark.net" data-i18n="emailMe">이메일 보내기</a>
+          </div>
         </div>
         <aside class="portrait-panel" aria-label="박지민 프로필 요약">
           <div class="portrait-image">
@@ -61,12 +66,16 @@
           </div>
           <dl class="quick-facts">
             <div>
-              <dt>Based in</dt>
-              <dd>Korea</dd>
+              <dt data-i18n="quickBasedLabel">Based in</dt>
+              <dd data-i18n="quickBased">Korea</dd>
             </div>
             <div>
-              <dt>Focus</dt>
+              <dt data-i18n="quickFocusLabel">Focus</dt>
               <dd data-i18n="quickFocus">미디어, 교육, 커뮤니티</dd>
+            </div>
+            <div>
+              <dt data-i18n="quickOutputLabel">Output</dt>
+              <dd data-i18n="quickOutput">영상, 기록, 운영 도구</dd>
             </div>
           </dl>
         </aside>
@@ -118,7 +127,6 @@
         <div class="section-heading portfolio-heading">
           <div>
             <div class="section-label">Portfolio</div>
-            <a class="admin-link" href="portfolio-admin.html" data-i18n="adminLink">포트폴리오 추가</a>
           </div>
           <div>
             <h2 id="portfolio-title" data-i18n="portfolioTitle">영상 포트폴리오</h2>
@@ -147,6 +155,7 @@
         <div>
           <p class="eyebrow">Contact</p>
           <h2 id="contact-title" data-i18n="contactTitle">함께 이야기할 일이 있다면</h2>
+          <p data-i18n="contactBody">프로젝트, 영상, 커뮤니티 협업에 대해 편하게 연락해 주세요.</p>
         </div>
         <a class="mail-link" href="mailto:hello@jimmypark.net">hello@jimmypark.net</a>
       </section>
@@ -155,7 +164,10 @@
     <footer class="site-footer">
       <div class="container footer-inner">
         <span>© <span id="year"></span> <span data-i18n="brand">박지민</span></span>
-        <a href="#top">Back to top</a>
+        <div class="footer-links">
+          <a href="portfolio-admin.html">Manage</a>
+          <a href="#top">Back to top</a>
+        </div>
       </div>
     </footer>
 
