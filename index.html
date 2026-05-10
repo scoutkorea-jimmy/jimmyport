@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jimmy Park</title>
+    <meta
+      name="description"
+      content="Jimmy Park의 개인 홈페이지. 프로젝트, 미디어, 스카우팅과 커뮤니티 작업을 한곳에 모았습니다."
+    />
+    <meta name="theme-color" content="#f5f1e8" />
+    <meta property="og:title" content="Jimmy Park" />
+    <meta
+      property="og:description"
+      content="프로젝트를 만들고, 이야기를 정리하고, 사람과 커뮤니티를 연결합니다."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://jimmypark.net/" />
+    <meta property="og:image" content="https://jimmypark.net/assets/hero-workspace.png" />
+    <link rel="canonical" href="https://jimmypark.net/" />
+    <link rel="preload" href="assets/hero-workspace.png" as="image" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header" aria-label="주요 탐색">
+      <a class="brand" href="#top" aria-label="Jimmy Park 홈">
+        <span class="brand-mark">JP</span>
+        <span>Jimmy Park</span>
+      </a>
+      <nav class="nav-links" aria-label="페이지 섹션">
+        <a href="#work">Work</a>
+        <a href="#notes">Notes</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <picture>
+          <img
+            class="hero-image"
+            src="assets/hero-workspace.png"
+            alt="노트북과 노트, 카메라가 놓인 현대적인 작업 공간"
+          />
+        </picture>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <p class="eyebrow">jimmypark.net</p>
+          <h1 id="hero-title">Jimmy Park</h1>
+          <p class="hero-copy">
+            프로젝트를 만들고, 이야기를 정리하고, 사람과 커뮤니티를 연결합니다.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#work">작업 보기</a>
+            <a class="button secondary" href="mailto:hello@jimmypark.net">연락하기</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="소개">
+        <p>
+          기술, 미디어, 스카우팅, 교육과 커뮤니티를 오가며 쌓은 일을 하나의
+          흐름으로 정리하는 개인 홈페이지입니다.
+        </p>
+      </section>
+
+      <section class="section" id="work" aria-labelledby="work-title">
+        <div class="section-heading">
+          <p class="eyebrow">Selected Work</p>
+          <h2 id="work-title">지금 만들고 있는 것들</h2>
+        </div>
+        <div class="work-grid">
+          <article class="work-card">
+            <p class="card-kicker">Media</p>
+            <h3>Gilwell Media</h3>
+            <p>스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.</p>
+          </article>
+          <article class="work-card">
+            <p class="card-kicker">Community</p>
+            <h3>Scout Korea</h3>
+            <p>사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.</p>
+          </article>
+          <article class="work-card">
+            <p class="card-kicker">Product</p>
+            <h3>Digital Tools</h3>
+            <p>반복되는 일을 덜어내고 현장의 판단을 돕는 작고 단단한 도구를 만듭니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split" id="notes" aria-labelledby="notes-title">
+        <div class="section-heading">
+          <p class="eyebrow">Notes</p>
+          <h2 id="notes-title">관심사</h2>
+        </div>
+        <div class="notes-list">
+          <p>스카우트 운동과 청소년 교육</p>
+          <p>로컬 커뮤니티와 국제 네트워크</p>
+          <p>디지털 퍼블리싱과 운영 자동화</p>
+          <p>좋은 기록, 좋은 도구, 좋은 팀워크</p>
+        </div>
+      </section>
+
+      <section class="contact" id="contact" aria-labelledby="contact-title">
+        <div>
+          <p class="eyebrow">Contact</p>
+          <h2 id="contact-title">함께 이야기할 일이 있다면</h2>
+        </div>
+        <a class="button primary" href="mailto:hello@jimmypark.net">hello@jimmypark.net</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>© <span id="year"></span> Jimmy Park</span>
+      <a href="#top">Back to top</a>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
