@@ -1,0 +1,128 @@
+{
+  "$schema_version": 1,
+  "lang_default": "ko",
+  "meta": {
+    "title_ko": "박지민 | Jimmy Park",
+    "title_en": "Jimmy Park | 박지민",
+    "description_ko": "박지민의 개인 홈페이지. 프로젝트, 기록, 커뮤니티 활동을 깔끔하게 정리한 원페이지 프로필입니다.",
+    "description_en": "Jimmy Park's personal homepage. Projects, records, and community work, organized into a single calm profile."
+  },
+  "brand": { "ko": "박지민", "en": "Jimmy Park" },
+  "nav": [
+    { "key": "profile",    "ko": "Profile",   "en": "Profile",   "href": "#profile" },
+    { "key": "work",       "ko": "Work",      "en": "Work",      "href": "#work" },
+    { "key": "portfolio",  "ko": "Portfolio", "en": "Portfolio", "href": "#portfolio" },
+    { "key": "global",     "ko": "Global",    "en": "Global",    "href": "#global" },
+    { "key": "contact",    "ko": "Contact",   "en": "Contact",   "href": "#contact" }
+  ],
+  "hero": {
+    "eyebrow_ko": "Media · Community · Scouting",
+    "eyebrow_en": "Media · Community · Scouting",
+    "title_ko": "박지민",
+    "title_en": "Jimmy Park",
+    "lead_ko": "프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는 방식을 고민합니다.",
+    "lead_en": "I build projects, organize stories, and think about better ways for people and communities to connect.",
+    "meta_tags": ["Media", "Scouting", "Community", "Digital Tools"],
+    "cta_portfolio_ko": "포트폴리오 보기",
+    "cta_portfolio_en": "View portfolio",
+    "cta_email_ko": "이메일 보내기",
+    "cta_email_en": "Email me",
+    "image": "assets/hero-workspace.png",
+    "image_alt_ko": "노트북과 노트가 놓인 차분한 작업 공간",
+    "image_alt_en": "A quiet workspace with a notebook and laptop"
+  },
+  "quick_facts": [
+    { "label_ko": "위치",   "label_en": "Based in", "value_ko": "한국",                 "value_en": "Korea" },
+    { "label_ko": "분야",   "label_en": "Focus",    "value_ko": "미디어, 교육, 커뮤니티", "value_en": "Media, education, community" },
+    { "label_ko": "결과물", "label_en": "Output",   "value_ko": "영상, 기록, 운영 도구",   "value_en": "Video, records, operations tools" }
+  ],
+  "global_experience": {
+    "eyebrow_ko": "Global Experience",
+    "eyebrow_en": "Global Experience",
+    "title_ko": "현장에서 쌓은 글로벌 역량",
+    "title_en": "Global competence built in the field",
+    "body_ko": "스카우트 운동과 교육 프로젝트로 18개국, 30개+ 도시의 현장을 직접 다녔습니다. 시차·언어·문화·운영 방식이 다른 환경을 직접 다뤘던 경험이 지금의 기획과 운영 감각을 만듭니다.",
+    "body_en": "Through scouting and education projects I've worked across 18 countries and 30+ cities — navigating different time zones, languages, cultures, and operating models that shape how I plan and run things today.",
+    "stat_countries": 18,
+    "stat_cities_label_ko": "30+",
+    "stat_cities_label_en": "30+",
+    "stat_countries_label_ko": "개국",
+    "stat_countries_label_en": "countries",
+    "stat_cities_caption_ko": "도시",
+    "stat_cities_caption_en": "cities",
+    "countries": [
+      { "code": "KR", "flag": "🇰🇷", "ko": "대한민국",        "en": "Korea" },
+      { "code": "JP", "flag": "🇯🇵", "ko": "일본",            "en": "Japan" },
+      { "code": "CN", "flag": "🇨🇳", "ko": "중국",            "en": "China" },
+      { "code": "HK", "flag": "🇭🇰", "ko": "홍콩",            "en": "Hong Kong" },
+      { "code": "TW", "flag": "🇹🇼", "ko": "대만",            "en": "Taiwan" },
+      { "code": "MO", "flag": "🇲🇴", "ko": "마카오",          "en": "Macau" },
+      { "code": "MN", "flag": "🇲🇳", "ko": "몽골",            "en": "Mongolia" },
+      { "code": "VN", "flag": "🇻🇳", "ko": "베트남",          "en": "Vietnam" },
+      { "code": "MY", "flag": "🇲🇾", "ko": "말레이시아",      "en": "Malaysia" },
+      { "code": "BD", "flag": "🇧🇩", "ko": "방글라데시",      "en": "Bangladesh" },
+      { "code": "IN", "flag": "🇮🇳", "ko": "인도",            "en": "India" },
+      { "code": "AE", "flag": "🇦🇪", "ko": "아랍에미리트",    "en": "UAE" },
+      { "code": "QA", "flag": "🇶🇦", "ko": "카타르",          "en": "Qatar" },
+      { "code": "BH", "flag": "🇧🇭", "ko": "바레인",          "en": "Bahrain" },
+      { "code": "KW", "flag": "🇰🇼", "ko": "쿠웨이트",        "en": "Kuwait" },
+      { "code": "OM", "flag": "🇴🇲", "ko": "오만",            "en": "Oman" },
+      { "code": "ZA", "flag": "🇿🇦", "ko": "남아프리카공화국", "en": "South Africa" },
+      { "code": "US", "flag": "🇺🇸", "ko": "미국",            "en": "USA" }
+    ]
+  },
+  "profile": {
+    "title_ko": "차분하게 만들고, 오래 남게 정리합니다.",
+    "title_en": "Making things calmly, and documenting them to last.",
+    "body_ko": "박지민은 스카우팅, 교육, 미디어, 디지털 운영의 접점에서 프로젝트를 기획하고 실행합니다. 현장의 이야기를 읽기 쉬운 형태로 정리하고, 반복되는 일을 줄이는 도구와 구조를 만드는 데 관심이 있습니다.",
+    "body_en": "Jimmy Park works across scouting, education, media, and digital operations. He plans and runs projects, shapes field stories into clear formats, and builds small systems that reduce repetitive work."
+  },
+  "work": {
+    "title_ko": "주요 작업",
+    "title_en": "Selected work",
+    "items": [
+      { "label": "01", "title_ko": "Gilwell Media", "title_en": "Gilwell Media", "body_ko": "스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.", "body_en": "Organizing stories from scouting and community fields into readable media." },
+      { "label": "02", "title_ko": "Scout Korea",  "title_en": "Scout Korea",  "body_ko": "사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.", "body_en": "Planning projects that help people gather, learn, and connect more widely." },
+      { "label": "03", "title_ko": "Digital Tools", "title_en": "Digital Tools", "body_ko": "운영자가 더 쉽게 판단하고 움직일 수 있도록 작고 단단한 도구를 만듭니다.", "body_en": "Building focused digital tools that help operators make better decisions." }
+    ]
+  },
+  "portfolio_intro": {
+    "title_ko": "영상 포트폴리오",
+    "title_en": "Video portfolio",
+    "intro_ko": "YouTube 영상 링크와 함께 내가 맡은 역할, 기획 의도, 작업 내용을 소개합니다.",
+    "intro_en": "A collection of YouTube-based projects with notes on my role, intention, and contribution.",
+    "role_label_ko": "내 역할",
+    "role_label_en": "My role",
+    "watch_label_ko": "YouTube에서 보기",
+    "watch_label_en": "Watch on YouTube",
+    "empty_title_ko": "영상 포트폴리오를 준비하고 있습니다.",
+    "empty_title_en": "Video portfolio is in preparation.",
+    "empty_hint_ko": "YouTube 링크와 역할 설명이 정리되는 대로 이곳에 케이스 스터디 형태로 공개됩니다.",
+    "empty_hint_en": "YouTube links and role notes will be published here as compact case studies."
+  },
+  "interests": {
+    "title_ko": "관심사",
+    "title_en": "Interests",
+    "items": [
+      { "ko": "스카우트 운동과 청소년 교육",        "en": "Scouting and youth education" },
+      { "ko": "로컬 커뮤니티와 국제 네트워크",      "en": "Local communities and international networks" },
+      { "ko": "디지털 퍼블리싱과 운영 자동화",      "en": "Digital publishing and operations automation" },
+      { "ko": "좋은 기록, 좋은 도구, 좋은 팀워크",  "en": "Good records, good tools, good teamwork" }
+    ]
+  },
+  "contact": {
+    "eyebrow_ko": "Contact",
+    "eyebrow_en": "Contact",
+    "title_ko": "함께 이야기할 일이 있다면",
+    "title_en": "If there is something to discuss",
+    "body_ko": "프로젝트, 영상, 커뮤니티 협업에 대해 편하게 연락해 주세요.",
+    "body_en": "Reach out about projects, video work, or community collaboration.",
+    "email": "hello@jimmypark.net"
+  },
+  "footer": {
+    "manage_link_ko": "Manage",
+    "manage_link_en": "Manage",
+    "back_to_top_ko": "Back to top",
+    "back_to_top_en": "Back to top"
+  }
+}

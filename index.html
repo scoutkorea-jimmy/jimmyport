@@ -3,15 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>박지민 | Jimmy Park</title>
+    <title data-config="meta.title">박지민 | Jimmy Park</title>
     <meta
       name="description"
+      data-config-attr="content:meta.description"
       content="박지민의 개인 홈페이지. 프로젝트, 기록, 커뮤니티 활동을 깔끔하게 정리한 원페이지 프로필입니다."
     />
     <meta name="theme-color" content="#fbfaf7" />
-    <meta property="og:title" content="박지민 | Jimmy Park" />
+    <meta property="og:title" data-config-attr="content:meta.title" content="박지민 | Jimmy Park" />
     <meta
       property="og:description"
+      data-config-attr="content:meta.description"
       content="프로젝트를 만들고, 이야기를 정리하고, 사람과 커뮤니티를 연결합니다."
     />
     <meta property="og:type" content="website" />
@@ -23,11 +25,12 @@
   <body>
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="#top" aria-label="박지민 홈" data-i18n="brand">박지민</a>
-        <nav class="nav-links" aria-label="페이지 섹션">
+        <a class="brand" href="#top" aria-label="박지민 홈" data-config="brand">박지민</a>
+        <nav class="nav-links" aria-label="페이지 섹션" id="primary-nav">
           <a href="#profile">Profile</a>
           <a href="#work">Work</a>
           <a href="#portfolio">Portfolio</a>
+          <a href="#global">Global</a>
           <a href="#contact">Contact</a>
         </nav>
         <div class="language-switch" aria-label="Language">
@@ -40,21 +43,21 @@
     <main id="top">
       <section class="hero container" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="heroEyebrow">Media · Community · Scouting</p>
-          <h1 id="hero-title" data-i18n="heroTitle">박지민</h1>
-          <p class="lead" data-i18n="heroLead">
+          <p class="eyebrow" data-config="hero.eyebrow">Media · Community · Scouting</p>
+          <h1 id="hero-title" data-config="hero.title">박지민</h1>
+          <p class="lead" data-config="hero.lead">
             프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는
             방식을 고민합니다.
           </p>
-          <div class="hero-meta" aria-label="핵심 활동">
+          <div class="hero-meta" aria-label="핵심 활동" id="hero-meta-tags">
             <span>Media</span>
             <span>Scouting</span>
             <span>Community</span>
             <span>Digital Tools</span>
           </div>
           <div class="hero-actions">
-            <a class="text-link" href="#portfolio" data-i18n="viewPortfolio">포트폴리오 보기</a>
-            <a class="text-link" href="mailto:hello@jimmypark.net" data-i18n="emailMe">이메일 보내기</a>
+            <a class="text-link" href="#portfolio" data-config="hero.cta_portfolio">포트폴리오 보기</a>
+            <a class="text-link" href="mailto:hello@jimmypark.net" id="hero-email-cta" data-config="hero.cta_email">이메일 보내기</a>
           </div>
         </div>
         <aside class="portrait-panel" aria-label="박지민 프로필 요약">
@@ -62,30 +65,57 @@
             <img
               src="assets/hero-workspace.png"
               alt="노트북과 노트가 놓인 차분한 작업 공간"
+              data-config-attr="src:hero.image;alt:hero.image_alt"
             />
           </div>
-          <dl class="quick-facts">
+          <dl class="quick-facts" id="quick-facts">
             <div>
-              <dt data-i18n="quickBasedLabel">Based in</dt>
-              <dd data-i18n="quickBased">Korea</dd>
+              <dt>위치</dt>
+              <dd>한국</dd>
             </div>
             <div>
-              <dt data-i18n="quickFocusLabel">Focus</dt>
-              <dd data-i18n="quickFocus">미디어, 교육, 커뮤니티</dd>
+              <dt>분야</dt>
+              <dd>미디어, 교육, 커뮤니티</dd>
             </div>
             <div>
-              <dt data-i18n="quickOutputLabel">Output</dt>
-              <dd data-i18n="quickOutput">영상, 기록, 운영 도구</dd>
+              <dt>결과물</dt>
+              <dd>영상, 기록, 운영 도구</dd>
             </div>
           </dl>
         </aside>
       </section>
 
+      <section class="section container global-section" id="global" aria-labelledby="global-title">
+        <div class="section-heading">
+          <div>
+            <div class="section-label" data-config="global_experience.eyebrow">Global Experience</div>
+          </div>
+          <div>
+            <h2 id="global-title" data-config="global_experience.title">현장에서 쌓은 글로벌 역량</h2>
+            <p class="section-intro" data-config="global_experience.body">
+              스카우트 운동과 교육 프로젝트로 18개국, 30개+ 도시의 현장을 직접 다녔습니다.
+              시차·언어·문화·운영 방식이 다른 환경을 직접 다뤘던 경험이 지금의 기획과 운영 감각을 만듭니다.
+            </p>
+            <div class="global-stats" aria-hidden="false">
+              <div class="global-stat">
+                <strong id="global-stat-countries">18</strong>
+                <span data-config="global_experience.stat_countries_label">개국</span>
+              </div>
+              <div class="global-stat">
+                <strong id="global-stat-cities" data-config="global_experience.stat_cities_label">30+</strong>
+                <span data-config="global_experience.stat_cities_caption">도시</span>
+              </div>
+            </div>
+            <ul class="country-grid" id="country-grid" aria-label="다녀온 국가 목록"></ul>
+          </div>
+        </div>
+      </section>
+
       <section class="section container profile" id="profile" aria-labelledby="profile-title">
         <div class="section-label">Profile</div>
         <div>
-          <h2 id="profile-title" data-i18n="profileTitle">차분하게 만들고, 오래 남게 정리합니다.</h2>
-          <p data-i18n="profileBody">
+          <h2 id="profile-title" data-config="profile.title">차분하게 만들고, 오래 남게 정리합니다.</h2>
+          <p data-config="profile.body">
             박지민은 스카우팅, 교육, 미디어, 디지털 운영의 접점에서 프로젝트를
             기획하고 실행합니다. 현장의 이야기를 읽기 쉬운 형태로 정리하고,
             반복되는 일을 줄이는 도구와 구조를 만드는 데 관심이 있습니다.
@@ -96,31 +126,9 @@
       <section class="section container" id="work" aria-labelledby="work-title">
         <div class="section-heading">
           <div class="section-label">Work</div>
-          <h2 id="work-title" data-i18n="workTitle">주요 작업</h2>
+          <h2 id="work-title" data-config="work.title">주요 작업</h2>
         </div>
-        <div class="work-list">
-          <article>
-            <span>01</span>
-            <div>
-              <h3>Gilwell Media</h3>
-              <p data-i18n="workMedia">스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.</p>
-            </div>
-          </article>
-          <article>
-            <span>02</span>
-            <div>
-              <h3>Scout Korea</h3>
-              <p data-i18n="workCommunity">사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.</p>
-            </div>
-          </article>
-          <article>
-            <span>03</span>
-            <div>
-              <h3>Digital Tools</h3>
-              <p data-i18n="workTools">운영자가 더 쉽게 판단하고 움직일 수 있도록 작고 단단한 도구를 만듭니다.</p>
-            </div>
-          </article>
-        </div>
+        <div class="work-list" id="work-list"></div>
       </section>
 
       <section class="section container" id="portfolio" aria-labelledby="portfolio-title">
@@ -129,8 +137,8 @@
             <div class="section-label">Portfolio</div>
           </div>
           <div>
-            <h2 id="portfolio-title" data-i18n="portfolioTitle">영상 포트폴리오</h2>
-            <p class="section-intro" data-i18n="portfolioIntro">
+            <h2 id="portfolio-title" data-config="portfolio_intro.title">영상 포트폴리오</h2>
+            <p class="section-intro" data-config="portfolio_intro.intro">
               YouTube 영상 링크와 함께 내가 맡은 역할, 기획 의도, 작업 내용을 소개합니다.
             </p>
           </div>
@@ -141,36 +149,45 @@
       <section class="section container interests" aria-labelledby="interests-title">
         <div class="section-label">Interests</div>
         <div>
-          <h2 id="interests-title" data-i18n="interestsTitle">관심사</h2>
-          <ul>
-            <li data-i18n="interestOne">스카우트 운동과 청소년 교육</li>
-            <li data-i18n="interestTwo">로컬 커뮤니티와 국제 네트워크</li>
-            <li data-i18n="interestThree">디지털 퍼블리싱과 운영 자동화</li>
-            <li data-i18n="interestFour">좋은 기록, 좋은 도구, 좋은 팀워크</li>
-          </ul>
+          <h2 id="interests-title" data-config="interests.title">관심사</h2>
+          <ul id="interests-list"></ul>
         </div>
       </section>
 
       <section class="contact container" id="contact" aria-labelledby="contact-title">
         <div>
-          <p class="eyebrow">Contact</p>
-          <h2 id="contact-title" data-i18n="contactTitle">함께 이야기할 일이 있다면</h2>
-          <p data-i18n="contactBody">프로젝트, 영상, 커뮤니티 협업에 대해 편하게 연락해 주세요.</p>
+          <p class="eyebrow" data-config="contact.eyebrow">Contact</p>
+          <h2 id="contact-title" data-config="contact.title">함께 이야기할 일이 있다면</h2>
+          <p data-config="contact.body">프로젝트, 영상, 커뮤니티 협업에 대해 편하게 연락해 주세요.</p>
         </div>
-        <a class="mail-link" href="mailto:hello@jimmypark.net">hello@jimmypark.net</a>
+        <a class="mail-link" href="mailto:hello@jimmypark.net" id="contact-email">hello@jimmypark.net</a>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <span>© <span id="year"></span> <span data-i18n="brand">박지민</span></span>
+        <span>© <span id="year"></span> <span data-config="brand">박지민</span></span>
+        <p class="footer-build" data-version-status="checking">
+          Site <span class="site-build-version">V0.0.0</span> · Admin <span class="admin-build-version">V0.0.0</span>
+          <span class="footer-build-status" aria-live="polite"></span>
+        </p>
         <div class="footer-links">
-          <a href="portfolio-admin.html">Manage</a>
+          <a href="manage.html">Manage</a>
           <a href="#top">Back to top</a>
         </div>
       </div>
     </footer>
 
     <script src="script.js"></script>
+    <script src="version-watch.js"></script>
+    <!-- Cloudflare Web Analytics (cookieless, no PII). To enable:
+         1. dash.cloudflare.com → Analytics & Logs → Web Analytics → Add a site
+            (or pick the existing jimmypark.net site).
+         2. Copy the generated token (a short hex string).
+         3. Uncomment the <script> below and replace YOUR_TOKEN.
+         Removing this block leaves zero impact on the page.
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "YOUR_TOKEN"}'></script>
+    -->
   </body>
 </html>

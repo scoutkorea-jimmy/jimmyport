@@ -1,216 +1,362 @@
-const year = document.querySelector("#year");
-const languageButtons = document.querySelectorAll("[data-lang-button]");
-const portfolioList = document.querySelector("#portfolio-list");
+// jimmypark.net — homepage runtime.
+//
+// Loads data/site-config.json + data/portfolio.json and renders every section
+// from a single source of truth so the admin (manage.html) can edit any text on
+// the site without touching markup. The HTML keeps Korean fallback text so the
+// page is still readable if JS or the JSON fetch fails.
 
-const translations = {
-  ko: {
-    brand: "박지민",
-    heroEyebrow: "Media · Community · Scouting",
-    heroTitle: "박지민",
-    heroLead: "프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는 방식을 고민합니다.",
-    viewPortfolio: "포트폴리오 보기",
-    emailMe: "이메일 보내기",
-    quickBasedLabel: "위치",
-    quickBased: "한국",
-    quickFocusLabel: "분야",
-    quickFocus: "미디어, 교육, 커뮤니티",
-    quickOutputLabel: "결과물",
-    quickOutput: "영상, 기록, 운영 도구",
-    profileTitle: "차분하게 만들고, 오래 남게 정리합니다.",
-    profileBody:
-      "박지민은 스카우팅, 교육, 미디어, 디지털 운영의 접점에서 프로젝트를 기획하고 실행합니다. 현장의 이야기를 읽기 쉬운 형태로 정리하고, 반복되는 일을 줄이는 도구와 구조를 만드는 데 관심이 있습니다.",
-    workTitle: "주요 작업",
-    workMedia: "스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.",
-    workCommunity: "사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.",
-    workTools: "운영자가 더 쉽게 판단하고 움직일 수 있도록 작고 단단한 도구를 만듭니다.",
-    portfolioTitle: "영상 포트폴리오",
-    portfolioIntro: "YouTube 영상 링크와 함께 내가 맡은 역할, 기획 의도, 작업 내용을 소개합니다.",
-    interestsTitle: "관심사",
-    interestOne: "스카우트 운동과 청소년 교육",
-    interestTwo: "로컬 커뮤니티와 국제 네트워크",
-    interestThree: "디지털 퍼블리싱과 운영 자동화",
-    interestFour: "좋은 기록, 좋은 도구, 좋은 팀워크",
-    contactTitle: "함께 이야기할 일이 있다면",
-    contactBody: "프로젝트, 영상, 커뮤니티 협업에 대해 편하게 연락해 주세요.",
-    roleLabel: "내 역할",
-    watchLabel: "YouTube에서 보기",
-    emptyPortfolio: "영상 포트폴리오를 준비하고 있습니다.",
-    emptyPortfolioHint: "YouTube 링크와 역할 설명이 정리되는 대로 이곳에 케이스 스터디 형태로 공개됩니다."
-  },
-  en: {
-    brand: "Jimmy Park",
-    heroEyebrow: "Media · Community · Scouting",
-    heroTitle: "Jimmy Park",
-    heroLead: "I build projects, organize stories, and think about better ways for people and communities to connect.",
-    viewPortfolio: "View portfolio",
-    emailMe: "Email me",
-    quickBasedLabel: "Based in",
-    quickBased: "Korea",
-    quickFocusLabel: "Focus",
-    quickFocus: "Media, education, community",
-    quickOutputLabel: "Output",
-    quickOutput: "Video, records, operations tools",
-    profileTitle: "Making things calmly, and documenting them to last.",
-    profileBody:
-      "Jimmy Park works across scouting, education, media, and digital operations. He plans and runs projects, shapes field stories into clear formats, and builds small systems that reduce repetitive work.",
-    workTitle: "Selected work",
-    workMedia: "Organizing stories from scouting and community fields into readable media.",
-    workCommunity: "Planning projects that help people gather, learn, and connect more widely.",
-    workTools: "Building focused digital tools that help operators make better decisions.",
-    portfolioTitle: "Video portfolio",
-    portfolioIntro: "A collection of YouTube-based projects with notes on my role, intention, and contribution.",
-    interestsTitle: "Interests",
-    interestOne: "Scouting and youth education",
-    interestTwo: "Local communities and international networks",
-    interestThree: "Digital publishing and operations automation",
-    interestFour: "Good records, good tools, good teamwork",
-    contactTitle: "If there is something to discuss",
-    contactBody: "Reach out about projects, video work, or community collaboration.",
-    roleLabel: "My role",
-    watchLabel: "Watch on YouTube",
-    emptyPortfolio: "Video portfolio is in preparation.",
-    emptyPortfolioHint: "YouTube links and role notes will be published here as compact case studies."
-  }
-};
+const STORAGE_DRAFT_KEY = 'jimmypark-site-config-draft';
+const LANG_KEY = 'jimmypark-language';
+const FALLBACK_LANG = 'ko';
 
-let currentLanguage = localStorage.getItem("jimmypark-language") || "ko";
+let siteConfig = null;
 let portfolioItems = [];
+let currentLanguage = localStorage.getItem(LANG_KEY) || FALLBACK_LANG;
 
-if (year) {
-  year.textContent = new Date().getFullYear();
+const yearEl = document.querySelector('#year');
+const navEl = document.querySelector('#primary-nav');
+const heroMetaEl = document.querySelector('#hero-meta-tags');
+const quickFactsEl = document.querySelector('#quick-facts');
+const workListEl = document.querySelector('#work-list');
+const interestsListEl = document.querySelector('#interests-list');
+const portfolioListEl = document.querySelector('#portfolio-list');
+const countryGridEl = document.querySelector('#country-grid');
+const contactEmailEl = document.querySelector('#contact-email');
+const heroEmailCtaEl = document.querySelector('#hero-email-cta');
+const languageButtons = document.querySelectorAll('[data-lang-button]');
+
+if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+function pickLang(obj, baseKey, lang) {
+  if (!obj) return '';
+  const langKey = `${baseKey}_${lang}`;
+  const fallbackKey = `${baseKey}_${FALLBACK_LANG}`;
+  if (typeof obj[langKey] === 'string') return obj[langKey];
+  if (typeof obj[fallbackKey] === 'string') return obj[fallbackKey];
+  // Plain object with {ko, en} variants
+  if (obj && typeof obj === 'object' && (obj.ko || obj.en)) {
+    return obj[lang] || obj[FALLBACK_LANG] || '';
+  }
+  return '';
 }
 
-function getYouTubeId(url) {
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.hostname.includes("youtu.be")) {
-      return parsed.pathname.replace("/", "");
+function readByPath(root, path) {
+  if (!root) return null;
+  const parts = path.split('.');
+  let cursor = root;
+  for (const part of parts) {
+    if (cursor && Object.prototype.hasOwnProperty.call(cursor, part)) {
+      cursor = cursor[part];
+    } else {
+      return null;
     }
+  }
+  return cursor;
+}
 
-    if (parsed.searchParams.has("v")) {
-      return parsed.searchParams.get("v");
+function resolveLocalised(root, path, lang) {
+  const parts = path.split('.');
+  const leaf = parts.pop();
+  // Top-level lookups (e.g. data-config="brand") have no parent path; default
+  // to root so we don't dead-end on readByPath('').
+  const parent = parts.length ? readByPath(root, parts.join('.')) : root;
+  if (parent == null) return '';
+  if (Object.prototype.hasOwnProperty.call(parent, `${leaf}_${lang}`)) {
+    return parent[`${leaf}_${lang}`];
+  }
+  if (Object.prototype.hasOwnProperty.call(parent, `${leaf}_${FALLBACK_LANG}`)) {
+    return parent[`${leaf}_${FALLBACK_LANG}`];
+  }
+  if (Object.prototype.hasOwnProperty.call(parent, leaf)) {
+    const value = parent[leaf];
+    if (value && typeof value === 'object' && (value.ko || value.en)) {
+      return value[lang] || value[FALLBACK_LANG] || '';
     }
+    return value;
+  }
+  return '';
+}
 
-    const embedMatch = parsed.pathname.match(/\/(embed|shorts)\/([^/?]+)/);
-    return embedMatch ? embedMatch[2] : "";
-  } catch {
-    return "";
+function applyConfigToDom(config, lang) {
+  if (!config) return;
+  // Plain text bindings: data-config="hero.title"
+  document.querySelectorAll('[data-config]').forEach((el) => {
+    const path = el.dataset.config;
+    if (!path) return;
+    const value = resolveLocalised(config, path, lang);
+    if (typeof value === 'string' && value.length) el.textContent = value;
+  });
+  // Attribute bindings: data-config-attr="content:meta.description;alt:hero.image_alt"
+  document.querySelectorAll('[data-config-attr]').forEach((el) => {
+    const spec = el.dataset.configAttr;
+    if (!spec) return;
+    spec.split(';').forEach((entry) => {
+      const [attr, path] = entry.split(':').map((s) => (s || '').trim());
+      if (!attr || !path) return;
+      const value = resolveLocalised(config, path, lang);
+      if (typeof value === 'string' && value.length) el.setAttribute(attr, value);
+    });
+  });
+}
+
+function renderNav(config, lang) {
+  if (!navEl || !config || !Array.isArray(config.nav)) return;
+  navEl.innerHTML = '';
+  config.nav.forEach((item) => {
+    if (!item || !item.href) return;
+    const a = document.createElement('a');
+    a.href = item.href;
+    a.textContent = item[lang] || item[FALLBACK_LANG] || item.key || '';
+    navEl.appendChild(a);
+  });
+}
+
+function renderHeroMeta(config) {
+  if (!heroMetaEl || !config || !config.hero) return;
+  const tags = Array.isArray(config.hero.meta_tags) ? config.hero.meta_tags : [];
+  if (!tags.length) return;
+  heroMetaEl.innerHTML = '';
+  tags.forEach((tag) => {
+    const span = document.createElement('span');
+    span.textContent = String(tag);
+    heroMetaEl.appendChild(span);
+  });
+}
+
+function renderQuickFacts(config, lang) {
+  if (!quickFactsEl || !config || !Array.isArray(config.quick_facts)) return;
+  quickFactsEl.innerHTML = '';
+  config.quick_facts.forEach((row) => {
+    const wrap = document.createElement('div');
+    const dt = document.createElement('dt');
+    dt.textContent = pickLang(row, 'label', lang);
+    const dd = document.createElement('dd');
+    dd.textContent = pickLang(row, 'value', lang);
+    wrap.append(dt, dd);
+    quickFactsEl.appendChild(wrap);
+  });
+}
+
+function renderWork(config, lang) {
+  if (!workListEl || !config || !config.work || !Array.isArray(config.work.items)) return;
+  workListEl.innerHTML = '';
+  config.work.items.forEach((item) => {
+    const article = document.createElement('article');
+    const label = document.createElement('span');
+    label.textContent = item.label || '';
+    const wrap = document.createElement('div');
+    const h3 = document.createElement('h3');
+    h3.textContent = pickLang(item, 'title', lang);
+    const p = document.createElement('p');
+    p.textContent = pickLang(item, 'body', lang);
+    wrap.append(h3, p);
+    article.append(label, wrap);
+    workListEl.appendChild(article);
+  });
+}
+
+function renderInterests(config, lang) {
+  if (!interestsListEl || !config || !config.interests) return;
+  const items = Array.isArray(config.interests.items) ? config.interests.items : [];
+  interestsListEl.innerHTML = '';
+  items.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = item[lang] || item[FALLBACK_LANG] || '';
+    interestsListEl.appendChild(li);
+  });
+}
+
+function renderCountries(config, lang) {
+  if (!countryGridEl || !config || !config.global_experience) return;
+  const list = Array.isArray(config.global_experience.countries)
+    ? config.global_experience.countries
+    : [];
+  countryGridEl.innerHTML = '';
+  list.forEach((country) => {
+    const li = document.createElement('li');
+    li.className = 'country-chip';
+    const flag = document.createElement('span');
+    flag.className = 'country-flag';
+    flag.setAttribute('aria-hidden', 'true');
+    flag.textContent = country.flag || '';
+    const name = document.createElement('span');
+    name.className = 'country-name';
+    name.textContent = country[lang] || country[FALLBACK_LANG] || country.code || '';
+    li.append(flag, name);
+    countryGridEl.appendChild(li);
+  });
+  // Update country count statistic to reflect actual list length, so editors
+  // can add/remove countries from the admin without remembering to also tweak
+  // the displayed number.
+  const countEl = document.querySelector('#global-stat-countries');
+  if (countEl) countEl.textContent = String(list.length || config.global_experience.stat_countries || 0);
+}
+
+function renderContact(config, lang) {
+  if (!config || !config.contact) return;
+  const email = (config.contact.email || '').trim();
+  if (contactEmailEl && email) {
+    contactEmailEl.textContent = email;
+    contactEmailEl.setAttribute('href', `mailto:${email}`);
+  }
+  if (heroEmailCtaEl && email) {
+    heroEmailCtaEl.setAttribute('href', `mailto:${email}`);
   }
 }
 
-function setLanguage(lang) {
-  currentLanguage = lang;
-  localStorage.setItem("jimmypark-language", lang);
-  document.documentElement.lang = lang;
-
-  document.querySelectorAll("[data-i18n]").forEach((node) => {
-    const key = node.dataset.i18n;
-    if (translations[lang][key]) {
-      node.textContent = translations[lang][key];
-    }
-  });
-
-  languageButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.langButton === lang);
-  });
-
-  renderPortfolio();
-}
-
-function renderPortfolio() {
-  if (!portfolioList) return;
-
-  portfolioList.innerHTML = "";
+function renderPortfolio(lang) {
+  if (!portfolioListEl) return;
+  portfolioListEl.innerHTML = '';
 
   if (!portfolioItems.length) {
-    const empty = document.createElement("article");
-    empty.className = "empty-state";
-    const title = document.createElement("h3");
-    title.textContent = translations[currentLanguage].emptyPortfolio;
-    const body = document.createElement("p");
-    body.textContent = translations[currentLanguage].emptyPortfolioHint;
-    empty.append(title, body);
-    portfolioList.append(empty);
+    const intro = (siteConfig && siteConfig.portfolio_intro) || {};
+    const article = document.createElement('article');
+    article.className = 'empty-state';
+    const h3 = document.createElement('h3');
+    h3.textContent = pickLang(intro, 'empty_title', lang);
+    const p = document.createElement('p');
+    p.textContent = pickLang(intro, 'empty_hint', lang);
+    article.append(h3, p);
+    portfolioListEl.appendChild(article);
     return;
   }
 
-  portfolioItems.forEach((item, index) => {
-    const content = item[currentLanguage] || item.ko || item.en;
-    const videoId = getYouTubeId(item.youtubeUrl);
-    const article = document.createElement("article");
-    article.className = "portfolio-item";
+  const intro = (siteConfig && siteConfig.portfolio_intro) || {};
+  const roleLabel = pickLang(intro, 'role_label', lang) || '내 역할';
+  const watchLabel = pickLang(intro, 'watch_label', lang) || 'YouTube에서 보기';
 
-    const media = document.createElement("a");
-    media.className = "portfolio-media";
-    media.href = item.youtubeUrl;
-    media.target = "_blank";
-    media.rel = "noreferrer";
+  portfolioItems.forEach((item, index) => {
+    const content = item[lang] || item[FALLBACK_LANG] || item.en || item.ko || {};
+    const videoId = getYouTubeId(item.youtubeUrl || '');
+    const article = document.createElement('article');
+    article.className = 'portfolio-item';
+
+    const media = document.createElement('a');
+    media.className = 'portfolio-media';
+    media.href = item.youtubeUrl || '#';
+    media.target = '_blank';
+    media.rel = 'noreferrer';
 
     if (videoId) {
-      const image = document.createElement("img");
+      const image = document.createElement('img');
       image.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-      image.alt = "";
-      image.loading = "lazy";
-      const play = document.createElement("span");
-      play.className = "play-mark";
-      play.textContent = "Play";
+      image.alt = '';
+      image.loading = 'lazy';
+      const play = document.createElement('span');
+      play.className = 'play-mark';
+      play.textContent = 'Play';
       media.append(image, play);
     }
 
-    const body = document.createElement("div");
-    body.className = "portfolio-body";
+    const body = document.createElement('div');
+    body.className = 'portfolio-body';
 
-    const number = document.createElement("div");
-    number.className = "portfolio-number";
-    number.textContent = String(index + 1).padStart(2, "0");
+    const number = document.createElement('div');
+    number.className = 'portfolio-number';
+    number.textContent = String(index + 1).padStart(2, '0');
 
-    const title = document.createElement("h3");
-    title.textContent = content.title;
+    const title = document.createElement('h3');
+    title.textContent = content.title || '';
 
-    const role = document.createElement("p");
-    role.className = "portfolio-role";
-    const roleLabel = document.createElement("strong");
-    roleLabel.textContent = translations[currentLanguage].roleLabel;
-    role.append(roleLabel, document.createTextNode(` ${content.role}`));
+    const role = document.createElement('p');
+    role.className = 'portfolio-role';
+    const roleStrong = document.createElement('strong');
+    roleStrong.textContent = roleLabel;
+    role.append(roleStrong, document.createTextNode(` ${content.role || ''}`));
 
-    const description = document.createElement("p");
-    description.textContent = content.description;
+    const description = document.createElement('p');
+    description.textContent = content.description || '';
 
-    const meta = document.createElement("div");
-    meta.className = "portfolio-meta";
-    const published = document.createElement("span");
-    published.textContent = item.published || "";
-    const link = document.createElement("a");
-    link.href = item.youtubeUrl;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.textContent = translations[currentLanguage].watchLabel;
+    const meta = document.createElement('div');
+    meta.className = 'portfolio-meta';
+    const published = document.createElement('span');
+    published.textContent = item.published || '';
+    const link = document.createElement('a');
+    link.href = item.youtubeUrl || '#';
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    link.textContent = watchLabel;
     meta.append(published, link);
 
     body.append(number, title, role, description, meta);
 
     article.append(media, body);
-    portfolioList.append(article);
+    portfolioListEl.appendChild(article);
   });
 }
 
-async function loadPortfolio() {
-  if (!portfolioList) return;
-
+function getYouTubeId(url) {
   try {
-    const response = await fetch("data/portfolio.json", { cache: "no-store" });
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtu.be')) return parsed.pathname.replace('/', '');
+    if (parsed.searchParams.has('v')) return parsed.searchParams.get('v');
+    const embedMatch = parsed.pathname.match(/\/(embed|shorts)\/([^/?]+)/);
+    return embedMatch ? embedMatch[2] : '';
+  } catch {
+    return '';
+  }
+}
+
+function applyEverything(lang) {
+  document.documentElement.lang = lang;
+  if (!siteConfig) return;
+  applyConfigToDom(siteConfig, lang);
+  renderNav(siteConfig, lang);
+  renderHeroMeta(siteConfig);
+  renderQuickFacts(siteConfig, lang);
+  renderWork(siteConfig, lang);
+  renderInterests(siteConfig, lang);
+  renderCountries(siteConfig, lang);
+  renderContact(siteConfig, lang);
+  renderPortfolio(lang);
+  languageButtons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.langButton === lang);
+  });
+}
+
+function setLanguage(lang) {
+  currentLanguage = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  applyEverything(lang);
+}
+
+async function loadSiteConfig() {
+  // Admin (manage.html) writes drafts here. If a draft exists we use it so the
+  // editor can preview unsaved changes directly on the live homepage. Drafts
+  // never leave the browser — they're flushed when the user exports/commits.
+  try {
+    const draft = localStorage.getItem(STORAGE_DRAFT_KEY);
+    if (draft) {
+      const parsed = JSON.parse(draft);
+      if (parsed && typeof parsed === 'object') {
+        siteConfig = parsed;
+        return;
+      }
+    }
+  } catch (_) {}
+  try {
+    const response = await fetch('data/site-config.json', { cache: 'no-store' });
+    siteConfig = response.ok ? await response.json() : null;
+  } catch {
+    siteConfig = null;
+  }
+}
+
+async function loadPortfolio() {
+  try {
+    const response = await fetch('data/portfolio.json', { cache: 'no-store' });
     portfolioItems = response.ok ? await response.json() : [];
+    if (!Array.isArray(portfolioItems)) portfolioItems = [];
   } catch {
     portfolioItems = [];
   }
-
-  renderPortfolio();
 }
 
 languageButtons.forEach((button) => {
-  button.addEventListener("click", () => setLanguage(button.dataset.langButton));
+  button.addEventListener('click', () => setLanguage(button.dataset.langButton));
 });
 
-setLanguage(currentLanguage);
-loadPortfolio();
+(async function init() {
+  await Promise.all([loadSiteConfig(), loadPortfolio()]);
+  applyEverything(currentLanguage);
+})();

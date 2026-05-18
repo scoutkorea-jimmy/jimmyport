@@ -2,81 +2,13 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>포트폴리오 관리 | 박지민</title>
-    <meta name="robots" content="noindex" />
-    <link rel="stylesheet" href="styles.css" />
+    <meta http-equiv="refresh" content="0; url=manage.html#portfolio" />
+    <title>이전 → manage.html</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="canonical" href="manage.html#portfolio" />
   </head>
   <body>
-    <header class="site-header">
-      <div class="container header-inner">
-        <a class="brand" href="index.html">박지민</a>
-        <nav class="nav-links" aria-label="관리 페이지 탐색">
-          <a href="index.html#portfolio">Portfolio</a>
-        </nav>
-      </div>
-    </header>
-
-    <main class="admin-main container">
-      <section class="admin-hero">
-        <p class="eyebrow">Portfolio Admin</p>
-        <h1>영상 포트폴리오 작성</h1>
-        <p class="lead">
-          YouTube 링크와 역할 설명을 입력하면 홈페이지에서 읽는
-          <code>data/portfolio.json</code> 형식으로 정리됩니다.
-        </p>
-      </section>
-
-      <section class="admin-layout" aria-label="포트폴리오 작성 도구">
-        <form class="portfolio-form" id="portfolio-form">
-          <label>
-            YouTube URL
-            <input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." required />
-          </label>
-          <label>
-            연도
-            <input name="published" type="text" placeholder="2026" />
-          </label>
-          <label>
-            제목 KR
-            <input name="titleKo" type="text" required />
-          </label>
-          <label>
-            내 역할 KR
-            <input name="roleKo" type="text" placeholder="기획, 촬영, 편집, 진행..." required />
-          </label>
-          <label>
-            소개 KR
-            <textarea name="descriptionKo" rows="5" required></textarea>
-          </label>
-          <label>
-            Title EN
-            <input name="titleEn" type="text" />
-          </label>
-          <label>
-            My role EN
-            <input name="roleEn" type="text" />
-          </label>
-          <label>
-            Description EN
-            <textarea name="descriptionEn" rows="5"></textarea>
-          </label>
-          <div class="form-actions">
-            <button type="submit">항목 추가</button>
-            <button type="button" id="clear-items">초기화</button>
-            <button type="button" id="download-json">JSON 다운로드</button>
-          </div>
-        </form>
-
-        <aside class="admin-output">
-          <h2>미리보기</h2>
-          <div class="admin-preview" id="admin-preview"></div>
-          <h2>JSON</h2>
-          <textarea id="json-output" rows="16" readonly></textarea>
-        </aside>
-      </section>
-    </main>
-
-    <script src="admin.js"></script>
+    <p>관리자 페이지가 <a href="manage.html#portfolio">manage.html</a> 로 통합됐습니다. 자동 이동합니다.</p>
+    <script>window.location.replace('manage.html#portfolio');</script>
   </body>
 </html>

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>관리자 | 박지민</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="manage-body">
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html">박지민</a>
+        <nav class="nav-links" aria-label="관리자 탐색">
+          <a href="index.html#top">홈으로 돌아가기</a>
+          <a href="index.html#portfolio">사이트 미리보기</a>
+        </nav>
+        <div class="manage-status" aria-live="polite">
+          <span class="manage-pill" id="draft-pill" data-state="clean">저장됨</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-main container">
+      <section class="admin-hero">
+        <p class="eyebrow">Manage · 관리자</p>
+        <h1>jimmypark.net 통합 관리</h1>
+        <p class="lead">
+          홈페이지의 모든 텍스트와 데이터를 한 곳에서 편집합니다.
+          저장은 <strong>① 로컬 드래프트(자동)</strong> →
+          <strong>② JSON 다운로드</strong> 또는
+          <strong>③ GitHub에 바로 커밋</strong> 순서로 흐릅니다.
+        </p>
+        <div class="manage-toolbar">
+          <button type="button" class="manage-btn manage-btn-ghost" id="reload-from-source">원본 다시 불러오기</button>
+          <button type="button" class="manage-btn manage-btn-ghost" id="reset-draft">드래프트 초기화</button>
+          <button type="button" class="manage-btn" id="download-site-config">site-config.json 다운로드</button>
+          <button type="button" class="manage-btn" id="download-portfolio">portfolio.json 다운로드</button>
+          <button type="button" class="manage-btn manage-btn-primary" id="commit-to-github">GitHub에 바로 커밋</button>
+        </div>
+        <p class="manage-hint">
+          드래프트는 이 브라우저의 localStorage에만 저장되며 새 탭으로 홈을 열면 미리보기로 보입니다.
+          최종 반영은 ②(파일 받아 git push) 또는 ③(아래에서 GitHub PAT 입력)으로 진행하세요.
+        </p>
+      </section>
+
+      <nav class="manage-tabs" aria-label="섹션 선택">
+        <button type="button" class="manage-tab active" data-tab="hero">Hero</button>
+        <button type="button" class="manage-tab" data-tab="quickfacts">Quick facts</button>
+        <button type="button" class="manage-tab" data-tab="global">Global · 국가</button>
+        <button type="button" class="manage-tab" data-tab="profile">Profile</button>
+        <button type="button" class="manage-tab" data-tab="work">Work</button>
+        <button type="button" class="manage-tab" data-tab="portfolio">Portfolio</button>
+        <button type="button" class="manage-tab" data-tab="interests">Interests</button>
+        <button type="button" class="manage-tab" data-tab="contact">Contact</button>
+        <button type="button" class="manage-tab" data-tab="meta">Site &amp; SEO</button>
+        <button type="button" class="manage-tab" data-tab="deploy">Deploy · GitHub</button>
+      </nav>
+
+      <section class="manage-panel active" data-panel="hero">
+        <h2>Hero 영역</h2>
+        <p class="manage-panel-hint">홈 첫 화면 — eyebrow / 이름 / 한 문장 / 메타 태그 / CTA 버튼.</p>
+        <div class="manage-grid two-col">
+          <label>Eyebrow (KR)<input data-bind="hero.eyebrow_ko" /></label>
+          <label>Eyebrow (EN)<input data-bind="hero.eyebrow_en" /></label>
+          <label>이름 / Title (KR)<input data-bind="hero.title_ko" /></label>
+          <label>Name / Title (EN)<input data-bind="hero.title_en" /></label>
+          <label class="span-2">Lead 문장 (KR)<textarea rows="3" data-bind="hero.lead_ko"></textarea></label>
+          <label class="span-2">Lead sentence (EN)<textarea rows="3" data-bind="hero.lead_en"></textarea></label>
+          <label class="span-2">메타 태그 (쉼표로 구분)<input data-bind-list="hero.meta_tags" placeholder="Media, Scouting, Community, Digital Tools" /></label>
+          <label>CTA 포트폴리오 (KR)<input data-bind="hero.cta_portfolio_ko" /></label>
+          <label>CTA portfolio (EN)<input data-bind="hero.cta_portfolio_en" /></label>
+          <label>CTA 이메일 (KR)<input data-bind="hero.cta_email_ko" /></label>
+          <label>CTA email (EN)<input data-bind="hero.cta_email_en" /></label>
+          <label>히어로 이미지 경로<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
+          <label>이미지 alt (KR)<input data-bind="hero.image_alt_ko" /></label>
+          <label class="span-2">이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
+        </div>
+      </section>
+
+      <section class="manage-panel" data-panel="quickfacts">
+        <h2>Quick facts (히어로 옆 정보 카드)</h2>
+        <p class="manage-panel-hint">라벨 / 값 쌍. 보통 3개. 새 행 추가·삭제 가능.</p>
+        <div class="manage-list" id="quickfacts-list"></div>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-quickfact">행 추가</button>
+      </section>
+
+      <section class="manage-panel" data-panel="global">
+        <h2>Global Experience · 글로벌 역량</h2>
+        <p class="manage-panel-hint">소개 카피 + 도시/국가 통계 + 국가 리스트(국기 + 이름).</p>
+        <div class="manage-grid two-col">
+          <label>Eyebrow (KR)<input data-bind="global_experience.eyebrow_ko" /></label>
+          <label>Eyebrow (EN)<input data-bind="global_experience.eyebrow_en" /></label>
+          <label>Title (KR)<input data-bind="global_experience.title_ko" /></label>
+          <label>Title (EN)<input data-bind="global_experience.title_en" /></label>
+          <label class="span-2">본문 (KR)<textarea rows="4" data-bind="global_experience.body_ko"></textarea></label>
+          <label class="span-2">Body (EN)<textarea rows="4" data-bind="global_experience.body_en"></textarea></label>
+          <label>도시 통계 라벨 (KR)<input data-bind="global_experience.stat_cities_label_ko" placeholder="30+" /></label>
+          <label>도시 통계 라벨 (EN)<input data-bind="global_experience.stat_cities_label_en" placeholder="30+" /></label>
+          <label>국가 수 단위 (KR)<input data-bind="global_experience.stat_countries_label_ko" placeholder="개국" /></label>
+          <label>국가 수 단위 (EN)<input data-bind="global_experience.stat_countries_label_en" placeholder="countries" /></label>
+          <label>도시 단어 (KR)<input data-bind="global_experience.stat_cities_caption_ko" placeholder="도시" /></label>
+          <label>도시 단어 (EN)<input data-bind="global_experience.stat_cities_caption_en" placeholder="cities" /></label>
+        </div>
+        <h3 class="manage-subhead">국가 목록</h3>
+        <p class="manage-panel-hint">국가는 자유롭게 추가/삭제할 수 있고, 상단의 "국가 수"는 자동으로 갱신됩니다.</p>
+        <div class="manage-list" id="countries-list"></div>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-country">국가 추가</button>
+      </section>
+
+      <section class="manage-panel" data-panel="profile">
+        <h2>Profile</h2>
+        <div class="manage-grid two-col">
+          <label class="span-2">Title (KR)<input data-bind="profile.title_ko" /></label>
+          <label class="span-2">Title (EN)<input data-bind="profile.title_en" /></label>
+          <label class="span-2">본문 (KR)<textarea rows="6" data-bind="profile.body_ko"></textarea></label>
+          <label class="span-2">Body (EN)<textarea rows="6" data-bind="profile.body_en"></textarea></label>
+        </div>
+      </section>
+
+      <section class="manage-panel" data-panel="work">
+        <h2>Work · 주요 작업</h2>
+        <div class="manage-grid two-col">
+          <label>섹션 제목 (KR)<input data-bind="work.title_ko" /></label>
+          <label>Section title (EN)<input data-bind="work.title_en" /></label>
+        </div>
+        <h3 class="manage-subhead">작업 항목</h3>
+        <div class="manage-list" id="work-items-list"></div>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-work-item">항목 추가</button>
+      </section>
+
+      <section class="manage-panel" data-panel="portfolio">
+        <h2>Video Portfolio</h2>
+        <p class="manage-panel-hint">YouTube 영상 한 줄 추가 → 자동 썸네일 미리보기. 항목은 위로 쌓입니다.</p>
+        <div class="manage-grid two-col portfolio-intro-grid">
+          <label>섹션 제목 (KR)<input data-bind="portfolio_intro.title_ko" /></label>
+          <label>Section title (EN)<input data-bind="portfolio_intro.title_en" /></label>
+          <label class="span-2">인트로 (KR)<textarea rows="3" data-bind="portfolio_intro.intro_ko"></textarea></label>
+          <label class="span-2">Intro (EN)<textarea rows="3" data-bind="portfolio_intro.intro_en"></textarea></label>
+        </div>
+
+        <form class="portfolio-form" id="portfolio-form">
+          <label>YouTube URL<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." required /></label>
+          <label>연도 / Year<input name="published" type="text" placeholder="2026" /></label>
+          <label>제목 (KR)<input name="titleKo" type="text" required /></label>
+          <label>내 역할 (KR)<input name="roleKo" type="text" placeholder="기획, 촬영, 편집, 진행..." required /></label>
+          <label class="span-2">소개 (KR)<textarea name="descriptionKo" rows="4" required></textarea></label>
+          <label>Title (EN)<input name="titleEn" type="text" /></label>
+          <label>My role (EN)<input name="roleEn" type="text" /></label>
+          <label class="span-2">Description (EN)<textarea name="descriptionEn" rows="4"></textarea></label>
+          <div class="form-actions">
+            <button type="submit" class="manage-btn manage-btn-primary">항목 추가</button>
+            <button type="button" class="manage-btn manage-btn-ghost" id="clear-portfolio">전부 비우기</button>
+          </div>
+        </form>
+
+        <h3 class="manage-subhead">현재 항목</h3>
+        <div class="admin-preview" id="portfolio-preview"></div>
+      </section>
+
+      <section class="manage-panel" data-panel="interests">
+        <h2>Interests · 관심사</h2>
+        <div class="manage-grid two-col">
+          <label>섹션 제목 (KR)<input data-bind="interests.title_ko" /></label>
+          <label>Section title (EN)<input data-bind="interests.title_en" /></label>
+        </div>
+        <h3 class="manage-subhead">관심사 항목</h3>
+        <div class="manage-list" id="interests-list"></div>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-interest">항목 추가</button>
+      </section>
+
+      <section class="manage-panel" data-panel="contact">
+        <h2>Contact</h2>
+        <div class="manage-grid two-col">
+          <label>Eyebrow (KR)<input data-bind="contact.eyebrow_ko" /></label>
+          <label>Eyebrow (EN)<input data-bind="contact.eyebrow_en" /></label>
+          <label>Title (KR)<input data-bind="contact.title_ko" /></label>
+          <label>Title (EN)<input data-bind="contact.title_en" /></label>
+          <label class="span-2">본문 (KR)<textarea rows="3" data-bind="contact.body_ko"></textarea></label>
+          <label class="span-2">Body (EN)<textarea rows="3" data-bind="contact.body_en"></textarea></label>
+          <label class="span-2">대표 이메일<input data-bind="contact.email" type="email" placeholder="hello@jimmypark.net" /></label>
+        </div>
+      </section>
+
+      <section class="manage-panel" data-panel="meta">
+        <h2>Site · SEO 메타</h2>
+        <div class="manage-grid two-col">
+          <label>Brand (KR)<input data-bind="brand.ko" /></label>
+          <label>Brand (EN)<input data-bind="brand.en" /></label>
+          <label class="span-2">페이지 Title (KR)<input data-bind="meta.title_ko" /></label>
+          <label class="span-2">페이지 Title (EN)<input data-bind="meta.title_en" /></label>
+          <label class="span-2">설명 (KR)<textarea rows="3" data-bind="meta.description_ko"></textarea></label>
+          <label class="span-2">Description (EN)<textarea rows="3" data-bind="meta.description_en"></textarea></label>
+        </div>
+      </section>
+
+      <section class="manage-panel" data-panel="deploy">
+        <h2>Deploy · GitHub 바로 커밋</h2>
+        <p class="manage-panel-hint">
+          이 페이지에서 GitHub Personal Access Token(PAT)을 입력하면
+          <code>data/site-config.json</code> 과 <code>data/portfolio.json</code> 을
+          저장소에 직접 커밋합니다. PAT은 이 브라우저의 sessionStorage에만 머무릅니다.
+        </p>
+        <div class="manage-grid two-col">
+          <label class="span-2">GitHub 저장소 (owner/repo)<input data-bind-deploy="repo" placeholder="scoutkorea-jimmy/jimmyport" /></label>
+          <label>브랜치<input data-bind-deploy="branch" placeholder="main" /></label>
+          <label>커밋 메시지<input data-bind-deploy="message" placeholder="chore(content): update site-config from manage admin" /></label>
+          <label class="span-2">GitHub Personal Access Token <small>(Contents: write 권한 fine-grained 또는 classic repo)</small><input data-bind-deploy="pat" type="password" placeholder="github_pat_..." autocomplete="off" /></label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="manage-btn manage-btn-primary" id="github-commit-action">GitHub에 두 파일 커밋</button>
+          <button type="button" class="manage-btn manage-btn-ghost" id="github-forget-pat">PAT 잊기</button>
+        </div>
+        <div class="manage-deploy-log" id="github-log" aria-live="polite"></div>
+        <details class="manage-help">
+          <summary>PAT 만드는 방법</summary>
+          <ol>
+            <li>github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</li>
+            <li>Repository access: jimmyport 단일 저장소만</li>
+            <li>Repository permissions → Contents: <strong>Read and write</strong></li>
+            <li>만들어진 <code>github_pat_…</code> 토큰을 위 입력란에 붙여넣으세요.</li>
+            <li>토큰은 이 브라우저의 sessionStorage에만 남고, 탭을 닫으면 사라집니다.</li>
+          </ol>
+        </details>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© <span id="year"></span> 박지민 · Manage</span>
+        <p class="footer-build" data-version-status="checking">
+          Site <span class="site-build-version">V0.0.0</span> · Admin <span class="admin-build-version">V0.0.0</span>
+          <span class="footer-build-status" aria-live="polite"></span>
+        </p>
+        <div class="footer-links">
+          <a href="index.html">사이트 보기</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="manage.js"></script>
+    <script src="version-watch.js"></script>
+  </body>
+</html>
