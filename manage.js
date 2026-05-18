@@ -158,19 +158,47 @@ function renderCountriesEditor() {
   const rows = siteConfig.global_experience.countries || (siteConfig.global_experience.countries = []);
   host.innerHTML = '';
   rows.forEach((row, idx) => {
+    const visits = Math.max(1, parseInt(row.visits, 10) || 1);
     const div = document.createElement('div');
     div.className = 'manage-row';
+    if (visits >= 2) div.setAttribute('data-multi', '1');
     div.innerHTML = `
       <div class="manage-row-grid country-row-grid">
-        <label>국기 (이모지)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="flag" value="${escapeHtml(row.flag || '')}" maxlength="8" /></label>
+        <label>국기<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="flag" value="${escapeHtml(row.flag || '')}" maxlength="8" /></label>
         <label>코드<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="code" value="${escapeHtml(row.code || '')}" maxlength="4" /></label>
         <label>국가명 (KR)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
         <label>Country (EN)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
+        <label>방문 횟수<input type="number" min="1" max="20" step="1" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="visits" data-row-numeric="1" value="${visits}" /></label>
       </div>
       <div class="manage-row-actions">
         <button type="button" data-row-action="move-up" data-row-target="global_experience.countries" data-row-index="${idx}">↑</button>
         <button type="button" data-row-action="move-down" data-row-target="global_experience.countries" data-row-index="${idx}">↓</button>
         <button type="button" class="manage-row-delete" data-row-action="delete" data-row-target="global_experience.countries" data-row-index="${idx}">삭제</button>
+      </div>`;
+    host.appendChild(div);
+  });
+}
+
+function renderNavEditor() {
+  const host = document.querySelector('#nav-list');
+  if (!host) return;
+  if (!Array.isArray(siteConfig.nav)) siteConfig.nav = [];
+  const rows = siteConfig.nav;
+  host.innerHTML = '';
+  rows.forEach((row, idx) => {
+    const div = document.createElement('div');
+    div.className = 'manage-row';
+    div.innerHTML = `
+      <div class="manage-row-grid country-row-grid">
+        <label>키 (식별자)<input data-row="nav" data-row-index="${idx}" data-row-key="key" value="${escapeHtml(row.key || '')}" maxlength="20" /></label>
+        <label>링크 (예: #profile)<input data-row="nav" data-row-index="${idx}" data-row-key="href" value="${escapeHtml(row.href || '')}" /></label>
+        <label>라벨 (KR)<input data-row="nav" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
+        <label>Label (EN)<input data-row="nav" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
+      </div>
+      <div class="manage-row-actions">
+        <button type="button" data-row-action="move-up" data-row-target="nav" data-row-index="${idx}">↑</button>
+        <button type="button" data-row-action="move-down" data-row-target="nav" data-row-index="${idx}">↓</button>
+        <button type="button" class="manage-row-delete" data-row-action="delete" data-row-target="nav" data-row-index="${idx}">삭제</button>
       </div>`;
     host.appendChild(div);
   });
@@ -234,7 +262,14 @@ document.addEventListener('input', (event) => {
   const list = deepGet(siteConfig, path);
   if (!Array.isArray(list)) return;
   if (!list[idx]) list[idx] = {};
-  list[idx][key] = target.value;
+  if (target.dataset.rowNumeric === '1') {
+    const n = parseInt(target.value, 10);
+    list[idx][key] = Number.isFinite(n) && n > 0 ? n : 1;
+    // Re-render the row so its data-multi badge state flips immediately.
+    if (path === 'global_experience.countries') renderCountriesEditor();
+  } else {
+    list[idx][key] = target.value;
+  }
   saveDraft();
 });
 
@@ -293,6 +328,7 @@ function rerenderEditors() {
   renderCountriesEditor();
   renderWorkEditor();
   renderInterestsEditor();
+  renderNavEditor();
   renderPortfolioPreview();
 }
 

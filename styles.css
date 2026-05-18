@@ -1116,3 +1116,221 @@ html.gw-version-locked body { overflow: hidden !important; }
   line-height: 1.5;
   margin: 12px 0 0;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   v0.003 polish — multi-visit badge, motion, focus, dark auto
+   ───────────────────────────────────────────────────────────── */
+
+/* Motion + focus tokens */
+:root {
+  --gw-ease: cubic-bezier(.22,.61,.36,1);
+  --gw-focus: 0 0 0 3px rgba(49,95,84,0.30);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--gw-focus);
+  border-radius: 2px;
+}
+
+.text-link,
+.mail-link,
+.nav-links a,
+.footer-links a {
+  transition: color 160ms var(--gw-ease), border-color 160ms var(--gw-ease), transform 160ms var(--gw-ease);
+}
+.text-link:hover,
+.mail-link:hover,
+.footer-links a:hover { transform: translateY(-1px); }
+
+/* Hero meta chips — subtle lift on hover */
+.hero-meta span {
+  transition: border-color 180ms var(--gw-ease), background 180ms var(--gw-ease), transform 180ms var(--gw-ease);
+}
+.hero-meta span:hover {
+  border-color: var(--accent);
+  background: rgba(255,255,255,0.92);
+  transform: translateY(-1px);
+}
+
+/* Global section refresh — stronger stats card + multi-visit chip */
+.global-section .global-stats {
+  align-items: flex-end;
+  gap: 28px;
+  padding: 18px 0 24px;
+}
+
+.global-stat {
+  align-items: baseline;
+  gap: 6px;
+  position: relative;
+}
+
+.global-stat strong {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-ink) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  letter-spacing: -0.02em;
+}
+
+.global-stat-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.country-chip {
+  position: relative;
+  transition: border-color 160ms var(--gw-ease),
+              transform 160ms var(--gw-ease),
+              box-shadow 160ms var(--gw-ease),
+              background 160ms var(--gw-ease);
+}
+.country-chip:hover {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 16px rgba(23, 25, 21, 0.06);
+}
+
+.country-chip[data-multi] {
+  border-color: rgba(49, 95, 84, 0.55);
+  background: linear-gradient(135deg, rgba(49,95,84,0.06), rgba(255,255,255,0.6));
+}
+
+.country-multi-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-left: auto;
+  padding: 3px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(49,95,84,0.25);
+}
+
+/* Section reveal on first paint (no JS dep — pure CSS fade-up) */
+@media (prefers-reduced-motion: no-preference) {
+  .section,
+  .global-section,
+  .hero,
+  .contact {
+    animation: gwSectionFade 480ms var(--gw-ease) both;
+  }
+  .section:nth-of-type(2)     { animation-delay: 60ms; }
+  .section:nth-of-type(3)     { animation-delay: 120ms; }
+  @keyframes gwSectionFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Manage admin row visual for multi-visit countries */
+.manage-row[data-multi] {
+  border-color: rgba(49, 95, 84, 0.45);
+  background: linear-gradient(135deg, rgba(49,95,84,0.06), rgba(255,255,255,0.66));
+}
+.manage-row[data-multi]::before {
+  background: var(--accent);
+  border-radius: 999px;
+  color: #fff;
+  content: '★';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  height: 18px;
+  left: -8px;
+  position: absolute;
+  top: -8px;
+  width: 18px;
+  box-shadow: 0 2px 5px rgba(49,95,84,0.25);
+  z-index: 1;
+}
+.manage-row { position: relative; }
+
+.manage-tab {
+  transition: background 160ms var(--gw-ease), color 160ms var(--gw-ease), border-color 160ms var(--gw-ease);
+}
+
+/* Buttons everywhere — unified subtle press */
+.manage-btn,
+.gw-vum-btn,
+.text-link,
+.form-actions button {
+  transition: transform 140ms var(--gw-ease), box-shadow 140ms var(--gw-ease), opacity 140ms var(--gw-ease);
+}
+
+/* Automatic dark mode — only kicks in if user OS prefers dark. Hand-tuned to
+   keep the light-mode design language intact, just inverted. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11140f;
+    --surface: #1a1e18;
+    --ink: #f1efe8;
+    --muted: #9aa094;
+    --soft: #20241d;
+    --line: #2e342a;
+    --accent: #8fcab8;
+    --accent-ink: #aedacb;
+    color-scheme: dark;
+  }
+  body {
+    background:
+      radial-gradient(circle at 85% 10%, rgba(143, 202, 184, 0.10), transparent 28rem),
+      linear-gradient(180deg, #11140f 0%, #15180f 100%);
+  }
+  .header-inner {
+    background: rgba(26, 30, 24, 0.78);
+    border-color: rgba(46, 52, 42, 0.85);
+  }
+  .country-chip { background: rgba(26, 30, 24, 0.7); }
+  .country-chip[data-multi] {
+    background: linear-gradient(135deg, rgba(143,202,184,0.10), rgba(26,30,24,0.55));
+    border-color: rgba(143, 202, 184, 0.55);
+  }
+  .hero-meta span { background: rgba(26, 30, 24, 0.6); }
+  .portrait-panel,
+  .portfolio-item,
+  .empty-state,
+  .interests li { background: rgba(26, 30, 24, 0.6); }
+  .play-mark {
+    background: rgba(17, 20, 15, 0.94);
+    color: var(--ink);
+    border-color: rgba(46, 52, 42, 0.55);
+  }
+  .contact {
+    background: #0a0d08;
+    color: var(--ink);
+  }
+  .mail-link { border-color: rgba(241, 239, 232, 0.34); }
+  .manage-pill { background: var(--soft); border-color: var(--line); }
+  .manage-tab.active { background: var(--surface); border-color: var(--line); }
+  .manage-row,
+  .admin-card,
+  .manage-help { background: rgba(26, 30, 24, 0.6); border-color: var(--line); }
+  .manage-row[data-multi] {
+    background: linear-gradient(135deg, rgba(143,202,184,0.10), rgba(26,30,24,0.6));
+    border-color: rgba(143, 202, 184, 0.55);
+  }
+  .footer-build[data-version-status="live"] .footer-build-status { color: #7fd29c; }
+}
+
+/* Honour reduced-motion preference everywhere */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

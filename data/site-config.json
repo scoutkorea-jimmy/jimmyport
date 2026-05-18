@@ -50,25 +50,27 @@
     "stat_countries_label_en": "countries",
     "stat_cities_caption_ko": "도시",
     "stat_cities_caption_en": "cities",
+    "multi_visit_label_ko": "재방문",
+    "multi_visit_label_en": "Multi-visit",
     "countries": [
-      { "code": "KR", "flag": "🇰🇷", "ko": "대한민국",        "en": "Korea" },
-      { "code": "JP", "flag": "🇯🇵", "ko": "일본",            "en": "Japan" },
-      { "code": "CN", "flag": "🇨🇳", "ko": "중국",            "en": "China" },
-      { "code": "HK", "flag": "🇭🇰", "ko": "홍콩",            "en": "Hong Kong" },
-      { "code": "TW", "flag": "🇹🇼", "ko": "대만",            "en": "Taiwan" },
-      { "code": "MO", "flag": "🇲🇴", "ko": "마카오",          "en": "Macau" },
-      { "code": "MN", "flag": "🇲🇳", "ko": "몽골",            "en": "Mongolia" },
-      { "code": "VN", "flag": "🇻🇳", "ko": "베트남",          "en": "Vietnam" },
-      { "code": "MY", "flag": "🇲🇾", "ko": "말레이시아",      "en": "Malaysia" },
-      { "code": "BD", "flag": "🇧🇩", "ko": "방글라데시",      "en": "Bangladesh" },
-      { "code": "IN", "flag": "🇮🇳", "ko": "인도",            "en": "India" },
-      { "code": "AE", "flag": "🇦🇪", "ko": "아랍에미리트",    "en": "UAE" },
-      { "code": "QA", "flag": "🇶🇦", "ko": "카타르",          "en": "Qatar" },
-      { "code": "BH", "flag": "🇧🇭", "ko": "바레인",          "en": "Bahrain" },
-      { "code": "KW", "flag": "🇰🇼", "ko": "쿠웨이트",        "en": "Kuwait" },
-      { "code": "OM", "flag": "🇴🇲", "ko": "오만",            "en": "Oman" },
-      { "code": "ZA", "flag": "🇿🇦", "ko": "남아프리카공화국", "en": "South Africa" },
-      { "code": "US", "flag": "🇺🇸", "ko": "미국",            "en": "USA" }
+      { "code": "KR", "flag": "🇰🇷", "ko": "대한민국",        "en": "Korea",        "visits": 1 },
+      { "code": "JP", "flag": "🇯🇵", "ko": "일본",            "en": "Japan",        "visits": 1 },
+      { "code": "CN", "flag": "🇨🇳", "ko": "중국",            "en": "China",        "visits": 2 },
+      { "code": "HK", "flag": "🇭🇰", "ko": "홍콩",            "en": "Hong Kong",    "visits": 2 },
+      { "code": "TW", "flag": "🇹🇼", "ko": "대만",            "en": "Taiwan",       "visits": 2 },
+      { "code": "MO", "flag": "🇲🇴", "ko": "마카오",          "en": "Macau",        "visits": 1 },
+      { "code": "MN", "flag": "🇲🇳", "ko": "몽골",            "en": "Mongolia",     "visits": 1 },
+      { "code": "VN", "flag": "🇻🇳", "ko": "베트남",          "en": "Vietnam",      "visits": 1 },
+      { "code": "MY", "flag": "🇲🇾", "ko": "말레이시아",      "en": "Malaysia",     "visits": 1 },
+      { "code": "BD", "flag": "🇧🇩", "ko": "방글라데시",      "en": "Bangladesh",   "visits": 2 },
+      { "code": "IN", "flag": "🇮🇳", "ko": "인도",            "en": "India",        "visits": 1 },
+      { "code": "AE", "flag": "🇦🇪", "ko": "아랍에미리트",    "en": "UAE",          "visits": 1 },
+      { "code": "QA", "flag": "🇶🇦", "ko": "카타르",          "en": "Qatar",        "visits": 1 },
+      { "code": "BH", "flag": "🇧🇭", "ko": "바레인",          "en": "Bahrain",      "visits": 1 },
+      { "code": "KW", "flag": "🇰🇼", "ko": "쿠웨이트",        "en": "Kuwait",       "visits": 1 },
+      { "code": "OM", "flag": "🇴🇲", "ko": "오만",            "en": "Oman",         "visits": 1 },
+      { "code": "ZA", "flag": "🇿🇦", "ko": "남아프리카공화국", "en": "South Africa", "visits": 2 },
+      { "code": "US", "flag": "🇺🇸", "ko": "미국",            "en": "USA",          "visits": 1 }
     ]
   },
   "profile": {
@@ -122,7 +124,7 @@
   "footer": {
     "manage_link_ko": "Manage",
     "manage_link_en": "Manage",
-    "back_to_top_ko": "Back to top",
+    "back_to_top_ko": "맨 위로",
     "back_to_top_en": "Back to top"
   }
 }

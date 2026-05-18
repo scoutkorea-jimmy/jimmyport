@@ -53,6 +53,7 @@
         <button type="button" class="manage-tab" data-tab="portfolio">Portfolio</button>
         <button type="button" class="manage-tab" data-tab="interests">Interests</button>
         <button type="button" class="manage-tab" data-tab="contact">Contact</button>
+        <button type="button" class="manage-tab" data-tab="chrome">Nav · Footer</button>
         <button type="button" class="manage-tab" data-tab="meta">Site &amp; SEO</button>
         <button type="button" class="manage-tab" data-tab="deploy">Deploy · GitHub</button>
       </nav>
@@ -101,9 +102,11 @@
           <label>국가 수 단위 (EN)<input data-bind="global_experience.stat_countries_label_en" placeholder="countries" /></label>
           <label>도시 단어 (KR)<input data-bind="global_experience.stat_cities_caption_ko" placeholder="도시" /></label>
           <label>도시 단어 (EN)<input data-bind="global_experience.stat_cities_caption_en" placeholder="cities" /></label>
+          <label>재방문 라벨 (KR)<input data-bind="global_experience.multi_visit_label_ko" placeholder="재방문" /></label>
+          <label>Multi-visit label (EN)<input data-bind="global_experience.multi_visit_label_en" placeholder="Multi-visit" /></label>
         </div>
         <h3 class="manage-subhead">국가 목록</h3>
-        <p class="manage-panel-hint">국가는 자유롭게 추가/삭제할 수 있고, 상단의 "국가 수"는 자동으로 갱신됩니다.</p>
+        <p class="manage-panel-hint">국가는 자유롭게 추가/삭제할 수 있고, 상단의 "국가 수"는 자동으로 갱신됩니다. 방문 횟수가 2 이상이면 칩에 ★ 배지가 붙고 통계 옆에 "재방문 N개국"이 자동 표시됩니다.</p>
         <div class="manage-list" id="countries-list"></div>
         <button type="button" class="manage-btn manage-btn-ghost" id="add-country">국가 추가</button>
       </section>
@@ -137,6 +140,14 @@
           <label>Section title (EN)<input data-bind="portfolio_intro.title_en" /></label>
           <label class="span-2">인트로 (KR)<textarea rows="3" data-bind="portfolio_intro.intro_ko"></textarea></label>
           <label class="span-2">Intro (EN)<textarea rows="3" data-bind="portfolio_intro.intro_en"></textarea></label>
+          <label>"내 역할" 라벨 (KR)<input data-bind="portfolio_intro.role_label_ko" /></label>
+          <label>"My role" label (EN)<input data-bind="portfolio_intro.role_label_en" /></label>
+          <label>"보기" 라벨 (KR)<input data-bind="portfolio_intro.watch_label_ko" /></label>
+          <label>"Watch" label (EN)<input data-bind="portfolio_intro.watch_label_en" /></label>
+          <label class="span-2">비어있을 때 제목 (KR)<input data-bind="portfolio_intro.empty_title_ko" /></label>
+          <label class="span-2">Empty title (EN)<input data-bind="portfolio_intro.empty_title_en" /></label>
+          <label class="span-2">비어있을 때 안내 (KR)<textarea rows="2" data-bind="portfolio_intro.empty_hint_ko"></textarea></label>
+          <label class="span-2">Empty hint (EN)<textarea rows="2" data-bind="portfolio_intro.empty_hint_en"></textarea></label>
         </div>
 
         <form class="portfolio-form" id="portfolio-form">
@@ -179,6 +190,20 @@
           <label class="span-2">본문 (KR)<textarea rows="3" data-bind="contact.body_ko"></textarea></label>
           <label class="span-2">Body (EN)<textarea rows="3" data-bind="contact.body_en"></textarea></label>
           <label class="span-2">대표 이메일<input data-bind="contact.email" type="email" placeholder="hello@jimmypark.net" /></label>
+        </div>
+      </section>
+
+      <section class="manage-panel" data-panel="chrome">
+        <h2>Nav · Footer 라벨</h2>
+        <p class="manage-panel-hint">상단 네비게이션 라벨과 푸터 링크 텍스트입니다. 이중 언어 모두 채워주세요.</p>
+        <h3 class="manage-subhead">상단 네비게이션 (5개 링크)</h3>
+        <div class="manage-list" id="nav-list"></div>
+        <h3 class="manage-subhead">푸터 링크</h3>
+        <div class="manage-grid two-col">
+          <label>Manage 링크 (KR)<input data-bind="footer.manage_link_ko" /></label>
+          <label>Manage link (EN)<input data-bind="footer.manage_link_en" /></label>
+          <label>맨 위로 (KR)<input data-bind="footer.back_to_top_ko" /></label>
+          <label>Back to top (EN)<input data-bind="footer.back_to_top_en" /></label>
         </div>
       </section>
 
@@ -229,7 +254,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V0.0.0</span> · Admin <span class="admin-build-version">V0.0.0</span>
+          Site <span class="site-build-version">V00.003.00</span> · Admin <span class="admin-build-version">V00.002.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

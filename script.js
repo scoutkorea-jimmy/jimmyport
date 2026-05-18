@@ -111,6 +111,14 @@ function renderNav(config, lang) {
   });
 }
 
+function renderFooter(config, lang) {
+  if (!config || !config.footer) return;
+  const manageEl = document.querySelector('[data-footer-role="manage-link"]');
+  const topEl    = document.querySelector('[data-footer-role="back-to-top"]');
+  if (manageEl) manageEl.textContent = pickLang(config.footer, 'manage_link', lang) || 'Manage';
+  if (topEl)    topEl.textContent    = pickLang(config.footer, 'back_to_top', lang) || 'Back to top';
+}
+
 function renderHeroMeta(config) {
   if (!heroMetaEl || !config || !config.hero) return;
   const tags = Array.isArray(config.hero.meta_tags) ? config.hero.meta_tags : [];
@@ -168,13 +176,18 @@ function renderInterests(config, lang) {
 
 function renderCountries(config, lang) {
   if (!countryGridEl || !config || !config.global_experience) return;
-  const list = Array.isArray(config.global_experience.countries)
-    ? config.global_experience.countries
-    : [];
+  const ge = config.global_experience;
+  const list = Array.isArray(ge.countries) ? ge.countries : [];
+  const multiLabel = pickLang(ge, 'multi_visit_label', lang) || (lang === 'ko' ? '재방문' : 'Multi-visit');
   countryGridEl.innerHTML = '';
   list.forEach((country) => {
+    const visits = Math.max(1, parseInt(country.visits, 10) || 1);
     const li = document.createElement('li');
     li.className = 'country-chip';
+    if (visits >= 2) {
+      li.setAttribute('data-multi', '1');
+      li.setAttribute('title', `${multiLabel} · ${visits}${lang === 'ko' ? '회 이상' : '× or more'}`);
+    }
     const flag = document.createElement('span');
     flag.className = 'country-flag';
     flag.setAttribute('aria-hidden', 'true');
@@ -183,13 +196,35 @@ function renderCountries(config, lang) {
     name.className = 'country-name';
     name.textContent = country[lang] || country[FALLBACK_LANG] || country.code || '';
     li.append(flag, name);
+    if (visits >= 2) {
+      const badge = document.createElement('span');
+      badge.className = 'country-multi-badge';
+      badge.setAttribute('aria-label', multiLabel);
+      badge.textContent = visits > 2 ? `${visits}×` : '★';
+      li.appendChild(badge);
+    }
     countryGridEl.appendChild(li);
   });
   // Update country count statistic to reflect actual list length, so editors
   // can add/remove countries from the admin without remembering to also tweak
   // the displayed number.
   const countEl = document.querySelector('#global-stat-countries');
-  if (countEl) countEl.textContent = String(list.length || config.global_experience.stat_countries || 0);
+  if (countEl) countEl.textContent = String(list.length || ge.stat_countries || 0);
+  // Also annotate the multi-visit count next to the country stat for
+  // operators who want a quick "how many were repeat visits" cue.
+  const multiCount = list.filter((c) => (parseInt(c.visits, 10) || 1) >= 2).length;
+  const noteEl = document.querySelector('#global-stat-multi');
+  if (noteEl) {
+    if (multiCount > 0) {
+      noteEl.hidden = false;
+      noteEl.textContent = lang === 'ko'
+        ? `· 재방문 ${multiCount}개국`
+        : `· ${multiCount} repeat visits`;
+    } else {
+      noteEl.hidden = true;
+      noteEl.textContent = '';
+    }
+  }
 }
 
 function renderContact(config, lang) {
@@ -308,6 +343,7 @@ function applyEverything(lang) {
   renderInterests(siteConfig, lang);
   renderCountries(siteConfig, lang);
   renderContact(siteConfig, lang);
+  renderFooter(siteConfig, lang);
   renderPortfolio(lang);
   languageButtons.forEach((button) => {
     button.classList.toggle('active', button.dataset.langButton === lang);
