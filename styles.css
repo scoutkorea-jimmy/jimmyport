@@ -36,18 +36,18 @@
 
 :root {
   color-scheme: light;
-  /* WARM INTELLECTUAL palette
-     main #6A2E3B · sub #B58A72 · bg #F3ECE4
-     accents #4A3A34 · #9C5A63 · #A38C7D · #D9C8B6 · #FAF7F3 */
-  --bg: #f3ece4;
-  --surface: #faf7f3;
-  --ink: #4a3a34;
-  --muted: #a38c7d;
-  --soft: #d9c8b6;
-  --line: #d9c8b6;
-  --accent: #6a2e3b;
-  --accent-ink: #9c5a63;
-  --sub: #b58a72;
+  /* Editorial Archive palette — see CLAUDE.md + data/design.json
+     Burgundy highlight only. Warm paper bg, deep charcoal text,
+     warm gray secondary, soft neutral divider. PDF/print safe. */
+  --bg: #f6f3ef;
+  --surface: #faf8f4;
+  --ink: #1e1e1e;
+  --muted: #6b6763;
+  --soft: #ebe7e0;
+  --line: #d8d2cb;
+  --accent: #6e1f32;
+  --accent-ink: #8a3445;
+  --sub: #6b6763;
   --max: 1160px;
 
   /* Weight tokens — use these instead of raw numbers so the hierarchy stays
@@ -93,7 +93,7 @@ html {
 
 body {
   background:
-    radial-gradient(circle at 85% 10%, rgba(106, 46, 59, 0.10), transparent 28rem),
+    radial-gradient(circle at 85% 10%, rgba(110, 31, 50, 0.10), transparent 28rem),
     linear-gradient(180deg, #f3ece4 0%, #ece2d6 100%);
   color: var(--ink);
   margin: 0;
@@ -133,9 +133,9 @@ p {
 
 .header-inner {
   align-items: center;
-  background: rgba(250, 247, 243, 0.78);
+  background: rgba(246, 243, 239, 0.78);
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(217, 200, 182, 0.88);
+  border: 1px solid rgba(216, 210, 203, 0.88);
   display: grid;
   grid-template-columns: auto 1fr;
   min-height: 64px;
@@ -252,7 +252,7 @@ h3 {
 }
 
 .hero-meta span {
-  background: rgba(250, 247, 243, 0.72);
+  background: rgba(246, 243, 239, 0.72);
   border: 1px solid var(--line);
   padding: 9px 12px;
 }
@@ -287,9 +287,9 @@ h3 {
 .text-link:hover::after { transform: translateX(3px); }
 
 .portrait-panel {
-  background: rgba(250, 247, 243, 0.74);
+  background: rgba(246, 243, 239, 0.74);
   border: 1px solid var(--line);
-  box-shadow: 0 24px 80px rgba(74, 58, 52, 0.08);
+  box-shadow: 0 24px 80px rgba(30, 30, 30, 0.08);
   padding: 16px;
 }
 
@@ -382,7 +382,7 @@ dd {
 
 .portfolio-item,
 .empty-state {
-  background: rgba(250, 247, 243, 0.68);
+  background: rgba(246, 243, 239, 0.68);
   border: 1px solid var(--line);
 }
 
@@ -414,8 +414,8 @@ dd {
 
 .play-mark {
   align-items: center;
-  background: rgba(243, 236, 228, 0.92);
-  border: 1px solid rgba(74, 58, 52, 0.14);
+  background: rgba(246, 243, 239, 0.92);
+  border: 1px solid rgba(30, 30, 30, 0.14);
   bottom: 16px;
   color: var(--ink);
   display: inline-flex;
@@ -495,7 +495,7 @@ dd {
 }
 
 .interests li {
-  background: rgba(250, 247, 243, 0.6);
+  background: rgba(246, 243, 239, 0.6);
   border: 1px solid var(--line);
   padding: 18px 20px;
 }
@@ -520,7 +520,7 @@ dd {
 }
 
 .contact p:not(.eyebrow) {
-  color: rgba(243, 236, 228, 0.68);
+  color: rgba(246, 243, 239, 0.68);
   line-height: 1.7;
   margin-bottom: 0;
 }
@@ -655,7 +655,7 @@ dd {
 
 .admin-card {
   align-items: center;
-  background: rgba(250, 247, 243, 0.68);
+  background: rgba(246, 243, 239, 0.68);
   border: 1px solid var(--line);
   display: grid;
   gap: 14px;
@@ -812,7 +812,7 @@ dd {
 
 .country-chip {
   align-items: center;
-  background: rgba(250, 247, 243, 0.66);
+  background: rgba(246, 243, 239, 0.66);
   border: 1px solid var(--line);
   display: flex;
   gap: 10px;
@@ -1018,7 +1018,7 @@ dd {
 }
 
 .manage-row {
-  background: rgba(250, 247, 243, 0.66);
+  background: rgba(246, 243, 239, 0.66);
   border: 1px solid var(--line);
   display: grid;
   gap: 12px;
@@ -1236,7 +1236,7 @@ html.gw-version-locked body { overflow: hidden !important; }
 /* Motion + focus tokens */
 :root {
   --gw-ease: cubic-bezier(.22,.61,.36,1);
-  --gw-focus: 0 0 0 3px rgba(106, 46, 59, 0.32);
+  --gw-focus: 0 0 0 3px rgba(110, 31, 50, 0.32);
 }
 
 a:focus-visible,
@@ -1266,7 +1266,7 @@ select:focus-visible,
 }
 .hero-meta span:hover {
   border-color: var(--accent);
-  background: rgba(250,247,243,0.92);
+  background: rgba(246,243,239,0.92);
   transform: translateY(-1px);
 }
 
@@ -1308,13 +1308,13 @@ select:focus-visible,
               background 160ms var(--gw-ease);
 }
 .country-chip:hover {
-  background: rgba(250, 247, 243, 0.92);
-  box-shadow: 0 6px 16px rgba(74, 58, 52, 0.06);
+  background: rgba(246, 243, 239, 0.92);
+  box-shadow: 0 6px 16px rgba(30, 30, 30, 0.06);
 }
 
 .country-chip[data-multi] {
-  border-color: rgba(106, 46, 59, 0.55);
-  background: linear-gradient(135deg, rgba(106,46,59,0.06), rgba(250,247,243,0.7));
+  border-color: rgba(110, 31, 50, 0.55);
+  background: linear-gradient(135deg, rgba(110,31,50,0.06), rgba(246,243,239,0.7));
 }
 
 .country-multi-badge {
@@ -1328,7 +1328,7 @@ select:focus-visible,
   padding: 3px 7px;
   border-radius: 999px;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(106,46,59,0.25);
+  box-shadow: 0 2px 5px rgba(110,31,50,0.25);
 }
 
 /* Section reveal on first paint (no JS dep — pure CSS fade-up) */
@@ -1349,8 +1349,8 @@ select:focus-visible,
 
 /* Manage admin row visual for multi-visit countries */
 .manage-row[data-multi] {
-  border-color: rgba(106, 46, 59, 0.45);
-  background: linear-gradient(135deg, rgba(106,46,59,0.06), rgba(250,247,243,0.66));
+  border-color: rgba(110, 31, 50, 0.45);
+  background: linear-gradient(135deg, rgba(110,31,50,0.06), rgba(246,243,239,0.66));
 }
 .manage-row[data-multi]::before {
   background: var(--accent);
@@ -1366,7 +1366,7 @@ select:focus-visible,
   position: absolute;
   top: -8px;
   width: 18px;
-  box-shadow: 0 2px 5px rgba(106,46,59,0.25);
+  box-shadow: 0 2px 5px rgba(110,31,50,0.25);
   z-index: 1;
 }
 .manage-row { position: relative; }
@@ -1419,9 +1419,9 @@ select:focus-visible,
 
 /* Home country (한국) — span the full row, lift visually, always show cities slot */
 .country-chip[data-home] {
-  background: linear-gradient(135deg, rgba(106,46,59,0.10), rgba(250,247,243,0.85));
-  border: 1px solid rgba(106,46,59,0.55);
-  box-shadow: 0 8px 24px rgba(74, 58, 52, 0.06);
+  background: linear-gradient(135deg, rgba(110,31,50,0.10), rgba(246,243,239,0.85));
+  border: 1px solid rgba(110,31,50,0.55);
+  box-shadow: 0 8px 24px rgba(30, 30, 30, 0.06);
   grid-column: 1 / -1;
   padding: 18px 22px;
 }
@@ -1446,12 +1446,12 @@ select:focus-visible,
   padding: 3px 9px;
   border-radius: 999px;
   text-transform: uppercase;
-  box-shadow: 0 2px 5px rgba(106,46,59,0.25);
+  box-shadow: 0 2px 5px rgba(110,31,50,0.25);
   flex-shrink: 0;
 }
 
 .country-cities {
-  border-top: 1px solid rgba(106,46,59,0.18);
+  border-top: 1px solid rgba(110,31,50,0.18);
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.5;
@@ -1482,13 +1482,13 @@ select:focus-visible,
 }
 
 .country-chip[data-home] .country-cities {
-  border-top-color: rgba(106,46,59,0.32);
+  border-top-color: rgba(110,31,50,0.32);
 }
 
 /* When a chip carries both data-home and data-multi, keep the home gradient
    on top — the home framing dominates and "재방문" stays as a small badge. */
 .country-chip[data-home][data-multi] {
-  background: linear-gradient(135deg, rgba(106,46,59,0.14), rgba(250,247,243,0.86));
+  background: linear-gradient(135deg, rgba(110,31,50,0.14), rgba(246,243,239,0.86));
 }
 
 /* Admin country row — clean 2-column grid where every label stays readable.
@@ -1542,7 +1542,7 @@ select:focus-visible,
 }
 
 .experience-category {
-  background: rgba(250, 247, 243, 0.66);
+  background: rgba(246, 243, 239, 0.66);
   border: 1px solid var(--line);
   display: grid;
   gap: 18px;
@@ -1552,7 +1552,7 @@ select:focus-visible,
 }
 .experience-category:hover {
   border-color: var(--accent);
-  box-shadow: 0 8px 24px rgba(74, 58, 52, 0.05);
+  box-shadow: 0 8px 24px rgba(30, 30, 30, 0.05);
 }
 .experience-category-head h3 {
   color: var(--ink);
@@ -1575,7 +1575,7 @@ select:focus-visible,
   padding: 0;
 }
 .experience-items li {
-  border-bottom: 1px dashed rgba(217, 200, 182, 0.7);
+  border-bottom: 1px dashed rgba(216, 210, 203, 0.7);
   font-size: 0.96rem;
   padding: 8px 0;
 }
@@ -1631,7 +1631,7 @@ select:focus-visible,
 
 /* Case-study item — replaces the legacy video gallery card */
 .case-study-item {
-  background: rgba(250, 247, 243, 0.7);
+  background: rgba(246, 243, 239, 0.7);
   border: 1px solid var(--line);
   display: grid;
   gap: 28px;
@@ -1641,7 +1641,7 @@ select:focus-visible,
 }
 .case-study-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 10px 28px rgba(74, 58, 52, 0.06);
+  box-shadow: 0 10px 28px rgba(30, 30, 30, 0.06);
 }
 .case-study-item:not(:has(.case-study-media)) {
   grid-template-columns: 1fr;
@@ -1713,7 +1713,7 @@ select:focus-visible,
   margin-top: 4px;
 }
 .case-study-field {
-  border-top: 1px dashed rgba(217, 200, 182, 0.85);
+  border-top: 1px dashed rgba(216, 210, 203, 0.85);
   display: grid;
   gap: 6px;
   grid-template-columns: 92px minmax(0, 1fr);
@@ -1842,7 +1842,7 @@ select:focus-visible,
   width: 100%;
 }
 .doc-list {
-  background: rgba(250,247,243,0.66);
+  background: rgba(246,243,239,0.66);
   border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -1860,9 +1860,9 @@ select:focus-visible,
   padding: 12px 14px;
   transition: background 120ms var(--gw-ease);
 }
-.doc-list-item:hover { background: rgba(106,46,59,0.05); }
+.doc-list-item:hover { background: rgba(110,31,50,0.05); }
 .doc-list-item.is-active {
-  background: rgba(106,46,59,0.08);
+  background: rgba(110,31,50,0.08);
   border-left: 3px solid var(--accent);
   padding-left: 11px;
 }
@@ -1887,7 +1887,7 @@ select:focus-visible,
 
 /* Editor pane */
 .doc-editor {
-  background: rgba(250,247,243,0.78);
+  background: rgba(246,243,239,0.78);
   border: 1px solid var(--line);
   min-height: 600px;
   padding: 22px 24px;
@@ -2194,7 +2194,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
   margin: 8px 0 0;
 }
 .career-highlights {
-  border-top: 1px dashed rgba(217, 200, 182, 0.85);
+  border-top: 1px dashed rgba(216, 210, 203, 0.85);
   margin-top: 12px;
   padding-top: 14px;
 }
@@ -2257,7 +2257,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 .portfolio-card {
-  background: rgba(250, 247, 243, 0.7);
+  background: rgba(246, 243, 239, 0.7);
   border: 1px solid var(--line);
   cursor: pointer;
   display: flex;
@@ -2271,7 +2271,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
 }
 .portfolio-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 10px 24px rgba(74, 58, 52, 0.08);
+  box-shadow: 0 10px 24px rgba(30, 30, 30, 0.08);
   transform: translateY(-2px);
 }
 .portfolio-card-thumb {
@@ -2282,7 +2282,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
 }
 .portfolio-card-thumb-empty {
   align-items: center;
-  background: linear-gradient(135deg, var(--soft) 0%, rgba(106,46,59,0.08) 100%);
+  background: linear-gradient(135deg, var(--soft) 0%, rgba(110,31,50,0.08) 100%);
   display: flex;
   justify-content: center;
   position: relative;
@@ -2658,12 +2658,12 @@ html.portfolio-modal-open body { overflow: hidden !important; }
   transition: background 120ms var(--gw-ease), border-color 120ms var(--gw-ease), color 120ms var(--gw-ease);
 }
 .admin-sidenav .manage-tab:hover {
-  background: rgba(106,46,59,0.06);
+  background: rgba(110,31,50,0.06);
   color: var(--accent);
 }
 .admin-sidenav .manage-tab.active,
 .admin-sidenav .manage-tab[aria-selected="true"] {
-  background: rgba(106,46,59,0.10);
+  background: rgba(110,31,50,0.10);
   border-left-color: var(--accent);
   color: var(--accent);
 }
@@ -2766,7 +2766,7 @@ html.portfolio-modal-open body { overflow: hidden !important; }
   gap: 4px;
   margin-top: 8px;
   padding-left: 6px;
-  border-left: 1px solid rgba(217, 200, 182, 0.55);
+  border-left: 1px solid rgba(216, 210, 203, 0.55);
 }
 .sidenav-subgroup-title {
   font-size: 0.60rem;
@@ -2780,7 +2780,7 @@ html.portfolio-modal-open body { overflow: hidden !important; }
 /* Sidenav active state — slightly stronger crimson tint so the selection sings */
 .admin-sidenav .manage-tab.active,
 .admin-sidenav .manage-tab[aria-selected="true"] {
-  background: rgba(106,46,59,0.14);
+  background: rgba(110,31,50,0.14);
   border-left-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
@@ -2829,7 +2829,7 @@ h2 .bilingual-ko { font-size: 0.32em; }
 
 /* Country chip — now button-like and expandable for reason/linked experience */
 .country-chip {
-  background: rgba(250, 247, 243, 0.7);
+  background: rgba(246, 243, 239, 0.7);
   border: 1px solid var(--line);
   cursor: pointer;
   text-align: left;
@@ -2843,18 +2843,18 @@ h2 .bilingual-ko { font-size: 0.32em; }
 }
 .country-chip:hover {
   border-color: var(--accent);
-  background: rgba(250, 247, 243, 0.95);
-  box-shadow: 0 6px 16px rgba(74, 58, 52, 0.06);
+  background: rgba(246, 243, 239, 0.95);
+  box-shadow: 0 6px 16px rgba(30, 30, 30, 0.06);
 }
 .country-chip[aria-expanded="true"] {
-  background: rgba(250, 247, 243, 0.98);
+  background: rgba(246, 243, 239, 0.98);
   border-color: var(--accent);
-  box-shadow: 0 8px 24px rgba(74, 58, 52, 0.08);
+  box-shadow: 0 8px 24px rgba(30, 30, 30, 0.08);
 }
 
 /* Detail block revealed when a country is opened */
 .country-detail {
-  border-top: 1px dashed rgba(106,46,59,0.25);
+  border-top: 1px dashed rgba(110,31,50,0.25);
   display: grid;
   gap: 10px;
   margin-top: 12px;
@@ -2892,3 +2892,467 @@ h2 .bilingual-ko { font-size: 0.32em; }
 
 /* Removed language switch — keep slot from collapsing if .header-inner relied
    on three columns; admin-only language-switch removal is handled in HTML. */
+
+/* ─────────────────────────────────────────────────────────────
+   v0.011 — Editorial archive flow (8 sections) + PDF print
+   Driven by CLAUDE.md + data/design.json — burgundy as quiet
+   highlight, warm paper bg, structured rhythm over interaction.
+   ───────────────────────────────────────────────────────────── */
+
+/* Archive page = one section, one PDF page. */
+.archive-page {
+  padding: 88px 0;
+  border-top: 1px solid var(--line);
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-before: auto;
+}
+.archive-page:first-of-type { border-top: 0; padding-top: 96px; }
+.archive-page:last-of-type { padding-bottom: 120px; }
+
+.archive-page-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 40px;
+  max-width: 760px;
+}
+.archive-page-num {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.archive-eyebrow {
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.archive-page-head h2 {
+  font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+  line-height: 1.18;
+  margin: 14px 0 6px;
+  max-width: 22ch;
+}
+.archive-page-head .section-intro {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin: 6px 0 0;
+  max-width: 60ch;
+}
+
+/* ── 01 · WHO I AM ── */
+.section-who { padding-top: 120px; }
+.section-who .archive-page-head { margin-bottom: 24px; }
+.who-grid {
+  display: grid;
+  gap: 56px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  margin: 12px 0 56px;
+}
+@media (max-width: 900px) {
+  .who-grid { grid-template-columns: 1fr; gap: 28px; }
+}
+.who-name h1 {
+  font-size: clamp(3.4rem, 7vw, 5.2rem);
+  line-height: 0.96;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.who-name-ko {
+  color: var(--muted);
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 14px 0 0;
+}
+.who-lead-primary {
+  color: var(--ink);
+  font-size: clamp(1.28rem, 2.4vw, 1.72rem);
+  font-weight: 500;
+  line-height: 1.42;
+  margin: 0 0 16px;
+  max-width: 26ch;
+  white-space: pre-line;
+}
+.who-lead-secondary {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.who-roles {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 8px 0 36px;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.who-role {
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 56px 1fr;
+  padding: 16px 4px;
+}
+.who-role-num {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.who-role-text { display: grid; gap: 2px; }
+.who-role-text .bilingual-en {
+  color: var(--ink);
+  font-size: 1.04rem;
+  font-weight: 500;
+}
+.who-role-text .bilingual-ko {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.section-who .quick-facts {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 24px 0 0;
+}
+@media (max-width: 720px) {
+  .section-who .quick-facts { grid-template-columns: 1fr; }
+}
+.section-who .quick-facts > div {
+  border-right: 1px dashed var(--line);
+  padding: 4px 18px 0 0;
+}
+.section-who .quick-facts > div:last-child { border-right: 0; padding-right: 0; }
+.section-who .quick-facts dt {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.section-who .quick-facts dd {
+  color: var(--ink);
+  font-size: 0.96rem;
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+.section-who .quick-facts dd .bilingual-ko {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* ── 02 · HOW I WORK ── */
+.how-pillars {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.how-pillar {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 28px;
+  grid-template-columns: 168px minmax(0, 1fr);
+  padding: 28px 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+@media (max-width: 760px) {
+  .how-pillar { grid-template-columns: 1fr; gap: 12px; }
+}
+.how-pillar-head { display: flex; gap: 14px; align-items: flex-start; }
+.how-pillar-num {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding-top: 4px;
+}
+.how-pillar-titles { display: grid; gap: 4px; }
+.how-pillar-title-en {
+  color: var(--ink);
+  font-size: 1.16rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+.how-pillar-title-ko {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+.how-pillar-body { display: grid; gap: 12px; max-width: 64ch; }
+.how-pillar-summary-en {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+}
+.how-pillar-summary-ko {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin: 0;
+}
+.how-pillar-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.how-pillar-tag {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  background: transparent;
+}
+
+/* ── 03 · GLOBAL ── */
+.section-global .global-stats {
+  display: flex;
+  gap: 40px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  margin-bottom: 18px;
+}
+.section-global .global-stat strong {
+  color: var(--accent);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: none;
+  -webkit-text-fill-color: var(--accent);
+}
+.section-global .global-stat span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.global-observations {
+  color: var(--ink);
+  font-size: 1.04rem;
+  line-height: 1.7;
+  max-width: 62ch;
+  margin: 0 0 28px;
+  border-left: 2px solid var(--accent);
+  padding-left: 16px;
+}
+.global-observations .bilingual-ko { display: block; margin-top: 8px; font-size: 0.88rem; color: var(--muted); }
+
+/* ── 05 · EDUCATION ── */
+.education-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.education-item {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 200px minmax(0, 1fr);
+  padding: 22px 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+@media (max-width: 760px) {
+  .education-item { grid-template-columns: 1fr; gap: 6px; }
+}
+.education-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.education-year {
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.education-audience {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.education-audience-ko {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.education-title {
+  color: var(--ink);
+  font-size: 1.08rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.education-title-ko {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0 0 6px;
+}
+.education-summary {
+  color: var(--ink);
+  font-size: 0.96rem;
+  line-height: 1.65;
+  margin: 0 0 4px;
+}
+.education-summary-ko {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── 07 · PRINCIPLES — restrained numbered list ── */
+.section-principles .principles-list {
+  counter-reset: principle;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.section-principles .principles-list li {
+  border-bottom: 1px solid var(--line);
+  counter-increment: principle;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  padding: 22px 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  position: relative;
+}
+.section-principles .principles-list li::before {
+  content: counter(principle, decimal-leading-zero);
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding-top: 4px;
+}
+.section-principles .principles-list li > * { grid-column: 2; }
+.section-principles .principles-list .bilingual-en {
+  color: var(--ink);
+  font-size: 1.16rem;
+  font-weight: 500;
+  line-height: 1.45;
+  margin: 0;
+}
+.section-principles .principles-list .bilingual-ko {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 6px 0 0;
+}
+
+/* ── 08 · CONNECT ── */
+.section-connect {
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  display: block;
+  margin: 0;
+  padding: 88px 0 96px;
+}
+.section-connect h2 { color: var(--ink); }
+.section-connect .section-intro { color: var(--muted); }
+.section-connect .mail-link {
+  margin-top: 28px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.section-connect .mail-link:hover {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+}
+
+/* Force the new flow over older `.contact` block treatment that styled
+   the contact section as dark ink — we now keep paper bg throughout. */
+.contact { background: transparent !important; color: var(--ink) !important; padding: 0; margin: 0; display: block; }
+.contact p:not(.eyebrow) { color: var(--muted) !important; }
+.contact .mail-link { color: var(--accent); border-color: var(--accent); }
+
+/* ─────────────────────────────────────────────────────────────
+   PDF / Print — every section becomes its own page where natural.
+   Goal: site reads cleanly as a long-form document when printed.
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #4d4945;
+    --line: #c5beb5;
+    --soft: #ebe7e0;
+    --accent: #6e1f32;
+    --accent-ink: #8a3445;
+  }
+  html, body {
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body::before {
+    background: none !important;
+  }
+  /* Hide chrome */
+  .site-header,
+  .skip-link,
+  .nav-links,
+  .footer-build,
+  .footer-links,
+  .language-switch,
+  .portfolio-modal,
+  .country-multi-badge,
+  #version-toast {
+    display: none !important;
+  }
+  /* Each archive page tries to start fresh */
+  .archive-page { page-break-before: always; break-before: page; border-top: 0; padding: 24pt 0 18pt; }
+  .archive-page:first-of-type { page-break-before: avoid; break-before: auto; padding-top: 0; }
+  .archive-page,
+  .how-pillar,
+  .education-item,
+  .country-chip,
+  .portfolio-card,
+  .career-item,
+  .section-principles .principles-list li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Keep headings with their following block */
+  h1, h2, h3, h4 { page-break-after: avoid; break-after: avoid; }
+  /* Expand any collapsed details so the print version is complete */
+  .country-detail { display: block !important; }
+  .country-chip[aria-expanded] { box-shadow: none !important; }
+  /* Simplify grids that don't print well */
+  .portfolio-card-grid { display: block; }
+  .portfolio-card { display: block; margin-bottom: 14pt; border-color: #c5beb5; }
+  .how-pillar-tag { border-color: #c5beb5; }
+  /* Footer minimal */
+  .site-footer { border-top: 1px solid #c5beb5; padding-top: 12pt; }
+  .footer-inner { display: block; min-height: auto; }
+  /* Links printable */
+  a { color: #6e1f32; text-decoration: none; }
+  .text-link::after, .mail-link::after { content: ''; }
+}

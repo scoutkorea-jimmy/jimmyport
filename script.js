@@ -13,14 +13,16 @@ const FALLBACK_LANG = 'ko';
 // label and KR as a small caption underneath. The KR/EN switch is gone — both
 // languages are shown together.
 const BILINGUAL_PATHS = new Set([
-  'hero.eyebrow', 'hero.title', 'hero.lead',
+  'hero.eyebrow', 'hero.lead', 'hero.lead_secondary',
   'hero.cta_portfolio', 'hero.cta_email',
-  'global_experience.eyebrow', 'global_experience.title', 'global_experience.body',
-  'profile.title',
+  'how_i_work.eyebrow', 'how_i_work.title', 'how_i_work.body',
+  'global_experience.eyebrow', 'global_experience.title',
+  'global_experience.body', 'global_experience.observations',
   'work.title', 'work.intro',
-  'career.title', 'career.intro',
-  'portfolio_intro.title', 'portfolio_intro.intro',
-  'principles.title',
+  'career.title', 'career.intro', 'career.eyebrow',
+  'portfolio_intro.title', 'portfolio_intro.intro', 'portfolio_intro.eyebrow',
+  'education.eyebrow', 'education.title', 'education.body',
+  'principles.title', 'principles.eyebrow',
   'contact.eyebrow', 'contact.title', 'contact.body',
 ]);
 
@@ -30,17 +32,18 @@ let currentLanguage = 'en'; // bilingual: EN primary, KR caption rendered togeth
 
 const yearEl = document.querySelector('#year');
 const navEl = document.querySelector('#primary-nav');
-const heroMetaEl = document.querySelector('#hero-meta-tags');
+const heroMetaEl = document.querySelector('#hero-meta-tags'); // removed in v0.011 — keep null-safe
 const quickFactsEl = document.querySelector('#quick-facts');
-const workListEl = document.querySelector('#work-list');
-const profileBodyEl = document.querySelector('#profile-body');
+const workListEl = document.querySelector('#work-list'); // section removed from homepage flow
+const profileBodyEl = document.querySelector('#profile-body'); // section folded into WHO I AM
 const principlesListEl = document.querySelector('#principles-list');
-const heroTitlesEl = document.querySelector('#hero-titles');
+const whoRolesEl = document.querySelector('#who-roles');
+const howPillarsEl = document.querySelector('#how-pillars');
+const educationListEl = document.querySelector('#education-list');
 const careerListEl = document.querySelector('#career-list');
 const portfolioGroupsEl = document.querySelector('#portfolio-groups');
 const portfolioModalEl = document.querySelector('#portfolio-modal');
 let careerData = null;
-const portfolioListEl = document.querySelector('#portfolio-list');
 const countryGridEl = document.querySelector('#country-grid');
 const contactEmailEl = document.querySelector('#contact-email');
 const heroEmailCtaEl = document.querySelector('#hero-email-cta');
@@ -172,15 +175,25 @@ function renderHeroMeta(config) {
   });
 }
 
-function renderQuickFacts(config, lang) {
+function renderQuickFacts(config /* bilingual */) {
   if (!quickFactsEl || !config || !Array.isArray(config.quick_facts)) return;
   quickFactsEl.innerHTML = '';
   config.quick_facts.forEach((row) => {
     const wrap = document.createElement('div');
     const dt = document.createElement('dt');
-    dt.textContent = pickLang(row, 'label', lang);
+    dt.textContent = row.label_en || row.label_ko || '';
     const dd = document.createElement('dd');
-    dd.textContent = pickLang(row, 'value', lang);
+    const ddEn = document.createElement('span');
+    ddEn.className = 'bilingual-en';
+    ddEn.textContent = row.value_en || row.value_ko || '';
+    dd.appendChild(ddEn);
+    if (row.value_ko && row.value_ko !== row.value_en) {
+      const ddKo = document.createElement('span');
+      ddKo.className = 'bilingual-ko';
+      ddKo.setAttribute('lang', 'ko');
+      ddKo.textContent = row.value_ko;
+      dd.appendChild(ddKo);
+    }
     wrap.append(dt, dd);
     quickFactsEl.appendChild(wrap);
   });
@@ -265,16 +278,30 @@ function renderWork(config, lang) {
   }
 }
 
-function renderPrinciples(config, lang) {
+function renderPrinciples(config /* bilingual */) {
   if (!principlesListEl || !config) return;
-  // Accept either `principles` (v2) or legacy `interests` block.
   const source = config.principles || config.interests || null;
   if (!source) return;
   const items = Array.isArray(source.items) ? source.items : [];
   principlesListEl.innerHTML = '';
   items.forEach((item) => {
     const li = document.createElement('li');
-    li.textContent = item[lang] || item[FALLBACK_LANG] || '';
+    const en = String(item.en || '').trim();
+    const ko = String(item.ko || '').trim();
+    if (en) {
+      const enP = document.createElement('p');
+      enP.className = 'bilingual-en';
+      enP.textContent = en;
+      li.appendChild(enP);
+    }
+    if (ko && ko !== en) {
+      const koP = document.createElement('p');
+      koP.className = 'bilingual-ko';
+      koP.setAttribute('lang', 'ko');
+      koP.textContent = ko;
+      li.appendChild(koP);
+    }
+    if (!en && !ko) li.textContent = '';
     principlesListEl.appendChild(li);
   });
 }
@@ -446,22 +473,174 @@ function renderContact(config, lang) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Hero titles — three editorial slots under the H1.
+// WHO I AM — current roles (bilingual editorial labels under name + lead)
 // ──────────────────────────────────────────────────────────────────────────
-function renderHeroTitles(config, lang) {
-  if (!heroTitlesEl || !config || !config.hero) return;
-  const key = `titles_${lang}`;
-  const fallback = `titles_${FALLBACK_LANG}`;
-  const raw = Array.isArray(config.hero[key]) ? config.hero[key]
-            : Array.isArray(config.hero[fallback]) ? config.hero[fallback] : [];
-  const titles = raw.map((s) => String(s || '').trim()).filter(Boolean);
-  heroTitlesEl.innerHTML = '';
-  if (!titles.length) { heroTitlesEl.hidden = true; return; }
-  heroTitlesEl.hidden = false;
-  titles.forEach((t) => {
+function renderWhoRoles(config) {
+  if (!whoRolesEl || !config || !config.hero) return;
+  const en = Array.isArray(config.hero.titles_en) ? config.hero.titles_en : [];
+  const ko = Array.isArray(config.hero.titles_ko) ? config.hero.titles_ko : [];
+  const max = Math.max(en.length, ko.length);
+  whoRolesEl.innerHTML = '';
+  let any = false;
+  for (let i = 0; i < max; i += 1) {
+    const e = String(en[i] || '').trim();
+    const k = String(ko[i] || '').trim();
+    if (!e && !k) continue;
+    any = true;
     const li = document.createElement('li');
-    li.textContent = t;
-    heroTitlesEl.appendChild(li);
+    li.className = 'who-role';
+    const num = document.createElement('span');
+    num.className = 'who-role-num';
+    num.textContent = String(i + 1).padStart(2, '0');
+    const text = document.createElement('div');
+    text.className = 'who-role-text';
+    if (e) {
+      const enSpan = document.createElement('span');
+      enSpan.className = 'bilingual-en';
+      enSpan.textContent = e;
+      text.appendChild(enSpan);
+    }
+    if (k && k !== e) {
+      const koSpan = document.createElement('span');
+      koSpan.className = 'bilingual-ko';
+      koSpan.setAttribute('lang', 'ko');
+      koSpan.textContent = k;
+      text.appendChild(koSpan);
+    }
+    li.append(num, text);
+    whoRolesEl.appendChild(li);
+  }
+  whoRolesEl.hidden = !any;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// HOW I WORK — four pillars rendered as editorial archive entries
+// ──────────────────────────────────────────────────────────────────────────
+function renderHowIWork(config) {
+  if (!howPillarsEl || !config || !config.how_i_work) return;
+  const pillars = Array.isArray(config.how_i_work.pillars) ? config.how_i_work.pillars : [];
+  howPillarsEl.innerHTML = '';
+  pillars.forEach((p, i) => {
+    const article = document.createElement('article');
+    article.className = 'how-pillar';
+    article.dataset.key = p.key || '';
+
+    const head = document.createElement('header');
+    head.className = 'how-pillar-head';
+    const num = document.createElement('span');
+    num.className = 'how-pillar-num';
+    num.textContent = String(i + 1).padStart(2, '0');
+    const titles = document.createElement('div');
+    titles.className = 'how-pillar-titles';
+    const en = document.createElement('h3');
+    en.className = 'bilingual-en how-pillar-title-en';
+    en.textContent = p.title_en || p.title_ko || '';
+    titles.appendChild(en);
+    if (p.title_ko && p.title_ko !== p.title_en) {
+      const ko = document.createElement('p');
+      ko.className = 'bilingual-ko how-pillar-title-ko';
+      ko.setAttribute('lang', 'ko');
+      ko.textContent = p.title_ko;
+      titles.appendChild(ko);
+    }
+    head.append(num, titles);
+    article.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'how-pillar-body';
+    if (p.summary_en) {
+      const e = document.createElement('p');
+      e.className = 'how-pillar-summary-en';
+      e.textContent = p.summary_en;
+      body.appendChild(e);
+    }
+    if (p.summary_ko && p.summary_ko !== p.summary_en) {
+      const k = document.createElement('p');
+      k.className = 'bilingual-ko how-pillar-summary-ko';
+      k.setAttribute('lang', 'ko');
+      k.textContent = p.summary_ko;
+      body.appendChild(k);
+    }
+    const tagsEn = Array.isArray(p.tags_en) ? p.tags_en : [];
+    const tagsKo = Array.isArray(p.tags_ko) ? p.tags_ko : [];
+    if (tagsEn.length || tagsKo.length) {
+      const tagsBlock = document.createElement('div');
+      tagsBlock.className = 'how-pillar-tags';
+      tagsEn.forEach((t, idx) => {
+        const span = document.createElement('span');
+        span.className = 'how-pillar-tag';
+        span.textContent = String(t);
+        const ko = tagsKo[idx];
+        if (ko && ko !== t) span.title = String(ko);
+        tagsBlock.appendChild(span);
+      });
+      body.appendChild(tagsBlock);
+    }
+    article.appendChild(body);
+    howPillarsEl.appendChild(article);
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// EDUCATION & SPEAKING
+// ──────────────────────────────────────────────────────────────────────────
+function renderEducation(config) {
+  if (!educationListEl || !config || !config.education) return;
+  const items = Array.isArray(config.education.items) ? config.education.items : [];
+  educationListEl.innerHTML = '';
+  items.forEach((it) => {
+    const li = document.createElement('li');
+    li.className = 'education-item';
+
+    const meta = document.createElement('div');
+    meta.className = 'education-meta';
+    if (it.year) {
+      const y = document.createElement('span');
+      y.className = 'education-year';
+      y.textContent = it.year;
+      meta.appendChild(y);
+    }
+    const aud = document.createElement('span');
+    aud.className = 'education-audience';
+    aud.textContent = it.audience_en || it.audience_ko || '';
+    meta.appendChild(aud);
+    if (it.audience_ko && it.audience_ko !== it.audience_en) {
+      const audKo = document.createElement('span');
+      audKo.className = 'bilingual-ko education-audience-ko';
+      audKo.setAttribute('lang', 'ko');
+      audKo.textContent = it.audience_ko;
+      meta.appendChild(audKo);
+    }
+    li.appendChild(meta);
+
+    const body = document.createElement('div');
+    body.className = 'education-body';
+    const t = document.createElement('h3');
+    t.className = 'education-title bilingual-en';
+    t.textContent = it.title_en || it.title_ko || '';
+    body.appendChild(t);
+    if (it.title_ko && it.title_ko !== it.title_en) {
+      const tko = document.createElement('p');
+      tko.className = 'bilingual-ko education-title-ko';
+      tko.setAttribute('lang', 'ko');
+      tko.textContent = it.title_ko;
+      body.appendChild(tko);
+    }
+    if (it.summary_en) {
+      const s = document.createElement('p');
+      s.className = 'education-summary';
+      s.textContent = it.summary_en;
+      body.appendChild(s);
+    }
+    if (it.summary_ko && it.summary_ko !== it.summary_en) {
+      const sko = document.createElement('p');
+      sko.className = 'bilingual-ko education-summary-ko';
+      sko.setAttribute('lang', 'ko');
+      sko.textContent = it.summary_ko;
+      body.appendChild(sko);
+    }
+    li.appendChild(body);
+    educationListEl.appendChild(li);
   });
 }
 
@@ -741,24 +920,23 @@ function getYouTubeId(url) {
 }
 
 function applyEverything(lang) {
-  document.documentElement.lang = lang;
+  document.documentElement.lang = 'en';
   if (!siteConfig) return;
-  applyConfigToDom(siteConfig, lang);
-  renderNav(siteConfig, lang);
-  renderHeroMeta(siteConfig);
-  renderHeroTitles(siteConfig, lang);
-  renderQuickFacts(siteConfig, lang);
-  renderProfile(siteConfig, lang);
-  renderWork(siteConfig, lang);
-  renderCareer(lang);
-  renderPrinciples(siteConfig, lang);
-  renderCountries(siteConfig, lang);
-  renderContact(siteConfig, lang);
-  renderFooter(siteConfig, lang);
-  renderPortfolio(lang);
-  languageButtons.forEach((button) => {
-    button.classList.toggle('active', button.dataset.langButton === lang);
-  });
+  applyConfigToDom(siteConfig, 'en');
+  renderNav(siteConfig, 'en');
+  renderHeroMeta(siteConfig);                  // null-safe (element removed)
+  renderWhoRoles(siteConfig);
+  renderHowIWork(siteConfig);
+  renderQuickFacts(siteConfig, 'en');
+  renderProfile(siteConfig, 'en');              // null-safe
+  renderWork(siteConfig, 'en');                 // null-safe (homepage no longer renders work)
+  renderCareer('en');
+  renderPrinciples(siteConfig, 'en');
+  renderCountries(siteConfig);
+  renderEducation(siteConfig);
+  renderContact(siteConfig, 'en');
+  renderFooter(siteConfig, 'en');
+  renderPortfolio('en');
 }
 
 function setLanguage(lang) {

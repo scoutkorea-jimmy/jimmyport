@@ -17,22 +17,107 @@
     { "key": "contact",    "ko": "Contact",     "en": "Contact",     "href": "#contact" }
   ],
   "hero": {
-    "eyebrow_ko": "Strategic Media · Systems · Global Communication",
-    "eyebrow_en": "Strategic Media · Systems · Global Communication",
+    "eyebrow_ko": "박지민",
+    "eyebrow_en": "WHO I AM",
     "title_ko": "박지민",
     "title_en": "Jimmy Park",
-    "lead_ko": "글로벌 프로젝트 · 운영 구조 · 커뮤니티 기반 미디어 사이에서, 콘텐츠와 운영 구조를 함께 설계합니다.",
-    "lead_en": "Between global projects, operational structures, and community-driven media — designing content and operations together.",
-    "titles_ko": ["", "", ""],
-    "titles_en": ["", "", ""],
+    "lead_ko": "복잡한 이야기와 구조를\n조금 더 명확하게 정리합니다.",
+    "lead_en": "Complex stories and structures,\nmade clearer.",
+    "lead_secondary_ko": "그리고 실제 현장에서 움직일 수 있는 방향을 함께 고민합니다.",
+    "lead_secondary_en": "And shaped into directions that actually move on the ground.",
+    "titles_ko": ["전략 프로듀서", "시스템·운영 설계", "국제 커뮤니케이션", "커뮤니티 기록자"],
+    "titles_en": ["Strategic Producer", "Systems & Operations Designer", "Global Communication Coordinator", "Community Documentation Lead"],
     "meta_tags": ["Strategic Production", "Global Communication", "Systems & Operations", "Media Infrastructure", "Community Documentation"],
-    "cta_portfolio_ko": "케이스 스터디 보기",
-    "cta_portfolio_en": "View case studies",
+    "cta_portfolio_ko": "작업 살펴보기",
+    "cta_portfolio_en": "Read the archive",
     "cta_email_ko": "이메일 보내기",
     "cta_email_en": "Email me",
     "image": "assets/hero-workspace.png",
     "image_alt_ko": "노트북과 노트가 놓인 차분한 작업 공간",
     "image_alt_en": "A quiet workspace with a notebook and laptop"
+  },
+  "how_i_work": {
+    "eyebrow_ko": "작업 방식",
+    "eyebrow_en": "HOW I WORK",
+    "title_ko": "구조를 다루는 네 가지 방식",
+    "title_en": "Four disciplines, one question.",
+    "body_ko": "각 영역은 독립적인 작업이지만, 결국 같은 질문 위에 놓여 있습니다 — 프로젝트가 끝난 뒤에도 남는 구조를 어떻게 만들 것인가.",
+    "body_en": "Four separate disciplines, but they keep pointing back at the same question — how do you build something that outlasts the project that funded it.",
+    "pillars": [
+      {
+        "key": "video",
+        "title_ko": "영상 제작",
+        "title_en": "Video Production",
+        "summary_ko": "기획에서 편집까지. 단순한 시각물이 아니라 메시지 구조와 운영 흐름까지 함께 설계합니다.",
+        "summary_en": "From concept through edit — built around message structure and operational flow, not just visuals.",
+        "tags_ko": ["IR · PR 영상", "공공기관 콘텐츠", "국제행사 기록", "현장 다큐멘테이션", "스토리 기반 브랜딩", "운영 중심 미디어"],
+        "tags_en": ["IR · PR film", "Public-sector content", "International event records", "Field documentation", "Story-driven branding", "Operations-centred media"]
+      },
+      {
+        "key": "web",
+        "title_ko": "웹사이트 · 디지털 구조",
+        "title_en": "Website & Digital Structure",
+        "summary_ko": "사람이 실제로 읽을 수 있는 정보 구조. 오래 가는 아카이브, PDF 친화적 흐름, CMS 기반 운영을 함께 설계합니다.",
+        "summary_en": "Information architecture people can actually read. Long-lived archives, PDF-friendly flows, CMS-driven operations.",
+        "tags_ko": ["정보 구조", "UX 흐름", "콘텐츠 구조화", "운영 가능한 웹", "장기 아카이브", "PDF 친화 구조", "CMS · 워크플로"],
+        "tags_en": ["Information architecture", "UX flow", "Content structure", "Operable web", "Long-lived archive", "PDF-friendly layout", "CMS · workflow"]
+      },
+      {
+        "key": "global",
+        "title_ko": "국제 · 글로벌 운영",
+        "title_en": "International & Global Operations",
+        "summary_ko": "단순한 해외 경험이 아니라, 현장에서 쌓은 국제 프로젝트 운영 감각.",
+        "summary_en": "Cross-cultural project operations drawn from years on the ground — not from a deck.",
+        "tags_ko": ["국제 프로젝트 운영", "다국적 커뮤니케이션", "글로벌 행사 운영", "WOSM · 국제 네트워크", "청소년 · 국제활동", "현장 기반 글로벌 운영"],
+        "tags_en": ["International project ops", "Multinational communication", "Global events", "WOSM & networks", "Youth & international affairs", "On-ground global operations"]
+      },
+      {
+        "key": "education",
+        "title_ko": "교육 · 강의",
+        "title_en": "Education & Speaking",
+        "summary_ko": "현장에서 쌓은 운영과 커뮤니케이션 감각을 팀 · 청소년 · 국제 활동가들과 나눕니다.",
+        "summary_en": "Sharing operations and communication from the field — for teams, students, and youth networks.",
+        "tags_ko": ["영상 제작 강의", "미디어 교육", "청소년 중심 학습", "국제활동 강연", "운영 · 커뮤니케이션 교육", "프로젝트 기반 실무"],
+        "tags_en": ["Video production training", "Media education", "Youth-centred learning", "International activity lectures", "Operations & comms training", "Project-based practice"]
+      }
+    ]
+  },
+  "education": {
+    "eyebrow_ko": "교육 · 강연",
+    "eyebrow_en": "EDUCATION & SPEAKING",
+    "title_ko": "전달하는 일들",
+    "title_en": "What I teach, where I speak.",
+    "body_ko": "별개의 활동이 아니라, 같은 운영 · 커뮤니케이션 감각을 팀과 청소년에게 옮겨내는 일입니다.",
+    "body_en": "Not a side activity — an extension of the same operational and communication thinking, translated for teams, students, and youth networks.",
+    "items": [
+      {
+        "year": "2024 –",
+        "title_ko": "청소년 주도 커뮤니케이션을 위한 영상 제작",
+        "title_en": "Video production for youth-led communication",
+        "audience_ko": "한국스카우트연맹 · 시·도 연맹",
+        "audience_en": "Korean Scout Association · regional councils",
+        "summary_ko": "촬영 기술보다 메시지 구조 설계에 더 가까운, 운영형 영상 강의.",
+        "summary_en": "Practical sessions on framing message structure before production starts — closer to operations than to camera technique."
+      },
+      {
+        "year": "2023 –",
+        "title_ko": "청소년 리더를 위한 국제 프로젝트 운영",
+        "title_en": "International project operations for youth leaders",
+        "audience_ko": "WOSM 아·태지역 네트워크",
+        "audience_en": "WOSM Asia-Pacific networks",
+        "summary_ko": "다국적 프로젝트를 현재 운영자와 내년 운영자 모두에게 읽힐 수 있게 정리하는 방법.",
+        "summary_en": "How to keep a multinational project legible to the people running it — and to the people who arrive next year."
+      },
+      {
+        "year": "2022 –",
+        "title_ko": "조직을 위한 미디어 운영",
+        "title_en": "Media operations for organisations",
+        "audience_ko": "공공 · 비영리 조직",
+        "audience_en": "Public sector & non-profits",
+        "summary_ko": "더 많이 만드는 강의가 아니라, 조직이 오래 운영할 수 있는 콘텐츠를 만드는 강의.",
+        "summary_en": "Less about producing more content — more about producing content the organisation can actually carry over time."
+      }
+    ]
   },
   "quick_facts": [
     { "label_ko": "위치",   "label_en": "Based in", "value_ko": "한국, 서울",                "value_en": "Seoul, Korea" },

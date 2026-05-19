@@ -6,6 +6,16 @@
   "statuses": ["draft", "active", "deprecated"],
   "items": [
     {
+      "id": "site-purpose-and-flow",
+      "title": "사이트 정체성 + 8 섹션 흐름 (필독)",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-20",
+      "summary": "이 사이트는 포트폴리오가 아니라 디지털 아카이브. 8 섹션 흐름 고정. Claude는 작업 전 CLAUDE.md와 함께 반드시 확인.",
+      "body_html": "<p>이 사이트는 다음 세 가지를 동시에 만족해야 합니다:</p><ol><li>박지민이라는 사람 자체를 소개하는 아카이브</li><li>업무 및 협업을 위한 신뢰 기반 소개서</li><li>스스로의 작업과 방향성을 기록하는 장기 문서</li></ol><h2>8 섹션 흐름 (불변)</h2><ol><li><strong>WHO I AM</strong> — 태도 · 방식 · 정체성. 직접 설명형('저는 ~합니다') 금지</li><li><strong>HOW I WORK</strong> — 4 pillars: Video / Web · Digital / International · Global / Education · Speaking</li><li><strong>GLOBAL FIELD EXPERIENCE</strong> — 자동 카운팅 + 관찰 카피 + 국가 카드(사유 + 관련 Experience)</li><li><strong>WHAT I BUILD</strong> — Portfolio. 카드 → 모달(개요 · 문제 · 접근 · 운영구조 · 결과 · 기록 · 링크 · 도구)</li><li><strong>EDUCATION &amp; SPEAKING</strong> — 강의 활동 리스트</li><li><strong>EXPERIENCE &amp; CAREER</strong> — 회사 단위 시간 순</li><li><strong>PRINCIPLES</strong> — 운영 원칙 메모 톤</li><li><strong>LET'S CONNECT</strong> — Contact</li></ol><h2>UX 원칙</h2><ul><li>웹사이트이면서 PDF처럼 읽혀야 함</li><li>각 섹션은 <code>section.archive-page</code> 단위로 독립, PDF 출력 시 페이지 단위 자연 분리</li><li>인터랙션 최소화 — 읽기 흐름과 문장 리듬 우선</li><li>영어 메인 + 한국어 보조 해설 (bilingual)</li></ul><h2>참조</h2><p><code>CLAUDE.md</code> (프로젝트 루트) · <code>data/design.json</code>의 <em>visual-direction</em> 및 <em>color-tokens</em> 항목.</p>"
+    },
+    {
       "id": "homepage-content-editor",
       "title": "홈페이지 본문 통합 편집기",
       "status": "active",

@@ -5,12 +5,20 @@
   "sections": ["Color", "Typography", "Spacing", "Motion", "Components", "Tone"],
   "items": [
     {
+      "id": "visual-direction",
+      "title": "Visual Direction — Editorial Archive (필독)",
+      "section": "Tone",
+      "last_updated": "2026-05-20",
+      "summary": "사이트 전체 디자인 원칙. 작업 전 반드시 확인. CLAUDE.md와 동일 내용 — 디자인 의사결정의 단일 근거.",
+      "body_html": "<h2>방향</h2><ul><li>크리에이터 포트폴리오 X · <strong>Editorial Archive / Field Notes / 장기 기록물</strong></li><li>트렌디함 X · <strong>신뢰감 + 깊이 + 오래 남는 분위기</strong></li><li>와인바·럭셔리·감성 브랜딩·크리에이티브 에이전시 느낌 금지</li></ul><h2>금지 표현</h2><p>SaaS 랜딩페이지 · 화려한 에이전시 · Behance 스타일 · 블랙 기반 포트폴리오 · 미래적 UI · glassmorphism · neon · gradient-heavy.</p><h2>지향 키워드</h2><p>Editorial Archive · Field Notes · Structured Minimalism · Quiet Confidence · Operational Elegance · Human-centered Systems</p><h2>버건디 사용 규칙</h2><ul><li>전체를 덮지 말 것 — 강조 only</li><li>사용처: Hero 핵심 단어 · active nav · quote marker · small label · hover · principles numbering · editorial divider</li><li><strong>버건디는 '조용한 중심감'</strong></li></ul><h2>Final impression test</h2><blockquote><p><em>'생각과 구조를 오래 다뤄온 사람의 디지털 아카이브.'</em> 이 인상이 안 남으면 다시 작업.</p></blockquote>"
+    },
+    {
       "id": "color-tokens",
-      "title": "색 토큰",
+      "title": "색 토큰 (Editorial Archive palette)",
       "section": "Color",
-      "last_updated": "2026-05-19",
-      "summary": "라이트 모드 단일. 8개 토큰으로 색 위계가 결정됨.",
-      "body_html": "<h2>토큰</h2><table><thead><tr><th>토큰</th><th>값</th><th>용도</th></tr></thead><tbody><tr><td><code>--bg</code></td><td>#fbfaf7</td><td>페이지 배경</td></tr><tr><td><code>--surface</code></td><td>#ffffff</td><td>카드/입력 배경</td></tr><tr><td><code>--ink</code></td><td>#171915</td><td>본문 텍스트, 강조</td></tr><tr><td><code>--muted</code></td><td>#6f736c</td><td>보조 텍스트, dt, description</td></tr><tr><td><code>--soft</code></td><td>#f0eee7</td><td>여백 톤 배경, 이미지 placeholder</td></tr><tr><td><code>--line</code></td><td>#ddd8ce</td><td>1px 구분선, 카드 테두리</td></tr><tr><td><code>--accent</code></td><td>#315f54</td><td>강조 텍스트, 라벨, 버튼 배경</td></tr><tr><td><code>--accent-ink</code></td><td>#18362f</td><td>accent 위 짙은 톤 (text-link, CTA)</td></tr></tbody></table><h2>규칙</h2><ul><li>다크모드는 일부러 제외 — 톤 안정성 우선</li><li>그라데이션은 country-chip / global-stat 두 군데만</li><li>버튼·배지의 fill 컬러는 항상 <code>--accent</code> 단일 톤</li></ul>"
+      "last_updated": "2026-05-20",
+      "summary": "Burgundy highlight + warm paper bg + deep charcoal + warm gray. 순백·순흑 금지. PDF/print 안전.",
+      "body_html": "<h2>토큰</h2><table><thead><tr><th>토큰</th><th>Hex</th><th>용도</th></tr></thead><tbody><tr><td><code>--accent</code> Burgundy</td><td><strong>#6E1F32</strong></td><td>강조 only — link hover · section highlight · key typography · divider accent · active states · editorial markers</td></tr><tr><td><code>--accent-ink</code> Rose</td><td>#8A3445</td><td>accent의 hover/secondary</td></tr><tr><td><code>--bg</code> Warm paper</td><td><strong>#F6F3EF</strong></td><td>main background. 순백(#FFF) 절대 금지</td></tr><tr><td><code>--surface</code> Lighter paper</td><td>#FAF8F4</td><td>card / panel surface</td></tr><tr><td><code>--ink</code> Deep charcoal</td><td><strong>#1E1E1E</strong></td><td>본문 텍스트. 완전 블랙(#000) 금지</td></tr><tr><td><code>--muted</code> Warm gray</td><td><strong>#6B6763</strong></td><td>한국어 서브 · description · caption · metadata · dates</td></tr><tr><td><code>--line</code> Soft neutral</td><td><strong>#D8D2CB</strong></td><td>divider · 얇은 border. 과한 사용 금지</td></tr><tr><td><code>--soft</code> Warm tint</td><td>#EBE7E0</td><td>약한 배경 강조</td></tr></tbody></table><h2>규칙</h2><ul><li>다크모드 제외 — print readability 우선</li><li>섹션 분리는 색이 아니라 여백 · 리듬 · 얇은 라인 · 타이포 계층으로</li><li>버건디는 인쇄 시 검게 뭉개지지 않도록 검증된 <code>#6E1F32</code> 사용</li></ul>"
     },
     {
       "id": "typography",
