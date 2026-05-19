@@ -36,14 +36,18 @@
 
 :root {
   color-scheme: light;
-  --bg: #fbfaf7;
-  --surface: #ffffff;
-  --ink: #171915;
-  --muted: #6f736c;
-  --soft: #f0eee7;
-  --line: #ddd8ce;
-  --accent: #315f54;
-  --accent-ink: #18362f;
+  /* WARM INTELLECTUAL palette
+     main #6A2E3B · sub #B58A72 · bg #F3ECE4
+     accents #4A3A34 · #9C5A63 · #A38C7D · #D9C8B6 · #FAF7F3 */
+  --bg: #f3ece4;
+  --surface: #faf7f3;
+  --ink: #4a3a34;
+  --muted: #a38c7d;
+  --soft: #d9c8b6;
+  --line: #d9c8b6;
+  --accent: #6a2e3b;
+  --accent-ink: #9c5a63;
+  --sub: #b58a72;
   --max: 1160px;
 
   /* Weight tokens — use these instead of raw numbers so the hierarchy stays
@@ -89,8 +93,8 @@ html {
 
 body {
   background:
-    radial-gradient(circle at 85% 10%, rgba(49, 95, 84, 0.1), transparent 28rem),
-    linear-gradient(180deg, #fbfaf7 0%, #f5f2eb 100%);
+    radial-gradient(circle at 85% 10%, rgba(106, 46, 59, 0.10), transparent 28rem),
+    linear-gradient(180deg, #f3ece4 0%, #ece2d6 100%);
   color: var(--ink);
   margin: 0;
 }
@@ -222,7 +226,7 @@ h3 {
 }
 
 .lead {
-  color: #3e423d;
+  color: #5a4a44;
   font-size: clamp(1.28rem, 2.2vw, 1.72rem);
   line-height: 1.6;
   max-width: 720px;
@@ -482,7 +486,7 @@ dd {
 }
 
 .contact .eyebrow {
-  color: #a8c8bf;
+  color: var(--sub);
 }
 
 .contact h2 {
@@ -1029,8 +1033,8 @@ dd {
 }
 
 .manage-deploy-log {
-  background: #0f1814;
-  color: #c7e0d2;
+  background: #2b201c;
+  color: #f3ece4;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.78rem;
   margin-top: 16px;
@@ -1189,7 +1193,7 @@ html.gw-version-locked body { overflow: hidden !important; }
 /* Motion + focus tokens */
 :root {
   --gw-ease: cubic-bezier(.22,.61,.36,1);
-  --gw-focus: 0 0 0 3px rgba(49,95,84,0.30);
+  --gw-focus: 0 0 0 3px rgba(106, 46, 59, 0.32);
 }
 
 a:focus-visible,
@@ -1266,8 +1270,8 @@ select:focus-visible,
 }
 
 .country-chip[data-multi] {
-  border-color: rgba(49, 95, 84, 0.55);
-  background: linear-gradient(135deg, rgba(49,95,84,0.06), rgba(255,255,255,0.6));
+  border-color: rgba(106, 46, 59, 0.55);
+  background: linear-gradient(135deg, rgba(106,46,59,0.06), rgba(250,247,243,0.7));
 }
 
 .country-multi-badge {
@@ -1281,7 +1285,7 @@ select:focus-visible,
   padding: 3px 7px;
   border-radius: 999px;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(49,95,84,0.25);
+  box-shadow: 0 2px 5px rgba(106,46,59,0.25);
 }
 
 /* Section reveal on first paint (no JS dep — pure CSS fade-up) */
@@ -1302,8 +1306,8 @@ select:focus-visible,
 
 /* Manage admin row visual for multi-visit countries */
 .manage-row[data-multi] {
-  border-color: rgba(49, 95, 84, 0.45);
-  background: linear-gradient(135deg, rgba(49,95,84,0.06), rgba(255,255,255,0.66));
+  border-color: rgba(106, 46, 59, 0.45);
+  background: linear-gradient(135deg, rgba(106,46,59,0.06), rgba(255,255,255,0.66));
 }
 .manage-row[data-multi]::before {
   background: var(--accent);
@@ -1319,7 +1323,7 @@ select:focus-visible,
   position: absolute;
   top: -8px;
   width: 18px;
-  box-shadow: 0 2px 5px rgba(49,95,84,0.25);
+  box-shadow: 0 2px 5px rgba(106,46,59,0.25);
   z-index: 1;
 }
 .manage-row { position: relative; }
@@ -1372,8 +1376,8 @@ select:focus-visible,
 
 /* Home country (한국) — span the full row, lift visually, always show cities slot */
 .country-chip[data-home] {
-  background: linear-gradient(135deg, rgba(49,95,84,0.10), rgba(255,255,255,0.85));
-  border: 1px solid rgba(49,95,84,0.55);
+  background: linear-gradient(135deg, rgba(106,46,59,0.10), rgba(255,255,255,0.85));
+  border: 1px solid rgba(106,46,59,0.55);
   box-shadow: 0 8px 24px rgba(23, 25, 21, 0.06);
   grid-column: 1 / -1;
   padding: 18px 22px;
@@ -1399,12 +1403,12 @@ select:focus-visible,
   padding: 3px 9px;
   border-radius: 999px;
   text-transform: uppercase;
-  box-shadow: 0 2px 5px rgba(49,95,84,0.25);
+  box-shadow: 0 2px 5px rgba(106,46,59,0.25);
   flex-shrink: 0;
 }
 
 .country-cities {
-  border-top: 1px solid rgba(49,95,84,0.18);
+  border-top: 1px solid rgba(106,46,59,0.18);
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.5;
@@ -1435,13 +1439,13 @@ select:focus-visible,
 }
 
 .country-chip[data-home] .country-cities {
-  border-top-color: rgba(49,95,84,0.32);
+  border-top-color: rgba(106,46,59,0.32);
 }
 
 /* When a chip carries both data-home and data-multi, keep the home gradient
    on top — the home framing dominates and "재방문" stays as a small badge. */
 .country-chip[data-home][data-multi] {
-  background: linear-gradient(135deg, rgba(49,95,84,0.14), rgba(255,255,255,0.86));
+  background: linear-gradient(135deg, rgba(106,46,59,0.14), rgba(255,255,255,0.86));
 }
 
 /* Admin row mirror: country-row's grid needs an extra column for cities */
@@ -1811,9 +1815,9 @@ select:focus-visible,
   padding: 12px 14px;
   transition: background 120ms var(--gw-ease);
 }
-.doc-list-item:hover { background: rgba(49,95,84,0.05); }
+.doc-list-item:hover { background: rgba(106,46,59,0.05); }
 .doc-list-item.is-active {
-  background: rgba(49,95,84,0.08);
+  background: rgba(106,46,59,0.08);
   border-left: 3px solid var(--accent);
   padding-left: 11px;
 }
@@ -1991,8 +1995,8 @@ select:focus-visible,
   padding: 0.1em 0.35em;
 }
 .doc-tt-surface .ProseMirror pre {
-  background: #0f1814;
-  color: #d6e6dd;
+  background: #2b201c;
+  color: #f3ece4;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
   margin: 1em 0;
@@ -2233,7 +2237,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
 }
 .portfolio-card-thumb-empty {
   align-items: center;
-  background: linear-gradient(135deg, var(--soft) 0%, rgba(49,95,84,0.08) 100%);
+  background: linear-gradient(135deg, var(--soft) 0%, rgba(106,46,59,0.08) 100%);
   display: flex;
   justify-content: center;
   position: relative;
@@ -2440,3 +2444,269 @@ html.portfolio-modal-open body { overflow: hidden !important; }
 }
 .doc-file-upload .doc-file-status.is-error { color: #a94a3b; }
 .doc-file-upload .doc-file-status.is-ok { color: #1d6f3e; }
+
+/* ─────────────────────────────────────────────────────────────
+   v0.008 — Admin 2-column shell + sidenav + a11y
+   ───────────────────────────────────────────────────────────── */
+
+/* Visually hidden, but available to screen readers */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+
+/* Skip link — sits invisibly off-canvas until focused */
+.skip-link {
+  background: var(--accent);
+  color: #faf7f3;
+  font-weight: 700;
+  left: 12px;
+  padding: 10px 14px;
+  position: fixed;
+  top: -50px;
+  transition: top 160ms var(--gw-ease);
+  z-index: 9999;
+  border-radius: 0;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  outline: none;
+  top: 12px;
+  box-shadow: var(--gw-focus);
+}
+
+/* Stronger focus rings throughout the admin */
+.manage-body :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--gw-focus);
+  border-radius: 2px;
+}
+
+/* Admin shell: 2-column grid (sidenav | content) */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  gap: 32px;
+  padding-top: 28px;
+  padding-bottom: 96px;
+  align-items: start;
+}
+
+.admin-content {
+  min-width: 0; /* allow grid item to shrink */
+}
+.admin-content:focus { outline: none; }
+
+/* Slimmer hero now that the toolbar lives in the sidebar */
+.manage-body .admin-hero {
+  padding-top: 24px;
+  padding-bottom: 36px;
+}
+.manage-body .admin-hero h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  margin: 4px 0 12px;
+}
+
+/* Sidenav */
+.admin-sidenav {
+  position: sticky;
+  top: 18px;
+  align-self: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 18px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+}
+
+.sidenav-head {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.sidenav-head .eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.sidenav-subtitle {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.sidenav-search {
+  display: block;
+  position: relative;
+}
+.sidenav-search input {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 9px 12px;
+  width: 100%;
+}
+.sidenav-search input::placeholder { color: var(--muted); }
+
+.sidenav-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sidenav-group {
+  display: grid;
+  gap: 6px;
+}
+.sidenav-group[hidden] { display: none !important; }
+
+.sidenav-group-title {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 4px 6px 2px;
+}
+
+.sidenav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+/* Override the legacy horizontal .manage-tab when it lives inside the sidebar */
+.admin-sidenav .manage-tab {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  border-left: 3px solid transparent;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  gap: 2px;
+  padding: 9px 12px;
+  text-align: left;
+  width: 100%;
+  transition: background 120ms var(--gw-ease), border-color 120ms var(--gw-ease), color 120ms var(--gw-ease);
+}
+.admin-sidenav .manage-tab:hover {
+  background: rgba(106,46,59,0.06);
+  color: var(--accent);
+}
+.admin-sidenav .manage-tab.active,
+.admin-sidenav .manage-tab[aria-selected="true"] {
+  background: rgba(106,46,59,0.10);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+.admin-sidenav .manage-tab.is-filtered-out {
+  display: none;
+}
+
+.sidenav-hint {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.admin-sidenav .manage-tab.active .sidenav-hint,
+.admin-sidenav .manage-tab[aria-selected="true"] .sidenav-hint {
+  color: var(--accent-ink);
+}
+
+.sidenav-actions {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.sidenav-actions .manage-btn {
+  font-size: 0.78rem;
+  padding: 9px 12px;
+  text-align: center;
+}
+
+.sidenav-shortcut {
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin: 6px 4px 0;
+  text-align: center;
+  line-height: 1.6;
+}
+.sidenav-shortcut kbd {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  margin: 0 1px;
+  padding: 1px 5px;
+}
+
+/* Hide-on-desktop drawer toggle; shown on mobile */
+.sidenav-toggle {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  display: none;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+/* Filter empty-state inside sidenav */
+.sidenav-empty {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 6px;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  background: var(--bg);
+}
+
+/* Hide the old horizontal tabs row outright if anything still emits it */
+.admin-content .manage-tabs { display: none; }
+
+/* Responsive: collapse sidebar to drawer below 960px */
+@media (max-width: 960px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .sidenav-toggle { display: block; }
+  .admin-sidenav {
+    position: static;
+    max-height: none;
+    display: none;
+  }
+  .admin-sidenav.is-open { display: flex; }
+}

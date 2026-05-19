@@ -74,13 +74,146 @@ function clearDraft() {
   setDraftState('clean', '저장됨');
 }
 
-function tabsSwitch(targetTab) {
-  tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === targetTab));
-  panels.forEach((p) => p.classList.toggle('active', p.dataset.panel === targetTab));
+function tabsSwitch(targetTab, opts = {}) {
+  const { updateHash = true, focusPanel = false } = opts;
+  let matched = false;
+  tabs.forEach((t) => {
+    const isActive = t.dataset.tab === targetTab;
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    t.tabIndex = isActive ? 0 : -1;
+    if (isActive) matched = true;
+  });
+  panels.forEach((p) => {
+    const isActive = p.dataset.panel === targetTab;
+    p.classList.toggle('active', isActive);
+    if (isActive) p.removeAttribute('hidden');
+    else p.setAttribute('hidden', '');
+  });
+  if (!matched) return;
+  if (updateHash && targetTab) {
+    try {
+      const url = new URL(window.location.href);
+      if (url.hash.replace(/^#/, '') !== targetTab) {
+        history.replaceState(null, '', `#${targetTab}`);
+      }
+    } catch (_) {}
+  }
+  // Close mobile drawer after selection
+  const sidenav = document.getElementById('admin-sidenav');
+  const toggle = document.getElementById('sidenav-toggle');
+  if (sidenav && toggle && window.matchMedia('(max-width: 960px)').matches) {
+    sidenav.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+  if (focusPanel) {
+    const panel = document.getElementById(`panel-${targetTab}`);
+    if (panel) panel.focus({ preventScroll: false });
+  }
 }
+
+const tabsArray = Array.from(tabs);
+
+function moveFocusBy(delta) {
+  const visible = tabsArray.filter((t) => !t.classList.contains('is-filtered-out') && t.offsetParent !== null);
+  if (!visible.length) return;
+  const current = visible.findIndex((t) => t === document.activeElement);
+  const nextIdx = ((current < 0 ? 0 : current + delta) + visible.length) % visible.length;
+  const next = visible[nextIdx];
+  next.focus();
+}
+function moveFocusEdge(edge) {
+  const visible = tabsArray.filter((t) => !t.classList.contains('is-filtered-out') && t.offsetParent !== null);
+  if (!visible.length) return;
+  visible[edge === 'home' ? 0 : visible.length - 1].focus();
+}
+
 tabs.forEach((tab) => {
   tab.addEventListener('click', () => tabsSwitch(tab.dataset.tab));
+  tab.addEventListener('keydown', (e) => {
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        e.preventDefault();
+        moveFocusBy(1);
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        e.preventDefault();
+        moveFocusBy(-1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        moveFocusEdge('home');
+        break;
+      case 'End':
+        e.preventDefault();
+        moveFocusEdge('end');
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        tabsSwitch(tab.dataset.tab, { focusPanel: true });
+        break;
+      default:
+        break;
+    }
+  });
 });
+
+// Sidebar section filter — type to narrow the visible tab list
+const sidenavFilter = document.getElementById('sidenav-filter');
+if (sidenavFilter) {
+  sidenavFilter.addEventListener('input', () => {
+    const q = sidenavFilter.value.trim().toLowerCase();
+    let visibleCount = 0;
+    tabs.forEach((t) => {
+      const label = (t.textContent || '').toLowerCase();
+      const key = (t.dataset.tab || '').toLowerCase();
+      const match = !q || label.includes(q) || key.includes(q);
+      t.classList.toggle('is-filtered-out', !match);
+      if (match) visibleCount += 1;
+    });
+    // Hide whole group if every child is filtered out
+    document.querySelectorAll('.sidenav-group').forEach((group) => {
+      const anyVisible = group.querySelectorAll('.manage-tab:not(.is-filtered-out)').length > 0;
+      group.hidden = !anyVisible;
+    });
+  });
+}
+
+// Global "/" shortcut → focus sidebar search (unless already typing)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  const isTyping = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+  if (isTyping) return;
+  if (!sidenavFilter) return;
+  e.preventDefault();
+  sidenavFilter.focus();
+  sidenavFilter.select();
+});
+
+// Mobile drawer toggle
+const sidenavToggle = document.getElementById('sidenav-toggle');
+const adminSidenav = document.getElementById('admin-sidenav');
+if (sidenavToggle && adminSidenav) {
+  sidenavToggle.addEventListener('click', () => {
+    const open = !adminSidenav.classList.contains('is-open');
+    adminSidenav.classList.toggle('is-open', open);
+    sidenavToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+}
+
+// Initial tab from URL hash (e.g. manage.html#kms)
+function applyHashTab() {
+  const hash = (window.location.hash || '').replace(/^#/, '');
+  if (!hash) return;
+  const target = tabsArray.find((t) => t.dataset.tab === hash);
+  if (target) tabsSwitch(hash, { updateHash: false });
+}
+applyHashTab();
+window.addEventListener('hashchange', applyHashTab);
 
 // ──────────────────────────────────────────────────────────────────────────
 // Form binding: <input data-bind="hero.title_ko"> ↔ siteConfig.hero.title_ko
