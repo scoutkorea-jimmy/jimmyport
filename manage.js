@@ -151,6 +151,12 @@ function renderQuickFactsEditor() {
   });
 }
 
+function citiesAsText(cities) {
+  if (Array.isArray(cities)) return cities.join(', ');
+  if (typeof cities === 'string') return cities;
+  return '';
+}
+
 function renderCountriesEditor() {
   const host = document.querySelector('#countries-list');
   if (!host) return;
@@ -159,9 +165,11 @@ function renderCountriesEditor() {
   host.innerHTML = '';
   rows.forEach((row, idx) => {
     const visits = Math.max(1, parseInt(row.visits, 10) || 1);
+    const isHome = !!row.is_home;
     const div = document.createElement('div');
     div.className = 'manage-row';
     if (visits >= 2) div.setAttribute('data-multi', '1');
+    if (isHome) div.setAttribute('data-home', '1');
     div.innerHTML = `
       <div class="manage-row-grid country-row-grid">
         <label>국기<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="flag" value="${escapeHtml(row.flag || '')}" maxlength="8" /></label>
@@ -169,6 +177,14 @@ function renderCountriesEditor() {
         <label>국가명 (KR)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
         <label>Country (EN)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
         <label>방문 횟수<input type="number" min="1" max="20" step="1" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="visits" data-row-numeric="1" value="${visits}" /></label>
+      </div>
+      <div class="country-row-grid-cities">
+        <label class="country-row-home" title="홈(거주) 국가로 표시 — 카드가 풀폭으로 강조됩니다">
+          <input type="checkbox" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="is_home" data-row-bool="1" ${isHome ? 'checked' : ''} />
+          홈
+        </label>
+        <label>방문 도시 (KR, 쉼표로 구분)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="cities_ko" data-row-list="1" value="${escapeHtml(citiesAsText(row.cities_ko))}" placeholder="서울, 부산, 제주" /></label>
+        <label>Cities (EN, comma separated)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="cities_en" data-row-list="1" value="${escapeHtml(citiesAsText(row.cities_en))}" placeholder="Seoul, Busan, Jeju" /></label>
       </div>
       <div class="manage-row-actions">
         <button type="button" data-row-action="move-up" data-row-target="global_experience.countries" data-row-index="${idx}">↑</button>
@@ -253,23 +269,45 @@ function renderInterestsEditor() {
   });
 }
 
-document.addEventListener('input', (event) => {
-  const target = event.target;
-  if (!target || !target.matches('[data-row]')) return;
+function commitRowFieldUpdate(target) {
   const path = target.dataset.row;
   const idx = parseInt(target.dataset.rowIndex, 10);
   const key = target.dataset.rowKey;
   const list = deepGet(siteConfig, path);
-  if (!Array.isArray(list)) return;
+  if (!Array.isArray(list)) return false;
   if (!list[idx]) list[idx] = {};
   if (target.dataset.rowNumeric === '1') {
     const n = parseInt(target.value, 10);
     list[idx][key] = Number.isFinite(n) && n > 0 ? n : 1;
-    // Re-render the row so its data-multi badge state flips immediately.
-    if (path === 'global_experience.countries') renderCountriesEditor();
-  } else {
-    list[idx][key] = target.value;
+    return true;
   }
+  if (target.dataset.rowBool === '1') {
+    list[idx][key] = !!target.checked;
+    return true;
+  }
+  if (target.dataset.rowList === '1') {
+    list[idx][key] = target.value.split(',').map((s) => s.trim()).filter(Boolean);
+    return false;
+  }
+  list[idx][key] = target.value;
+  return false;
+}
+
+document.addEventListener('input', (event) => {
+  const target = event.target;
+  if (!target || !target.matches('[data-row]')) return;
+  const shouldRerender = commitRowFieldUpdate(target);
+  if (shouldRerender && target.dataset.row === 'global_experience.countries') {
+    renderCountriesEditor();
+  }
+  saveDraft();
+});
+
+document.addEventListener('change', (event) => {
+  const target = event.target;
+  if (!target || !target.matches('[data-row][data-row-bool="1"]')) return;
+  commitRowFieldUpdate(target);
+  renderCountriesEditor();
   saveDraft();
 });
 

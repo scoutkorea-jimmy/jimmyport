@@ -1271,61 +1271,6 @@ select:focus-visible,
   transition: transform 140ms var(--gw-ease), box-shadow 140ms var(--gw-ease), opacity 140ms var(--gw-ease);
 }
 
-/* Automatic dark mode — only kicks in if user OS prefers dark. Hand-tuned to
-   keep the light-mode design language intact, just inverted. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #11140f;
-    --surface: #1a1e18;
-    --ink: #f1efe8;
-    --muted: #9aa094;
-    --soft: #20241d;
-    --line: #2e342a;
-    --accent: #8fcab8;
-    --accent-ink: #aedacb;
-    color-scheme: dark;
-  }
-  body {
-    background:
-      radial-gradient(circle at 85% 10%, rgba(143, 202, 184, 0.10), transparent 28rem),
-      linear-gradient(180deg, #11140f 0%, #15180f 100%);
-  }
-  .header-inner {
-    background: rgba(26, 30, 24, 0.78);
-    border-color: rgba(46, 52, 42, 0.85);
-  }
-  .country-chip { background: rgba(26, 30, 24, 0.7); }
-  .country-chip[data-multi] {
-    background: linear-gradient(135deg, rgba(143,202,184,0.10), rgba(26,30,24,0.55));
-    border-color: rgba(143, 202, 184, 0.55);
-  }
-  .hero-meta span { background: rgba(26, 30, 24, 0.6); }
-  .portrait-panel,
-  .portfolio-item,
-  .empty-state,
-  .interests li { background: rgba(26, 30, 24, 0.6); }
-  .play-mark {
-    background: rgba(17, 20, 15, 0.94);
-    color: var(--ink);
-    border-color: rgba(46, 52, 42, 0.55);
-  }
-  .contact {
-    background: #0a0d08;
-    color: var(--ink);
-  }
-  .mail-link { border-color: rgba(241, 239, 232, 0.34); }
-  .manage-pill { background: var(--soft); border-color: var(--line); }
-  .manage-tab.active { background: var(--surface); border-color: var(--line); }
-  .manage-row,
-  .admin-card,
-  .manage-help { background: rgba(26, 30, 24, 0.6); border-color: var(--line); }
-  .manage-row[data-multi] {
-    background: linear-gradient(135deg, rgba(143,202,184,0.10), rgba(26,30,24,0.6));
-    border-color: rgba(143, 202, 184, 0.55);
-  }
-  .footer-build[data-version-status="live"] .footer-build-status { color: #7fd29c; }
-}
-
 /* Honour reduced-motion preference everywhere */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -1333,4 +1278,125 @@ select:focus-visible,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   v0.004 — 한국 카드 특별 처리 + 방문 도시 슬롯
+   ───────────────────────────────────────────────────────────── */
+
+.country-grid {
+  /* Re-tune grid: rows can stretch, multi-line chips need full-row alignment. */
+  align-items: stretch;
+}
+
+.country-chip {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.country-chip-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+.country-chip-head .country-name {
+  flex: 1;
+}
+
+/* Home country (한국) — span the full row, lift visually, always show cities slot */
+.country-chip[data-home] {
+  background: linear-gradient(135deg, rgba(49,95,84,0.10), rgba(255,255,255,0.85));
+  border: 1px solid rgba(49,95,84,0.55);
+  box-shadow: 0 8px 24px rgba(23, 25, 21, 0.06);
+  grid-column: 1 / -1;
+  padding: 18px 22px;
+}
+.country-chip[data-home] .country-chip-head {
+  gap: 14px;
+}
+.country-chip[data-home] .country-flag {
+  font-size: 1.95rem;
+}
+.country-chip[data-home] .country-name {
+  font-size: 1.08rem;
+  font-weight: 850;
+  letter-spacing: -0.005em;
+}
+
+.country-home-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 5px rgba(49,95,84,0.25);
+  flex-shrink: 0;
+}
+
+.country-cities {
+  border-top: 1px solid rgba(49,95,84,0.18);
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.country-cities-prefix {
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.country-cities-list {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.country-cities-placeholder {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.country-chip[data-home] .country-cities {
+  border-top-color: rgba(49,95,84,0.32);
+}
+
+/* When a chip carries both data-home and data-multi, keep the home gradient
+   on top — the home framing dominates and "재방문" stays as a small badge. */
+.country-chip[data-home][data-multi] {
+  background: linear-gradient(135deg, rgba(49,95,84,0.14), rgba(255,255,255,0.86));
+}
+
+/* Admin row mirror: country-row's grid needs an extra column for cities */
+.country-row-grid {
+  grid-template-columns: 70px 70px 1fr 1fr 80px;
+}
+.country-row-grid-cities {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 24px 1fr 1fr;
+  margin-top: 8px;
+}
+.country-row-grid-cities .country-row-home {
+  align-items: center;
+  display: flex;
+  font-size: 0.74rem;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .country-row-grid { grid-template-columns: 1fr; }
+  .country-row-grid-cities { grid-template-columns: 1fr; }
 }

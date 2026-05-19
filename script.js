@@ -174,20 +174,39 @@ function renderInterests(config, lang) {
   });
 }
 
+function normaliseCities(country, lang) {
+  const raw = country[`cities_${lang}`] != null
+    ? country[`cities_${lang}`]
+    : country[`cities_${FALLBACK_LANG}`];
+  if (Array.isArray(raw)) return raw.map((s) => String(s).trim()).filter(Boolean);
+  if (typeof raw === 'string') return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  return [];
+}
+
 function renderCountries(config, lang) {
   if (!countryGridEl || !config || !config.global_experience) return;
   const ge = config.global_experience;
   const list = Array.isArray(ge.countries) ? ge.countries : [];
   const multiLabel = pickLang(ge, 'multi_visit_label', lang) || (lang === 'ko' ? '재방문' : 'Multi-visit');
+  const homeLabel  = pickLang(ge, 'home_label', lang)        || (lang === 'ko' ? '홈' : 'Home');
+  const cityPrefix = pickLang(ge, 'cities_prefix', lang)     || (lang === 'ko' ? '도시:' : 'Cities:');
   countryGridEl.innerHTML = '';
+
   list.forEach((country) => {
     const visits = Math.max(1, parseInt(country.visits, 10) || 1);
+    const isHome = !!country.is_home;
+    const cities = normaliseCities(country, lang);
+
     const li = document.createElement('li');
     li.className = 'country-chip';
+    if (isHome) li.setAttribute('data-home', '1');
     if (visits >= 2) {
       li.setAttribute('data-multi', '1');
       li.setAttribute('title', `${multiLabel} · ${visits}${lang === 'ko' ? '회 이상' : '× or more'}`);
     }
+
+    const head = document.createElement('div');
+    head.className = 'country-chip-head';
     const flag = document.createElement('span');
     flag.className = 'country-flag';
     flag.setAttribute('aria-hidden', 'true');
@@ -195,23 +214,51 @@ function renderCountries(config, lang) {
     const name = document.createElement('span');
     name.className = 'country-name';
     name.textContent = country[lang] || country[FALLBACK_LANG] || country.code || '';
-    li.append(flag, name);
+    head.append(flag, name);
+
+    if (isHome) {
+      const homeBadge = document.createElement('span');
+      homeBadge.className = 'country-home-badge';
+      homeBadge.textContent = homeLabel;
+      head.appendChild(homeBadge);
+    }
     if (visits >= 2) {
       const badge = document.createElement('span');
       badge.className = 'country-multi-badge';
       badge.setAttribute('aria-label', multiLabel);
       badge.textContent = visits > 2 ? `${visits}×` : '★';
-      li.appendChild(badge);
+      head.appendChild(badge);
     }
+    li.appendChild(head);
+
+    // Always render the cities slot for the home country so the 한국 card
+    // never visually collapses even before city data is added — the layout
+    // stays stable and signals "도시는 곧 추가됩니다".
+    if (isHome || cities.length) {
+      const citiesEl = document.createElement('div');
+      citiesEl.className = 'country-cities';
+      if (cities.length) {
+        const prefix = document.createElement('span');
+        prefix.className = 'country-cities-prefix';
+        prefix.textContent = cityPrefix;
+        const listEl = document.createElement('span');
+        listEl.className = 'country-cities-list';
+        listEl.textContent = cities.join(' · ');
+        citiesEl.append(prefix, listEl);
+      } else if (isHome) {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'country-cities-placeholder';
+        placeholder.textContent = lang === 'ko' ? '방문한 도시는 곧 추가됩니다' : 'Cities coming soon';
+        citiesEl.appendChild(placeholder);
+      }
+      li.appendChild(citiesEl);
+    }
+
     countryGridEl.appendChild(li);
   });
-  // Update country count statistic to reflect actual list length, so editors
-  // can add/remove countries from the admin without remembering to also tweak
-  // the displayed number.
+
   const countEl = document.querySelector('#global-stat-countries');
   if (countEl) countEl.textContent = String(list.length || ge.stat_countries || 0);
-  // Also annotate the multi-visit count next to the country stat for
-  // operators who want a quick "how many were repeat visits" cue.
   const multiCount = list.filter((c) => (parseInt(c.visits, 10) || 1) >= 2).length;
   const noteEl = document.querySelector('#global-stat-multi');
   if (noteEl) {
