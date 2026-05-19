@@ -1,0 +1,96 @@
+{
+  "$schema_version": 1,
+  "title_ko": "디자인 가이드",
+  "title_en": "Design Guide",
+  "sections": ["Color", "Typography", "Spacing", "Motion", "Components", "Tone"],
+  "items": [
+    {
+      "id": "color-tokens",
+      "title": "색 토큰",
+      "section": "Color",
+      "last_updated": "2026-05-19",
+      "summary": "라이트 모드 단일. 8개 토큰으로 색 위계가 결정됨.",
+      "body_html": "<h2>토큰</h2><table><thead><tr><th>토큰</th><th>값</th><th>용도</th></tr></thead><tbody><tr><td><code>--bg</code></td><td>#fbfaf7</td><td>페이지 배경</td></tr><tr><td><code>--surface</code></td><td>#ffffff</td><td>카드/입력 배경</td></tr><tr><td><code>--ink</code></td><td>#171915</td><td>본문 텍스트, 강조</td></tr><tr><td><code>--muted</code></td><td>#6f736c</td><td>보조 텍스트, dt, description</td></tr><tr><td><code>--soft</code></td><td>#f0eee7</td><td>여백 톤 배경, 이미지 placeholder</td></tr><tr><td><code>--line</code></td><td>#ddd8ce</td><td>1px 구분선, 카드 테두리</td></tr><tr><td><code>--accent</code></td><td>#315f54</td><td>강조 텍스트, 라벨, 버튼 배경</td></tr><tr><td><code>--accent-ink</code></td><td>#18362f</td><td>accent 위 짙은 톤 (text-link, CTA)</td></tr></tbody></table><h2>규칙</h2><ul><li>다크모드는 일부러 제외 — 톤 안정성 우선</li><li>그라데이션은 country-chip / global-stat 두 군데만</li><li>버튼·배지의 fill 컬러는 항상 <code>--accent</code> 단일 톤</li></ul>"
+    },
+    {
+      "id": "typography",
+      "title": "타이포 스케일 + Paybooc 가중치 시스템",
+      "section": "Typography",
+      "last_updated": "2026-05-19",
+      "summary": "PayboocFont 4 weight(300/500/700/800)로 위계 구분. 사이즈는 clamp() 기반 fluid 스케일.",
+      "body_html": "<h2>폰트</h2><pre><code>font-family: 'PayboocFont', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;</code></pre><p>Paybooc는 한글 우선 디스플레이 패밀리. 영문/숫자는 Inter로 자연 폴백.</p><h2>weight 토큰</h2><table><thead><tr><th>토큰</th><th>weight</th><th>적용처</th></tr></thead><tbody><tr><td><code>--fw-body</code></td><td>300</td><td>본문 lead, profile body, case-study-text, country-cities, dt, section-intro</td></tr><tr><td><code>--fw-body-emphasis</code></td><td>500</td><td>profile 마지막 단락, case-study-title, principles 항목, experience 카테고리 h3</td></tr><tr><td><code>--fw-strong</code></td><td>700</td><td>h1·h2, brand, nav, eyebrow, section-label, CTA, badges, principles 번호</td></tr><tr><td><code>--fw-hero</code></td><td>800</td><td>Hero h1 — 사이트 전체에서 단 하나</td></tr></tbody></table><h2>사이즈 스케일</h2><ul><li><strong>h1</strong>: <code>clamp(5.2rem, 12vw, 9.4rem)</code> · line-height 0.9</li><li><strong>h2</strong>: <code>clamp(2rem, 4vw, 3.6rem)</code> · line-height 1.08</li><li><strong>h3</strong>: 1.2rem · line-height 1.25</li><li><strong>.lead</strong>: <code>clamp(1.28rem, 2.2vw, 1.72rem)</code> · line-height 1.6</li><li><strong>본문</strong>: 0.96~1.08rem · line-height 1.72~1.85</li></ul><h2>대문자 라벨</h2><p><code>.eyebrow</code> / <code>.section-label</code> 둘 다 <code>text-transform: uppercase</code> + 0.78rem + accent 색. letter-spacing은 0 (Paybooc는 자연스럽게 자간이 적당).</p>"
+    },
+    {
+      "id": "spacing",
+      "title": "간격 시스템",
+      "section": "Spacing",
+      "last_updated": "2026-05-19",
+      "summary": "container max 1160px. section 상하 96px(데스크톱), 72px(모바일).",
+      "body_html": "<h2>컨테이너</h2><ul><li><code>--max: 1160px</code></li><li><code>.container</code>: <code>padding: 0 28px</code> (모바일 18px)</li></ul><h2>섹션 패딩</h2><ul><li>데스크톱: <code>padding: 96px 0</code></li><li>모바일(<code>&lt;900px</code>): <code>padding: 72px 0</code></li><li>각 섹션은 상단 <code>border-top: 1px solid var(--line)</code></li></ul><h2>그리드 컬럼</h2><ul><li><code>.profile</code>, <code>.section-heading</code>, <code>.work-list article</code>: <code>grid-template-columns: 190px minmax(0, 1fr)</code> + <code>gap: 56px</code> (모바일 시 1fr 단일 컬럼 + gap 20px)</li><li><code>.hero</code>: <code>grid-template-columns: minmax(0, 1fr) 380px</code> + <code>gap: 72px</code></li><li><code>.country-grid</code>: <code>grid-template-columns: repeat(auto-fill, minmax(160px, 1fr))</code> + <code>gap: 10px</code></li></ul>"
+    },
+    {
+      "id": "motion",
+      "title": "모션 토큰",
+      "section": "Motion",
+      "last_updated": "2026-05-19",
+      "summary": "단일 ease 곡선 + 통일 focus 링. 모든 트랜지션 140~220ms.",
+      "body_html": "<h2>토큰</h2><ul><li><code>--gw-ease</code>: <code>cubic-bezier(.22,.61,.36,1)</code> — 부드러운 ease-out</li><li><code>--gw-focus</code>: <code>0 0 0 3px rgba(49,95,84,0.30)</code> — 키보드 포커스</li></ul><h2>패턴</h2><ul><li>모든 hover transition은 140~220ms 사이</li><li>카드 hover: <code>translateY(-1px)</code> + 미세 shadow</li><li>섹션 첫 페인트: <code>gwSectionFade</code> animation (480ms ease-out, fade + translateY 8px)</li><li>버전 모달: <code>gw-vum-pop</code> (260ms cubic-bezier)</li></ul><h2>접근성</h2><p><code>@media (prefers-reduced-motion: reduce)</code> 블록이 모든 animation·transition을 0.01ms로 강제 → 모션 민감한 사용자는 즉시 정지 상태로 노출.</p>"
+    },
+    {
+      "id": "component-country-chip",
+      "title": "Component — country-chip",
+      "section": "Components",
+      "last_updated": "2026-05-19",
+      "summary": "Global Experience 섹션의 국가 칩. 일반 / 재방문(★) / 홈(풀폭) 3가지 변형.",
+      "body_html": "<h2>HTML</h2><pre><code>&lt;li class=\"country-chip\" data-home=\"1\"&gt;\n  &lt;div class=\"country-chip-head\"&gt;\n    &lt;span class=\"country-flag\"&gt;🇰🇷&lt;/span&gt;\n    &lt;span class=\"country-name\"&gt;대한민국&lt;/span&gt;\n    &lt;span class=\"country-home-badge\"&gt;홈&lt;/span&gt;\n  &lt;/div&gt;\n  &lt;div class=\"country-cities\"&gt;\n    &lt;span class=\"country-cities-prefix\"&gt;도시:&lt;/span&gt;\n    &lt;span class=\"country-cities-list\"&gt;서울 · 부산&lt;/span&gt;\n  &lt;/div&gt;\n&lt;/li&gt;</code></pre><h2>변형 attribute</h2><ul><li><code>data-home=\"1\"</code> → 풀폭 + accent gradient + Home 배지</li><li><code>data-multi=\"1\"</code> → 강조 테두리 + ★ 배지 + tooltip</li></ul>"
+    },
+    {
+      "id": "component-case-study-item",
+      "title": "Component — case-study-item",
+      "section": "Components",
+      "last_updated": "2026-05-19",
+      "summary": "포트폴리오 카드. Role 배지 + 5층 (Context/Challenge/Approach/Outcome).",
+      "body_html": "<h2>HTML</h2><pre><code>&lt;article class=\"case-study-item\"&gt;\n  &lt;!-- 영상이 있으면 media 슬롯 --&gt;\n  &lt;a class=\"case-study-media\"&gt;...&lt;/a&gt;\n  &lt;div class=\"case-study-body\"&gt;\n    &lt;div class=\"case-study-head\"&gt;\n      &lt;div class=\"case-study-number\"&gt;01&lt;/div&gt;\n      &lt;h3 class=\"case-study-title\"&gt;Title&lt;/h3&gt;\n    &lt;/div&gt;\n    &lt;p class=\"case-study-role\"&gt;\n      &lt;span class=\"case-study-role-tag\"&gt;Role&lt;/span&gt;\n      &lt;span&gt;Strategic Producer&lt;/span&gt;\n    &lt;/p&gt;\n    &lt;div class=\"case-study-fields\"&gt;\n      &lt;div class=\"case-study-field\"&gt;\n        &lt;span class=\"case-study-label\"&gt;Context&lt;/span&gt;\n        &lt;p class=\"case-study-text\"&gt;...&lt;/p&gt;\n      &lt;/div&gt;\n      ... Challenge / Approach / Outcome ...\n    &lt;/div&gt;\n  &lt;/div&gt;\n&lt;/article&gt;</code></pre><h2>규칙</h2><ul><li>영상이 없으면 카드 풀폭(<code>:not(:has(.case-study-media))</code>)</li><li>각 case-study-field는 채워진 경우에만 렌더링</li><li>Role 배지는 항상 accent 채움</li></ul>"
+    },
+    {
+      "id": "component-experience-category",
+      "title": "Component — experience-category",
+      "section": "Components",
+      "last_updated": "2026-05-19",
+      "summary": "Selected Experience 카드. 좌측 카테고리 헤더 + 우측 항목 리스트.",
+      "body_html": "<h2>HTML</h2><pre><code>&lt;article class=\"experience-category\"&gt;\n  &lt;div class=\"experience-category-head\"&gt;\n    &lt;h3&gt;Strategic Production&lt;/h3&gt;\n    &lt;p class=\"experience-category-desc\"&gt;설명…&lt;/p&gt;\n  &lt;/div&gt;\n  &lt;ul class=\"experience-items\"&gt;\n    &lt;li&gt;Samsung Tech Conference&lt;/li&gt;\n    ...\n  &lt;/ul&gt;\n&lt;/article&gt;</code></pre><h2>스타일</h2><ul><li>그리드 220px + 1fr (모바일 1fr 단일)</li><li>hover 시 accent 테두리 + 미세 shadow</li><li>items는 <code>border-bottom: 1px dashed</code>로 구분, 마지막은 없음</li><li><code>::before</code>의 <code>·</code> 마커가 accent 색</li></ul>"
+    },
+    {
+      "id": "component-principles-list",
+      "title": "Component — principles-list",
+      "section": "Components",
+      "last_updated": "2026-05-19",
+      "summary": "Principles 섹션의 numbered editorial list. 아이콘 없음, 좌측 모노 번호.",
+      "body_html": "<h2>HTML</h2><pre><code>&lt;ol class=\"principles-list\"&gt;\n  &lt;li&gt;기록은 사람을 오래 연결해야 한다&lt;/li&gt;\n  &lt;li&gt;좋은 운영은 사람을 덜 지치게 해야 한다&lt;/li&gt;\n  ...\n&lt;/ol&gt;</code></pre><h2>스타일</h2><ul><li><code>counter-reset: principle</code> + <code>::before { content: counter(principle, decimal-leading-zero); }</code></li><li>번호는 모노폰트(<code>ui-monospace</code>) + accent</li><li>각 항목 상단 <code>border-top: 1px solid var(--line)</code>, 마지막 항목 하단도 동일</li><li>본문 font-size 1.18rem · weight 500 (Medium) — 절제된 위계</li></ul>"
+    },
+    {
+      "id": "component-manage-row",
+      "title": "Component — manage-row + manage-tabs (admin)",
+      "section": "Components",
+      "last_updated": "2026-05-19",
+      "summary": "admin 패널의 반복 항목 행. 데이터 행 + ↑↓ + 삭제. 탭은 수평 스크롤형.",
+      "body_html": "<h2>manage-row</h2><pre><code>&lt;div class=\"manage-row\" data-multi=\"1\"&gt;\n  &lt;div class=\"manage-row-grid\"&gt;\n    &lt;label&gt;Field 1&lt;input/&gt;&lt;/label&gt;\n    &lt;label&gt;Field 2&lt;input/&gt;&lt;/label&gt;\n  &lt;/div&gt;\n  &lt;div class=\"manage-row-actions\"&gt;\n    &lt;button data-row-action=\"move-up\"&gt;↑&lt;/button&gt;\n    &lt;button data-row-action=\"move-down\"&gt;↓&lt;/button&gt;\n    &lt;button class=\"manage-row-delete\" data-row-action=\"delete\"&gt;삭제&lt;/button&gt;\n  &lt;/div&gt;\n&lt;/div&gt;</code></pre><h2>변형</h2><ul><li><code>data-multi=\"1\"</code> → 재방문 국가 행 강조</li><li><code>data-home=\"1\"</code> → 홈 국가 행 강조</li></ul><h2>manage-tabs</h2><ul><li>가로 flex + flex-wrap. 활성 탭만 surface 배경.</li><li>모바일은 자연스럽게 줄바꿈</li></ul>"
+    },
+    {
+      "id": "tone-guide",
+      "title": "톤 가이드 — strategic archive",
+      "section": "Tone",
+      "last_updated": "2026-05-19",
+      "summary": "사이트의 카피 톤은 'creative portfolio template'이 아니라 'strategic archive'. quieter / sharper / reflective / editorial.",
+      "body_html": "<h2>지향</h2><blockquote><p><em>'This is someone who quietly understands how projects, people, and communication actually move.'</em> 이 한 줄이 reader impression test의 기준선입니다.</p></blockquote><h2>filter</h2><ul><li>experienced but restrained — 자기 PR이 아니라 정리된 archive</li><li>avoid hype, motivational, startup jargon, AI-style 'visionary' language</li><li>editorial / intentional — clarity over cleverness</li><li>emphasize systems, context, continuity</li><li>no emotional oversharing</li></ul><h2>금지어 (Banned vocabulary)</h2><p>visionary · innovative leader · dynamic · passionate · results-driven · successfully · cutting-edge · game-changing · disrupted · transformed · 혁신적 · 성공적으로 · 열정적 · 최고의 · 최고 수준</p><h2>tone conversion</h2><table><thead><tr><th>지양</th><th>지향</th></tr></thead><tbody><tr><td>Successfully led</td><td>Designed and coordinated</td></tr><tr><td>Passionate about</td><td>Focused on</td></tr><tr><td>Creative storytelling</td><td>Communication structure</td></tr></tbody></table><h2>density</h2><p>한 단락 2~4 문장. 차분한 리듬, 의미 있는 여백. startup-short도 academically-dense도 아닌 mid-density editorial.</p><h2>metrics</h2><p>documentary, never promotional. 추정 수치 금지. 검증 가능한 사실만 — 모호하면 understate 또는 omit. 한 fabricated metric이 수년 실제 작업의 credibility를 깎습니다.</p>"
+    },
+    {
+      "id": "content-direction",
+      "title": "콘텐츠 구조 가이드 — case study + functional categories",
+      "section": "Tone",
+      "last_updated": "2026-05-19",
+      "summary": "Portfolio는 영상 갤러리가 아닌 케이스 스터디. Experience는 회사가 아닌 functional expertise. 두 원칙이 사이트 정체성의 핵심.",
+      "body_html": "<h2>케이스 스터디 5층</h2><p>모든 포트폴리오 항목은 다음 다섯 필드 안에 들어와야 합니다:</p><ol><li><strong>Role</strong> — 직책이나 책임 범위 한두 단어 (Producer / Strategist / PM / Information Architect …)</li><li><strong>Context</strong> — 어떤 상황이었는지. 조직·시점·청중·제약 조건.</li><li><strong>Challenge</strong> — 어떤 문제를 풀어야 했는지. trade-off를 명시.</li><li><strong>Approach</strong> — 구조·메시지·프로세스를 어떻게 재설계했는지. 'how it was solved'의 핵심.</li><li><strong>Outcome</strong> — 무엇이 바뀌었는지. documentary 톤, 추정 수치 금지.</li></ol><h2>functional categories</h2><p>Experience는 회사 단위가 아닌 5개 functional expertise 카테고리로 묶습니다 — Strategic Production · Global Communication · Systems &amp; Operations · Media Infrastructure · Community Documentation. 한 회사 경험이 여러 카테고리에 동시에 등장할 수 있고, 같은 카테고리에 여러 회사 경험이 모일 수 있습니다.</p><h2>job-to-meaning 재해석</h2><p>LinkedIn에서 적힌 직책이 그대로 사이트에 옮겨오지 않습니다. <code>project_jimmypark_linkedin_integration.md</code> 메모리의 4 직장 재해석 룰을 참고:</p><ul><li><strong>THE MIM</strong> → 'strategic institutional communication, IR/PR messaging, RFP-driven public-sector production systems'</li><li><strong>KSA</strong> → 'national-scale youth communication governance'</li><li><strong>WOSM/Jamboree</strong> → 'global operational communication ecosystem'</li><li><strong>Mashioba/EAST BLUE</strong> → 'behavioral UX + ecosystem design'</li></ul>"
+    }
+  ]
+}

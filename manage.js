@@ -629,24 +629,29 @@ document.querySelector('#github-commit-action')?.addEventListener('click', async
 
   appendLog(`커밋 시작: ${repo}@${branch}`);
   try {
-    const siteJson = JSON.stringify(siteConfig, null, 2) + '\n';
-    const portfolioJson = JSON.stringify(portfolioItems, null, 2) + '\n';
+    const toCommit = [
+      { path: 'data/site-config.json', json: siteConfig },
+      { path: 'data/portfolio.json',   json: portfolioItems },
+    ];
+    // Pick up KMS / Wiki / Design payloads from the document admin if present.
+    if (window.JimmyDocs && typeof window.JimmyDocs.filesForCommit === 'function') {
+      window.JimmyDocs.filesForCommit().forEach((f) => toCommit.push(f));
+    }
 
-    appendLog('data/site-config.json 업로드 중…');
-    await githubPutFile(repo, branch, 'data/site-config.json', siteJson, `${message} (site-config.json)`, pat);
-    appendLog('data/site-config.json 커밋 완료', 'ok');
+    for (const file of toCommit) {
+      appendLog(`${file.path} 업로드 중…`);
+      const content = JSON.stringify(file.json, null, 2) + '\n';
+      await githubPutFile(repo, branch, file.path, content, `${message} (${file.path.split('/').pop()})`, pat);
+      appendLog(`${file.path} 커밋 완료`, 'ok');
+    }
 
-    appendLog('data/portfolio.json 업로드 중…');
-    await githubPutFile(repo, branch, 'data/portfolio.json', portfolioJson, `${message} (portfolio.json)`, pat);
-    appendLog('data/portfolio.json 커밋 완료', 'ok');
-
-    appendLog('GitHub Pages가 약 1~2분 뒤 jimmypark.net에 반영합니다. (Site 버전 변동 없음 — 콘텐츠만 업데이트)', 'ok');
-    // Successful commit = the on-disk state matches what we just wrote, so
-    // clear the local draft to avoid drifting back to the stale draft on next
-    // page load.
+    appendLog('GitHub에 모든 파일 커밋 완료. Cloudflare Pages 자동 배포가 워크플로에 걸려 있으면 1~2분 안에 jimmypark.net에 반영됩니다.', 'ok');
     sourceConfigSnapshot = JSON.parse(JSON.stringify(siteConfig));
     sourcePortfolioSnapshot = JSON.parse(JSON.stringify(portfolioItems));
     clearDraft();
+    if (window.JimmyDocs && typeof window.JimmyDocs.resetDrafts === 'function') {
+      window.JimmyDocs.resetDrafts();
+    }
   } catch (err) {
     appendLog(err.message || String(err), 'error');
   }

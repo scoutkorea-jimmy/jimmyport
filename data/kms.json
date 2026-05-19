@@ -1,0 +1,79 @@
+{
+  "$schema_version": 1,
+  "title_ko": "기능 명세 (KMS)",
+  "title_en": "Feature Specifications (KMS)",
+  "categories": ["Admin", "Public", "Data", "Infrastructure"],
+  "statuses": ["draft", "active", "deprecated"],
+  "items": [
+    {
+      "id": "homepage-content-editor",
+      "title": "홈페이지 본문 통합 편집기",
+      "status": "active",
+      "category": "Admin",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "manage.html 한 화면에서 hero/profile/work/global/portfolio/principles/contact의 모든 텍스트를 편집하는 통합 admin.",
+      "body_html": "<h2>요약</h2><p><code>manage.html</code>은 사이트의 모든 정적 콘텐츠를 한 화면에서 편집하는 admin입니다. 데이터는 <code>data/site-config.json</code>과 <code>data/portfolio.json</code> 두 파일로 분리되어 있고, 한 화면에서 둘 다 다룹니다.</p><h2>저장 경로</h2><ol><li><strong>로컬 드래프트</strong> — 모든 변경이 자동으로 <code>localStorage</code>에 저장됩니다. 새 탭으로 홈을 열면 드래프트가 미리보기로 보입니다.</li><li><strong>JSON 다운로드</strong> — <code>site-config.json 다운로드</code> / <code>portfolio.json 다운로드</code> 버튼을 누른 뒤 파일을 <code>data/</code>에 교체하고 직접 commit·push.</li><li><strong>GitHub에 바로 커밋</strong> — Deploy 탭에서 PAT를 입력하면 GitHub Contents API로 두 파일을 직접 PUT. <code>jimmyport</code> Cloudflare Pages 프로젝트는 git 자동 연결이 없으므로 별도 wrangler 배포 필요.</li></ol><h2>탭 구조</h2><ul><li>Hero · Quick facts · Global · Profile · Work · Portfolio · Principles · Contact · Nav · Footer · Site &amp; SEO · Deploy</li><li>v0.007부터: KMS · Wiki · Design Guide 세 admin-전용 탭 추가</li></ul><h2>비지엠</h2><ul><li>드래프트 pill — 우측 상단 status indicator (저장됨 / 드래프트 / 실패)</li><li>홈은 드래프트가 있으면 자동으로 그것을 미리보기로 사용</li></ul>"
+    },
+    {
+      "id": "version-watcher",
+      "title": "라이브 버전 푸터 + 새 빌드 모달",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "/VERSION + /ADMIN_VERSION을 60초마다 폴링해 푸터에 라이브 상태 표시, 차이가 감지되면 화면 차단 모달로 새로고침 유도.",
+      "body_html": "<h2>동작</h2><p><code>js/version-watch.js</code>가 페이지 로드 시 <code>/VERSION</code>과 <code>/ADMIN_VERSION</code>을 한 번 받아 baseline으로 저장합니다. 그 뒤 60초마다 두 파일을 <code>cache:'no-store'</code> + 캐시 버스팅 쿼리로 다시 받아 baseline과 비교합니다.</p><h2>푸터 라이브 펑</h2><ul><li><code>Site V00.007.00 · Admin V00.005.00 · 최신 (HH:MM 확인)</code> 형태</li><li>응답 실패 시 <code>· 버전 확인 실패</code>로 폴백</li><li><code>data-version-status</code> attribute로 라이트/에러 색상 분리</li></ul><h2>새 빌드 모달</h2><ul><li>baseline과 폴 응답이 다르면 <code>.gw-version-update-modal</code>을 body에 mount</li><li><code>html.gw-version-locked</code>로 배경 스크롤 잠금</li><li>한 페이지 lifecycle 안에서 단 1회만 mount</li><li>Enter / Space / 버튼 클릭 → <code>location.reload()</code></li></ul><h2>edge case</h2><ul><li><code>document.hidden</code> 상태에서는 폴 skip (불필요 트래픽 차단)</li><li>focus 이벤트 5초 debounce</li><li><code>AbortController</code>로 8초 fetch 타임아웃</li></ul>"
+    },
+    {
+      "id": "korea-home-card",
+      "title": "한국 특별 카드 + 방문 도시 슬롯",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "Global Experience 섹션에서 한국은 풀폭 카드 + Home 배지로 강조. 모든 국가에 방문 도시 배열 필드 존재, 한국은 비어있어도 자리 노출.",
+      "body_html": "<h2>데이터 모델</h2><p>각 국가 객체에 <code>is_home</code>(boolean), <code>cities_ko</code>(string array), <code>cities_en</code>(string array), <code>visits</code>(integer) 필드가 있습니다.</p><h2>렌더링</h2><ul><li><code>is_home: true</code>인 칩 → <code>grid-column: 1 / -1</code>로 풀폭, accent gradient 배경, 'Home' 배지</li><li><code>visits >= 2</code> → 칩 우측에 ★ 배지 + 강조 테두리 + tooltip</li><li><code>cities</code>가 비어있지 않으면 칩 본문 아래에 '도시: 서울 · 부산' 형태로 노출</li><li>한국은 cities가 비어 있어도 'placeholder' 줄 표시 — 레이아웃 흔들림 방지</li></ul><h2>admin</h2><p>국가 행에 <code>홈</code> 체크박스 + <code>방문 횟수</code> 숫자 input + <code>방문 도시 (KR/EN)</code> 쉼표 입력 필드 노출. 체크 토글 즉시 폼 행에 ★ 마크가 떠 admin에서도 어떤 국가가 강조 처리되는지 확인 가능.</p>"
+    },
+    {
+      "id": "case-study-schema",
+      "title": "5층 케이스 스터디 스키마",
+      "status": "active",
+      "category": "Data",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "포트폴리오 항목을 영상 갤러리가 아닌 케이스 스터디 — Role · Context · Challenge · Approach · Outcome — 구조로 정리.",
+      "body_html": "<h2>스키마</h2><pre><code>{\n  \"id\": \"slug\",\n  \"youtubeUrl\": \"\",  // optional\n  \"published\": \"\",   // 연도\n  \"ko\": { title, role, context, challenge, approach, outcome },\n  \"en\": { title, role, context, challenge, approach, outcome }\n}</code></pre><h2>렌더링 규칙</h2><ul><li>각 필드가 비어있으면 그 라인은 표시되지 않음 (operator가 점진적으로 채울 수 있음)</li><li><code>youtubeUrl</code>이 비어있으면 카드 풀폭. 있으면 16:9 썸네일 + 본문 두 컬럼</li><li>구버전 <code>description</code> 필드는 fallback으로 Outcome 위치에 표시</li></ul><h2>톤 규칙</h2><p>가이드 7번 banned vocabulary (visionary / passionate / successfully 등) 0건 유지. 메트릭은 documentary 톤만 — 추정 수치 금지.</p>"
+    },
+    {
+      "id": "selected-experience-5-tracks",
+      "title": "5 카테고리 Selected Experience",
+      "status": "active",
+      "category": "Data",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "Experience를 functional expertise로 정리: Strategic Production · Global Communication · Systems & Operations · Media Infrastructure · Community Documentation.",
+      "body_html": "<h2>데이터 모델</h2><pre><code>work: {\n  title_ko/en, intro_ko/en,\n  categories: [\n    { title_ko/en, description_ko/en, items_ko/en[] }\n  ]\n}</code></pre><h2>5 카테고리</h2><ol><li><strong>Strategic Production</strong> — 공공·기업 커뮤니케이션, IR/PR, 키노트, 제안 기반 프로덕션</li><li><strong>Global Communication</strong> — 국가·언어·시간대가 다른 환경에서의 운영형 커뮤니케이션</li><li><strong>Systems &amp; Operations</strong> — 운영 자동화, 워크플로 시스템</li><li><strong>Media Infrastructure</strong> — 영상·콘텐츠 제작 인프라와 배포 구조</li><li><strong>Community Documentation</strong> — 커뮤니티의 시간을 잇는 기록 작업</li></ol><p>admin에서 <code>카테고리 추가</code> 버튼으로 6, 7번째 자유 확장 가능. 카테고리 순서 변경·삭제 모두 지원.</p>"
+    },
+    {
+      "id": "global-experience-section",
+      "title": "Global Experience 섹션 (18국)",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "한국 풀폭 카드 + 17국 chip 그리드. '현장에서 쌓은 글로벌 운영 감각' 헤드라인, '18개국, 30+ 도시' 통계.",
+      "body_html": "<h2>구조</h2><ul><li>헤드라인: <em>현장에서 쌓은 글로벌 운영 감각</em></li><li>서브텍스트: <em>18개국, 30개 이상의 도시와 프로젝트 현장…</em></li><li>통계: 18개국 + 30+ 도시 + 재방문 N개국 (자동 계산)</li><li>국가 리스트: 18국 chip 그리드 — 한국은 풀폭 카드, 재방문 5개국(CN/HK/TW/BD/ZA)은 ★ 배지</li></ul><h2>tone 규칙</h2><p>travel diary 톤 금지. systems-oriented framing — '경험'이 아니라 '운영 감각'.</p>"
+    },
+    {
+      "id": "kms-wiki-design-admin",
+      "title": "KMS · Wiki · Design Guide admin (이 패널)",
+      "status": "active",
+      "category": "Admin",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-19",
+      "summary": "운영자 전용 3 admin 탭. Tiptap 풀세트 에디터 + GitHub Contents API 커밋.",
+      "body_html": "<h2>의도</h2><p>지금 보고 있는 이 패널입니다. 사이트의 공개 페이지가 아니라 admin <em>안</em>에서만 보이는 internal documentation 도구. 향후 로그인 게이트(Cloudflare Access 등)로 보호 예정.</p><h2>데이터 파일</h2><ul><li><code>data/kms.json</code> — 기능 명세</li><li><code>data/wiki.json</code> — 운영자 노트, 절차, lesson</li><li><code>data/design.json</code> — 디자인 토큰·컴포넌트·톤 가이드</li></ul><h2>편집기</h2><p>Tiptap 무료 풀세트(StarterKit + Link + Image + Table + Highlight + Underline + TaskList + TextAlign + Placeholder + CharacterCount + Color + FontFamily + Typography + Youtube). 결과물은 <code>body_html</code> 필드에 HTML로 저장.</p>"
+    }
+  ]
+}

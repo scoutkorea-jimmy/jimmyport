@@ -55,7 +55,10 @@
         <button type="button" class="manage-tab" data-tab="contact">Contact</button>
         <button type="button" class="manage-tab" data-tab="chrome">Nav · Footer</button>
         <button type="button" class="manage-tab" data-tab="meta">Site &amp; SEO</button>
-        <button type="button" class="manage-tab" data-tab="deploy">Deploy · GitHub</button>
+        <button type="button" class="manage-tab manage-tab-divider" data-tab="kms">KMS · 기능명세</button>
+        <button type="button" class="manage-tab" data-tab="wiki">Wiki</button>
+        <button type="button" class="manage-tab" data-tab="design">Design Guide</button>
+        <button type="button" class="manage-tab manage-tab-divider" data-tab="deploy">Deploy · GitHub</button>
       </nav>
 
       <section class="manage-panel active" data-panel="hero">
@@ -231,6 +234,114 @@
         </div>
       </section>
 
+      <section class="manage-panel doc-panel" data-panel="kms" data-doc-source="kms">
+        <header class="doc-panel-head">
+          <div>
+            <p class="eyebrow">Admin only</p>
+            <h2 id="kms-title">KMS · 기능 명세</h2>
+            <p class="manage-panel-hint">사이트가 가진 기능을 한 문장 요약 + 본문 형태로 정리합니다. <code>data/kms.json</code>에 저장되며, 공개 페이지에는 노출되지 않습니다.</p>
+          </div>
+          <button type="button" class="manage-btn manage-btn-primary" data-doc-new>+ 새 명세</button>
+        </header>
+        <div class="doc-layout">
+          <aside class="doc-sidebar">
+            <input type="search" class="doc-search" data-doc-search placeholder="제목·요약·태그 검색" />
+            <ul class="doc-list" data-doc-list></ul>
+          </aside>
+          <article class="doc-editor" data-doc-editor>
+            <div class="doc-empty" data-doc-empty>왼쪽에서 문서를 고르거나 <code>+ 새 명세</code>로 추가하세요.</div>
+            <form class="doc-form" data-doc-form hidden>
+              <div class="doc-form-grid">
+                <label>제목<input type="text" name="title" required /></label>
+                <label>상태<select name="status"><option value="draft">draft</option><option value="active">active</option><option value="deprecated">deprecated</option></select></label>
+                <label>카테고리<select name="category" data-doc-category></select></label>
+                <label>담당<input type="text" name="owner" placeholder="Jimmy" /></label>
+                <label>최종 수정<input type="date" name="last_updated" /></label>
+                <label class="span-full">요약 (한 줄)<input type="text" name="summary" placeholder="이 기능을 한 문장으로" /></label>
+              </div>
+              <div class="doc-editor-host" data-doc-tiptap-host></div>
+              <div class="doc-form-actions">
+                <span class="doc-char-count" data-doc-charcount></span>
+                <button type="button" class="manage-btn manage-btn-ghost" data-doc-delete>이 문서 삭제</button>
+                <button type="button" class="manage-btn" data-doc-duplicate>복제</button>
+                <button type="button" class="manage-btn manage-btn-primary" data-doc-save>저장</button>
+              </div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section class="manage-panel doc-panel" data-panel="wiki" data-doc-source="wiki">
+        <header class="doc-panel-head">
+          <div>
+            <p class="eyebrow">Admin only</p>
+            <h2 id="wiki-title">Wiki · 운영자 노트</h2>
+            <p class="manage-panel-hint">절차·정책·사고 기록 등 운영자 자신이 참고할 내부 문서. <code>data/wiki.json</code>에 저장.</p>
+          </div>
+          <button type="button" class="manage-btn manage-btn-primary" data-doc-new>+ 새 노트</button>
+        </header>
+        <div class="doc-layout">
+          <aside class="doc-sidebar">
+            <input type="search" class="doc-search" data-doc-search placeholder="제목·태그 검색" />
+            <ul class="doc-list" data-doc-list></ul>
+          </aside>
+          <article class="doc-editor" data-doc-editor>
+            <div class="doc-empty" data-doc-empty>왼쪽에서 노트를 고르거나 <code>+ 새 노트</code>로 추가하세요.</div>
+            <form class="doc-form" data-doc-form hidden>
+              <div class="doc-form-grid">
+                <label>제목<input type="text" name="title" required /></label>
+                <label>카테고리<select name="category" data-doc-category></select></label>
+                <label>최종 수정<input type="date" name="last_updated" /></label>
+                <label class="span-full">태그 (쉼표로 구분)<input type="text" name="tags" placeholder="cloudflare, deploy, wrangler" /></label>
+                <label class="span-full">요약 (한 줄)<input type="text" name="summary" /></label>
+              </div>
+              <div class="doc-editor-host" data-doc-tiptap-host></div>
+              <div class="doc-form-actions">
+                <span class="doc-char-count" data-doc-charcount></span>
+                <button type="button" class="manage-btn manage-btn-ghost" data-doc-delete>이 문서 삭제</button>
+                <button type="button" class="manage-btn" data-doc-duplicate>복제</button>
+                <button type="button" class="manage-btn manage-btn-primary" data-doc-save>저장</button>
+              </div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section class="manage-panel doc-panel" data-panel="design" data-doc-source="design">
+        <header class="doc-panel-head">
+          <div>
+            <p class="eyebrow">Admin only</p>
+            <h2 id="design-title">Design Guide</h2>
+            <p class="manage-panel-hint">색·타이포·간격·모션·컴포넌트·톤 가이드. 디자인 결정의 근거를 한 곳에 정리.</p>
+          </div>
+          <button type="button" class="manage-btn manage-btn-primary" data-doc-new>+ 새 문서</button>
+        </header>
+        <div class="doc-layout">
+          <aside class="doc-sidebar">
+            <input type="search" class="doc-search" data-doc-search placeholder="제목·섹션 검색" />
+            <ul class="doc-list" data-doc-list></ul>
+          </aside>
+          <article class="doc-editor" data-doc-editor>
+            <div class="doc-empty" data-doc-empty>왼쪽에서 문서를 고르거나 <code>+ 새 문서</code>로 추가하세요.</div>
+            <form class="doc-form" data-doc-form hidden>
+              <div class="doc-form-grid">
+                <label>제목<input type="text" name="title" required /></label>
+                <label>섹션<select name="section" data-doc-section></select></label>
+                <label>최종 수정<input type="date" name="last_updated" /></label>
+                <label class="span-full">요약 (한 줄)<input type="text" name="summary" /></label>
+              </div>
+              <div class="doc-editor-host" data-doc-tiptap-host></div>
+              <div class="doc-form-actions">
+                <span class="doc-char-count" data-doc-charcount></span>
+                <button type="button" class="manage-btn manage-btn-ghost" data-doc-delete>이 문서 삭제</button>
+                <button type="button" class="manage-btn" data-doc-duplicate>복제</button>
+                <button type="button" class="manage-btn manage-btn-primary" data-doc-save>저장</button>
+              </div>
+            </form>
+          </article>
+        </div>
+      </section>
+
       <section class="manage-panel" data-panel="deploy">
         <h2>Deploy · GitHub 바로 커밋</h2>
         <p class="manage-panel-hint">
@@ -266,7 +377,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.006.00</span> · Admin <span class="admin-build-version">V00.004.00</span>
+          Site <span class="site-build-version">V00.007.00</span> · Admin <span class="admin-build-version">V00.005.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">
@@ -276,6 +387,7 @@
     </footer>
 
     <script src="manage.js"></script>
+    <script type="module" src="manage-editor.js"></script>
     <script src="version-watch.js"></script>
   </body>
 </html>
