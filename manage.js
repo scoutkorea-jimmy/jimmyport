@@ -74,8 +74,10 @@ function clearDraft() {
   setDraftState('clean', '저장됨');
 }
 
+const ACTIVE_TAB_KEY = 'jimmypark-manage-active-tab';
+
 function tabsSwitch(targetTab, opts = {}) {
-  const { updateHash = true, focusPanel = false } = opts;
+  const { updateHash = true, focusPanel = false, persist = true } = opts;
   let matched = false;
   tabs.forEach((t) => {
     const isActive = t.dataset.tab === targetTab;
@@ -91,6 +93,10 @@ function tabsSwitch(targetTab, opts = {}) {
     else p.setAttribute('hidden', '');
   });
   if (!matched) return;
+  document.body.classList.add('admin-has-active-tab');
+  if (persist) {
+    try { localStorage.setItem(ACTIVE_TAB_KEY, targetTab); } catch (_) {}
+  }
   if (updateHash && targetTab) {
     try {
       const url = new URL(window.location.href);
@@ -205,15 +211,30 @@ if (sidenavToggle && adminSidenav) {
   });
 }
 
-// Initial tab from URL hash (e.g. manage.html#kms)
-function applyHashTab() {
+// Initial tab: URL hash > localStorage (last viewed) > none (welcome state).
+// Hero is no longer auto-pinned — landing page shows the admin-hero welcome
+// until the user picks a section.
+function restoreInitialTab() {
+  const hash = (window.location.hash || '').replace(/^#/, '');
+  if (hash) {
+    const t = tabsArray.find((t) => t.dataset.tab === hash);
+    if (t) { tabsSwitch(hash, { updateHash: false }); return; }
+  }
+  try {
+    const last = localStorage.getItem(ACTIVE_TAB_KEY);
+    if (last) {
+      const t = tabsArray.find((t) => t.dataset.tab === last);
+      if (t) tabsSwitch(last, { updateHash: false });
+    }
+  } catch (_) {}
+}
+restoreInitialTab();
+window.addEventListener('hashchange', () => {
   const hash = (window.location.hash || '').replace(/^#/, '');
   if (!hash) return;
-  const target = tabsArray.find((t) => t.dataset.tab === hash);
-  if (target) tabsSwitch(hash, { updateHash: false });
-}
-applyHashTab();
-window.addEventListener('hashchange', applyHashTab);
+  const t = tabsArray.find((t) => t.dataset.tab === hash);
+  if (t) tabsSwitch(hash, { updateHash: false });
+});
 
 // ──────────────────────────────────────────────────────────────────────────
 // Form binding: <input data-bind="hero.title_ko"> ↔ siteConfig.hero.title_ko
@@ -342,28 +363,40 @@ function renderCountriesEditor() {
   if (!siteConfig.global_experience) siteConfig.global_experience = { countries: [] };
   const rows = siteConfig.global_experience.countries || (siteConfig.global_experience.countries = []);
   host.innerHTML = '';
+
+  // Inline auto-count summary so the admin sees totals at a glance.
+  const totalCountries = rows.length;
+  const totalCities = (() => {
+    const set = new Set();
+    rows.forEach((r) => {
+      const list = Array.isArray(r.cities_ko) ? r.cities_ko
+        : (typeof r.cities_ko === 'string' ? r.cities_ko.split(',') : []);
+      list.forEach((c) => { const v = String(c || '').trim(); if (v) set.add(v); });
+    });
+    return set.size;
+  })();
+  const summary = document.createElement('p');
+  summary.className = 'manage-panel-hint';
+  summary.innerHTML = `<strong>현재:</strong> ${totalCountries}개국 · ${totalCities}개 도시 (자동 카운팅, 사이트에 그대로 표시)`;
+  host.appendChild(summary);
+
   rows.forEach((row, idx) => {
-    const visits = Math.max(1, parseInt(row.visits, 10) || 1);
     const isHome = !!row.is_home;
     const div = document.createElement('div');
-    div.className = 'manage-row';
-    if (visits >= 2) div.setAttribute('data-multi', '1');
+    div.className = 'manage-row manage-row-tall';
     if (isHome) div.setAttribute('data-home', '1');
     div.innerHTML = `
       <div class="manage-row-grid country-row-grid">
-        <label>국기<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="flag" value="${escapeHtml(row.flag || '')}" maxlength="8" /></label>
-        <label>코드<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="code" value="${escapeHtml(row.code || '')}" maxlength="4" /></label>
-        <label>국가명 (KR)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
-        <label>Country (EN)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
-        <label>방문 횟수<input type="number" min="1" max="20" step="1" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="visits" data-row-numeric="1" value="${visits}" /></label>
-      </div>
-      <div class="country-row-grid-cities">
-        <label class="country-row-home" title="홈(거주) 국가로 표시 — 카드가 풀폭으로 강조됩니다">
-          <input type="checkbox" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="is_home" data-row-bool="1" ${isHome ? 'checked' : ''} />
-          홈
-        </label>
-        <label>방문 도시 (KR, 쉼표로 구분)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="cities_ko" data-row-list="1" value="${escapeHtml(citiesAsText(row.cities_ko))}" placeholder="서울, 부산, 제주" /></label>
-        <label>Cities (EN, comma separated)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="cities_en" data-row-list="1" value="${escapeHtml(citiesAsText(row.cities_en))}" placeholder="Seoul, Busan, Jeju" /></label>
+        <label>국기 (이모지)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="flag" value="${escapeHtml(row.flag || '')}" maxlength="8" placeholder="🇰🇷" /></label>
+        <label>국가코드<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="code" value="${escapeHtml(row.code || '')}" maxlength="4" placeholder="KR" /></label>
+        <label>국가명 (KR)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" placeholder="대한민국" /></label>
+        <label>Country name (EN)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" placeholder="South Korea" /></label>
+        <label class="span-2">방문 도시 (KR, 쉼표로 구분)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="cities_ko" data-row-list="1" value="${escapeHtml(citiesAsText(row.cities_ko))}" placeholder="서울, 부산, 제주" /></label>
+        <label class="span-2">Cities (EN, comma separated)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="cities_en" data-row-list="1" value="${escapeHtml(citiesAsText(row.cities_en))}" placeholder="Seoul, Busan, Jeju" /></label>
+        <label class="span-2">왜 다녀왔는지 (KR) — 줄바꿈 → 별도 줄로 사이트에 표시<textarea rows="3" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="reason_ko" placeholder="2019 World Scout Jamboree 운영 / 2021 PR 컨퍼런스 참여 등">${escapeHtml(row.reason_ko || '')}</textarea></label>
+        <label class="span-2">Reason for visit (EN)<textarea rows="3" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="reason_en" placeholder="2019 World Scout Jamboree ops / 2021 PR conf participation">${escapeHtml(row.reason_en || '')}</textarea></label>
+        <label class="span-2">관련 Experience — Work 카테고리 키 또는 제목 (예: scouting · media)<input data-row="global_experience.countries" data-row-index="${idx}" data-row-key="linked_experience" value="${escapeHtml(row.linked_experience || '')}" placeholder="scouting / media / community / education" /></label>
+        <label class="country-row-home"><input type="checkbox" data-row="global_experience.countries" data-row-index="${idx}" data-row-key="is_home" data-row-bool="1" ${isHome ? 'checked' : ''} /> 홈(거주) 국가로 표시</label>
       </div>
       <div class="manage-row-actions">
         <button type="button" data-row-action="move-up" data-row-target="global_experience.countries" data-row-index="${idx}">↑</button>
@@ -448,8 +481,8 @@ function renderInterestsEditor() {
     div.className = 'manage-row';
     div.innerHTML = `
       <div class="manage-row-grid">
-        <label>원칙 (KR)<input data-row="principles.items" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
-        <label>Principle (EN)<input data-row="principles.items" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
+        <label>원칙 (KR) — 줄바꿈을 입력하면 그대로 사이트에 표시됨<textarea rows="2" data-row="principles.items" data-row-index="${idx}" data-row-key="ko">${escapeHtml(row.ko || '')}</textarea></label>
+        <label>Principle (EN)<textarea rows="2" data-row="principles.items" data-row-index="${idx}" data-row-key="en">${escapeHtml(row.en || '')}</textarea></label>
       </div>
       <div class="manage-row-actions">
         <button type="button" data-row-action="move-up" data-row-target="principles.items" data-row-index="${idx}">↑</button>

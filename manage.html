@@ -46,7 +46,7 @@
           <input
             type="search"
             id="sidenav-filter"
-            placeholder="섹션 검색 (예: KMS, Hero)"
+            placeholder="섹션 검색 (예: Hero)"
             autocomplete="off"
             aria-label="관리자 섹션 검색"
           />
@@ -55,17 +55,39 @@
         <nav class="sidenav-nav" aria-label="관리자 섹션 목록">
           <div class="sidenav-group" data-group="content">
             <h3 class="sidenav-group-title">콘텐츠</h3>
-            <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="콘텐츠 섹션">
-              <li role="none"><button type="button" role="tab" id="tab-hero" aria-controls="panel-hero" aria-selected="true" tabindex="0" class="manage-tab active" data-tab="hero">Hero<span class="sidenav-hint">첫 화면 · 직함</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-quickfacts" aria-controls="panel-quickfacts" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="quickfacts">Quick facts<span class="sidenav-hint">정보 카드</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-global" aria-controls="panel-global" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="global">Global · 국가<span class="sidenav-hint">글로벌 역량</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-profile" aria-controls="panel-profile" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="profile">Profile<span class="sidenav-hint">자기소개</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-work" aria-controls="panel-work" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="work">Work<span class="sidenav-hint">기능 단위 경험</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-portfolio" aria-controls="panel-portfolio" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="portfolio">Portfolio<span class="sidenav-hint">영상 · PM</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-career" aria-controls="panel-career" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="career">Career<span class="sidenav-hint">회사별 경험</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-interests" aria-controls="panel-interests" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="interests">Principles<span class="sidenav-hint">원칙</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-contact" aria-controls="panel-contact" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="contact">Contact<span class="sidenav-hint">문의</span></button></li>
-            </ul>
+
+            <div class="sidenav-subgroup">
+              <h4 class="sidenav-subgroup-title">첫 화면</h4>
+              <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="첫 화면">
+                <li role="none"><button type="button" role="tab" id="tab-hero" aria-controls="panel-hero" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="hero">Hero<span class="sidenav-hint">제목 · 직함 · 리드</span></button></li>
+                <li role="none"><button type="button" role="tab" id="tab-quickfacts" aria-controls="panel-quickfacts" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="quickfacts">Quick facts<span class="sidenav-hint">정보 카드</span></button></li>
+              </ul>
+            </div>
+
+            <div class="sidenav-subgroup">
+              <h4 class="sidenav-subgroup-title">본문</h4>
+              <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="본문">
+                <li role="none"><button type="button" role="tab" id="tab-profile" aria-controls="panel-profile" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="profile">Profile<span class="sidenav-hint">자기소개</span></button></li>
+                <li role="none"><button type="button" role="tab" id="tab-work" aria-controls="panel-work" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="work">Experience<span class="sidenav-hint">기능 단위 경험</span></button></li>
+                <li role="none"><button type="button" role="tab" id="tab-career" aria-controls="panel-career" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="career">Career<span class="sidenav-hint">회사별 이력</span></button></li>
+                <li role="none"><button type="button" role="tab" id="tab-interests" aria-controls="panel-interests" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="interests">Principles<span class="sidenav-hint">원칙</span></button></li>
+              </ul>
+            </div>
+
+            <div class="sidenav-subgroup">
+              <h4 class="sidenav-subgroup-title">미디어 · 글로벌</h4>
+              <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="미디어 · 글로벌">
+                <li role="none"><button type="button" role="tab" id="tab-portfolio" aria-controls="panel-portfolio" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="portfolio">Portfolio<span class="sidenav-hint">영상 · PM</span></button></li>
+                <li role="none"><button type="button" role="tab" id="tab-global" aria-controls="panel-global" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="global">Global · 국가<span class="sidenav-hint">방문 · 사유 · 경험 연계</span></button></li>
+              </ul>
+            </div>
+
+            <div class="sidenav-subgroup">
+              <h4 class="sidenav-subgroup-title">문의</h4>
+              <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="문의">
+                <li role="none"><button type="button" role="tab" id="tab-contact" aria-controls="panel-contact" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="contact">Contact<span class="sidenav-hint">연락처</span></button></li>
+              </ul>
+            </div>
           </div>
 
           <div class="sidenav-group" data-group="settings">
@@ -75,34 +97,18 @@
               <li role="none"><button type="button" role="tab" id="tab-meta" aria-controls="panel-meta" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="meta">Site &amp; SEO<span class="sidenav-hint">메타 · CF 분석</span></button></li>
             </ul>
           </div>
-
-          <div class="sidenav-group" data-group="docs">
-            <h3 class="sidenav-group-title">관리자 문서</h3>
-            <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="관리자 문서">
-              <li role="none"><button type="button" role="tab" id="tab-kms" aria-controls="panel-kms" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="kms">KMS<span class="sidenav-hint">기능 명세</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-wiki" aria-controls="panel-wiki" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="wiki">Wiki<span class="sidenav-hint">운영자 노트</span></button></li>
-              <li role="none"><button type="button" role="tab" id="tab-design" aria-controls="panel-design" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="design">Design Guide<span class="sidenav-hint">색 · 타이포 · 모션</span></button></li>
-            </ul>
-          </div>
-
-          <div class="sidenav-group" data-group="deploy">
-            <h3 class="sidenav-group-title">배포</h3>
-            <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="배포">
-              <li role="none"><button type="button" role="tab" id="tab-deploy" aria-controls="panel-deploy" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="deploy">Deploy · GitHub<span class="sidenav-hint">바로 커밋</span></button></li>
-            </ul>
-          </div>
         </nav>
 
         <div class="sidenav-actions" role="group" aria-label="공통 액션">
           <button type="button" class="manage-btn manage-btn-ghost" id="reload-from-source">원본 다시 불러오기</button>
           <button type="button" class="manage-btn manage-btn-ghost" id="reset-draft">드래프트 초기화</button>
-          <button type="button" class="manage-btn" id="download-site-config">site-config.json</button>
-          <button type="button" class="manage-btn" id="download-portfolio">portfolio.json</button>
-          <button type="button" class="manage-btn manage-btn-primary" id="commit-to-github">GitHub 바로 커밋</button>
+          <button type="button" class="manage-btn" id="download-site-config">site-config.json 다운로드</button>
+          <button type="button" class="manage-btn" id="download-portfolio">portfolio.json 다운로드</button>
         </div>
 
         <p class="sidenav-shortcut" aria-hidden="true">
-          <kbd>↑</kbd><kbd>↓</kbd> 이동 · <kbd>Home</kbd><kbd>End</kbd> 처음/끝 · <kbd>/</kbd> 검색
+          저장 시 자동 commit · push · jimmypark.net 반영<br>
+          <kbd>↑</kbd><kbd>↓</kbd> 메뉴 이동 · <kbd>/</kbd> 검색
         </p>
       </aside>
 
@@ -111,18 +117,15 @@
           <p class="eyebrow">Manage · 관리자</p>
           <h1>jimmypark.net 통합 관리</h1>
           <p class="lead">
-            홈페이지의 모든 텍스트와 데이터를 한 곳에서 편집합니다.
-            저장은 <strong>① 로컬 드래프트(자동)</strong> →
-            <strong>② JSON 다운로드</strong> 또는
-            <strong>③ GitHub에 바로 커밋</strong> 순서로 흐릅니다.
+            왼쪽 메뉴에서 편집할 섹션을 고르세요. 변경사항은 <strong>로컬 드래프트(자동)</strong>로 저장되며,
+            <code>JSON 다운로드</code> 후 git에 반영하면 jimmypark.net에 자동 배포됩니다.
           </p>
           <p class="manage-hint">
-            드래프트는 이 브라우저의 localStorage에만 저장되며 새 탭으로 홈을 열면 미리보기로 보입니다.
-            최종 반영은 ②(파일 받아 git push) 또는 ③(Deploy 탭에서 GitHub PAT 입력)으로 진행하세요.
+            GitHub Actions 시크릿이 추가된 이후로는 push만으로 자동 배포되므로 별도 Deploy 메뉴는 두지 않습니다.
           </p>
         </section>
 
-        <section class="manage-panel active" id="panel-hero" data-panel="hero" role="tabpanel" aria-labelledby="tab-hero" tabindex="0">
+        <section class="manage-panel" id="panel-hero" data-panel="hero" role="tabpanel" aria-labelledby="tab-hero" tabindex="0" hidden>
           <h2>Hero 영역</h2>
           <p class="manage-panel-hint">홈 첫 화면 — eyebrow / 이름 / 직함 3 / lead / 메타 태그 / CTA / 이미지.</p>
           <div class="manage-grid two-col">
@@ -144,14 +147,6 @@
             <label>CTA 이메일 (KR)<input data-bind="hero.cta_email_ko" /></label>
             <label>CTA email (EN)<input data-bind="hero.cta_email_en" /></label>
             <label class="span-2">히어로 이미지 경로<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
-            <label class="span-2" data-file-upload-host="hero.image">
-              이미지 업로드 (GitHub에 직접 커밋)
-              <div class="doc-file-upload">
-                <input type="file" accept="image/*" data-file-upload="hero.image" />
-                <span class="doc-file-status" data-file-status></span>
-              </div>
-              <small style="color:var(--muted);font-size:0.74rem;font-weight:300;">파일을 선택하면 <code>assets/</code>에 업로드되고 위 경로가 자동으로 갱신됩니다. <strong>Deploy 탭의 PAT</strong>가 먼저 설정되어 있어야 합니다.</small>
-            </label>
             <label>이미지 alt (KR)<input data-bind="hero.image_alt_ko" /></label>
             <label>이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
           </div>
@@ -166,25 +161,21 @@
 
         <section class="manage-panel" id="panel-global" data-panel="global" role="tabpanel" aria-labelledby="tab-global" tabindex="0" hidden>
           <h2>Global Experience · 글로벌 역량</h2>
-          <p class="manage-panel-hint">소개 카피 + 도시/국가 통계 + 국가 리스트(국기 + 이름).</p>
+          <p class="manage-panel-hint">소개 카피 + 국가 리스트. 국가 수와 방문 도시 수는 입력값에서 자동 카운팅됩니다.</p>
           <div class="manage-grid two-col">
             <label>Eyebrow (KR)<input data-bind="global_experience.eyebrow_ko" /></label>
             <label>Eyebrow (EN)<input data-bind="global_experience.eyebrow_en" /></label>
             <label>Title (KR)<input data-bind="global_experience.title_ko" /></label>
             <label>Title (EN)<input data-bind="global_experience.title_en" /></label>
-            <label class="span-2">본문 (KR)<textarea rows="4" data-bind="global_experience.body_ko"></textarea></label>
-            <label class="span-2">Body (EN)<textarea rows="4" data-bind="global_experience.body_en"></textarea></label>
-            <label>도시 통계 라벨 (KR)<input data-bind="global_experience.stat_cities_label_ko" placeholder="30+" /></label>
-            <label>도시 통계 라벨 (EN)<input data-bind="global_experience.stat_cities_label_en" placeholder="30+" /></label>
+            <label class="span-2">본문 (KR)<textarea rows="3" data-bind="global_experience.body_ko"></textarea></label>
+            <label class="span-2">Body (EN)<textarea rows="3" data-bind="global_experience.body_en"></textarea></label>
             <label>국가 수 단위 (KR)<input data-bind="global_experience.stat_countries_label_ko" placeholder="개국" /></label>
             <label>국가 수 단위 (EN)<input data-bind="global_experience.stat_countries_label_en" placeholder="countries" /></label>
             <label>도시 단어 (KR)<input data-bind="global_experience.stat_cities_caption_ko" placeholder="도시" /></label>
             <label>도시 단어 (EN)<input data-bind="global_experience.stat_cities_caption_en" placeholder="cities" /></label>
-            <label>재방문 라벨 (KR)<input data-bind="global_experience.multi_visit_label_ko" placeholder="재방문" /></label>
-            <label>Multi-visit label (EN)<input data-bind="global_experience.multi_visit_label_en" placeholder="Multi-visit" /></label>
           </div>
           <h3 class="manage-subhead">국가 목록</h3>
-          <p class="manage-panel-hint">국가는 자유롭게 추가/삭제할 수 있고, 상단의 "국가 수"는 자동으로 갱신됩니다. 방문 횟수가 2 이상이면 칩에 ★ 배지가 붙고 통계 옆에 "재방문 N개국"이 자동 표시됩니다.</p>
+          <p class="manage-panel-hint">"왜 다녀왔는지" 사유와 관련 Experience(Work 카테고리 키)를 함께 적어두면, 사이트에서 국가 카드를 누를 때 상세 정보로 표시되고 Experience와 연결됩니다.</p>
           <div class="manage-list" id="countries-list"></div>
           <button type="button" class="manage-btn manage-btn-ghost" id="add-country">국가 추가</button>
         </section>
@@ -202,7 +193,7 @@
 
         <section class="manage-panel" id="panel-work" data-panel="work" role="tabpanel" aria-labelledby="tab-work" tabindex="0" hidden>
           <h2>Selected Experience</h2>
-          <p class="manage-panel-hint">회사가 아니라 기능으로 정리합니다. 카테고리마다 설명 + 항목 리스트(KR/EN, 쉼표로 구분).</p>
+          <p class="manage-panel-hint">회사가 아니라 기능으로 정리합니다. 항목 안에서 줄바꿈을 입력하면 사이트에 그대로 반영됩니다.</p>
           <div class="manage-grid two-col">
             <label>섹션 제목 (KR)<input data-bind="work.title_ko" /></label>
             <label>Section title (EN)<input data-bind="work.title_en" /></label>
@@ -215,29 +206,13 @@
         </section>
 
         <section class="manage-panel" id="panel-portfolio" data-panel="portfolio" role="tabpanel" aria-labelledby="tab-portfolio" tabindex="0" hidden>
-          <h2>Video Portfolio</h2>
-          <p class="manage-panel-hint">YouTube 영상 한 줄 추가 → 자동 썸네일 미리보기. 항목은 위로 쌓입니다.</p>
+          <h2>Portfolio</h2>
+          <p class="manage-panel-hint">영상/PM 카드 한 줄 추가. 카드 클릭 시 모달로 자세히.</p>
           <div class="manage-grid two-col portfolio-intro-grid">
             <label>섹션 제목 (KR)<input data-bind="portfolio_intro.title_ko" /></label>
             <label>Section title (EN)<input data-bind="portfolio_intro.title_en" /></label>
             <label class="span-2">인트로 (KR)<textarea rows="3" data-bind="portfolio_intro.intro_ko"></textarea></label>
             <label class="span-2">Intro (EN)<textarea rows="3" data-bind="portfolio_intro.intro_en"></textarea></label>
-            <label>"내 역할" 라벨 (KR)<input data-bind="portfolio_intro.role_label_ko" /></label>
-            <label>"My role" label (EN)<input data-bind="portfolio_intro.role_label_en" /></label>
-            <label>"보기" 라벨 (KR)<input data-bind="portfolio_intro.watch_label_ko" /></label>
-            <label>"Watch" label (EN)<input data-bind="portfolio_intro.watch_label_en" /></label>
-            <label class="span-2">비어있을 때 제목 (KR)<input data-bind="portfolio_intro.empty_title_ko" /></label>
-            <label class="span-2">Empty title (EN)<input data-bind="portfolio_intro.empty_title_en" /></label>
-            <label class="span-2">비어있을 때 안내 (KR)<textarea rows="2" data-bind="portfolio_intro.empty_hint_ko"></textarea></label>
-            <label class="span-2">Empty hint (EN)<textarea rows="2" data-bind="portfolio_intro.empty_hint_en"></textarea></label>
-          </div>
-
-          <p class="manage-panel-hint">각 항목은 <strong>영상 프로젝트</strong> 또는 <strong>PM 프로젝트</strong> 둘 중 하나. 카드로 노출되고, 클릭하면 모달로 제목 · 역할 · 개요 · 영상/상세를 봅니다.</p>
-          <div class="manage-grid two-col" style="margin-bottom:24px;">
-            <label>섹션 제목 (KR)<input data-bind="portfolio_intro.title_ko" /></label>
-            <label>Section title (EN)<input data-bind="portfolio_intro.title_en" /></label>
-            <label class="span-2">인트로 (KR)<textarea rows="2" data-bind="portfolio_intro.intro_ko"></textarea></label>
-            <label class="span-2">Intro (EN)<textarea rows="2" data-bind="portfolio_intro.intro_en"></textarea></label>
             <label>영상 그룹 제목 (KR)<input data-bind="portfolio_intro.video_section_ko" /></label>
             <label>Video group (EN)<input data-bind="portfolio_intro.video_section_en" /></label>
             <label>PM 그룹 제목 (KR)<input data-bind="portfolio_intro.pm_section_ko" /></label>
@@ -262,15 +237,15 @@
           <form class="portfolio-form case-study-form" id="portfolio-form">
             <label>유형 / Type<select name="type"><option value="video">영상 (Video)</option><option value="pm">PM</option></select></label>
             <label>연도 / Year<input name="published" type="text" placeholder="2026" /></label>
-            <label class="span-2">YouTube URL (영상일 때)<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label>
-            <label class="span-2">썸네일 URL (선택, PM 카드 이미지)<input name="thumbnail" type="url" placeholder="https://..." /></label>
+            <label class="span-2">YouTube URL<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label>
+            <label class="span-2">썸네일 URL<input name="thumbnail" type="url" placeholder="https://..." /></label>
             <label>제목 (KR)<input name="titleKo" type="text" required /></label>
             <label>Title (EN)<input name="titleEn" type="text" /></label>
             <label>내 역할 (KR)<input name="roleKo" type="text" placeholder="Producer · Director · PM" required /></label>
             <label>Role (EN)<input name="roleEn" type="text" /></label>
             <label class="span-2">개요 (KR) — 한두 문장<textarea name="overviewKo" rows="2" required></textarea></label>
             <label class="span-2">Overview (EN)<textarea name="overviewEn" rows="2"></textarea></label>
-            <label class="span-2">프로젝트 자세히 (KR) — PM 프로젝트면 필수, 영상이면 선택. 빈 줄로 단락 구분.<textarea name="detailKo" rows="6"></textarea></label>
+            <label class="span-2">프로젝트 자세히 (KR) — PM 프로젝트면 필수<textarea name="detailKo" rows="6"></textarea></label>
             <label class="span-2">Project detail (EN)<textarea name="detailEn" rows="6"></textarea></label>
             <div class="form-actions">
               <button type="submit" class="manage-btn manage-btn-primary">프로젝트 추가</button>
@@ -284,7 +259,7 @@
 
         <section class="manage-panel" id="panel-interests" data-panel="interests" role="tabpanel" aria-labelledby="tab-interests" tabindex="0" hidden>
           <h2>Principles · 원칙</h2>
-          <p class="manage-panel-hint">5개 안팎의 짧고 단정적인 문장. 톤은 절제되고 editorial.</p>
+          <p class="manage-panel-hint">5개 안팎의 짧고 단정적인 문장. 항목 안에서 줄바꿈을 입력하면 사이트에 반영됩니다.</p>
           <div class="manage-grid two-col">
             <label>섹션 제목 (KR)<input data-bind="principles.title_ko" /></label>
             <label>Section title (EN)<input data-bind="principles.title_en" /></label>
@@ -309,7 +284,7 @@
 
         <section class="manage-panel" id="panel-career" data-panel="career" role="tabpanel" aria-labelledby="tab-career" tabindex="0" hidden>
           <h2>Career · 회사별 경험</h2>
-          <p class="manage-panel-hint">회사 단위로 시간 순 경험을 정리합니다. Highlights는 쉼표가 아니라 줄바꿈으로 구분합니다.</p>
+          <p class="manage-panel-hint">회사 단위로 시간 순 경험. Highlights는 줄바꿈으로 구분합니다.</p>
           <div class="manage-grid two-col" style="margin-bottom:16px;">
             <label>섹션 제목 (KR)<input data-bind-career="title_ko" /></label>
             <label>Section title (EN)<input data-bind-career="title_en" /></label>
@@ -325,8 +300,8 @@
 
         <section class="manage-panel" id="panel-chrome" data-panel="chrome" role="tabpanel" aria-labelledby="tab-chrome" tabindex="0" hidden>
           <h2>Nav · Footer 라벨</h2>
-          <p class="manage-panel-hint">상단 네비게이션 라벨과 푸터 링크 텍스트입니다. 이중 언어 모두 채워주세요.</p>
-          <h3 class="manage-subhead">상단 네비게이션 (5개 링크)</h3>
+          <p class="manage-panel-hint">상단 네비게이션 라벨과 푸터 링크 텍스트.</p>
+          <h3 class="manage-subhead">상단 네비게이션</h3>
           <div class="manage-list" id="nav-list"></div>
           <h3 class="manage-subhead">푸터 링크</h3>
           <div class="manage-grid two-col">
@@ -349,150 +324,9 @@
           </div>
 
           <h3 class="manage-subhead">Cloudflare Web Analytics</h3>
-          <p class="manage-panel-hint">
-            <strong>dash.cloudflare.com → Analytics &amp; Logs → Web Analytics → Add a site</strong>에서 jimmypark.net을 추가하면 짧은 토큰이 발급됩니다. 아래 칸에 붙여넣으면 사이트 모든 페이지에서 자동으로 추적 스크립트가 로드됩니다. 쿠키 없음·PII 없음.
-          </p>
           <div class="manage-grid two-col">
-            <label class="span-2">CF Web Analytics token<input data-bind="analytics.cf_token" type="text" placeholder="예: a1b2c3d4e5f6..." autocomplete="off" /></label>
+            <label class="span-2">CF Web Analytics token<input data-bind="analytics.cf_token" type="text" autocomplete="off" /></label>
           </div>
-        </section>
-
-        <section class="manage-panel doc-panel" id="panel-kms" data-panel="kms" data-doc-source="kms" role="tabpanel" aria-labelledby="tab-kms" tabindex="0" hidden>
-          <header class="doc-panel-head">
-            <div>
-              <p class="eyebrow">Admin only</p>
-              <h2 id="kms-title">KMS · 기능 명세</h2>
-              <p class="manage-panel-hint">사이트가 가진 기능을 한 문장 요약 + 본문 형태로 정리합니다. <code>data/kms.json</code>에 저장되며, 공개 페이지에는 노출되지 않습니다.</p>
-            </div>
-            <button type="button" class="manage-btn manage-btn-primary" data-doc-new>+ 새 명세</button>
-          </header>
-          <div class="doc-layout">
-            <aside class="doc-sidebar">
-              <input type="search" class="doc-search" data-doc-search placeholder="제목·요약·태그 검색" aria-label="기능 명세 검색" />
-              <ul class="doc-list" data-doc-list></ul>
-            </aside>
-            <article class="doc-editor" data-doc-editor>
-              <div class="doc-empty" data-doc-empty>왼쪽에서 문서를 고르거나 <code>+ 새 명세</code>로 추가하세요.</div>
-              <form class="doc-form" data-doc-form hidden>
-                <div class="doc-form-grid">
-                  <label>제목<input type="text" name="title" required /></label>
-                  <label>상태<select name="status"><option value="draft">draft</option><option value="active">active</option><option value="deprecated">deprecated</option></select></label>
-                  <label>카테고리<select name="category" data-doc-category></select></label>
-                  <label>담당<input type="text" name="owner" placeholder="Jimmy" /></label>
-                  <label>최종 수정<input type="date" name="last_updated" /></label>
-                  <label class="span-full">요약 (한 줄)<input type="text" name="summary" placeholder="이 기능을 한 문장으로" /></label>
-                </div>
-                <div class="doc-editor-host" data-doc-tiptap-host></div>
-                <div class="doc-form-actions">
-                  <span class="doc-char-count" data-doc-charcount></span>
-                  <button type="button" class="manage-btn manage-btn-ghost" data-doc-delete>이 문서 삭제</button>
-                  <button type="button" class="manage-btn" data-doc-duplicate>복제</button>
-                  <button type="button" class="manage-btn manage-btn-primary" data-doc-save>저장</button>
-                </div>
-              </form>
-            </article>
-          </div>
-        </section>
-
-        <section class="manage-panel doc-panel" id="panel-wiki" data-panel="wiki" data-doc-source="wiki" role="tabpanel" aria-labelledby="tab-wiki" tabindex="0" hidden>
-          <header class="doc-panel-head">
-            <div>
-              <p class="eyebrow">Admin only</p>
-              <h2 id="wiki-title">Wiki · 운영자 노트</h2>
-              <p class="manage-panel-hint">절차·정책·사고 기록 등 운영자 자신이 참고할 내부 문서. <code>data/wiki.json</code>에 저장.</p>
-            </div>
-            <button type="button" class="manage-btn manage-btn-primary" data-doc-new>+ 새 노트</button>
-          </header>
-          <div class="doc-layout">
-            <aside class="doc-sidebar">
-              <input type="search" class="doc-search" data-doc-search placeholder="제목·태그 검색" aria-label="운영자 노트 검색" />
-              <ul class="doc-list" data-doc-list></ul>
-            </aside>
-            <article class="doc-editor" data-doc-editor>
-              <div class="doc-empty" data-doc-empty>왼쪽에서 노트를 고르거나 <code>+ 새 노트</code>로 추가하세요.</div>
-              <form class="doc-form" data-doc-form hidden>
-                <div class="doc-form-grid">
-                  <label>제목<input type="text" name="title" required /></label>
-                  <label>카테고리<select name="category" data-doc-category></select></label>
-                  <label>최종 수정<input type="date" name="last_updated" /></label>
-                  <label class="span-full">태그 (쉼표로 구분)<input type="text" name="tags" placeholder="cloudflare, deploy, wrangler" /></label>
-                  <label class="span-full">요약 (한 줄)<input type="text" name="summary" /></label>
-                </div>
-                <div class="doc-editor-host" data-doc-tiptap-host></div>
-                <div class="doc-form-actions">
-                  <span class="doc-char-count" data-doc-charcount></span>
-                  <button type="button" class="manage-btn manage-btn-ghost" data-doc-delete>이 문서 삭제</button>
-                  <button type="button" class="manage-btn" data-doc-duplicate>복제</button>
-                  <button type="button" class="manage-btn manage-btn-primary" data-doc-save>저장</button>
-                </div>
-              </form>
-            </article>
-          </div>
-        </section>
-
-        <section class="manage-panel doc-panel" id="panel-design" data-panel="design" data-doc-source="design" role="tabpanel" aria-labelledby="tab-design" tabindex="0" hidden>
-          <header class="doc-panel-head">
-            <div>
-              <p class="eyebrow">Admin only</p>
-              <h2 id="design-title">Design Guide</h2>
-              <p class="manage-panel-hint">색·타이포·간격·모션·컴포넌트·톤 가이드. 디자인 결정의 근거를 한 곳에 정리.</p>
-            </div>
-            <button type="button" class="manage-btn manage-btn-primary" data-doc-new>+ 새 문서</button>
-          </header>
-          <div class="doc-layout">
-            <aside class="doc-sidebar">
-              <input type="search" class="doc-search" data-doc-search placeholder="제목·섹션 검색" aria-label="디자인 가이드 검색" />
-              <ul class="doc-list" data-doc-list></ul>
-            </aside>
-            <article class="doc-editor" data-doc-editor>
-              <div class="doc-empty" data-doc-empty>왼쪽에서 문서를 고르거나 <code>+ 새 문서</code>로 추가하세요.</div>
-              <form class="doc-form" data-doc-form hidden>
-                <div class="doc-form-grid">
-                  <label>제목<input type="text" name="title" required /></label>
-                  <label>섹션<select name="section" data-doc-section></select></label>
-                  <label>최종 수정<input type="date" name="last_updated" /></label>
-                  <label class="span-full">요약 (한 줄)<input type="text" name="summary" /></label>
-                </div>
-                <div class="doc-editor-host" data-doc-tiptap-host></div>
-                <div class="doc-form-actions">
-                  <span class="doc-char-count" data-doc-charcount></span>
-                  <button type="button" class="manage-btn manage-btn-ghost" data-doc-delete>이 문서 삭제</button>
-                  <button type="button" class="manage-btn" data-doc-duplicate>복제</button>
-                  <button type="button" class="manage-btn manage-btn-primary" data-doc-save>저장</button>
-                </div>
-              </form>
-            </article>
-          </div>
-        </section>
-
-        <section class="manage-panel" id="panel-deploy" data-panel="deploy" role="tabpanel" aria-labelledby="tab-deploy" tabindex="0" hidden>
-          <h2>Deploy · GitHub 바로 커밋</h2>
-          <p class="manage-panel-hint">
-            이 페이지에서 GitHub Personal Access Token(PAT)을 입력하면
-            <code>data/site-config.json</code> 과 <code>data/portfolio.json</code> 을
-            저장소에 직접 커밋합니다. PAT은 이 브라우저의 sessionStorage에만 머무릅니다.
-          </p>
-          <div class="manage-grid two-col">
-            <label class="span-2">GitHub 저장소 (owner/repo)<input data-bind-deploy="repo" placeholder="scoutkorea-jimmy/jimmyport" /></label>
-            <label>브랜치<input data-bind-deploy="branch" placeholder="main" /></label>
-            <label>커밋 메시지<input data-bind-deploy="message" placeholder="chore(content): update site-config from manage admin" /></label>
-            <label class="span-2">GitHub Personal Access Token <small>(Contents: write 권한 fine-grained 또는 classic repo)</small><input data-bind-deploy="pat" type="password" placeholder="github_pat_..." autocomplete="off" /></label>
-          </div>
-          <div class="form-actions">
-            <button type="button" class="manage-btn manage-btn-primary" id="github-commit-action">GitHub에 두 파일 커밋</button>
-            <button type="button" class="manage-btn manage-btn-ghost" id="github-forget-pat">PAT 잊기</button>
-          </div>
-          <div class="manage-deploy-log" id="github-log" aria-live="polite"></div>
-          <details class="manage-help">
-            <summary>PAT 만드는 방법</summary>
-            <ol>
-              <li>github.com → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</li>
-              <li>Repository access: jimmyport 단일 저장소만</li>
-              <li>Repository permissions → Contents: <strong>Read and write</strong></li>
-              <li>만들어진 <code>github_pat_…</code> 토큰을 위 입력란에 붙여넣으세요.</li>
-              <li>토큰은 이 브라우저의 sessionStorage에만 남고, 탭을 닫으면 사라집니다.</li>
-            </ol>
-          </details>
         </section>
       </main>
     </div>
@@ -501,7 +335,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.009.00</span> · Admin <span class="admin-build-version">V00.007.00</span>
+          Site <span class="site-build-version">V00.010.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">
@@ -511,7 +345,6 @@
     </footer>
 
     <script src="manage.js"></script>
-    <script type="module" src="manage-editor.js"></script>
     <script src="version-watch.js"></script>
   </body>
 </html>

@@ -9,9 +9,24 @@ const STORAGE_DRAFT_KEY = 'jimmypark-site-config-draft';
 const LANG_KEY = 'jimmypark-language';
 const FALLBACK_LANG = 'ko';
 
+// English-primary mode: every headline-level binding renders EN as the main
+// label and KR as a small caption underneath. The KR/EN switch is gone — both
+// languages are shown together.
+const BILINGUAL_PATHS = new Set([
+  'hero.eyebrow', 'hero.title', 'hero.lead',
+  'hero.cta_portfolio', 'hero.cta_email',
+  'global_experience.eyebrow', 'global_experience.title', 'global_experience.body',
+  'profile.title',
+  'work.title', 'work.intro',
+  'career.title', 'career.intro',
+  'portfolio_intro.title', 'portfolio_intro.intro',
+  'principles.title',
+  'contact.eyebrow', 'contact.title', 'contact.body',
+]);
+
 let siteConfig = null;
 let portfolioItems = [];
-let currentLanguage = localStorage.getItem(LANG_KEY) || FALLBACK_LANG;
+let currentLanguage = 'en'; // bilingual: EN primary, KR caption rendered together
 
 const yearEl = document.querySelector('#year');
 const navEl = document.querySelector('#primary-nav');
@@ -83,14 +98,34 @@ function resolveLocalised(root, path, lang) {
   return '';
 }
 
-function applyConfigToDom(config, lang) {
+function applyConfigToDom(config /* lang ignored — bilingual */) {
   if (!config) return;
   // Plain text bindings: data-config="hero.title"
   document.querySelectorAll('[data-config]').forEach((el) => {
     const path = el.dataset.config;
     if (!path) return;
-    const value = resolveLocalised(config, path, lang);
-    if (typeof value === 'string' && value.length) el.textContent = value;
+    const en = resolveLocalised(config, path, 'en');
+    const ko = resolveLocalised(config, path, 'ko');
+    if (BILINGUAL_PATHS.has(path) && (en || ko)) {
+      el.innerHTML = '';
+      if (en) {
+        const enSpan = document.createElement('span');
+        enSpan.className = 'bilingual-en';
+        enSpan.textContent = String(en);
+        el.appendChild(enSpan);
+      }
+      if (ko && ko !== en) {
+        const koSpan = document.createElement('span');
+        koSpan.className = 'bilingual-ko';
+        koSpan.textContent = String(ko);
+        koSpan.setAttribute('lang', 'ko');
+        el.appendChild(koSpan);
+      }
+      el.classList.add('bilingual');
+    } else {
+      const v = en || ko;
+      if (typeof v === 'string' && v.length) el.textContent = v;
+    }
   });
   // Attribute bindings: data-config-attr="content:meta.description;alt:hero.image_alt"
   document.querySelectorAll('[data-config-attr]').forEach((el) => {
@@ -99,7 +134,7 @@ function applyConfigToDom(config, lang) {
     spec.split(';').forEach((entry) => {
       const [attr, path] = entry.split(':').map((s) => (s || '').trim());
       if (!attr || !path) return;
-      const value = resolveLocalised(config, path, lang);
+      const value = resolveLocalised(config, path, 'en') || resolveLocalised(config, path, 'ko');
       if (typeof value === 'string' && value.length) el.setAttribute(attr, value);
     });
   });
@@ -253,27 +288,32 @@ function normaliseCities(country, lang) {
   return [];
 }
 
-function renderCountries(config, lang) {
+function renderCountries(config /* bilingual */) {
   if (!countryGridEl || !config || !config.global_experience) return;
   const ge = config.global_experience;
   const list = Array.isArray(ge.countries) ? ge.countries : [];
-  const multiLabel = pickLang(ge, 'multi_visit_label', lang) || (lang === 'ko' ? '재방문' : 'Multi-visit');
-  const homeLabel  = pickLang(ge, 'home_label', lang)        || (lang === 'ko' ? '홈' : 'Home');
-  const cityPrefix = pickLang(ge, 'cities_prefix', lang)     || (lang === 'ko' ? '도시:' : 'Cities:');
+  const homeLabel = pickLang(ge, 'home_label', 'en') || 'Home';
   countryGridEl.innerHTML = '';
 
-  list.forEach((country) => {
-    const visits = Math.max(1, parseInt(country.visits, 10) || 1);
+  list.forEach((country, idx) => {
     const isHome = !!country.is_home;
-    const cities = normaliseCities(country, lang);
+    const citiesEn = normaliseCities(country, 'en');
+    const citiesKo = normaliseCities(country, 'ko');
+    const reasonEn = String(country.reason_en || '').trim();
+    const reasonKo = String(country.reason_ko || '').trim();
+    const linked = String(country.linked_experience || '').trim();
+    const hasDetail = reasonEn || reasonKo || linked;
 
+    // Country card is now a <button> so the click affordance is obvious and
+    // keyboard activation toggles the detail panel.
     const li = document.createElement('li');
-    li.className = 'country-chip';
-    if (isHome) li.setAttribute('data-home', '1');
-    if (visits >= 2) {
-      li.setAttribute('data-multi', '1');
-      li.setAttribute('title', `${multiLabel} · ${visits}${lang === 'ko' ? '회 이상' : '× or more'}`);
-    }
+    li.style.listStyle = 'none';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'country-chip';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-controls', `country-detail-${idx}`);
+    if (isHome) btn.setAttribute('data-home', '1');
 
     const head = document.createElement('div');
     head.className = 'country-chip-head';
@@ -283,7 +323,20 @@ function renderCountries(config, lang) {
     flag.textContent = country.flag || '';
     const name = document.createElement('span');
     name.className = 'country-name';
-    name.textContent = country[lang] || country[FALLBACK_LANG] || country.code || '';
+    name.innerHTML = '';
+    const enName = String(country.en || country.code || '').trim();
+    const koName = String(country.ko || '').trim();
+    const enSpan = document.createElement('span');
+    enSpan.className = 'bilingual-en';
+    enSpan.textContent = enName || koName;
+    name.appendChild(enSpan);
+    if (koName && koName !== enName) {
+      const koSpan = document.createElement('span');
+      koSpan.className = 'bilingual-ko';
+      koSpan.setAttribute('lang', 'ko');
+      koSpan.textContent = koName;
+      name.appendChild(koSpan);
+    }
     head.append(flag, name);
 
     if (isHome) {
@@ -292,56 +345,92 @@ function renderCountries(config, lang) {
       homeBadge.textContent = homeLabel;
       head.appendChild(homeBadge);
     }
-    if (visits >= 2) {
-      const badge = document.createElement('span');
-      badge.className = 'country-multi-badge';
-      badge.setAttribute('aria-label', multiLabel);
-      badge.textContent = visits > 2 ? `${visits}×` : '★';
-      head.appendChild(badge);
-    }
-    li.appendChild(head);
+    btn.appendChild(head);
 
-    // Always render the cities slot for the home country so the 한국 card
-    // never visually collapses even before city data is added — the layout
-    // stays stable and signals "도시는 곧 추가됩니다".
-    if (isHome || cities.length) {
+    if (citiesEn.length || citiesKo.length) {
       const citiesEl = document.createElement('div');
       citiesEl.className = 'country-cities';
-      if (cities.length) {
-        const prefix = document.createElement('span');
-        prefix.className = 'country-cities-prefix';
-        prefix.textContent = cityPrefix;
-        const listEl = document.createElement('span');
-        listEl.className = 'country-cities-list';
-        listEl.textContent = cities.join(' · ');
-        citiesEl.append(prefix, listEl);
-      } else if (isHome) {
-        const placeholder = document.createElement('span');
-        placeholder.className = 'country-cities-placeholder';
-        placeholder.textContent = lang === 'ko' ? '방문한 도시는 곧 추가됩니다' : 'Cities coming soon';
-        citiesEl.appendChild(placeholder);
-      }
-      li.appendChild(citiesEl);
+      citiesEl.textContent = (citiesEn.length ? citiesEn : citiesKo).join(' · ');
+      btn.appendChild(citiesEl);
+    } else if (isHome) {
+      const citiesEl = document.createElement('div');
+      citiesEl.className = 'country-cities';
+      citiesEl.textContent = 'Cities coming soon';
+      btn.appendChild(citiesEl);
     }
 
+    if (hasDetail) {
+      const detail = document.createElement('div');
+      detail.className = 'country-detail';
+      detail.id = `country-detail-${idx}`;
+      detail.hidden = true;
+
+      if (reasonEn || reasonKo) {
+        const reasonWrap = document.createElement('div');
+        reasonWrap.className = 'country-reason';
+        const label = document.createElement('span');
+        label.className = 'country-reason-label';
+        label.textContent = 'Why I went';
+        reasonWrap.appendChild(label);
+        if (reasonEn) {
+          const p = document.createElement('p');
+          p.textContent = reasonEn;
+          reasonWrap.appendChild(p);
+        }
+        if (reasonKo && reasonKo !== reasonEn) {
+          const p = document.createElement('p');
+          p.className = 'bilingual-ko';
+          p.setAttribute('lang', 'ko');
+          p.textContent = reasonKo;
+          reasonWrap.appendChild(p);
+        }
+        detail.appendChild(reasonWrap);
+      }
+
+      if (linked) {
+        const link = document.createElement('a');
+        link.className = 'country-linked';
+        link.href = '#work';
+        link.dataset.linkedExperience = linked;
+        link.textContent = `See: ${linked}`;
+        detail.appendChild(link);
+      }
+      btn.appendChild(detail);
+      btn.addEventListener('click', () => {
+        const open = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        detail.hidden = open;
+      });
+    } else {
+      // No detail content — clicking just emphasises briefly but doesn't expand.
+      btn.disabled = false;
+      btn.addEventListener('click', () => {
+        btn.classList.add('country-chip-flash');
+        setTimeout(() => btn.classList.remove('country-chip-flash'), 600);
+      });
+    }
+
+    li.appendChild(btn);
     countryGridEl.appendChild(li);
   });
 
+  // Auto count: countries.length and unique cities (EN preferred, KR fallback).
   const countEl = document.querySelector('#global-stat-countries');
-  if (countEl) countEl.textContent = String(list.length || ge.stat_countries || 0);
-  const multiCount = list.filter((c) => (parseInt(c.visits, 10) || 1) >= 2).length;
+  if (countEl) countEl.textContent = String(list.length || 0);
+  const citySet = new Set();
+  list.forEach((c) => {
+    const arr = normaliseCities(c, 'en');
+    const arrKo = normaliseCities(c, 'ko');
+    (arr.length ? arr : arrKo).forEach((city) => {
+      const v = String(city).trim();
+      if (v) citySet.add(v);
+    });
+  });
+  const cityCountEl = document.querySelector('#global-stat-cities');
+  if (cityCountEl) cityCountEl.textContent = String(citySet.size || 0);
+  // Hide the legacy multi-visit note if present.
   const noteEl = document.querySelector('#global-stat-multi');
-  if (noteEl) {
-    if (multiCount > 0) {
-      noteEl.hidden = false;
-      noteEl.textContent = lang === 'ko'
-        ? `· 재방문 ${multiCount}개국`
-        : `· ${multiCount} repeat visits`;
-    } else {
-      noteEl.hidden = true;
-      noteEl.textContent = '';
-    }
-  }
+  if (noteEl) { noteEl.hidden = true; noteEl.textContent = ''; }
 }
 
 function renderContact(config, lang) {

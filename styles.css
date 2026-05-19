@@ -133,15 +133,16 @@ p {
 
 .header-inner {
   align-items: center;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(250, 247, 243, 0.78);
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(221, 216, 206, 0.88);
+  border: 1px solid rgba(217, 200, 182, 0.88);
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto 1fr;
   min-height: 64px;
   padding-bottom: 0;
   padding-top: 0;
 }
+.nav-links { justify-content: flex-end; }
 
 .brand {
   font-size: 0.98rem;
@@ -149,11 +150,21 @@ p {
 }
 
 .nav-links {
-  color: var(--muted);
+  color: var(--ink);
   display: flex;
   font-size: 0.9rem;
   gap: 26px;
   justify-content: center;
+}
+
+.nav-links a {
+  border-bottom: 1px solid transparent;
+  padding-bottom: 3px;
+  position: relative;
+  transition: color 160ms var(--gw-ease), border-color 200ms var(--gw-ease);
+}
+.nav-links a:hover {
+  border-bottom-color: var(--accent);
 }
 
 .language-switch {
@@ -241,7 +252,7 @@ h3 {
 }
 
 .hero-meta span {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(250, 247, 243, 0.72);
   border: 1px solid var(--line);
   padding: 9px 12px;
 }
@@ -254,16 +265,31 @@ h3 {
 }
 
 .text-link {
-  border-bottom: 1px solid currentColor;
-  color: var(--accent-ink);
+  border-bottom: 1px solid var(--accent);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: baseline;
   font-weight: 700;
-  padding-bottom: 4px;
+  gap: 6px;
+  padding-bottom: 3px;
+  transition: color 160ms var(--gw-ease), border-color 160ms var(--gw-ease), background 160ms var(--gw-ease);
 }
+.text-link::after {
+  content: '→';
+  display: inline-block;
+  font-weight: 500;
+  transition: transform 160ms var(--gw-ease);
+}
+.text-link:hover {
+  color: var(--accent-ink);
+  border-bottom-color: var(--accent-ink);
+}
+.text-link:hover::after { transform: translateX(3px); }
 
 .portrait-panel {
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(250, 247, 243, 0.74);
   border: 1px solid var(--line);
-  box-shadow: 0 24px 80px rgba(23, 25, 21, 0.08);
+  box-shadow: 0 24px 80px rgba(74, 58, 52, 0.08);
   padding: 16px;
 }
 
@@ -356,7 +382,7 @@ dd {
 
 .portfolio-item,
 .empty-state {
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(250, 247, 243, 0.68);
   border: 1px solid var(--line);
 }
 
@@ -388,8 +414,8 @@ dd {
 
 .play-mark {
   align-items: center;
-  background: rgba(251, 250, 247, 0.92);
-  border: 1px solid rgba(23, 25, 21, 0.14);
+  background: rgba(243, 236, 228, 0.92);
+  border: 1px solid rgba(74, 58, 52, 0.14);
   bottom: 16px;
   color: var(--ink);
   display: inline-flex;
@@ -469,7 +495,7 @@ dd {
 }
 
 .interests li {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(250, 247, 243, 0.6);
   border: 1px solid var(--line);
   padding: 18px 20px;
 }
@@ -494,17 +520,34 @@ dd {
 }
 
 .contact p:not(.eyebrow) {
-  color: rgba(251, 250, 247, 0.68);
+  color: rgba(243, 236, 228, 0.68);
   line-height: 1.7;
   margin-bottom: 0;
 }
 
 .mail-link {
-  border: 1px solid rgba(251, 250, 247, 0.34);
+  background: transparent;
+  border: 1px solid var(--sub);
+  color: var(--bg);
   display: inline-flex;
+  align-items: center;
   font-weight: 700;
-  padding: 16px 20px;
+  gap: 8px;
+  padding: 16px 24px;
+  transition: background 160ms var(--gw-ease), color 160ms var(--gw-ease), border-color 160ms var(--gw-ease), transform 160ms var(--gw-ease);
 }
+.mail-link::after {
+  content: '→';
+  display: inline-block;
+  transition: transform 160ms var(--gw-ease);
+}
+.mail-link:hover {
+  background: var(--sub);
+  border-color: var(--sub);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.mail-link:hover::after { transform: translateX(3px); }
 
 .site-footer {
   color: var(--muted);
@@ -612,7 +655,7 @@ dd {
 
 .admin-card {
   align-items: center;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(250, 247, 243, 0.68);
   border: 1px solid var(--line);
   display: grid;
   gap: 14px;
@@ -769,7 +812,7 @@ dd {
 
 .country-chip {
   align-items: center;
-  background: rgba(255, 255, 255, 0.66);
+  background: rgba(250, 247, 243, 0.66);
   border: 1px solid var(--line);
   display: flex;
   gap: 10px;
@@ -975,7 +1018,7 @@ dd {
 }
 
 .manage-row {
-  background: rgba(255, 255, 255, 0.66);
+  background: rgba(250, 247, 243, 0.66);
   border: 1px solid var(--line);
   display: grid;
   gap: 12px;
@@ -1223,7 +1266,7 @@ select:focus-visible,
 }
 .hero-meta span:hover {
   border-color: var(--accent);
-  background: rgba(255,255,255,0.92);
+  background: rgba(250,247,243,0.92);
   transform: translateY(-1px);
 }
 
@@ -1265,8 +1308,8 @@ select:focus-visible,
               background 160ms var(--gw-ease);
 }
 .country-chip:hover {
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 6px 16px rgba(23, 25, 21, 0.06);
+  background: rgba(250, 247, 243, 0.92);
+  box-shadow: 0 6px 16px rgba(74, 58, 52, 0.06);
 }
 
 .country-chip[data-multi] {
@@ -1307,7 +1350,7 @@ select:focus-visible,
 /* Manage admin row visual for multi-visit countries */
 .manage-row[data-multi] {
   border-color: rgba(106, 46, 59, 0.45);
-  background: linear-gradient(135deg, rgba(106,46,59,0.06), rgba(255,255,255,0.66));
+  background: linear-gradient(135deg, rgba(106,46,59,0.06), rgba(250,247,243,0.66));
 }
 .manage-row[data-multi]::before {
   background: var(--accent);
@@ -1376,9 +1419,9 @@ select:focus-visible,
 
 /* Home country (한국) — span the full row, lift visually, always show cities slot */
 .country-chip[data-home] {
-  background: linear-gradient(135deg, rgba(106,46,59,0.10), rgba(255,255,255,0.85));
+  background: linear-gradient(135deg, rgba(106,46,59,0.10), rgba(250,247,243,0.85));
   border: 1px solid rgba(106,46,59,0.55);
-  box-shadow: 0 8px 24px rgba(23, 25, 21, 0.06);
+  box-shadow: 0 8px 24px rgba(74, 58, 52, 0.06);
   grid-column: 1 / -1;
   padding: 18px 22px;
 }
@@ -1445,29 +1488,31 @@ select:focus-visible,
 /* When a chip carries both data-home and data-multi, keep the home gradient
    on top — the home framing dominates and "재방문" stays as a small badge. */
 .country-chip[data-home][data-multi] {
-  background: linear-gradient(135deg, rgba(106,46,59,0.14), rgba(255,255,255,0.86));
+  background: linear-gradient(135deg, rgba(106,46,59,0.14), rgba(250,247,243,0.86));
 }
 
-/* Admin row mirror: country-row's grid needs an extra column for cities */
+/* Admin country row — clean 2-column grid where every label stays readable.
+   Wider fields span both columns so cities/reason/linked-experience never
+   wrap their label text. */
 .country-row-grid {
-  grid-template-columns: 70px 70px 1fr 1fr 80px;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px;
 }
-.country-row-grid-cities {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 24px 1fr 1fr;
-  margin-top: 8px;
-}
-.country-row-grid-cities .country-row-home {
+.country-row-grid label.span-2 { grid-column: span 2; }
+.country-row-grid .country-row-home {
   align-items: center;
   display: flex;
-  font-size: 0.74rem;
-  gap: 6px;
+  font-size: 0.82rem;
+  gap: 8px;
+  grid-column: span 2;
+  padding: 6px 2px;
 }
+.country-row-grid .country-row-home input { width: auto; }
 
-@media (max-width: 900px) {
-  .country-row-grid { grid-template-columns: 1fr; }
-  .country-row-grid-cities { grid-template-columns: 1fr; }
+@media (max-width: 700px) {
+  .country-row-grid { grid-template-columns: 1fr !important; }
+  .country-row-grid label.span-2 { grid-column: auto; }
+  .country-row-grid .country-row-home { grid-column: auto; }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1497,7 +1542,7 @@ select:focus-visible,
 }
 
 .experience-category {
-  background: rgba(255, 255, 255, 0.66);
+  background: rgba(250, 247, 243, 0.66);
   border: 1px solid var(--line);
   display: grid;
   gap: 18px;
@@ -1507,7 +1552,7 @@ select:focus-visible,
 }
 .experience-category:hover {
   border-color: var(--accent);
-  box-shadow: 0 8px 24px rgba(23, 25, 21, 0.05);
+  box-shadow: 0 8px 24px rgba(74, 58, 52, 0.05);
 }
 .experience-category-head h3 {
   color: var(--ink);
@@ -1530,7 +1575,7 @@ select:focus-visible,
   padding: 0;
 }
 .experience-items li {
-  border-bottom: 1px dashed rgba(221, 216, 206, 0.7);
+  border-bottom: 1px dashed rgba(217, 200, 182, 0.7);
   font-size: 0.96rem;
   padding: 8px 0;
 }
@@ -1586,7 +1631,7 @@ select:focus-visible,
 
 /* Case-study item — replaces the legacy video gallery card */
 .case-study-item {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(250, 247, 243, 0.7);
   border: 1px solid var(--line);
   display: grid;
   gap: 28px;
@@ -1596,7 +1641,7 @@ select:focus-visible,
 }
 .case-study-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 10px 28px rgba(23, 25, 21, 0.06);
+  box-shadow: 0 10px 28px rgba(74, 58, 52, 0.06);
 }
 .case-study-item:not(:has(.case-study-media)) {
   grid-template-columns: 1fr;
@@ -1668,7 +1713,7 @@ select:focus-visible,
   margin-top: 4px;
 }
 .case-study-field {
-  border-top: 1px dashed rgba(221, 216, 206, 0.85);
+  border-top: 1px dashed rgba(217, 200, 182, 0.85);
   display: grid;
   gap: 6px;
   grid-template-columns: 92px minmax(0, 1fr);
@@ -1797,7 +1842,7 @@ select:focus-visible,
   width: 100%;
 }
 .doc-list {
-  background: rgba(255,255,255,0.66);
+  background: rgba(250,247,243,0.66);
   border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -1842,7 +1887,7 @@ select:focus-visible,
 
 /* Editor pane */
 .doc-editor {
-  background: rgba(255,255,255,0.78);
+  background: rgba(250,247,243,0.78);
   border: 1px solid var(--line);
   min-height: 600px;
   padding: 22px 24px;
@@ -2149,7 +2194,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
   margin: 8px 0 0;
 }
 .career-highlights {
-  border-top: 1px dashed rgba(221, 216, 206, 0.85);
+  border-top: 1px dashed rgba(217, 200, 182, 0.85);
   margin-top: 12px;
   padding-top: 14px;
 }
@@ -2212,7 +2257,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 .portfolio-card {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(250, 247, 243, 0.7);
   border: 1px solid var(--line);
   cursor: pointer;
   display: flex;
@@ -2226,7 +2271,7 @@ h1 { font-size: clamp(3.8rem, 8vw, 6.4rem); }
 }
 .portfolio-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 10px 24px rgba(23, 25, 21, 0.08);
+  box-shadow: 0 10px 24px rgba(74, 58, 52, 0.08);
   transform: translateY(-2px);
 }
 .portfolio-card-thumb {
@@ -2710,3 +2755,140 @@ html.portfolio-modal-open body { overflow: hidden !important; }
   }
   .admin-sidenav.is-open { display: flex; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   v0.009 — Admin sub-groups + bilingual headings + reason expand
+   ───────────────────────────────────────────────────────────── */
+
+/* Admin sidenav sub-group (콘텐츠 안의 2차 카테고리) */
+.sidenav-subgroup {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(217, 200, 182, 0.55);
+}
+.sidenav-subgroup-title {
+  font-size: 0.60rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sub);
+  margin: 8px 6px 4px;
+}
+
+/* Sidenav active state — slightly stronger crimson tint so the selection sings */
+.admin-sidenav .manage-tab.active,
+.admin-sidenav .manage-tab[aria-selected="true"] {
+  background: rgba(106,46,59,0.14);
+  border-left-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Item-level newline support — admin rows store '\n' inside textareas; the
+   homepage and editor previews preserve those visually. */
+.principles-list li,
+.experience-items li,
+.career-highlights li,
+.experience-category-desc,
+.career-summary,
+.country-reason p,
+.country-cities,
+.portfolio-card-role,
+.profile-body p,
+.section-intro {
+  white-space: pre-line;
+}
+
+/* Bilingual headings — English primary, Korean small caption underneath */
+.bilingual {
+  display: block;
+}
+.bilingual-en {
+  display: block;
+}
+.bilingual-ko {
+  color: var(--muted);
+  display: block;
+  font-size: 0.5em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  margin-top: 0.35em;
+}
+h1 .bilingual-ko,
+h2 .bilingual-ko { font-size: 0.32em; }
+.eyebrow .bilingual-ko,
+.section-label .bilingual-ko {
+  font-size: 0.86em;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Country chip — now button-like and expandable for reason/linked experience */
+.country-chip {
+  background: rgba(250, 247, 243, 0.7);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 160ms var(--gw-ease),
+              background 160ms var(--gw-ease),
+              box-shadow 160ms var(--gw-ease),
+              transform 160ms var(--gw-ease);
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+.country-chip:hover {
+  border-color: var(--accent);
+  background: rgba(250, 247, 243, 0.95);
+  box-shadow: 0 6px 16px rgba(74, 58, 52, 0.06);
+}
+.country-chip[aria-expanded="true"] {
+  background: rgba(250, 247, 243, 0.98);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(74, 58, 52, 0.08);
+}
+
+/* Detail block revealed when a country is opened */
+.country-detail {
+  border-top: 1px dashed rgba(106,46,59,0.25);
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.country-reason {
+  color: var(--ink);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+.country-reason-label {
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.country-linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 2px;
+  width: max-content;
+}
+.country-linked::after { content: '→'; }
+.country-linked:hover { color: var(--accent-ink); border-color: var(--accent-ink); }
+
+/* Hide the legacy multi-visit star badge (no longer rendered, but defensive) */
+.country-multi-badge { display: none !important; }
+
+/* Removed language switch — keep slot from collapsing if .header-inner relied
+   on three columns; admin-only language-switch removal is handled in HTML. */
