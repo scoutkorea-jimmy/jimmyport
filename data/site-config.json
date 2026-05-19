@@ -34,7 +34,10 @@
     "cta_email_en": "Email me",
     "image": "assets/hero-workspace.png",
     "image_alt_ko": "노트북과 노트가 놓인 차분한 작업 공간",
-    "image_alt_en": "A quiet workspace with a notebook and laptop"
+    "image_alt_en": "A quiet workspace with a notebook and laptop",
+    "background_image": "assets/hero-workspace.png",
+    "background_image_alt_ko": "히어로 배경 이미지",
+    "background_image_alt_en": "Hero background image"
   },
   "how_i_work": {
     "eyebrow_ko": "작업 방식",
@@ -337,7 +340,7 @@
     "title_en": "Good structures start with good conversations.",
     "body_ko": "사람과 현장을 더 오래 연결하는 일이라면, 언제든 이야기 나누고 싶습니다.",
     "body_en": "If it's about keeping people and the field connected for longer, I'd love to talk.",
-    "email": "hello@jimmypark.net"
+    "email": "scoutkorea@kakao.com"
   },
   "footer": {
     "manage_link_ko": "Manage",

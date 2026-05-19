@@ -42,15 +42,26 @@
 
       <!-- 01 · WHO I AM -->
       <section class="archive-page section-who" id="who" aria-labelledby="who-title">
-        <div class="container">
-          <div class="archive-page-head">
-            <span class="archive-page-num">01</span>
-            <p class="archive-eyebrow" data-config="hero.eyebrow">WHO I AM</p>
-          </div>
+        <figure class="who-bg" aria-hidden="true">
+          <img
+            id="who-bg-image"
+            src="assets/hero-workspace.png"
+            alt=""
+            data-config-attr="src:hero.background_image"
+          />
+          <div class="who-bg-overlay"></div>
+        </figure>
+        <div class="container who-inner">
+          <header class="who-pageline">
+            <span class="who-pageline-num">01</span>
+            <span class="who-pageline-divider"></span>
+            <span class="who-pageline-eyebrow" data-config="hero.eyebrow">WHO I AM</span>
+          </header>
+
           <div class="who-grid">
             <div class="who-name">
               <h1 id="who-title" data-config="hero.title">Jimmy Park</h1>
-              <p class="who-name-ko" lang="ko" data-config-text="hero.title_ko">박지민</p>
+              <p class="who-name-ko" lang="ko">박지민</p>
             </div>
             <div class="who-lead">
               <p class="who-lead-primary" data-config="hero.lead">
@@ -61,17 +72,29 @@
               </p>
             </div>
           </div>
-          <ul class="who-roles" id="who-roles" aria-label="Current roles"></ul>
-          <dl class="quick-facts" id="quick-facts"></dl>
+
+          <div class="who-bottom">
+            <div class="who-bottom-section">
+              <p class="who-bottom-label">Current roles<span class="who-bottom-label-ko" lang="ko"> · 현재의 역할</span></p>
+              <ul class="who-roles" id="who-roles" aria-label="Current roles"></ul>
+            </div>
+            <div class="who-bottom-section">
+              <p class="who-bottom-label">At a glance<span class="who-bottom-label-ko" lang="ko"> · 정보 요약</span></p>
+              <dl class="quick-facts" id="quick-facts"></dl>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- 02 · HOW I WORK -->
       <section class="archive-page section-how" id="how" aria-labelledby="how-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">02</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="how_i_work.eyebrow">HOW I WORK</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">02</span>
-            <p class="archive-eyebrow" data-config="how_i_work.eyebrow">HOW I WORK</p>
             <h2 id="how-title" data-config="how_i_work.title">Four disciplines, one question.</h2>
             <p class="section-intro" data-config="how_i_work.body">Four separate disciplines, but they keep pointing back at the same question — how do you build something that outlasts the project that funded it.</p>
           </div>
@@ -82,9 +105,12 @@
       <!-- 03 · GLOBAL FIELD EXPERIENCE -->
       <section class="archive-page section-global" id="global" aria-labelledby="global-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">03</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="global_experience.eyebrow">GLOBAL FIELD EXPERIENCE</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">03</span>
-            <p class="archive-eyebrow" data-config="global_experience.eyebrow">GLOBAL FIELD EXPERIENCE</p>
             <h2 id="global-title" data-config="global_experience.title">Operational instinct, built in the field</h2>
             <p class="section-intro" data-config="global_experience.body">Across 18 countries and 30+ cities of on-the-ground project work — navigating differences in culture, operations, and communication.</p>
           </div>
@@ -108,9 +134,12 @@
       <!-- 04 · WHAT I BUILD -->
       <section class="archive-page section-build" id="build" aria-labelledby="build-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">04</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="portfolio_intro.eyebrow">WHAT I BUILD</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">04</span>
-            <p class="archive-eyebrow" data-config="portfolio_intro.eyebrow">WHAT I BUILD</p>
             <h2 id="build-title" data-config="portfolio_intro.title">Selected work</h2>
             <p class="section-intro" data-config="portfolio_intro.intro">Video, PM projects, operations and documentation work. Click a card to open the detail.</p>
           </div>
@@ -121,9 +150,12 @@
       <!-- 05 · EDUCATION & SPEAKING -->
       <section class="archive-page section-education" id="education" aria-labelledby="education-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">05</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="education.eyebrow">EDUCATION &amp; SPEAKING</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">05</span>
-            <p class="archive-eyebrow" data-config="education.eyebrow">EDUCATION & SPEAKING</p>
             <h2 id="education-title" data-config="education.title">What I teach, where I speak.</h2>
             <p class="section-intro" data-config="education.body">Not a side activity — an extension of the same operational and communication thinking.</p>
           </div>
@@ -134,9 +166,12 @@
       <!-- 06 · EXPERIENCE & CAREER -->
       <section class="archive-page section-career" id="career" aria-labelledby="career-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">06</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="career.eyebrow">EXPERIENCE &amp; CAREER</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">06</span>
-            <p class="archive-eyebrow" data-config="career.eyebrow">EXPERIENCE & CAREER</p>
             <h2 id="career-title" data-config="career.title">Career</h2>
             <p class="section-intro" data-config="career.intro">Chronological company experience.</p>
           </div>
@@ -147,9 +182,12 @@
       <!-- 07 · PRINCIPLES -->
       <section class="archive-page section-principles" id="principles" aria-labelledby="principles-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">07</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="principles.eyebrow">PRINCIPLES</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">07</span>
-            <p class="archive-eyebrow" data-config="principles.eyebrow">PRINCIPLES</p>
             <h2 id="principles-title" data-config="principles.title">Principles</h2>
           </div>
           <ol class="principles-list" id="principles-list"></ol>
@@ -159,17 +197,22 @@
       <!-- 08 · LET'S CONNECT -->
       <section class="archive-page section-connect" id="contact" aria-labelledby="contact-title">
         <div class="container">
+          <header class="archive-pageline">
+            <span class="archive-pageline-num">08</span>
+            <span class="archive-pageline-divider"></span>
+            <span class="archive-pageline-eyebrow" data-config="contact.eyebrow">LET'S CONNECT</span>
+          </header>
           <div class="archive-page-head">
-            <span class="archive-page-num">08</span>
-            <p class="archive-eyebrow" data-config="contact.eyebrow">LET'S CONNECT</p>
             <h2 id="contact-title" data-config="contact.title">Good structures start with good conversations.</h2>
             <p class="section-intro" data-config="contact.body">If it's about keeping people and the field connected for longer, I'd love to talk.</p>
           </div>
-          <a class="mail-link" href="mailto:hello@jimmypark.net" id="contact-email">hello@jimmypark.net</a>
+          <a class="mail-link" href="mailto:scoutkorea@kakao.com" id="contact-email">scoutkorea@kakao.com</a>
         </div>
       </section>
 
     </main>
+
+    <button type="button" class="floating-top" id="floating-top" aria-label="맨 위로 / Back to top">Top</button>
 
     <!-- Portfolio detail modal — mounted lazily by script.js -->
     <div class="portfolio-modal" id="portfolio-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="portfolio-modal-title"></div>
@@ -178,7 +221,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> <span data-config="brand">Jimmy Park</span></span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.011.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
+          Site <span class="site-build-version">V00.012.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

@@ -1,0 +1,92 @@
+{
+  "$schema_version": 1,
+  "title_ko": "버전 기록",
+  "title_en": "Version History",
+  "format_note_ko": "YYYY.MM.DD _ V aa.bbb.cc — aa = 박지민이 관리하는 메이저 버전 · bbb = Claude 업데이트 횟수 · cc = 핫픽스/버그픽스",
+  "format_note_en": "YYYY.MM.DD _ V aa.bbb.cc — aa = Jimmy-managed major · bbb = Claude update count · cc = hotfix/bugfix",
+  "items": [
+    {
+      "id": "2026-05-20-v00-012-00",
+      "date": "2026.05.20",
+      "version": "V 00.012.00",
+      "summary_ko": "Hero 배경 이미지 + 페이지라인 시각 강화 + 관리자 KMS · Design · 버전 기록 읽기 전용 뷰 + 이메일 scoutkorea@kakao.com 반영",
+      "summary_en": "Hero background image + pageline rhythm + admin read-only views for KMS / Design / Versions + email scoutkorea@kakao.com",
+      "highlights_ko": [
+        "WHO I AM 섹션에 풀-블리드 배경 이미지(관리자에서 교체 가능)",
+        "모든 섹션 헤더를 번호 · 디바이더 · 라벨 한 줄로 통일",
+        "Hero 큰 이름, 좌측 burgundy 액센트 라인, 더 큰 통계 숫자 — 시각 위계 강화",
+        "관리자에 KMS · 디자인 가이드 · 버전 기록 읽기 전용 뷰 (편집 잠금)",
+        "Contact 이메일 → scoutkorea@kakao.com"
+      ],
+      "non_dev_html": "<p>홈페이지 첫 화면이 텍스트만 있어 단조롭다는 피드백을 받아, 배경 이미지를 자연스럽게 깔고 각 섹션 첫 줄에 번호와 라벨이 함께 보이도록 정돈했습니다. 통계 숫자와 이름의 크기를 키워 전체 인상이 더 묵직해졌습니다.</p><p>관리자에서는 그동안 작업한 KMS(기능 명세) · 디자인 가이드 · 버전 기록을 다시 볼 수 있도록 추가했습니다. 단, 잘못 건드리면 안 되는 영역이라 <strong>읽기 전용</strong>으로 잠긴 상태입니다.</p><p>이메일을 scoutkorea@kakao.com 으로 변경했습니다.</p>",
+      "dev_html": "<ul><li><code>section-who</code>에 <code>figure.who-bg</code> 추가 + 페이퍼 톤 오버레이 (linear-gradient 두 겹)</li><li><code>.archive-pageline</code> 패턴: <code>num · 1px line · uppercase eyebrow</code> — 모든 섹션 헤더에 일괄 적용</li><li>manage.html에 <code>.manage-panel-readonly</code> 패널 3개 (KMS / Design Guide / Versions) — 사이드네비 별도 그룹 '참고 문서'</li><li>manage.js: <code>renderReadonlyDoc(source, items, renderItemBody)</code> 공통 함수 — list + detail 단순 innerHTML</li><li><code>data/versions.json</code> 신규: items[].{date, version, summary, highlights, non_dev_html, dev_html, next_ko}</li><li><code>data-config-attr=\"src:hero.background_image\"</code> 바인딩으로 hero 이미지 자동 갱신</li><li><code>contact.email</code> → <code>scoutkorea@kakao.com</code></li></ul>",
+      "next_ko": [
+        "관리자에 HOW I WORK · EDUCATION 섹션 편집기 추가 (현재는 site-config.json 직접 편집)",
+        "Portfolio 모달에 problem / approach / structure / tools 필드 확장",
+        "CAREER 데이터 보강 — 회사별 narrative 작성",
+        "Hero 배경 이미지 업로드 미리보기 (admin 즉시 반영)",
+        "PDF 출력 미세 조정 — 페이지 경계 검증"
+      ]
+    },
+    {
+      "id": "2026-05-20-v00-011-00",
+      "date": "2026.05.20",
+      "version": "V 00.011.00",
+      "summary_ko": "Editorial Archive 8 섹션 흐름 + 버건디 팔레트 + PDF print + CLAUDE.md 가이드 신규",
+      "summary_en": "Editorial archive — 8-section flow, burgundy palette, PDF print, CLAUDE.md introduced",
+      "highlights_ko": [
+        "8 섹션 흐름: WHO · HOW · GLOBAL · BUILD · EDUCATION · CAREER · PRINCIPLES · CONNECT",
+        "Editorial Archive 팔레트로 교체 (burgundy #6E1F32 · warm paper #F6F3EF · deep charcoal #1E1E1E)",
+        "HOW I WORK 4 pillars · EDUCATION 섹션 신규",
+        "PDF print CSS — 각 섹션 = 새 페이지",
+        "CLAUDE.md 단일 가이드 파일 — Claude가 작업 전 자동 로드"
+      ],
+      "non_dev_html": "<p>\"잘 만든 포트폴리오\"가 아니라 \"오래 다뤄온 사람의 디지털 아카이브\"처럼 보이도록 전체 흐름을 8 섹션으로 재정렬했습니다. 컬러는 따뜻한 종이 톤 위에 깊은 버건디를 강조용으로만 쓰는 방식으로 정리했고, PDF로 인쇄해도 한 권의 문서처럼 읽히도록 페이지 단위 분리를 잡았습니다.</p><p>그리고 이후 모든 작업이 같은 톤과 흐름을 유지하도록 <strong>CLAUDE.md</strong>라는 가이드 문서를 프로젝트 루트에 만들었습니다. Claude는 작업 전 이 문서를 항상 먼저 확인합니다.</p>",
+      "dev_html": "<ul><li><code>:root</code> 토큰 일괄 교체 + 옛 RGB triplet 모두 새 팔레트로 swap</li><li><code>.archive-page</code> 단위 섹션 + <code>page-break-inside: avoid</code></li><li>script.js: <code>renderHowIWork</code> · <code>renderEducation</code> · <code>renderWhoRoles</code> 추가</li><li><code>BILINGUAL_PATHS</code> 확장 — hero · how · global · education · principles · contact</li><li><code>@media print</code> — 헤더/네비/모달 hide, country detail 자동 펼침, burgundy print-safe</li><li>CLAUDE.md 신규 + <code>data/design.json</code> visual-direction · color-tokens 갱신 + <code>data/kms.json</code> site-purpose-and-flow 추가</li></ul>",
+      "next_ko": [
+        "Hero 배경 이미지 관리",
+        "관리자에 KMS · Design · 버전 기록 뷰 (읽기 전용)",
+        "이메일 scoutkorea@kakao.com 반영"
+      ]
+    },
+    {
+      "id": "2026-05-19-v00-010-00",
+      "date": "2026.05.19",
+      "version": "V 00.010.00",
+      "summary_ko": "Bilingual EN-primary + 국가 카드 사유 · Experience 연계 + 자동 카운팅 + 관리자 메뉴 2차 카테고리 재정렬",
+      "summary_en": "Bilingual EN-primary + country detail + auto-count + admin menu 2-tier",
+      "highlights_ko": [
+        "영어 메인 + 한국어 보조 해설 (bilingual editorial) — 사이트 전체",
+        "국가 카드 클릭 → Why I went 패널 + 관련 Experience 링크",
+        "국가/도시 자동 카운팅 (countries.length · 유니크 도시)",
+        "관리자 사이드네비 sub-group: 첫 화면 / 본문 / 미디어 / 문의",
+        "Hero 자동 활성화 제거 — 마지막 선택 탭 localStorage 복원"
+      ],
+      "non_dev_html": "<p>한국어와 영어를 화면 안에서 함께 보여주되 영어가 메인 리듬을 만들고 한국어가 자연스러운 보조 해설처럼 따라오는 구조로 다듬었습니다. 국가 카드는 클릭하면 \"왜 다녀왔는지\"가 펼쳐지도록 했고, 국가/도시 개수는 데이터를 자동으로 집계합니다.</p>",
+      "dev_html": "<ul><li><code>.bilingual-en</code> + <code>.bilingual-ko</code> 헤딩 패턴, 단일 lang=en</li><li><code>renderCountries</code> 재작성 — 별표 제거, expand/collapse, linked experience</li><li>admin sidenav 2차 그루핑 + localStorage <code>jimmypark-manage-active-tab</code></li><li><code>renderCountriesEditor</code>에 reason_ko/en, linked_experience 필드 추가</li></ul>",
+      "next_ko": [
+        "Editorial archive 8 섹션 흐름으로 전면 리빌딩",
+        "PDF print 최적화"
+      ]
+    },
+    {
+      "id": "2026-05-19-v00-009-00",
+      "date": "2026.05.19",
+      "version": "V 00.009.00",
+      "summary_ko": "관리자 2단 구성 + 접근성 강화 + WARM INTELLECTUAL 팔레트 1차 적용",
+      "summary_en": "Admin 2-column shell + a11y + first WARM INTELLECTUAL palette pass",
+      "highlights_ko": [
+        "관리자 페이지를 좌측 사이드네비 + 우측 콘텐츠 2단 구성으로",
+        "ARIA · 키보드 내비(↑↓·Home·End) · 스킵링크 · 검색",
+        "URL hash 딥링크 + 모바일 드로어",
+        "1차 컬러 팔레트 — burgundy + cream"
+      ],
+      "non_dev_html": "<p>관리자 페이지가 가로 탭 구조라 항목이 많아지면 한눈에 안 잡혔는데, 왼쪽 고정 사이드바 + 본문 구조로 바꿔서 어디로 가야 하는지 명확해졌습니다. 키보드만으로도 메뉴 이동이 가능하고, 작은 화면에서는 드로어로 접힙니다.</p>",
+      "dev_html": "<ul><li><code>.admin-shell</code> grid 268px / 1fr</li><li><code>role=tab</code> · <code>role=tabpanel</code> · <code>aria-selected</code> · <code>aria-controls</code></li><li>키보드 핸들러 — ArrowUp/Down/Home/End/Enter/Space</li><li><code>history.replaceState</code>로 hash 동기화</li></ul>",
+      "next_ko": [
+        "영문 메인 + 한국어 보조 bilingual",
+        "국가 카드 인터랙션 개선"
+      ]
+    }
+  ]
+}

@@ -1005,3 +1005,28 @@ languageButtons.forEach((button) => {
   injectCfAnalytics(siteConfig);
   applyEverything(currentLanguage);
 })();
+
+// ──────────────────────────────────────────────────────────────────────────
+// Floating Top button — visible after the user has scrolled past the hero.
+// Smooth-scrolls back to #top on click.
+// ──────────────────────────────────────────────────────────────────────────
+(function setupFloatingTop() {
+  const btn = document.getElementById('floating-top');
+  if (!btn) return;
+  const threshold = 600;
+  let raf = null;
+  function update() {
+    raf = null;
+    const visible = window.scrollY > threshold;
+    btn.classList.toggle('is-visible', visible);
+  }
+  function onScroll() {
+    if (raf == null) raf = requestAnimationFrame(update);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  update();
+  btn.addEventListener('click', () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+})();

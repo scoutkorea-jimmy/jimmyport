@@ -97,6 +97,15 @@
               <li role="none"><button type="button" role="tab" id="tab-meta" aria-controls="panel-meta" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="meta">Site &amp; SEO<span class="sidenav-hint">메타 · CF 분석</span></button></li>
             </ul>
           </div>
+
+          <div class="sidenav-group" data-group="reference">
+            <h3 class="sidenav-group-title">참고 문서 (읽기 전용)</h3>
+            <ul class="sidenav-list" role="tablist" aria-orientation="vertical" aria-label="참고 문서">
+              <li role="none"><button type="button" role="tab" id="tab-kms-view" aria-controls="panel-kms-view" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="kms-view">KMS<span class="sidenav-hint">기능 명세</span></button></li>
+              <li role="none"><button type="button" role="tab" id="tab-design-view" aria-controls="panel-design-view" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="design-view">Design Guide<span class="sidenav-hint">색 · 타이포 · 톤</span></button></li>
+              <li role="none"><button type="button" role="tab" id="tab-versions-view" aria-controls="panel-versions-view" aria-selected="false" tabindex="-1" class="manage-tab" data-tab="versions-view">Versions<span class="sidenav-hint">버전 기록</span></button></li>
+            </ul>
+          </div>
         </nav>
 
         <div class="sidenav-actions" role="group" aria-label="공통 액션">
@@ -146,9 +155,13 @@
             <label>CTA portfolio (EN)<input data-bind="hero.cta_portfolio_en" /></label>
             <label>CTA 이메일 (KR)<input data-bind="hero.cta_email_ko" /></label>
             <label>CTA email (EN)<input data-bind="hero.cta_email_en" /></label>
-            <label class="span-2">히어로 이미지 경로<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
+            <label class="span-2">히어로 이미지 경로 (portrait·옆 이미지)<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
             <label>이미지 alt (KR)<input data-bind="hero.image_alt_ko" /></label>
             <label>이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
+            <label class="span-2">Hero 배경 이미지 경로 (WHO I AM 풀-블리드)<input data-bind="hero.background_image" placeholder="assets/hero-workspace.png" /></label>
+            <label>배경 alt (KR)<input data-bind="hero.background_image_alt_ko" placeholder="히어로 배경 이미지" /></label>
+            <label>배경 alt (EN)<input data-bind="hero.background_image_alt_en" placeholder="Hero background image" /></label>
+            <p class="manage-panel-hint span-2" style="grid-column:span 2;">새 이미지는 <code>assets/</code> 폴더에 파일을 추가한 뒤 위 경로를 갱신하세요. 종이 톤 오버레이가 자동으로 깔립니다.</p>
           </div>
         </section>
 
@@ -328,6 +341,48 @@
             <label class="span-2">CF Web Analytics token<input data-bind="analytics.cf_token" type="text" autocomplete="off" /></label>
           </div>
         </section>
+
+        <section class="manage-panel manage-panel-readonly" id="panel-kms-view" data-panel="kms-view" data-readonly-source="kms" role="tabpanel" aria-labelledby="tab-kms-view" tabindex="0" hidden>
+          <h2>KMS · 기능 명세 <span class="manage-readonly-tag">읽기 전용</span></h2>
+          <p class="manage-panel-hint"><code>data/kms.json</code> 의 항목들. 편집은 코드 레벨에서만 진행합니다.</p>
+          <div class="doc-readonly-layout">
+            <aside class="doc-readonly-sidebar">
+              <ul class="doc-readonly-list" data-readonly-list></ul>
+            </aside>
+            <article class="doc-readonly-body" data-readonly-body>
+              <p class="doc-readonly-empty">왼쪽에서 항목을 선택하세요.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="manage-panel manage-panel-readonly" id="panel-design-view" data-panel="design-view" data-readonly-source="design" role="tabpanel" aria-labelledby="tab-design-view" tabindex="0" hidden>
+          <h2>Design Guide <span class="manage-readonly-tag">읽기 전용</span></h2>
+          <p class="manage-panel-hint"><code>data/design.json</code>. 색·타이포·간격·모션·컴포넌트·톤 가이드. 작업 전 visual-direction 항목을 먼저 확인하세요.</p>
+          <div class="doc-readonly-layout">
+            <aside class="doc-readonly-sidebar">
+              <ul class="doc-readonly-list" data-readonly-list></ul>
+            </aside>
+            <article class="doc-readonly-body" data-readonly-body>
+              <p class="doc-readonly-empty">왼쪽에서 항목을 선택하세요.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="manage-panel manage-panel-readonly" id="panel-versions-view" data-panel="versions-view" data-readonly-source="versions" role="tabpanel" aria-labelledby="tab-versions-view" tabindex="0" hidden>
+          <h2>Versions · 버전 기록 <span class="manage-readonly-tag">읽기 전용</span></h2>
+          <p class="manage-panel-hint">
+            형식: <code>YYYY.MM.DD _ V aa.bbb.cc</code> ·
+            <strong>aa</strong> = 박지민이 관리하는 메이저 · <strong>bbb</strong> = Claude 업데이트 횟수 · <strong>cc</strong> = 핫픽스/버그픽스
+          </p>
+          <div class="doc-readonly-layout">
+            <aside class="doc-readonly-sidebar">
+              <ul class="doc-readonly-list" data-readonly-list></ul>
+            </aside>
+            <article class="doc-readonly-body" data-readonly-body>
+              <p class="doc-readonly-empty">왼쪽에서 버전을 선택하세요.</p>
+            </article>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -335,7 +390,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.010.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
+          Site <span class="site-build-version">V00.012.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

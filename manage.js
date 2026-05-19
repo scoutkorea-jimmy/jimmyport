@@ -1083,3 +1083,153 @@ function applyDraftIfPresent() {
   rerenderEditors();
   hydrateDeployForm();
 })();
+
+// ──────────────────────────────────────────────────────────────────────────
+// Read-only doc viewers — KMS / Design Guide / Versions
+// Pure HTML render of data/*.json. No edit form. Sidebar list + body view.
+// ──────────────────────────────────────────────────────────────────────────
+const READONLY_SOURCES = {
+  kms:      { file: 'data/kms.json',      itemsKey: 'items', renderBody: renderKmsBody },
+  design:   { file: 'data/design.json',   itemsKey: 'items', renderBody: renderDesignBody },
+  versions: { file: 'data/versions.json', itemsKey: 'items', renderBody: renderVersionBody },
+};
+const readonlyState = {}; // { kms: {items, panel, sidebar, body, activeId} }
+
+function escapeText(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderKmsBody(item) {
+  const meta = `<div class="doc-readonly-version-meta">
+    ${item.category ? `<span class="doc-readonly-version-tag">${escapeText(item.category)}</span>` : ''}
+    ${item.status   ? `<span class="doc-readonly-version-tag">${escapeText(item.status)}</span>` : ''}
+    ${item.owner    ? `<span class="doc-readonly-version-tag">owner · ${escapeText(item.owner)}</span>` : ''}
+    ${item.last_updated ? `<span class="doc-readonly-version-tag">${escapeText(item.last_updated)}</span>` : ''}
+  </div>`;
+  const summary = item.summary ? `<p><strong>${escapeText(item.summary)}</strong></p>` : '';
+  return `<h2>${escapeText(item.title || '(no title)')}</h2>${meta}${summary}${item.body_html || ''}`;
+}
+
+function renderDesignBody(item) {
+  const meta = `<div class="doc-readonly-version-meta">
+    ${item.section ? `<span class="doc-readonly-version-tag">${escapeText(item.section)}</span>` : ''}
+    ${item.last_updated ? `<span class="doc-readonly-version-tag">${escapeText(item.last_updated)}</span>` : ''}
+  </div>`;
+  const summary = item.summary ? `<p><strong>${escapeText(item.summary)}</strong></p>` : '';
+  return `<h2>${escapeText(item.title || '(no title)')}</h2>${meta}${summary}${item.body_html || ''}`;
+}
+
+function renderVersionBody(item) {
+  const meta = `<div class="doc-readonly-version-meta">
+    <span class="doc-readonly-version-date">${escapeText(item.date || '')} _ ${escapeText(item.version || '')}</span>
+  </div>`;
+  const summary = item.summary_ko ? `<p><strong>${escapeText(item.summary_ko)}</strong></p>` : '';
+  const highlights = Array.isArray(item.highlights_ko) && item.highlights_ko.length
+    ? `<h3>업데이트 주요 사항</h3><ul>${item.highlights_ko.map((h) => `<li>${escapeText(h)}</li>`).join('')}</ul>`
+    : '';
+  const nonDev = item.non_dev_html
+    ? `<h3>비개발자용 · 왜 필요한지 / 무엇이 적용됐는지</h3>${item.non_dev_html}`
+    : '';
+  const dev = item.dev_html
+    ? `<details class="doc-readonly-details"><summary>개발자용 · 기술 스택 적용 내역 (접힘)</summary><div>${item.dev_html}</div></details>`
+    : '';
+  const next = Array.isArray(item.next_ko) && item.next_ko.length
+    ? `<h3>앞으로 해야 할 일 · 특이사항</h3><ul>${item.next_ko.map((n) => `<li>${escapeText(n)}</li>`).join('')}</ul>`
+    : '';
+  return `<h2>${escapeText(item.version || '')}</h2>${meta}${summary}${highlights}${nonDev}${dev}${next}`;
+}
+
+async function loadReadonlySource(source) {
+  if (readonlyState[source] && readonlyState[source].items) return readonlyState[source];
+  const cfg = READONLY_SOURCES[source];
+  if (!cfg) return null;
+  const panel = document.querySelector(`[data-readonly-source="${source}"]`);
+  if (!panel) return null;
+  const sidebar = panel.querySelector('[data-readonly-list]');
+  const body = panel.querySelector('[data-readonly-body]');
+  let items = [];
+  try {
+    const r = await fetch(cfg.file, { cache: 'no-store' });
+    if (r.ok) {
+      const json = await r.json();
+      items = Array.isArray(json[cfg.itemsKey]) ? json[cfg.itemsKey] : [];
+    }
+  } catch (e) { console.warn(`readonly fetch ${source}`, e); }
+  readonlyState[source] = { items, panel, sidebar, body, activeId: null };
+  return readonlyState[source];
+}
+
+function paintReadonlySidebar(source) {
+  const st = readonlyState[source];
+  if (!st || !st.sidebar) return;
+  st.sidebar.innerHTML = '';
+  st.items.forEach((item, idx) => {
+    const li = document.createElement('li');
+    li.className = 'doc-readonly-list-item';
+    if (st.activeId === (item.id || idx)) li.classList.add('is-active');
+    const title = document.createElement('div');
+    title.className = 'doc-readonly-list-title';
+    title.textContent = source === 'versions'
+      ? `${item.date || ''} _ ${item.version || ''}`
+      : (item.title || '(no title)');
+    li.appendChild(title);
+    const meta = document.createElement('div');
+    meta.className = 'doc-readonly-list-meta';
+    if (source === 'versions') {
+      meta.textContent = item.summary_ko ? item.summary_ko.slice(0, 50) + (item.summary_ko.length > 50 ? '…' : '') : '';
+    } else if (source === 'kms') {
+      meta.textContent = `${item.category || ''}${item.status ? ' · ' + item.status : ''}`;
+    } else {
+      meta.textContent = `${item.section || ''}${item.last_updated ? ' · ' + item.last_updated : ''}`;
+    }
+    li.appendChild(meta);
+    li.addEventListener('click', () => selectReadonlyItem(source, item.id || idx));
+    st.sidebar.appendChild(li);
+  });
+}
+
+function selectReadonlyItem(source, id) {
+  const st = readonlyState[source];
+  if (!st) return;
+  const cfg = READONLY_SOURCES[source];
+  const item = st.items.find((it, idx) => (it.id || idx) === id);
+  if (!item) return;
+  st.activeId = id;
+  paintReadonlySidebar(source);
+  if (st.body) st.body.innerHTML = cfg.renderBody(item);
+}
+
+async function activateReadonlyView(source) {
+  const st = await loadReadonlySource(source);
+  if (!st) return;
+  paintReadonlySidebar(source);
+  if (st.items.length && !st.activeId) {
+    selectReadonlyItem(source, st.items[0].id || 0);
+  }
+}
+
+// Hook into tab switch — when a readonly tab becomes active, lazy-load it.
+const READONLY_TAB_TO_SOURCE = {
+  'kms-view': 'kms',
+  'design-view': 'design',
+  'versions-view': 'versions',
+};
+const _origSwitch = tabsSwitch;
+window.addEventListener('DOMContentLoaded', () => {
+  // We're already past DOMContentLoaded in most cases, but the hook below
+  // covers programmatic tab switches from URL hash and localStorage restore.
+});
+document.querySelectorAll('.manage-tab').forEach((t) => {
+  t.addEventListener('click', () => {
+    const src = READONLY_TAB_TO_SOURCE[t.dataset.tab];
+    if (src) activateReadonlyView(src);
+  }, { capture: true });
+});
+// On initial load, if the restored tab is a readonly one, kick activation.
+(function bootReadonlyOnRestore() {
+  const active = document.querySelector('.manage-tab.active');
+  if (!active) return;
+  const src = READONLY_TAB_TO_SOURCE[active.dataset.tab];
+  if (src) activateReadonlyView(src);
+})();
