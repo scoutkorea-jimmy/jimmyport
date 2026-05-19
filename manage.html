@@ -158,10 +158,21 @@
             <label class="span-2">히어로 이미지 경로 (portrait·옆 이미지)<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
             <label>이미지 alt (KR)<input data-bind="hero.image_alt_ko" /></label>
             <label>이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
-            <label class="span-2">Hero 배경 이미지 경로 (WHO I AM 풀-블리드, 헤더 뒤까지 비침)<input data-bind="hero.background_image" placeholder="assets/hero-workspace.png" /></label>
+            <label class="span-2">Hero 배경 이미지 — 파일 업로드
+              <div class="hero-bg-upload">
+                <input type="file" accept="image/*" id="hero-bg-file" />
+                <span class="hero-bg-upload-status" id="hero-bg-status">파일을 선택하면 즉시 드래프트에 반영됩니다.</span>
+              </div>
+              <div class="hero-bg-preview" id="hero-bg-preview" hidden>
+                <img id="hero-bg-preview-img" alt="" />
+                <button type="button" class="manage-btn manage-btn-ghost" id="hero-bg-clear">선택 해제</button>
+              </div>
+              <small style="color:var(--muted);font-weight:300;font-size:0.74rem;">권장 가로 1800–2400px, JPEG/PNG 1MB 이하. 파일은 base64로 site-config에 들어갑니다. 영구 보관용으로는 <code>assets/</code> 폴더에 두고 아래 경로 입력란을 쓰는 것을 권장합니다.</small>
+            </label>
+            <label class="span-2">또는 파일 경로 직접 입력 (WHO I AM 풀-블리드, 헤더 뒤까지 비침)<input data-bind="hero.background_image" id="hero-bg-path" placeholder="assets/hero-workspace.png" /></label>
             <label>배경 alt (KR)<input data-bind="hero.background_image_alt_ko" placeholder="히어로 배경 이미지" /></label>
             <label>배경 alt (EN)<input data-bind="hero.background_image_alt_en" placeholder="Hero background image" /></label>
-            <p class="manage-panel-hint span-2" style="grid-column:span 2;">새 이미지는 <code>assets/</code> 폴더에 파일을 추가한 뒤 위 경로를 갱신하세요. 종이 톤 오버레이가 자동으로 깔리고 헤더가 배경 위에 떠 있게 됩니다.</p>
+            <p class="manage-panel-hint span-2" style="grid-column:span 2;">종이 톤 오버레이가 자동으로 깔리고 헤더가 배경 위에 떠 있게 됩니다. 영구 반영은 <code>site-config.json</code> 다운로드 → git push 또는 GitHub Actions 자동 배포 흐름으로 진행됩니다.</p>
           </div>
 
           <h3 class="manage-subhead">Hero 트윅 — 위치 · 텍스트 크기 (이 섹션 한정)</h3>
@@ -411,7 +422,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.013.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
+          Site <span class="site-build-version">V00.014.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

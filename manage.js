@@ -1230,3 +1230,85 @@ document.querySelectorAll('.manage-tab').forEach((t) => {
 tryActivateReadonlyFromActiveTab();
 // And once more on a microtask in case panel render is still finishing.
 setTimeout(tryActivateReadonlyFromActiveTab, 0);
+
+// ──────────────────────────────────────────────────────────────────────────
+// Hero background image — file upload → base64 data URI → siteConfig draft.
+// Lets admins preview a fresh background without first dropping the file
+// into assets/. Final commit either uses the data URI as-is or asks the user
+// to save the asset to assets/ and switch hero.background_image to the path.
+// ──────────────────────────────────────────────────────────────────────────
+(function setupHeroBgUpload() {
+  const fileInput   = document.getElementById('hero-bg-file');
+  const statusEl    = document.getElementById('hero-bg-status');
+  const previewWrap = document.getElementById('hero-bg-preview');
+  const previewImg  = document.getElementById('hero-bg-preview-img');
+  const clearBtn    = document.getElementById('hero-bg-clear');
+  const pathInput   = document.getElementById('hero-bg-path');
+  if (!fileInput) return;
+
+  function setStatus(text, isError) {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.dataset.state = isError ? 'error' : 'ok';
+  }
+
+  function showPreview(src) {
+    if (previewWrap && previewImg) {
+      previewImg.src = src;
+      previewWrap.hidden = false;
+    }
+  }
+
+  // Surface an existing data URI on admin reload so users see the saved one.
+  function hydrateFromConfig() {
+    const cur = (siteConfig && siteConfig.hero && siteConfig.hero.background_image) || '';
+    if (typeof cur === 'string' && cur.startsWith('data:image/')) {
+      showPreview(cur);
+      setStatus('현재 base64 이미지가 드래프트에 저장되어 있습니다.');
+    }
+  }
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setStatus('이미지 파일만 가능합니다.', true);
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setStatus(`파일이 너무 큽니다 (${(file.size/1024/1024).toFixed(1)}MB). 1MB 이하 권장.`, true);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUri = String(reader.result || '');
+      if (!siteConfig.hero) siteConfig.hero = {};
+      siteConfig.hero.background_image = dataUri;
+      if (pathInput) pathInput.value = dataUri.length > 80 ? dataUri.slice(0, 80) + '…(base64)' : dataUri;
+      showPreview(dataUri);
+      setStatus(`업로드 완료 · ${(file.size/1024).toFixed(0)} KB → 드래프트 저장됨. 새 탭에서 홈을 열면 미리보기 됩니다.`);
+      saveDraft();
+    };
+    reader.onerror = () => setStatus('파일 읽기 실패', true);
+    reader.readAsDataURL(file);
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (!siteConfig.hero) siteConfig.hero = {};
+      siteConfig.hero.background_image = '';
+      if (pathInput) pathInput.value = '';
+      if (previewWrap) previewWrap.hidden = true;
+      fileInput.value = '';
+      setStatus('선택 해제됨. 경로 입력란이 비었습니다.');
+      saveDraft();
+    });
+  }
+
+  // Run once siteConfig is loaded — fillSimpleBindings happens after fetch.
+  const tryHydrate = () => {
+    if (siteConfig && siteConfig.hero) hydrateFromConfig();
+    else setTimeout(tryHydrate, 120);
+  };
+  tryHydrate();
+})();

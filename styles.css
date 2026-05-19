@@ -3382,16 +3382,18 @@ h2 .bilingual-ko { font-size: 0.32em; }
   width: 100%;
   object-fit: cover;
   object-position: right center;
-  filter: grayscale(0.6) contrast(0.95) brightness(1.04);
-  opacity: 0.22;
+  filter: contrast(1.02);
+  opacity: 0.65;
 }
+/* Soft side-fade so the image actually shows: heavier on the text side,
+   light on the photo side, gentle bottom transition into next section. */
 .who-bg-overlay {
   position: absolute;
   inset: 0;
   z-index: 0;
   background:
-    linear-gradient(180deg, rgba(246, 243, 239, 0.92) 0%, rgba(246, 243, 239, 0.78) 55%, var(--bg) 100%),
-    linear-gradient(90deg, var(--bg) 0%, rgba(246, 243, 239, 0.55) 60%, rgba(246, 243, 239, 0.30) 100%);
+    linear-gradient(90deg, rgba(246, 243, 239, 0.88) 0%, rgba(246, 243, 239, 0.55) 38%, rgba(246, 243, 239, 0.15) 70%, rgba(246, 243, 239, 0.05) 100%),
+    linear-gradient(180deg, rgba(246, 243, 239, 0.05) 0%, rgba(246, 243, 239, 0.25) 75%, var(--bg) 100%);
 }
 .who-inner { position: relative; z-index: 2; }
 
@@ -3875,7 +3877,7 @@ body.is-scrolled .nav-links a { color: var(--muted); }
   --who-align: left;
   --who-content-offset: 180px;
   --who-bg-position: right center;
-  --who-bg-opacity: 0.22;
+  --who-bg-opacity: 0.65;
 }
 .section-who[data-align="center"] .who-grid,
 .section-who[data-align="center"] .who-pageline,
@@ -3891,3 +3893,44 @@ body.is-scrolled .nav-links a { color: var(--muted); }
 .section-who .who-name h1 { font-size: calc(clamp(4rem, 9vw, 7.2rem) * var(--who-title-scale)); }
 .section-who .who-lead-primary { font-size: calc(clamp(1.42rem, 2.6vw, 1.95rem) * var(--who-title-scale)); }
 .section-who .who-bg img { object-position: var(--who-bg-position); opacity: var(--who-bg-opacity); }
+
+/* Admin — Hero background image upload UI */
+.hero-bg-upload {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+.hero-bg-upload input[type="file"] {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 8px 10px;
+}
+.hero-bg-upload-status {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.hero-bg-upload-status[data-state="error"] { color: #802716; }
+.hero-bg-upload-status[data-state="ok"] { color: #1d6f3e; }
+
+.hero-bg-preview {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px dashed var(--line);
+}
+.hero-bg-preview img {
+  display: block;
+  height: 96px;
+  width: 160px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.hero-bg-preview button { flex-shrink: 0; }
