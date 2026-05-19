@@ -16,13 +16,13 @@
     { "key": "contact",    "ko": "Contact",       "en": "Contact",       "href": "#contact" }
   ],
   "hero": {
-    "eyebrow_ko": "Media · Community · Scouting",
-    "eyebrow_en": "Media · Community · Scouting",
+    "eyebrow_ko": "Strategic Media · Systems · Global Communication",
+    "eyebrow_en": "Strategic Media · Systems · Global Communication",
     "title_ko": "박지민",
     "title_en": "Jimmy Park",
-    "lead_ko": "미디어·교육·커뮤니티 운영의 교차점에서, 사람과 현장을 더 오래 연결하는 구조를 만듭니다.",
-    "lead_en": "Working at the intersection of media, education, and community operations — designing structures that keep people and the field connected for longer.",
-    "meta_tags": ["Strategic Production", "Global Communication", "Systems & Operations"],
+    "lead_ko": "글로벌 프로젝트 · 운영 구조 · 커뮤니티 기반 미디어 사이에서, 콘텐츠와 운영 구조를 함께 설계합니다.",
+    "lead_en": "Between global projects, operational structures, and community-driven media — designing content and operations together.",
+    "meta_tags": ["Strategic Production", "Global Communication", "Systems & Operations", "Media Infrastructure", "Community Documentation"],
     "cta_portfolio_ko": "케이스 스터디 보기",
     "cta_portfolio_en": "View case studies",
     "cta_email_ko": "이메일 보내기",
@@ -102,44 +102,46 @@
       {
         "title_ko": "Strategic Production",
         "title_en": "Strategic Production",
-        "description_ko": "정부 캠페인, IR/PR 영상, 키노트, 스타트업 커뮤니케이션, 제안 전략.",
-        "description_en": "Government campaigns, IR/PR films, keynote videos, startup communication, proposal strategy.",
+        "description_ko": "공공·기업 커뮤니케이션, IR/PR 영상, 키노트, 제안 기반 프로덕션. 메시지·운영·미디어를 RFP 단계부터 함께 설계합니다.",
+        "description_en": "Public and corporate communication, IR/PR films, keynote storytelling, proposal-driven production. Message, operation, and media are designed together from the RFP stage.",
         "items_ko": [
           "Samsung Tech Conference",
-          "CES Innovation Award projects",
+          "CES Innovation Award 프로젝트",
           "KOSME 캠페인",
-          "KAIST 스타트업 콘텐츠"
+          "KAIST 스타트업 콘텐츠",
+          "공공기관 키노트·IR"
         ],
         "items_en": [
           "Samsung Tech Conference",
           "CES Innovation Award projects",
           "KOSME campaigns",
-          "KAIST startup content"
+          "KAIST startup content",
+          "Public-sector keynote · IR"
         ]
       },
       {
-        "title_ko": "Global & Scouting Communication",
-        "title_en": "Global & Scouting Communication",
-        "description_ko": "국제 청소년 커뮤니케이션, WOSM 협업, 대규모 커뮤니티 스토리텔링.",
-        "description_en": "International youth communication, WOSM collaboration, large-scale community storytelling.",
+        "title_ko": "Global Communication",
+        "title_en": "Global Communication",
+        "description_ko": "국가·언어·시간대가 다른 환경에서 일관된 메시지를 유지하는 운영형 커뮤니케이션. 국제 청소년 네트워크와 다국적 행사 운영 안에서 일해 왔습니다.",
+        "description_en": "Operational communication that holds together across countries, languages, and time zones — built inside international youth networks and multi-national event ecosystems.",
         "items_ko": [
-          "한국스카우트연맹",
+          "한국스카우트연맹 커뮤니케이션",
           "WOSM APR Communication",
           "World Scout Jamboree",
-          "국제 컨퍼런스"
+          "국제 컨퍼런스 미디어 운영"
         ],
         "items_en": [
-          "Korea Scout Association",
+          "Korea Scout Association communication",
           "WOSM APR Communication",
           "World Scout Jamboree",
-          "International conferences"
+          "International conference media operations"
         ]
       },
       {
         "title_ko": "Systems & Operations",
         "title_en": "Systems & Operations",
-        "description_ko": "운영 자동화, 워크플로 시스템, 디지털 협업 도구.",
-        "description_en": "Operational automation, workflow systems, digital coordination tools.",
+        "description_ko": "운영 자동화와 워크플로 시스템. 반복되는 일을 줄이고, 사람이 판단해야 하는 지점에 집중할 수 있게 구조를 정리합니다.",
+        "description_en": "Operational automation and workflow systems. Reduce the repeatable, concentrate human judgement on the decisions that matter.",
         "items_ko": [
           "Monday.com 워크플로",
           "SMS 자동화 시스템",
@@ -149,8 +151,44 @@
         "items_en": [
           "Monday.com workflows",
           "SMS automation systems",
-          "content operation structures",
-          "internal communication systems"
+          "Content operation structures",
+          "Internal communication systems"
+        ]
+      },
+      {
+        "title_ko": "Media Infrastructure",
+        "title_en": "Media Infrastructure",
+        "description_ko": "영상·콘텐츠 제작 인프라와 운영 시스템. 프로덕션 흐름, 자산 관리, 다채널 배포의 구조를 설계합니다.",
+        "description_en": "The infrastructure behind content production — production flow, asset management, and multi-channel distribution structures.",
+        "items_ko": [
+          "콘텐츠 자산 관리 구조",
+          "제작 워크플로 설계",
+          "멀티 채널 배포 구조",
+          "라이브 이벤트 미디어 시스템"
+        ],
+        "items_en": [
+          "Content asset management",
+          "Production workflow design",
+          "Multi-channel distribution structure",
+          "Live-event media systems"
+        ]
+      },
+      {
+        "title_ko": "Community Documentation",
+        "title_en": "Community Documentation",
+        "description_ko": "커뮤니티의 시간을 잇는 기록 작업. 행사·세대·국제 협력의 narrative를 길게 이어지는 형태로 정리합니다.",
+        "description_en": "Documentation that connects a community across time — events, generations, and international collaboration shaped into a continuous narrative.",
+        "items_ko": [
+          "스카우트 활동 아카이브",
+          "행사 기록 시리즈",
+          "인터뷰·구술 기록",
+          "다국어 기록 시스템"
+        ],
+        "items_en": [
+          "Scouting activity archive",
+          "Event documentation series",
+          "Interview · oral records",
+          "Multilingual documentation systems"
         ]
       }
     ]
