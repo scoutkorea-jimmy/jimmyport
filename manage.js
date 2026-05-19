@@ -9,6 +9,7 @@
 
 const DRAFT_KEY = 'jimmypark-site-config-draft';
 const PORTFOLIO_DRAFT_KEY = 'jimmypark-portfolio-draft';
+const CAREER_DRAFT_KEY = 'jimmypark-career-draft';
 const DEPLOY_PREFS_KEY = 'jimmypark-deploy-prefs';
 const PAT_SESSION_KEY = 'jimmypark-github-pat';
 
@@ -23,8 +24,10 @@ const githubLog = document.querySelector('#github-log');
 
 let siteConfig = null;
 let portfolioItems = [];
+let careerData = null;
 let sourceConfigSnapshot = null;
 let sourcePortfolioSnapshot = null;
+let sourceCareerSnapshot = null;
 
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -54,6 +57,7 @@ function saveDraft() {
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(siteConfig));
     localStorage.setItem(PORTFOLIO_DRAFT_KEY, JSON.stringify(portfolioItems));
+    if (careerData) localStorage.setItem(CAREER_DRAFT_KEY, JSON.stringify(careerData));
     setDraftState('dirty', '드래프트 저장됨 · 새 탭에서 홈을 열면 미리보기');
   } catch (err) {
     console.warn('draft save failed', err);
@@ -65,6 +69,7 @@ function clearDraft() {
   try {
     localStorage.removeItem(DRAFT_KEY);
     localStorage.removeItem(PORTFOLIO_DRAFT_KEY);
+    localStorage.removeItem(CAREER_DRAFT_KEY);
   } catch (_) {}
   setDraftState('clean', '저장됨');
 }
@@ -98,6 +103,18 @@ function fillSimpleBindings() {
     const value = deepGet(siteConfig, path);
     el.value = Array.isArray(value) ? value.join('\n\n') : (value || '');
   });
+  document.querySelectorAll('[data-bind-array-item]').forEach((el) => {
+    // One input per slot in an array — used for hero.titles_ko[0..2].
+    const path = el.dataset.bindArrayItem;
+    const idx = parseInt(el.dataset.bindArrayIndex, 10) || 0;
+    const value = deepGet(siteConfig, path);
+    el.value = Array.isArray(value) && typeof value[idx] === 'string' ? value[idx] : '';
+  });
+  document.querySelectorAll('[data-bind-career]').forEach((el) => {
+    if (!careerData) return;
+    const key = el.dataset.bindCareer;
+    el.value = careerData[key] || '';
+  });
 }
 
 document.addEventListener('input', (event) => {
@@ -117,6 +134,22 @@ document.addEventListener('input', (event) => {
   if (target.matches('[data-bind-paragraphs]')) {
     const paragraphs = target.value.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
     deepSet(siteConfig, target.dataset.bindParagraphs, paragraphs);
+    saveDraft();
+    return;
+  }
+  if (target.matches('[data-bind-array-item]')) {
+    const path = target.dataset.bindArrayItem;
+    const idx  = parseInt(target.dataset.bindArrayIndex, 10) || 0;
+    let arr = deepGet(siteConfig, path);
+    if (!Array.isArray(arr)) { arr = []; deepSet(siteConfig, path, arr); }
+    while (arr.length <= idx) arr.push('');
+    arr[idx] = target.value;
+    saveDraft();
+    return;
+  }
+  if (target.matches('[data-bind-career]')) {
+    if (!careerData) careerData = { items: [] };
+    careerData[target.dataset.bindCareer] = target.value;
     saveDraft();
     return;
   }
@@ -395,8 +428,92 @@ function rerenderEditors() {
   renderWorkEditor();
   renderInterestsEditor();
   renderNavEditor();
+  renderCareerEditor();
   renderPortfolioPreview();
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// Career editor — one row per company. Highlights are entered as a textarea
+// with one bullet per line so authors don't have to think about JSON.
+// ──────────────────────────────────────────────────────────────────────────
+function renderCareerEditor() {
+  const host = document.querySelector('#career-items-list');
+  if (!host) return;
+  if (!careerData) careerData = { items: [] };
+  if (!Array.isArray(careerData.items)) careerData.items = [];
+  const rows = careerData.items;
+  host.innerHTML = '';
+  rows.forEach((row, idx) => {
+    const hlKo = Array.isArray(row.highlights_ko) ? row.highlights_ko.join('\n') : (row.highlights_ko || '');
+    const hlEn = Array.isArray(row.highlights_en) ? row.highlights_en.join('\n') : (row.highlights_en || '');
+    const div = document.createElement('div');
+    div.className = 'manage-row manage-row-tall';
+    div.innerHTML = `
+      <div class="manage-row-grid">
+        <label>회사 (KR)<input data-career-row data-career-idx="${idx}" data-career-key="company_ko" value="${escapeHtml(row.company_ko || '')}" /></label>
+        <label>Company (EN)<input data-career-row data-career-idx="${idx}" data-career-key="company_en" value="${escapeHtml(row.company_en || '')}" /></label>
+        <label>직책 (KR)<input data-career-row data-career-idx="${idx}" data-career-key="role_ko" value="${escapeHtml(row.role_ko || '')}" /></label>
+        <label>Role (EN)<input data-career-row data-career-idx="${idx}" data-career-key="role_en" value="${escapeHtml(row.role_en || '')}" /></label>
+        <label>기간<input data-career-row data-career-idx="${idx}" data-career-key="period" value="${escapeHtml(row.period || '')}" placeholder="2022-01 ~ Present" /></label>
+        <label>위치<input data-career-row data-career-idx="${idx}" data-career-key="location" value="${escapeHtml(row.location || '')}" placeholder="Seoul, Korea" /></label>
+        <label class="span-3">요약 (KR)<textarea rows="2" data-career-row data-career-idx="${idx}" data-career-key="summary_ko">${escapeHtml(row.summary_ko || '')}</textarea></label>
+        <label class="span-3">Summary (EN)<textarea rows="2" data-career-row data-career-idx="${idx}" data-career-key="summary_en">${escapeHtml(row.summary_en || '')}</textarea></label>
+        <label class="span-3">Highlights (KR · 한 줄 = 한 항목)<textarea rows="3" data-career-row data-career-idx="${idx}" data-career-key="highlights_ko" data-career-list="1">${escapeHtml(hlKo)}</textarea></label>
+        <label class="span-3">Highlights (EN · one per line)<textarea rows="3" data-career-row data-career-idx="${idx}" data-career-key="highlights_en" data-career-list="1">${escapeHtml(hlEn)}</textarea></label>
+      </div>
+      <div class="manage-row-actions">
+        <button type="button" data-career-action="move-up" data-career-idx="${idx}">↑</button>
+        <button type="button" data-career-action="move-down" data-career-idx="${idx}">↓</button>
+        <button type="button" class="manage-row-delete" data-career-action="delete" data-career-idx="${idx}">삭제</button>
+      </div>`;
+    host.appendChild(div);
+  });
+}
+
+document.addEventListener('input', (event) => {
+  const target = event.target;
+  if (!target || !target.matches('[data-career-row]')) return;
+  const idx = parseInt(target.dataset.careerIdx, 10);
+  const key = target.dataset.careerKey;
+  if (!careerData) careerData = { items: [] };
+  if (!careerData.items[idx]) careerData.items[idx] = {};
+  if (target.dataset.careerList === '1') {
+    careerData.items[idx][key] = target.value.split('\n').map((s) => s.trim()).filter(Boolean);
+  } else {
+    careerData.items[idx][key] = target.value;
+  }
+  saveDraft();
+});
+
+document.addEventListener('click', (event) => {
+  const btn = event.target.closest('[data-career-action]');
+  if (!btn) return;
+  const action = btn.dataset.careerAction;
+  const idx = parseInt(btn.dataset.careerIdx, 10);
+  if (!careerData || !Array.isArray(careerData.items)) return;
+  const list = careerData.items;
+  if (action === 'delete') list.splice(idx, 1);
+  else if (action === 'move-up' && idx > 0) [list[idx-1], list[idx]] = [list[idx], list[idx-1]];
+  else if (action === 'move-down' && idx < list.length - 1) [list[idx+1], list[idx]] = [list[idx], list[idx+1]];
+  else return;
+  renderCareerEditor();
+  saveDraft();
+});
+
+document.querySelector('#add-career-item')?.addEventListener('click', () => {
+  if (!careerData) careerData = { items: [] };
+  if (!Array.isArray(careerData.items)) careerData.items = [];
+  careerData.items.unshift({
+    id: `career-${Date.now()}`,
+    company_ko: '', company_en: '',
+    role_ko: '', role_en: '',
+    period: '', location: '',
+    summary_ko: '', summary_en: '',
+    highlights_ko: [], highlights_en: [],
+  });
+  renderCareerEditor();
+  saveDraft();
+});
 
 // ──────────────────────────────────────────────────────────────────────────
 // Portfolio sub-form
@@ -429,14 +546,19 @@ function renderPortfolioPreview() {
   }
   portfolioItems.forEach((item, idx) => {
     const videoId = getYouTubeId(item.youtubeUrl);
+    const type = item.type || 'video';
     const card = document.createElement('article');
     card.className = 'admin-card';
+    const thumbHtml = videoId
+      ? `<img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="" />`
+      : (item.thumbnail ? `<img src="${escapeHtml(item.thumbnail)}" alt="" />` : '<div class="admin-card-thumb-empty"></div>');
     card.innerHTML = `
-      ${videoId ? `<img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="" />` : '<div class="admin-card-thumb-empty"></div>'}
+      ${thumbHtml}
       <div>
-        <span>${String(idx + 1).padStart(2, '0')} · ${escapeHtml(item.published || '')}</span>
+        <span>${String(idx + 1).padStart(2, '0')} · ${escapeHtml(type.toUpperCase())} · ${escapeHtml(item.published || '')}</span>
         <h3>${escapeHtml((item.ko && item.ko.title) || (item.en && item.en.title) || '')}</h3>
         <p>${escapeHtml((item.ko && item.ko.role) || (item.en && item.en.role) || '')}</p>
+        <p style="color:var(--muted);font-size:0.82rem;font-weight:300;margin-top:4px;">${escapeHtml(((item.ko && item.ko.overview) || (item.en && item.en.overview) || '').slice(0, 140))}</p>
       </div>
       <div class="manage-row-actions">
         <button type="button" data-portfolio-action="up" data-portfolio-index="${idx}">↑</button>
@@ -446,6 +568,73 @@ function renderPortfolioPreview() {
     host.appendChild(card);
   });
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// Image upload via GitHub Contents API — base64 PUT to assets/.
+// User picks a file in the Hero form; the file is uploaded to the configured
+// repo's `assets/` folder and the bound config field is updated to the new
+// path. Requires the PAT from the Deploy tab to be in sessionStorage.
+// ──────────────────────────────────────────────────────────────────────────
+async function fileToBase64(file) {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+function safeFileName(name) {
+  return String(name || 'file').toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '-')
+    .replace(/--+/g, '-')
+    .slice(-80) || `upload-${Date.now()}`;
+}
+
+async function handleImageUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const host = input.closest('[data-file-upload-host]');
+  const status = host ? host.querySelector('[data-file-status]') : null;
+  const bindPath = input.dataset.fileUpload;
+  let pat = '';
+  try { pat = sessionStorage.getItem(PAT_SESSION_KEY) || ''; } catch (_) {}
+  const prefs = readDeployPrefs();
+  const repo = prefs.repo || DEFAULT_REPO;
+  const branch = prefs.branch || DEFAULT_BRANCH;
+
+  if (!pat) {
+    if (status) { status.textContent = 'Deploy 탭에서 PAT 먼저 입력하세요.'; status.className = 'doc-file-status is-error'; }
+    return;
+  }
+
+  const ts = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+  const filename = `${ts}-${safeFileName(file.name)}`;
+  const path = `assets/${filename}`;
+  if (status) { status.textContent = `업로드 중… (${(file.size/1024).toFixed(0)} KB)`; status.className = 'doc-file-status'; }
+
+  try {
+    const b64 = await fileToBase64(file);
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${pat}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `chore(assets): upload ${filename} via manage admin`, content: b64, branch }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    // Update bound config path so the homepage picks up the new image on next load.
+    deepSet(siteConfig, bindPath, path);
+    fillSimpleBindings();
+    saveDraft();
+    if (status) { status.textContent = `업로드 완료 → ${path}`; status.className = 'doc-file-status is-ok'; }
+  } catch (err) {
+    if (status) { status.textContent = `업로드 실패: ${err.message || err}`; status.className = 'doc-file-status is-error'; }
+  } finally {
+    input.value = '';
+  }
+}
+
+document.addEventListener('change', (event) => {
+  if (event.target && event.target.matches('[data-file-upload]')) handleImageUpload(event.target);
+});
 
 document.addEventListener('click', (event) => {
   const btn = event.target.closest('[data-portfolio-action]');
@@ -465,30 +654,28 @@ document.querySelector('#portfolio-form')?.addEventListener('submit', (event) =>
   event.preventDefault();
   const form = event.currentTarget;
   const data = new FormData(form);
-  const titleKo = (data.get('titleKo') || '').trim();
-  if (!titleKo) return;
   const grab = (k) => (data.get(k) || '').trim();
-  const koOrEn = (ko, en) => en || ko; // EN falls back to KR if blank
+  const titleKo = grab('titleKo');
+  if (!titleKo) return;
+  const koOrEn = (ko, en) => en || ko;
   portfolioItems.unshift({
     id: slugify(`${grab('published') || new Date().getFullYear()}-${titleKo}`),
+    type: grab('type') || 'video',
     youtubeUrl: grab('youtubeUrl'),
+    thumbnail: grab('thumbnail'),
     published: grab('published') || String(new Date().getFullYear()),
     ko: {
-      title:     titleKo,
-      role:      grab('roleKo'),
-      context:   grab('contextKo'),
-      challenge: grab('challengeKo'),
-      approach:  grab('approachKo'),
-      outcome:   grab('outcomeKo'),
+      title:    titleKo,
+      role:     grab('roleKo'),
+      overview: grab('overviewKo'),
     },
     en: {
-      title:     koOrEn(titleKo,       grab('titleEn')),
-      role:      koOrEn(grab('roleKo'),      grab('roleEn')),
-      context:   koOrEn(grab('contextKo'),   grab('contextEn')),
-      challenge: koOrEn(grab('challengeKo'), grab('challengeEn')),
-      approach:  koOrEn(grab('approachKo'),  grab('approachEn')),
-      outcome:   koOrEn(grab('outcomeKo'),   grab('outcomeEn')),
+      title:    koOrEn(titleKo,         grab('titleEn')),
+      role:     koOrEn(grab('roleKo'),  grab('roleEn')),
+      overview: koOrEn(grab('overviewKo'), grab('overviewEn')),
     },
+    detail_ko: grab('detailKo'),
+    detail_en: koOrEn(grab('detailKo'), grab('detailEn')),
   });
   form.reset();
   renderPortfolioPreview();
@@ -633,6 +820,7 @@ document.querySelector('#github-commit-action')?.addEventListener('click', async
       { path: 'data/site-config.json', json: siteConfig },
       { path: 'data/portfolio.json',   json: portfolioItems },
     ];
+    if (careerData) toCommit.push({ path: 'data/career.json', json: careerData });
     // Pick up KMS / Wiki / Design payloads from the document admin if present.
     if (window.JimmyDocs && typeof window.JimmyDocs.filesForCommit === 'function') {
       window.JimmyDocs.filesForCommit().forEach((f) => toCommit.push(f));
@@ -670,6 +858,7 @@ document.querySelector('#github-forget-pat')?.addEventListener('click', () => {
 async function loadFromServer() {
   let configFromNet = {};
   let portfolioFromNet = [];
+  let careerFromNet = { items: [] };
   try {
     const resp = await fetch('data/site-config.json', { cache: 'no-store' });
     if (resp.ok) configFromNet = await resp.json();
@@ -681,10 +870,19 @@ async function loadFromServer() {
       if (Array.isArray(j)) portfolioFromNet = j;
     }
   } catch (_) {}
+  try {
+    const resp = await fetch('data/career.json', { cache: 'no-store' });
+    if (resp.ok) {
+      const j = await resp.json();
+      if (j && Array.isArray(j.items)) careerFromNet = j;
+    }
+  } catch (_) {}
   sourceConfigSnapshot = configFromNet;
   sourcePortfolioSnapshot = portfolioFromNet;
+  sourceCareerSnapshot = careerFromNet;
   siteConfig = JSON.parse(JSON.stringify(configFromNet));
   portfolioItems = JSON.parse(JSON.stringify(portfolioFromNet));
+  careerData = JSON.parse(JSON.stringify(careerFromNet));
 }
 
 function applyDraftIfPresent() {
@@ -701,6 +899,11 @@ function applyDraftIfPresent() {
     if (draftPortfolio) {
       const parsed = JSON.parse(draftPortfolio);
       if (Array.isArray(parsed)) portfolioItems = parsed;
+    }
+    const draftCareer = localStorage.getItem(CAREER_DRAFT_KEY);
+    if (draftCareer) {
+      const parsed = JSON.parse(draftCareer);
+      if (parsed && Array.isArray(parsed.items)) careerData = parsed;
     }
   } catch (err) {
     console.warn('draft load failed', err);

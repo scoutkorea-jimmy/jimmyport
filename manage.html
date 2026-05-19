@@ -53,6 +53,7 @@
         <button type="button" class="manage-tab" data-tab="portfolio">Portfolio</button>
         <button type="button" class="manage-tab" data-tab="interests">Principles</button>
         <button type="button" class="manage-tab" data-tab="contact">Contact</button>
+        <button type="button" class="manage-tab" data-tab="career">Career</button>
         <button type="button" class="manage-tab" data-tab="chrome">Nav · Footer</button>
         <button type="button" class="manage-tab" data-tab="meta">Site &amp; SEO</button>
         <button type="button" class="manage-tab manage-tab-divider" data-tab="kms">KMS · 기능명세</button>
@@ -63,12 +64,18 @@
 
       <section class="manage-panel active" data-panel="hero">
         <h2>Hero 영역</h2>
-        <p class="manage-panel-hint">홈 첫 화면 — eyebrow / 이름 / 한 문장 / 메타 태그 / CTA 버튼.</p>
+        <p class="manage-panel-hint">홈 첫 화면 — eyebrow / 이름 / 직함 3 / lead / 메타 태그 / CTA / 이미지.</p>
         <div class="manage-grid two-col">
           <label>Eyebrow (KR)<input data-bind="hero.eyebrow_ko" /></label>
           <label>Eyebrow (EN)<input data-bind="hero.eyebrow_en" /></label>
           <label>이름 / Title (KR)<input data-bind="hero.title_ko" /></label>
           <label>Name / Title (EN)<input data-bind="hero.title_en" /></label>
+          <label>직함 1 (KR)<input data-bind-array-item="hero.titles_ko" data-bind-array-index="0" placeholder="Production Manager" /></label>
+          <label>Title 1 (EN)<input data-bind-array-item="hero.titles_en" data-bind-array-index="0" /></label>
+          <label>직함 2 (KR)<input data-bind-array-item="hero.titles_ko" data-bind-array-index="1" placeholder="PR Strategist" /></label>
+          <label>Title 2 (EN)<input data-bind-array-item="hero.titles_en" data-bind-array-index="1" /></label>
+          <label>직함 3 (KR)<input data-bind-array-item="hero.titles_ko" data-bind-array-index="2" placeholder="Content Producer" /></label>
+          <label>Title 3 (EN)<input data-bind-array-item="hero.titles_en" data-bind-array-index="2" /></label>
           <label class="span-2">Lead 문장 (KR)<textarea rows="3" data-bind="hero.lead_ko"></textarea></label>
           <label class="span-2">Lead sentence (EN)<textarea rows="3" data-bind="hero.lead_en"></textarea></label>
           <label class="span-2">메타 태그 (쉼표로 구분)<input data-bind-list="hero.meta_tags" placeholder="Media, Scouting, Community, Digital Tools" /></label>
@@ -76,9 +83,17 @@
           <label>CTA portfolio (EN)<input data-bind="hero.cta_portfolio_en" /></label>
           <label>CTA 이메일 (KR)<input data-bind="hero.cta_email_ko" /></label>
           <label>CTA email (EN)<input data-bind="hero.cta_email_en" /></label>
-          <label>히어로 이미지 경로<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
+          <label class="span-2">히어로 이미지 경로<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
+          <label class="span-2" data-file-upload-host="hero.image">
+            이미지 업로드 (GitHub에 직접 커밋)
+            <div class="doc-file-upload">
+              <input type="file" accept="image/*" data-file-upload="hero.image" />
+              <span class="doc-file-status" data-file-status></span>
+            </div>
+            <small style="color:var(--muted);font-size:0.74rem;font-weight:300;">파일을 선택하면 <code>assets/</code>에 업로드되고 위 경로가 자동으로 갱신됩니다. <strong>Deploy 탭의 PAT</strong>가 먼저 설정되어 있어야 합니다.</small>
+          </label>
           <label>이미지 alt (KR)<input data-bind="hero.image_alt_ko" /></label>
-          <label class="span-2">이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
+          <label>이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
         </div>
       </section>
 
@@ -157,29 +172,53 @@
           <label class="span-2">Empty hint (EN)<textarea rows="2" data-bind="portfolio_intro.empty_hint_en"></textarea></label>
         </div>
 
-        <p class="manage-panel-hint">각 항목은 영상 갤러리가 아니라 케이스 스터디입니다 — Role · Context · Challenge · Approach · Outcome 구조로 작성하세요.</p>
+        <p class="manage-panel-hint">각 항목은 <strong>영상 프로젝트</strong> 또는 <strong>PM 프로젝트</strong> 둘 중 하나. 카드로 노출되고, 클릭하면 모달로 제목 · 역할 · 개요 · 영상/상세를 봅니다.</p>
+        <div class="manage-grid two-col" style="margin-bottom:24px;">
+          <label>섹션 제목 (KR)<input data-bind="portfolio_intro.title_ko" /></label>
+          <label>Section title (EN)<input data-bind="portfolio_intro.title_en" /></label>
+          <label class="span-2">인트로 (KR)<textarea rows="2" data-bind="portfolio_intro.intro_ko"></textarea></label>
+          <label class="span-2">Intro (EN)<textarea rows="2" data-bind="portfolio_intro.intro_en"></textarea></label>
+          <label>영상 그룹 제목 (KR)<input data-bind="portfolio_intro.video_section_ko" /></label>
+          <label>Video group (EN)<input data-bind="portfolio_intro.video_section_en" /></label>
+          <label>PM 그룹 제목 (KR)<input data-bind="portfolio_intro.pm_section_ko" /></label>
+          <label>PM group (EN)<input data-bind="portfolio_intro.pm_section_en" /></label>
+          <label>Role 라벨 (KR)<input data-bind="portfolio_intro.role_label_ko" /></label>
+          <label>Role label (EN)<input data-bind="portfolio_intro.role_label_en" /></label>
+          <label>Overview 라벨 (KR)<input data-bind="portfolio_intro.overview_label_ko" /></label>
+          <label>Overview label (EN)<input data-bind="portfolio_intro.overview_label_en" /></label>
+          <label>영상 보기 라벨 (KR)<input data-bind="portfolio_intro.watch_label_ko" /></label>
+          <label>Watch label (EN)<input data-bind="portfolio_intro.watch_label_en" /></label>
+          <label>프로젝트 자세히 라벨 (KR)<input data-bind="portfolio_intro.detail_label_ko" /></label>
+          <label>Detail label (EN)<input data-bind="portfolio_intro.detail_label_en" /></label>
+          <label>모달 닫기 (KR)<input data-bind="portfolio_intro.close_label_ko" /></label>
+          <label>Modal close (EN)<input data-bind="portfolio_intro.close_label_en" /></label>
+          <label class="span-2">비어있을 때 제목 (KR)<input data-bind="portfolio_intro.empty_title_ko" /></label>
+          <label class="span-2">Empty title (EN)<input data-bind="portfolio_intro.empty_title_en" /></label>
+          <label class="span-2">비어있을 때 안내 (KR)<textarea rows="2" data-bind="portfolio_intro.empty_hint_ko"></textarea></label>
+          <label class="span-2">Empty hint (EN)<textarea rows="2" data-bind="portfolio_intro.empty_hint_en"></textarea></label>
+        </div>
+
+        <h3 class="manage-subhead">프로젝트 추가</h3>
         <form class="portfolio-form case-study-form" id="portfolio-form">
-          <label>YouTube URL (선택)<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label>
+          <label>유형 / Type<select name="type"><option value="video">영상 (Video)</option><option value="pm">PM</option></select></label>
           <label>연도 / Year<input name="published" type="text" placeholder="2026" /></label>
+          <label class="span-2">YouTube URL (영상일 때)<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label>
+          <label class="span-2">썸네일 URL (선택, PM 카드 이미지)<input name="thumbnail" type="url" placeholder="https://..." /></label>
           <label>제목 (KR)<input name="titleKo" type="text" required /></label>
-          <label>Role (KR)<input name="roleKo" type="text" placeholder="Producer · Strategist · Director · PM" required /></label>
-          <label class="span-2">Context (KR) — 어떤 상황이었는지<textarea name="contextKo" rows="3"></textarea></label>
-          <label class="span-2">Challenge (KR) — 어떤 문제를 풀어야 했는지<textarea name="challengeKo" rows="3"></textarea></label>
-          <label class="span-2">Approach (KR) — 구조/메시지/프로세스를 어떻게 재설계했는지<textarea name="approachKo" rows="3"></textarea></label>
-          <label class="span-2">Outcome (KR) — 무엇이 바뀌었는지<textarea name="outcomeKo" rows="3"></textarea></label>
           <label>Title (EN)<input name="titleEn" type="text" /></label>
+          <label>내 역할 (KR)<input name="roleKo" type="text" placeholder="Producer · Director · PM" required /></label>
           <label>Role (EN)<input name="roleEn" type="text" /></label>
-          <label class="span-2">Context (EN)<textarea name="contextEn" rows="3"></textarea></label>
-          <label class="span-2">Challenge (EN)<textarea name="challengeEn" rows="3"></textarea></label>
-          <label class="span-2">Approach (EN)<textarea name="approachEn" rows="3"></textarea></label>
-          <label class="span-2">Outcome (EN)<textarea name="outcomeEn" rows="3"></textarea></label>
+          <label class="span-2">개요 (KR) — 한두 문장<textarea name="overviewKo" rows="2" required></textarea></label>
+          <label class="span-2">Overview (EN)<textarea name="overviewEn" rows="2"></textarea></label>
+          <label class="span-2">프로젝트 자세히 (KR) — PM 프로젝트면 필수, 영상이면 선택. 빈 줄로 단락 구분.<textarea name="detailKo" rows="6"></textarea></label>
+          <label class="span-2">Project detail (EN)<textarea name="detailEn" rows="6"></textarea></label>
           <div class="form-actions">
-            <button type="submit" class="manage-btn manage-btn-primary">케이스 추가</button>
+            <button type="submit" class="manage-btn manage-btn-primary">프로젝트 추가</button>
             <button type="button" class="manage-btn manage-btn-ghost" id="clear-portfolio">전부 비우기</button>
           </div>
         </form>
 
-        <h3 class="manage-subhead">현재 케이스 스터디</h3>
+        <h3 class="manage-subhead">현재 프로젝트</h3>
         <div class="admin-preview" id="portfolio-preview"></div>
       </section>
 
@@ -208,6 +247,22 @@
         </div>
       </section>
 
+      <section class="manage-panel" data-panel="career">
+        <h2>Career · 회사별 경험</h2>
+        <p class="manage-panel-hint">회사 단위로 시간 순 경험을 정리합니다. Highlights는 쉼표가 아니라 줄바꿈으로 구분합니다.</p>
+        <div class="manage-grid two-col" style="margin-bottom:16px;">
+          <label>섹션 제목 (KR)<input data-bind-career="title_ko" /></label>
+          <label>Section title (EN)<input data-bind-career="title_en" /></label>
+          <label class="span-2">인트로 (KR)<textarea rows="2" data-bind-career="intro_ko"></textarea></label>
+          <label class="span-2">Intro (EN)<textarea rows="2" data-bind-career="intro_en"></textarea></label>
+          <label>Highlights 라벨 (KR)<input data-bind-career="highlights_label_ko" placeholder="Highlights" /></label>
+          <label>Highlights label (EN)<input data-bind-career="highlights_label_en" placeholder="Highlights" /></label>
+        </div>
+        <h3 class="manage-subhead">회사 목록</h3>
+        <div class="manage-list" id="career-items-list"></div>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-career-item">회사 추가</button>
+      </section>
+
       <section class="manage-panel" data-panel="chrome">
         <h2>Nav · Footer 라벨</h2>
         <p class="manage-panel-hint">상단 네비게이션 라벨과 푸터 링크 텍스트입니다. 이중 언어 모두 채워주세요.</p>
@@ -231,6 +286,14 @@
           <label class="span-2">페이지 Title (EN)<input data-bind="meta.title_en" /></label>
           <label class="span-2">설명 (KR)<textarea rows="3" data-bind="meta.description_ko"></textarea></label>
           <label class="span-2">Description (EN)<textarea rows="3" data-bind="meta.description_en"></textarea></label>
+        </div>
+
+        <h3 class="manage-subhead">Cloudflare Web Analytics</h3>
+        <p class="manage-panel-hint">
+          <strong>dash.cloudflare.com → Analytics &amp; Logs → Web Analytics → Add a site</strong>에서 jimmypark.net을 추가하면 짧은 토큰이 발급됩니다. 아래 칸에 붙여넣으면 사이트 모든 페이지에서 자동으로 추적 스크립트가 로드됩니다. 쿠키 없음·PII 없음.
+        </p>
+        <div class="manage-grid two-col">
+          <label class="span-2">CF Web Analytics token<input data-bind="analytics.cf_token" type="text" placeholder="예: a1b2c3d4e5f6..." autocomplete="off" /></label>
         </div>
       </section>
 
@@ -377,7 +440,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.007.00</span> · Admin <span class="admin-build-version">V00.005.00</span>
+          Site <span class="site-build-version">V00.008.00</span> · Admin <span class="admin-build-version">V00.006.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

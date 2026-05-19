@@ -1,0 +1,8 @@
+{
+  "$schema_version": 1,
+  "title_ko": "Career",
+  "title_en": "Career",
+  "intro_ko": "회사별로 정리한 시간 순 경험. 한 회사의 여러 역할은 highlight 줄로 묶어둡니다.",
+  "intro_en": "Chronological company experience. Multiple roles inside one organisation are folded into the highlight lines below.",
+  "items": []
+}

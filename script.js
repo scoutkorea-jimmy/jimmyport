@@ -20,6 +20,11 @@ const quickFactsEl = document.querySelector('#quick-facts');
 const workListEl = document.querySelector('#work-list');
 const profileBodyEl = document.querySelector('#profile-body');
 const principlesListEl = document.querySelector('#principles-list');
+const heroTitlesEl = document.querySelector('#hero-titles');
+const careerListEl = document.querySelector('#career-list');
+const portfolioGroupsEl = document.querySelector('#portfolio-groups');
+const portfolioModalEl = document.querySelector('#portfolio-modal');
+let careerData = null;
 const portfolioListEl = document.querySelector('#portfolio-list');
 const countryGridEl = document.querySelector('#country-grid');
 const contactEmailEl = document.querySelector('#contact-email');
@@ -351,24 +356,109 @@ function renderContact(config, lang) {
   }
 }
 
-function appendCaseStudyField(parent, labelText, value) {
-  if (!value) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'case-study-field';
-  const label = document.createElement('span');
-  label.className = 'case-study-label';
-  label.textContent = labelText;
-  const body = document.createElement('p');
-  body.className = 'case-study-text';
-  body.textContent = value;
-  wrap.append(label, body);
-  parent.appendChild(wrap);
+// ──────────────────────────────────────────────────────────────────────────
+// Hero titles — three editorial slots under the H1.
+// ──────────────────────────────────────────────────────────────────────────
+function renderHeroTitles(config, lang) {
+  if (!heroTitlesEl || !config || !config.hero) return;
+  const key = `titles_${lang}`;
+  const fallback = `titles_${FALLBACK_LANG}`;
+  const raw = Array.isArray(config.hero[key]) ? config.hero[key]
+            : Array.isArray(config.hero[fallback]) ? config.hero[fallback] : [];
+  const titles = raw.map((s) => String(s || '').trim()).filter(Boolean);
+  heroTitlesEl.innerHTML = '';
+  if (!titles.length) { heroTitlesEl.hidden = true; return; }
+  heroTitlesEl.hidden = false;
+  titles.forEach((t) => {
+    const li = document.createElement('li');
+    li.textContent = t;
+    heroTitlesEl.appendChild(li);
+  });
 }
 
-function renderPortfolio(lang) {
-  if (!portfolioListEl) return;
-  portfolioListEl.innerHTML = '';
+// ──────────────────────────────────────────────────────────────────────────
+// Career — chronological company list.
+// ──────────────────────────────────────────────────────────────────────────
+function renderCareer(lang) {
+  if (!careerListEl || !careerData) return;
+  const items = Array.isArray(careerData.items) ? careerData.items : [];
+  const highlightsLabel = ((siteConfig && siteConfig.career) || {});
+  const hlLabel = pickLang(highlightsLabel, 'highlights_label', lang) || 'Highlights';
+  const emptyTitle = pickLang(highlightsLabel, 'empty_title', lang) || 'Career records are being prepared.';
+  careerListEl.innerHTML = '';
 
+  if (!items.length) {
+    const empty = document.createElement('article');
+    empty.className = 'career-empty';
+    const h3 = document.createElement('h3');
+    h3.textContent = emptyTitle;
+    empty.appendChild(h3);
+    careerListEl.appendChild(empty);
+    return;
+  }
+
+  items.forEach((item) => {
+    const article = document.createElement('article');
+    article.className = 'career-item';
+
+    const head = document.createElement('div');
+    head.className = 'career-item-head';
+    const period = document.createElement('div');
+    period.className = 'career-period';
+    period.textContent = item.period || '';
+    head.appendChild(period);
+
+    const body = document.createElement('div');
+    body.className = 'career-body';
+    const company = document.createElement('h3');
+    company.className = 'career-company';
+    company.textContent = pickLang(item, 'company', lang) || '';
+    const role = document.createElement('p');
+    role.className = 'career-role';
+    const roleVal = pickLang(item, 'role', lang);
+    const loc = item.location ? `  ·  ${item.location}` : '';
+    role.textContent = roleVal ? `${roleVal}${loc}` : item.location || '';
+    body.append(company, role);
+
+    const summary = pickLang(item, 'summary', lang);
+    if (summary) {
+      const p = document.createElement('p');
+      p.className = 'career-summary';
+      p.textContent = summary;
+      body.appendChild(p);
+    }
+
+    const highlightsKey = `highlights_${lang}`;
+    const highlights = Array.isArray(item[highlightsKey]) ? item[highlightsKey]
+                     : Array.isArray(item[`highlights_${FALLBACK_LANG}`]) ? item[`highlights_${FALLBACK_LANG}`]
+                     : [];
+    if (highlights.length) {
+      const wrap = document.createElement('div');
+      wrap.className = 'career-highlights';
+      const label = document.createElement('span');
+      label.className = 'career-highlights-label';
+      label.textContent = hlLabel;
+      const ul = document.createElement('ul');
+      highlights.forEach((h) => {
+        const li = document.createElement('li');
+        li.textContent = String(h);
+        ul.appendChild(li);
+      });
+      wrap.append(label, ul);
+      body.appendChild(wrap);
+    }
+
+    article.append(head, body);
+    careerListEl.appendChild(article);
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Portfolio — video / pm two-group card grid + modal detail.
+// ──────────────────────────────────────────────────────────────────────────
+function renderPortfolio(lang) {
+  if (!portfolioGroupsEl) return;
+  portfolioGroupsEl.innerHTML = '';
   const intro = (siteConfig && siteConfig.portfolio_intro) || {};
 
   if (!portfolioItems.length) {
@@ -379,101 +469,174 @@ function renderPortfolio(lang) {
     const p = document.createElement('p');
     p.textContent = pickLang(intro, 'empty_hint', lang);
     article.append(h3, p);
-    portfolioListEl.appendChild(article);
+    portfolioGroupsEl.appendChild(article);
     return;
   }
 
-  const roleLabel      = pickLang(intro, 'role_label', lang)      || 'Role';
-  const contextLabel   = pickLang(intro, 'context_label', lang)   || 'Context';
-  const challengeLabel = pickLang(intro, 'challenge_label', lang) || 'Challenge';
-  const approachLabel  = pickLang(intro, 'approach_label', lang)  || 'Approach';
-  const outcomeLabel   = pickLang(intro, 'outcome_label', lang)   || 'Outcome';
-  const watchLabel     = pickLang(intro, 'watch_label', lang)     || 'Watch the media';
+  const groupDefs = [
+    { type: 'video', label: pickLang(intro, 'video_section', lang) || 'Video Projects' },
+    { type: 'pm',    label: pickLang(intro, 'pm_section', lang)    || 'PM Projects' },
+  ];
 
-  portfolioItems.forEach((item, index) => {
-    const content = item[lang] || item[FALLBACK_LANG] || item.en || item.ko || {};
-    const videoId = getYouTubeId(item.youtubeUrl || '');
-    const article = document.createElement('article');
-    article.className = 'case-study-item';
-
-    // Media — kept for video projects but no longer the centre of the card.
-    if (videoId) {
-      const media = document.createElement('a');
-      media.className = 'case-study-media';
-      media.href = item.youtubeUrl || '#';
-      media.target = '_blank';
-      media.rel = 'noreferrer';
-      const image = document.createElement('img');
-      image.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-      image.alt = '';
-      image.loading = 'lazy';
-      const play = document.createElement('span');
-      play.className = 'play-mark';
-      play.textContent = 'Play';
-      media.append(image, play);
-      article.appendChild(media);
-    }
-
-    const body = document.createElement('div');
-    body.className = 'case-study-body';
-
+  groupDefs.forEach((def) => {
+    const subset = portfolioItems.filter((it) => (it.type || 'video') === def.type);
+    if (!subset.length) return;
+    const group = document.createElement('div');
+    group.className = 'portfolio-group';
     const head = document.createElement('div');
-    head.className = 'case-study-head';
-    const number = document.createElement('div');
-    number.className = 'case-study-number';
-    number.textContent = String(index + 1).padStart(2, '0');
+    head.className = 'portfolio-group-head';
     const title = document.createElement('h3');
-    title.className = 'case-study-title';
-    title.textContent = content.title || '';
-    head.append(number, title);
-    body.appendChild(head);
+    title.textContent = def.label;
+    head.appendChild(title);
+    group.appendChild(head);
 
-    if (content.role) {
-      const roleRow = document.createElement('p');
-      roleRow.className = 'case-study-role';
-      const tag = document.createElement('span');
-      tag.className = 'case-study-role-tag';
-      tag.textContent = roleLabel;
-      const val = document.createElement('span');
-      val.textContent = content.role;
-      roleRow.append(tag, val);
-      body.appendChild(roleRow);
-    }
-
-    // Case-study structure — only render fields the operator filled in. The
-    // legacy `description` field migrates into Outcome if outcome is empty,
-    // so older items keep showing meaningful copy.
-    const fields = document.createElement('div');
-    fields.className = 'case-study-fields';
-    appendCaseStudyField(fields, contextLabel,   content.context);
-    appendCaseStudyField(fields, challengeLabel, content.challenge);
-    appendCaseStudyField(fields, approachLabel,  content.approach);
-    appendCaseStudyField(
-      fields, outcomeLabel,
-      content.outcome || (!content.context && !content.challenge && !content.approach ? content.description : '')
-    );
-    if (fields.children.length) body.appendChild(fields);
-
-    if (item.youtubeUrl || item.published) {
-      const meta = document.createElement('div');
-      meta.className = 'case-study-meta';
-      const published = document.createElement('span');
-      published.textContent = item.published || '';
-      meta.appendChild(published);
-      if (item.youtubeUrl) {
-        const link = document.createElement('a');
-        link.href = item.youtubeUrl;
-        link.target = '_blank';
-        link.rel = 'noreferrer';
-        link.textContent = watchLabel;
-        meta.appendChild(link);
-      }
-      body.appendChild(meta);
-    }
-
-    article.appendChild(body);
-    portfolioListEl.appendChild(article);
+    const grid = document.createElement('div');
+    grid.className = 'portfolio-card-grid';
+    subset.forEach((item) => grid.appendChild(buildPortfolioCard(item, lang, intro)));
+    group.appendChild(grid);
+    portfolioGroupsEl.appendChild(group);
   });
+}
+
+function buildPortfolioCard(item, lang, intro) {
+  const content = item[lang] || item[FALLBACK_LANG] || item.en || item.ko || {};
+  const videoId = getYouTubeId(item.youtubeUrl || '');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'portfolio-card';
+  btn.dataset.itemId = item.id || '';
+  btn.dataset.itemType = item.type || 'video';
+
+  if (videoId) {
+    const img = document.createElement('img');
+    img.className = 'portfolio-card-thumb';
+    img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    img.alt = '';
+    img.loading = 'lazy';
+    btn.appendChild(img);
+  } else if (item.thumbnail) {
+    const img = document.createElement('img');
+    img.className = 'portfolio-card-thumb';
+    img.src = item.thumbnail;
+    img.alt = '';
+    img.loading = 'lazy';
+    btn.appendChild(img);
+  } else {
+    const ph = document.createElement('div');
+    ph.className = 'portfolio-card-thumb portfolio-card-thumb-empty';
+    btn.appendChild(ph);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'portfolio-card-body';
+  const typeBadge = document.createElement('span');
+  typeBadge.className = 'portfolio-card-type';
+  typeBadge.textContent = (item.type || 'video') === 'video' ? 'VIDEO' : 'PM';
+  const h4 = document.createElement('h4');
+  h4.className = 'portfolio-card-title';
+  h4.textContent = content.title || '';
+  const role = document.createElement('p');
+  role.className = 'portfolio-card-role';
+  role.textContent = content.role || '';
+  body.append(typeBadge, h4, role);
+  btn.appendChild(body);
+
+  btn.addEventListener('click', () => openPortfolioModal(item, lang));
+  return btn;
+}
+
+function escapeAttr(s) {
+  return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function openPortfolioModal(item, lang) {
+  if (!portfolioModalEl) return;
+  const intro = (siteConfig && siteConfig.portfolio_intro) || {};
+  const content = item[lang] || item[FALLBACK_LANG] || item.en || item.ko || {};
+  const videoId = getYouTubeId(item.youtubeUrl || '');
+  const type = item.type || 'video';
+  const detail = item[`detail_${lang}`] || item[`detail_${FALLBACK_LANG}`] || '';
+  const roleLabel    = pickLang(intro, 'role_label', lang)     || 'Role';
+  const overviewLbl  = pickLang(intro, 'overview_label', lang) || 'Overview';
+  const watchLabel   = pickLang(intro, 'watch_label', lang)    || 'Watch the video';
+  const detailLabel  = pickLang(intro, 'detail_label', lang)   || 'Project detail';
+  const closeLabel   = pickLang(intro, 'close_label', lang)    || 'Close';
+
+  // Media block — embedded iframe for video, image or detail-only block for PM.
+  let mediaBlock = '';
+  if (type === 'video' && videoId) {
+    mediaBlock = `<div class="portfolio-modal-media"><iframe src="https://www.youtube-nocookie.com/embed/${videoId}" title="${escapeAttr(content.title || '')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+  } else if (type === 'video' && item.thumbnail) {
+    mediaBlock = `<div class="portfolio-modal-media"><img src="${escapeAttr(item.thumbnail)}" alt="" /></div>`;
+  }
+
+  // Detail block — PM projects always show the long form; video projects show
+  // it only if filled in. Each render path escapes the content as text and
+  // converts paragraph breaks (blank lines) into <p> wrappers.
+  let detailBlock = '';
+  if (detail) {
+    const paragraphs = String(detail).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+    detailBlock = `<div class="portfolio-modal-detail"><span class="portfolio-modal-label">${escapeAttr(detailLabel)}</span>${paragraphs.map((p) => `<p>${escapeAttr(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>`;
+  }
+
+  portfolioModalEl.innerHTML = `
+    <div class="portfolio-modal-backdrop" data-modal-close></div>
+    <div class="portfolio-modal-card" role="document">
+      <header class="portfolio-modal-head">
+        <span class="portfolio-modal-type">${escapeAttr(type === 'video' ? 'VIDEO' : 'PM')}</span>
+        <h2 class="portfolio-modal-title" id="portfolio-modal-title">${escapeAttr(content.title || '')}</h2>
+        <button type="button" class="portfolio-modal-close" data-modal-close aria-label="${escapeAttr(closeLabel)}">×</button>
+      </header>
+      <div class="portfolio-modal-body">
+        <div class="portfolio-modal-meta">
+          <div class="portfolio-modal-meta-row"><span class="portfolio-modal-label">${escapeAttr(roleLabel)}</span><span>${escapeAttr(content.role || '')}</span></div>
+          <div class="portfolio-modal-meta-row"><span class="portfolio-modal-label">${escapeAttr(overviewLbl)}</span><span>${escapeAttr(content.overview || '')}</span></div>
+        </div>
+        ${mediaBlock}
+        ${detailBlock}
+        ${item.youtubeUrl ? `<div class="portfolio-modal-actions"><a class="portfolio-modal-action" href="${escapeAttr(item.youtubeUrl)}" target="_blank" rel="noreferrer">${escapeAttr(watchLabel)} →</a></div>` : ''}
+      </div>
+    </div>`;
+
+  portfolioModalEl.hidden = false;
+  portfolioModalEl.setAttribute('aria-hidden', 'false');
+  document.documentElement.classList.add('portfolio-modal-open');
+
+  portfolioModalEl.querySelectorAll('[data-modal-close]').forEach((el) => {
+    el.addEventListener('click', closePortfolioModal);
+  });
+  const onKey = (e) => {
+    if (e.key === 'Escape') closePortfolioModal();
+  };
+  document.addEventListener('keydown', onKey);
+  portfolioModalEl._cleanup = () => document.removeEventListener('keydown', onKey);
+}
+
+function closePortfolioModal() {
+  if (!portfolioModalEl) return;
+  portfolioModalEl.hidden = true;
+  portfolioModalEl.setAttribute('aria-hidden', 'true');
+  portfolioModalEl.innerHTML = '';
+  document.documentElement.classList.remove('portfolio-modal-open');
+  if (typeof portfolioModalEl._cleanup === 'function') {
+    portfolioModalEl._cleanup();
+    portfolioModalEl._cleanup = null;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Cloudflare Web Analytics — injected when site-config carries a token.
+// ──────────────────────────────────────────────────────────────────────────
+function injectCfAnalytics(config) {
+  if (!config || !config.analytics) return;
+  const token = String(config.analytics.cf_token || '').trim();
+  if (!token) return;
+  if (document.querySelector('script[data-cf-beacon]')) return;
+  const s = document.createElement('script');
+  s.defer = true;
+  s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  s.setAttribute('data-cf-beacon', JSON.stringify({ token }));
+  document.head.appendChild(s);
 }
 
 function getYouTubeId(url) {
@@ -494,9 +657,11 @@ function applyEverything(lang) {
   applyConfigToDom(siteConfig, lang);
   renderNav(siteConfig, lang);
   renderHeroMeta(siteConfig);
+  renderHeroTitles(siteConfig, lang);
   renderQuickFacts(siteConfig, lang);
   renderProfile(siteConfig, lang);
   renderWork(siteConfig, lang);
+  renderCareer(lang);
   renderPrinciples(siteConfig, lang);
   renderCountries(siteConfig, lang);
   renderContact(siteConfig, lang);
@@ -545,11 +710,31 @@ async function loadPortfolio() {
   }
 }
 
+async function loadCareer() {
+  // Try admin draft (the document admin sets these keys); fall back to the
+  // committed file. Either way, careerData ends up shaped like
+  // { items: [...] } so renderCareer doesn't have to branch.
+  try {
+    const draft = localStorage.getItem('jimmypark-doc-draft-career');
+    if (draft) {
+      const parsed = JSON.parse(draft);
+      if (parsed && Array.isArray(parsed.items)) { careerData = parsed; return; }
+    }
+  } catch (_) {}
+  try {
+    const response = await fetch('data/career.json', { cache: 'no-store' });
+    careerData = response.ok ? await response.json() : { items: [] };
+  } catch {
+    careerData = { items: [] };
+  }
+}
+
 languageButtons.forEach((button) => {
   button.addEventListener('click', () => setLanguage(button.dataset.langButton));
 });
 
 (async function init() {
-  await Promise.all([loadSiteConfig(), loadPortfolio()]);
+  await Promise.all([loadSiteConfig(), loadPortfolio(), loadCareer()]);
+  injectCfAnalytics(siteConfig);
   applyEverything(currentLanguage);
 })();

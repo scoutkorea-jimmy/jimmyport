@@ -45,6 +45,7 @@
         <div class="hero-copy">
           <p class="eyebrow" data-config="hero.eyebrow">Media · Community · Scouting</p>
           <h1 id="hero-title" data-config="hero.title">박지민</h1>
+          <ul class="hero-titles" id="hero-titles" aria-label="현재 직함"></ul>
           <p class="lead" data-config="hero.lead">
             프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는
             방식을 고민합니다.
@@ -136,19 +137,30 @@
         <div class="experience-categories" id="work-list"></div>
       </section>
 
+      <section class="section container" id="career" aria-labelledby="career-title">
+        <div class="section-heading">
+          <div class="section-label">Career</div>
+          <div>
+            <h2 id="career-title" data-config="career.title">Career</h2>
+            <p class="section-intro" data-config="career.intro">회사별로 정리한 시간 순 경험.</p>
+          </div>
+        </div>
+        <div class="career-list" id="career-list" aria-live="polite"></div>
+      </section>
+
       <section class="section container" id="portfolio" aria-labelledby="portfolio-title">
         <div class="section-heading portfolio-heading">
           <div>
             <div class="section-label">Portfolio</div>
           </div>
           <div>
-            <h2 id="portfolio-title" data-config="portfolio_intro.title">영상 포트폴리오</h2>
+            <h2 id="portfolio-title" data-config="portfolio_intro.title">Portfolio</h2>
             <p class="section-intro" data-config="portfolio_intro.intro">
-              YouTube 영상 링크와 함께 내가 맡은 역할, 기획 의도, 작업 내용을 소개합니다.
+              영상 프로젝트와 PM 프로젝트를 함께 정리합니다. 카드를 누르면 모달로 자세히 볼 수 있습니다.
             </p>
           </div>
         </div>
-        <div class="portfolio-list" id="portfolio-list" aria-live="polite"></div>
+        <div class="portfolio-groups" id="portfolio-groups" aria-live="polite"></div>
       </section>
 
       <section class="section container principles" id="principles" aria-labelledby="principles-title">
@@ -169,11 +181,14 @@
       </section>
     </main>
 
+    <!-- Portfolio detail modal — mounted lazily by script.js when a card is opened. -->
+    <div class="portfolio-modal" id="portfolio-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="portfolio-modal-title"></div>
+
     <footer class="site-footer">
       <div class="container footer-inner">
         <span>© <span id="year"></span> <span data-config="brand">박지민</span></span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.007.00</span> · Admin <span class="admin-build-version">V00.005.00</span>
+          Site <span class="site-build-version">V00.008.00</span> · Admin <span class="admin-build-version">V00.006.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">
