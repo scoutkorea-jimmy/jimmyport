@@ -94,7 +94,7 @@ html {
 body {
   background:
     radial-gradient(circle at 85% 10%, rgba(110, 31, 50, 0.10), transparent 28rem),
-    linear-gradient(180deg, #f3ece4 0%, #ece2d6 100%);
+    linear-gradient(180deg, #f6f3ef 0%, #eee7df 100%);
   color: var(--ink);
   margin: 0;
 }
@@ -3827,16 +3827,67 @@ h2 .bilingual-ko { font-size: 0.32em; }
   padding: 18px 28px;
 }
 
-/* Header — quieter, more editorial */
-.site-header { padding-top: 22px; }
+/* Header — fixed, transparent over hero; warm paper after scroll */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding-top: 22px;
+  padding-bottom: 6px;
+  z-index: 50;
+  transition: background 220ms var(--gw-ease), border-color 220ms var(--gw-ease), backdrop-filter 220ms var(--gw-ease);
+}
+body.is-scrolled .site-header {
+  background: rgba(246, 243, 239, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
 .header-inner {
   background: transparent;
   backdrop-filter: none;
   border: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
   padding-bottom: 14px;
 }
 .brand { font-size: 1.04rem; font-weight: 700; letter-spacing: -0.005em; }
 .nav-links { font-size: 0.84rem; letter-spacing: 0.02em; gap: 24px; }
-.nav-links a { color: var(--muted); }
+.nav-links a { color: var(--ink); }
+body.is-scrolled .nav-links a { color: var(--muted); }
 .nav-links a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Hero section claims the page from the very top so the background image
+   sits behind the (transparent) fixed header. The bg figure extends inset:0
+   over the entire section, header included. */
+.section-who {
+  margin-top: 0;
+  padding-top: var(--who-content-offset, 180px);
+  padding-bottom: 96px;
+  border-top: 0;
+}
+@media (max-width: 760px) {
+  .section-who { padding-top: var(--who-content-offset, 140px); }
+}
+
+/* Hero tweak tokens — written inline by script.js when admin sets values */
+.section-who {
+  --who-title-scale: 1;
+  --who-align: left;
+  --who-content-offset: 180px;
+  --who-bg-position: right center;
+  --who-bg-opacity: 0.22;
+}
+.section-who[data-align="center"] .who-grid,
+.section-who[data-align="center"] .who-pageline,
+.section-who[data-align="center"] .who-bottom { text-align: center; }
+.section-who[data-align="center"] .who-pageline,
+.section-who[data-align="center"] .who-bottom { justify-content: center; }
+.section-who[data-align="center"] .who-grid { grid-template-columns: 1fr; gap: 28px; }
+.section-who[data-align="center"] .who-lead-primary,
+.section-who[data-align="center"] .who-lead-secondary { margin-left: auto; margin-right: auto; }
+.section-who[data-align="center"] .who-lead-primary { border-left: 0; padding-left: 0; }
+.section-who[data-align="center"] .who-lead-secondary { padding-left: 0; }
+
+.section-who .who-name h1 { font-size: calc(clamp(4rem, 9vw, 7.2rem) * var(--who-title-scale)); }
+.section-who .who-lead-primary { font-size: calc(clamp(1.42rem, 2.6vw, 1.95rem) * var(--who-title-scale)); }
+.section-who .who-bg img { object-position: var(--who-bg-position); opacity: var(--who-bg-opacity); }

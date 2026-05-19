@@ -158,10 +158,31 @@
             <label class="span-2">히어로 이미지 경로 (portrait·옆 이미지)<input data-bind="hero.image" placeholder="assets/hero-workspace.png" /></label>
             <label>이미지 alt (KR)<input data-bind="hero.image_alt_ko" /></label>
             <label>이미지 alt (EN)<input data-bind="hero.image_alt_en" /></label>
-            <label class="span-2">Hero 배경 이미지 경로 (WHO I AM 풀-블리드)<input data-bind="hero.background_image" placeholder="assets/hero-workspace.png" /></label>
+            <label class="span-2">Hero 배경 이미지 경로 (WHO I AM 풀-블리드, 헤더 뒤까지 비침)<input data-bind="hero.background_image" placeholder="assets/hero-workspace.png" /></label>
             <label>배경 alt (KR)<input data-bind="hero.background_image_alt_ko" placeholder="히어로 배경 이미지" /></label>
             <label>배경 alt (EN)<input data-bind="hero.background_image_alt_en" placeholder="Hero background image" /></label>
-            <p class="manage-panel-hint span-2" style="grid-column:span 2;">새 이미지는 <code>assets/</code> 폴더에 파일을 추가한 뒤 위 경로를 갱신하세요. 종이 톤 오버레이가 자동으로 깔립니다.</p>
+            <p class="manage-panel-hint span-2" style="grid-column:span 2;">새 이미지는 <code>assets/</code> 폴더에 파일을 추가한 뒤 위 경로를 갱신하세요. 종이 톤 오버레이가 자동으로 깔리고 헤더가 배경 위에 떠 있게 됩니다.</p>
+          </div>
+
+          <h3 class="manage-subhead">Hero 트윅 — 위치 · 텍스트 크기 (이 섹션 한정)</h3>
+          <p class="manage-panel-hint">저장 후 사이트 새로고침하면 즉시 반영됩니다. 다른 섹션 디자인은 건드리지 않습니다.</p>
+          <div class="manage-grid two-col">
+            <label>제목 크기 배율<br><small style="color:var(--muted);font-weight:300;">0.5 (작게) ~ 2.0 (크게) · 기본 1.0</small><input data-bind="hero.tweaks.title_scale" type="number" min="0.5" max="2" step="0.05" placeholder="1.0" /></label>
+            <label>정렬<br><small style="color:var(--muted);font-weight:300;">텍스트 전체 정렬</small><select data-bind="hero.tweaks.align">
+              <option value="left">왼쪽 정렬</option>
+              <option value="center">가운데 정렬</option>
+            </select></label>
+            <label>상단 여백 (px)<br><small style="color:var(--muted);font-weight:300;">헤더와 본문 사이 거리 · 기본 180</small><input data-bind="hero.tweaks.content_offset_px" type="number" min="80" max="400" step="10" placeholder="180" /></label>
+            <label>배경 이미지 위치<select data-bind="hero.tweaks.bg_position">
+              <option value="right center">오른쪽 중앙</option>
+              <option value="center center">정중앙</option>
+              <option value="left center">왼쪽 중앙</option>
+              <option value="center top">상단 중앙</option>
+              <option value="center bottom">하단 중앙</option>
+              <option value="right top">오른쪽 상단</option>
+              <option value="left top">왼쪽 상단</option>
+            </select></label>
+            <label class="span-2">배경 이미지 투명도<br><small style="color:var(--muted);font-weight:300;">0.0 (안 보임) ~ 1.0 (선명) · 기본 0.22</small><input data-bind="hero.tweaks.bg_opacity" type="number" min="0" max="1" step="0.02" placeholder="0.22" /></label>
           </div>
         </section>
 
@@ -390,7 +411,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.012.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
+          Site <span class="site-build-version">V00.013.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

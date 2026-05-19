@@ -37,7 +37,14 @@
     "image_alt_en": "A quiet workspace with a notebook and laptop",
     "background_image": "assets/hero-workspace.png",
     "background_image_alt_ko": "히어로 배경 이미지",
-    "background_image_alt_en": "Hero background image"
+    "background_image_alt_en": "Hero background image",
+    "tweaks": {
+      "title_scale": 1.0,
+      "align": "left",
+      "content_offset_px": 180,
+      "bg_position": "right center",
+      "bg_opacity": 0.22
+    }
   },
   "how_i_work": {
     "eyebrow_ko": "작업 방식",

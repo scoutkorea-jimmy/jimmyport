@@ -919,10 +919,27 @@ function getYouTubeId(url) {
   }
 }
 
+function applyHeroTweaks(config) {
+  const section = document.querySelector('.section-who');
+  if (!section || !config || !config.hero) return;
+  const t = (config.hero.tweaks && typeof config.hero.tweaks === 'object') ? config.hero.tweaks : {};
+  const scale = Number.isFinite(parseFloat(t.title_scale)) ? parseFloat(t.title_scale) : 1;
+  const offset = Number.isFinite(parseFloat(t.content_offset_px)) ? parseFloat(t.content_offset_px) : 180;
+  const opacity = Number.isFinite(parseFloat(t.bg_opacity)) ? Math.max(0, Math.min(1, parseFloat(t.bg_opacity))) : 0.22;
+  const bgPos = String(t.bg_position || 'right center').trim() || 'right center';
+  const align = (String(t.align || 'left').toLowerCase() === 'center') ? 'center' : 'left';
+  section.style.setProperty('--who-title-scale', String(Math.max(0.5, Math.min(2.0, scale))));
+  section.style.setProperty('--who-content-offset', `${Math.max(80, Math.min(400, offset))}px`);
+  section.style.setProperty('--who-bg-position', bgPos);
+  section.style.setProperty('--who-bg-opacity', String(opacity));
+  section.dataset.align = align;
+}
+
 function applyEverything(lang) {
   document.documentElement.lang = 'en';
   if (!siteConfig) return;
   applyConfigToDom(siteConfig, 'en');
+  applyHeroTweaks(siteConfig);
   renderNav(siteConfig, 'en');
   renderHeroMeta(siteConfig);                  // null-safe (element removed)
   renderWhoRoles(siteConfig);
@@ -1007,25 +1024,23 @@ languageButtons.forEach((button) => {
 })();
 
 // ──────────────────────────────────────────────────────────────────────────
-// Floating Top button — visible after the user has scrolled past the hero.
-// Smooth-scrolls back to #top on click.
+// Floating Top button + scrolled-header class (used by .site-header background)
 // ──────────────────────────────────────────────────────────────────────────
-(function setupFloatingTop() {
+(function setupScrollChrome() {
   const btn = document.getElementById('floating-top');
-  if (!btn) return;
-  const threshold = 600;
+  const topThreshold = 600;
+  const scrolledThreshold = 80;
   let raf = null;
   function update() {
     raf = null;
-    const visible = window.scrollY > threshold;
-    btn.classList.toggle('is-visible', visible);
+    const y = window.scrollY;
+    if (btn) btn.classList.toggle('is-visible', y > topThreshold);
+    document.body.classList.toggle('is-scrolled', y > scrolledThreshold);
   }
-  function onScroll() {
-    if (raf == null) raf = requestAnimationFrame(update);
-  }
+  function onScroll() { if (raf == null) raf = requestAnimationFrame(update); }
   window.addEventListener('scroll', onScroll, { passive: true });
   update();
-  btn.addEventListener('click', () => {
+  if (btn) btn.addEventListener('click', () => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   });

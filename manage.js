@@ -1209,27 +1209,24 @@ async function activateReadonlyView(source) {
   }
 }
 
-// Hook into tab switch — when a readonly tab becomes active, lazy-load it.
+// Auto-load readonly view whenever a readonly tab becomes active — regardless
+// of whether activation came from a click, URL hash, or localStorage restore.
 const READONLY_TAB_TO_SOURCE = {
   'kms-view': 'kms',
   'design-view': 'design',
   'versions-view': 'versions',
 };
-const _origSwitch = tabsSwitch;
-window.addEventListener('DOMContentLoaded', () => {
-  // We're already past DOMContentLoaded in most cases, but the hook below
-  // covers programmatic tab switches from URL hash and localStorage restore.
-});
-document.querySelectorAll('.manage-tab').forEach((t) => {
-  t.addEventListener('click', () => {
-    const src = READONLY_TAB_TO_SOURCE[t.dataset.tab];
-    if (src) activateReadonlyView(src);
-  }, { capture: true });
-});
-// On initial load, if the restored tab is a readonly one, kick activation.
-(function bootReadonlyOnRestore() {
+function tryActivateReadonlyFromActiveTab() {
   const active = document.querySelector('.manage-tab.active');
   if (!active) return;
   const src = READONLY_TAB_TO_SOURCE[active.dataset.tab];
   if (src) activateReadonlyView(src);
-})();
+}
+const _readonlyTabObserver = new MutationObserver(tryActivateReadonlyFromActiveTab);
+document.querySelectorAll('.manage-tab').forEach((t) => {
+  _readonlyTabObserver.observe(t, { attributes: true, attributeFilter: ['class', 'aria-selected'] });
+});
+// Run immediately for hash/localStorage restore that already happened by now.
+tryActivateReadonlyFromActiveTab();
+// And once more on a microtask in case panel render is still finishing.
+setTimeout(tryActivateReadonlyFromActiveTab, 0);
