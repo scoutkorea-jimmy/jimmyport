@@ -18,7 +18,8 @@ const navEl = document.querySelector('#primary-nav');
 const heroMetaEl = document.querySelector('#hero-meta-tags');
 const quickFactsEl = document.querySelector('#quick-facts');
 const workListEl = document.querySelector('#work-list');
-const interestsListEl = document.querySelector('#interests-list');
+const profileBodyEl = document.querySelector('#profile-body');
+const principlesListEl = document.querySelector('#principles-list');
 const portfolioListEl = document.querySelector('#portfolio-list');
 const countryGridEl = document.querySelector('#country-grid');
 const contactEmailEl = document.querySelector('#contact-email');
@@ -145,32 +146,96 @@ function renderQuickFacts(config, lang) {
   });
 }
 
-function renderWork(config, lang) {
-  if (!workListEl || !config || !config.work || !Array.isArray(config.work.items)) return;
-  workListEl.innerHTML = '';
-  config.work.items.forEach((item) => {
-    const article = document.createElement('article');
-    const label = document.createElement('span');
-    label.textContent = item.label || '';
-    const wrap = document.createElement('div');
-    const h3 = document.createElement('h3');
-    h3.textContent = pickLang(item, 'title', lang);
+function renderProfile(config, lang) {
+  if (!profileBodyEl || !config || !config.profile) return;
+  const paragraphs = (() => {
+    const key = `body_${lang}_paragraphs`;
+    const fallbackKey = `body_${FALLBACK_LANG}_paragraphs`;
+    if (Array.isArray(config.profile[key])) return config.profile[key];
+    if (Array.isArray(config.profile[fallbackKey])) return config.profile[fallbackKey];
+    // Backwards compatibility — older `body_ko` / `body_en` single strings.
+    const single = pickLang(config.profile, 'body', lang);
+    if (single) return single.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+    return [];
+  })();
+  profileBodyEl.innerHTML = '';
+  paragraphs.forEach((text) => {
+    if (!text) return;
     const p = document.createElement('p');
-    p.textContent = pickLang(item, 'body', lang);
-    wrap.append(h3, p);
-    article.append(label, wrap);
-    workListEl.appendChild(article);
+    p.textContent = text;
+    profileBodyEl.appendChild(p);
   });
 }
 
-function renderInterests(config, lang) {
-  if (!interestsListEl || !config || !config.interests) return;
-  const items = Array.isArray(config.interests.items) ? config.interests.items : [];
-  interestsListEl.innerHTML = '';
+function renderWork(config, lang) {
+  if (!workListEl || !config || !config.work) return;
+  workListEl.innerHTML = '';
+  // New v2 schema: `work.categories[]` with description + items_ko/items_en arrays.
+  // v1 fallback: `work.items[]` with title/body — render those as anonymous categories.
+  const categories = Array.isArray(config.work.categories) ? config.work.categories : null;
+  if (categories && categories.length) {
+    categories.forEach((cat) => {
+      const article = document.createElement('article');
+      article.className = 'experience-category';
+      const head = document.createElement('div');
+      head.className = 'experience-category-head';
+      const h3 = document.createElement('h3');
+      h3.textContent = pickLang(cat, 'title', lang);
+      head.appendChild(h3);
+      const desc = pickLang(cat, 'description', lang);
+      if (desc) {
+        const p = document.createElement('p');
+        p.className = 'experience-category-desc';
+        p.textContent = desc;
+        head.appendChild(p);
+      }
+      article.appendChild(head);
+      const itemsKey = `items_${lang}`;
+      const fallbackKey = `items_${FALLBACK_LANG}`;
+      const items = Array.isArray(cat[itemsKey]) ? cat[itemsKey]
+        : (Array.isArray(cat[fallbackKey]) ? cat[fallbackKey] : []);
+      if (items.length) {
+        const ul = document.createElement('ul');
+        ul.className = 'experience-items';
+        items.forEach((item) => {
+          if (!item) return;
+          const li = document.createElement('li');
+          li.textContent = String(item);
+          ul.appendChild(li);
+        });
+        article.appendChild(ul);
+      }
+      workListEl.appendChild(article);
+    });
+    return;
+  }
+  // Legacy v1 fallback
+  if (Array.isArray(config.work.items)) {
+    config.work.items.forEach((item) => {
+      const article = document.createElement('article');
+      article.className = 'experience-category';
+      const h3 = document.createElement('h3');
+      h3.textContent = pickLang(item, 'title', lang);
+      const p = document.createElement('p');
+      p.className = 'experience-category-desc';
+      p.textContent = pickLang(item, 'body', lang);
+      article.append(h3, p);
+      workListEl.appendChild(article);
+    });
+  }
+}
+
+function renderPrinciples(config, lang) {
+  if (!principlesListEl || !config) return;
+  // Accept either `principles` (v2) or legacy `interests` block.
+  const source = config.principles || config.interests || null;
+  if (!source) return;
+  const items = Array.isArray(source.items) ? source.items : [];
+  principlesListEl.innerHTML = '';
   items.forEach((item) => {
     const li = document.createElement('li');
     li.textContent = item[lang] || item[FALLBACK_LANG] || '';
-    interestsListEl.appendChild(li);
+    principlesListEl.appendChild(li);
   });
 }
 
@@ -286,12 +351,27 @@ function renderContact(config, lang) {
   }
 }
 
+function appendCaseStudyField(parent, labelText, value) {
+  if (!value) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'case-study-field';
+  const label = document.createElement('span');
+  label.className = 'case-study-label';
+  label.textContent = labelText;
+  const body = document.createElement('p');
+  body.className = 'case-study-text';
+  body.textContent = value;
+  wrap.append(label, body);
+  parent.appendChild(wrap);
+}
+
 function renderPortfolio(lang) {
   if (!portfolioListEl) return;
   portfolioListEl.innerHTML = '';
 
+  const intro = (siteConfig && siteConfig.portfolio_intro) || {};
+
   if (!portfolioItems.length) {
-    const intro = (siteConfig && siteConfig.portfolio_intro) || {};
     const article = document.createElement('article');
     article.className = 'empty-state';
     const h3 = document.createElement('h3');
@@ -303,23 +383,26 @@ function renderPortfolio(lang) {
     return;
   }
 
-  const intro = (siteConfig && siteConfig.portfolio_intro) || {};
-  const roleLabel = pickLang(intro, 'role_label', lang) || '내 역할';
-  const watchLabel = pickLang(intro, 'watch_label', lang) || 'YouTube에서 보기';
+  const roleLabel      = pickLang(intro, 'role_label', lang)      || 'Role';
+  const contextLabel   = pickLang(intro, 'context_label', lang)   || 'Context';
+  const challengeLabel = pickLang(intro, 'challenge_label', lang) || 'Challenge';
+  const approachLabel  = pickLang(intro, 'approach_label', lang)  || 'Approach';
+  const outcomeLabel   = pickLang(intro, 'outcome_label', lang)   || 'Outcome';
+  const watchLabel     = pickLang(intro, 'watch_label', lang)     || 'Watch the media';
 
   portfolioItems.forEach((item, index) => {
     const content = item[lang] || item[FALLBACK_LANG] || item.en || item.ko || {};
     const videoId = getYouTubeId(item.youtubeUrl || '');
     const article = document.createElement('article');
-    article.className = 'portfolio-item';
+    article.className = 'case-study-item';
 
-    const media = document.createElement('a');
-    media.className = 'portfolio-media';
-    media.href = item.youtubeUrl || '#';
-    media.target = '_blank';
-    media.rel = 'noreferrer';
-
+    // Media — kept for video projects but no longer the centre of the card.
     if (videoId) {
+      const media = document.createElement('a');
+      media.className = 'case-study-media';
+      media.href = item.youtubeUrl || '#';
+      media.target = '_blank';
+      media.rel = 'noreferrer';
       const image = document.createElement('img');
       image.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       image.alt = '';
@@ -328,41 +411,67 @@ function renderPortfolio(lang) {
       play.className = 'play-mark';
       play.textContent = 'Play';
       media.append(image, play);
+      article.appendChild(media);
     }
 
     const body = document.createElement('div');
-    body.className = 'portfolio-body';
+    body.className = 'case-study-body';
 
+    const head = document.createElement('div');
+    head.className = 'case-study-head';
     const number = document.createElement('div');
-    number.className = 'portfolio-number';
+    number.className = 'case-study-number';
     number.textContent = String(index + 1).padStart(2, '0');
-
     const title = document.createElement('h3');
+    title.className = 'case-study-title';
     title.textContent = content.title || '';
+    head.append(number, title);
+    body.appendChild(head);
 
-    const role = document.createElement('p');
-    role.className = 'portfolio-role';
-    const roleStrong = document.createElement('strong');
-    roleStrong.textContent = roleLabel;
-    role.append(roleStrong, document.createTextNode(` ${content.role || ''}`));
+    if (content.role) {
+      const roleRow = document.createElement('p');
+      roleRow.className = 'case-study-role';
+      const tag = document.createElement('span');
+      tag.className = 'case-study-role-tag';
+      tag.textContent = roleLabel;
+      const val = document.createElement('span');
+      val.textContent = content.role;
+      roleRow.append(tag, val);
+      body.appendChild(roleRow);
+    }
 
-    const description = document.createElement('p');
-    description.textContent = content.description || '';
+    // Case-study structure — only render fields the operator filled in. The
+    // legacy `description` field migrates into Outcome if outcome is empty,
+    // so older items keep showing meaningful copy.
+    const fields = document.createElement('div');
+    fields.className = 'case-study-fields';
+    appendCaseStudyField(fields, contextLabel,   content.context);
+    appendCaseStudyField(fields, challengeLabel, content.challenge);
+    appendCaseStudyField(fields, approachLabel,  content.approach);
+    appendCaseStudyField(
+      fields, outcomeLabel,
+      content.outcome || (!content.context && !content.challenge && !content.approach ? content.description : '')
+    );
+    if (fields.children.length) body.appendChild(fields);
 
-    const meta = document.createElement('div');
-    meta.className = 'portfolio-meta';
-    const published = document.createElement('span');
-    published.textContent = item.published || '';
-    const link = document.createElement('a');
-    link.href = item.youtubeUrl || '#';
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-    link.textContent = watchLabel;
-    meta.append(published, link);
+    if (item.youtubeUrl || item.published) {
+      const meta = document.createElement('div');
+      meta.className = 'case-study-meta';
+      const published = document.createElement('span');
+      published.textContent = item.published || '';
+      meta.appendChild(published);
+      if (item.youtubeUrl) {
+        const link = document.createElement('a');
+        link.href = item.youtubeUrl;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.textContent = watchLabel;
+        meta.appendChild(link);
+      }
+      body.appendChild(meta);
+    }
 
-    body.append(number, title, role, description, meta);
-
-    article.append(media, body);
+    article.appendChild(body);
     portfolioListEl.appendChild(article);
   });
 }
@@ -386,8 +495,9 @@ function applyEverything(lang) {
   renderNav(siteConfig, lang);
   renderHeroMeta(siteConfig);
   renderQuickFacts(siteConfig, lang);
+  renderProfile(siteConfig, lang);
   renderWork(siteConfig, lang);
-  renderInterests(siteConfig, lang);
+  renderPrinciples(siteConfig, lang);
   renderCountries(siteConfig, lang);
   renderContact(siteConfig, lang);
   renderFooter(siteConfig, lang);

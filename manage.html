@@ -51,7 +51,7 @@
         <button type="button" class="manage-tab" data-tab="profile">Profile</button>
         <button type="button" class="manage-tab" data-tab="work">Work</button>
         <button type="button" class="manage-tab" data-tab="portfolio">Portfolio</button>
-        <button type="button" class="manage-tab" data-tab="interests">Interests</button>
+        <button type="button" class="manage-tab" data-tab="interests">Principles</button>
         <button type="button" class="manage-tab" data-tab="contact">Contact</button>
         <button type="button" class="manage-tab" data-tab="chrome">Nav · Footer</button>
         <button type="button" class="manage-tab" data-tab="meta">Site &amp; SEO</button>
@@ -113,23 +113,27 @@
 
       <section class="manage-panel" data-panel="profile">
         <h2>Profile</h2>
+        <p class="manage-panel-hint">본문은 빈 줄(엔터 두 번)로 단락을 구분합니다.</p>
         <div class="manage-grid two-col">
           <label class="span-2">Title (KR)<input data-bind="profile.title_ko" /></label>
           <label class="span-2">Title (EN)<input data-bind="profile.title_en" /></label>
-          <label class="span-2">본문 (KR)<textarea rows="6" data-bind="profile.body_ko"></textarea></label>
-          <label class="span-2">Body (EN)<textarea rows="6" data-bind="profile.body_en"></textarea></label>
+          <label class="span-2">본문 (KR · 단락 = 빈 줄)<textarea rows="8" data-bind-paragraphs="profile.body_ko_paragraphs"></textarea></label>
+          <label class="span-2">Body (EN · paragraph = blank line)<textarea rows="8" data-bind-paragraphs="profile.body_en_paragraphs"></textarea></label>
         </div>
       </section>
 
       <section class="manage-panel" data-panel="work">
-        <h2>Work · 주요 작업</h2>
+        <h2>Selected Experience</h2>
+        <p class="manage-panel-hint">회사가 아니라 기능으로 정리합니다. 카테고리마다 설명 + 항목 리스트(KR/EN, 쉼표로 구분).</p>
         <div class="manage-grid two-col">
           <label>섹션 제목 (KR)<input data-bind="work.title_ko" /></label>
           <label>Section title (EN)<input data-bind="work.title_en" /></label>
+          <label class="span-2">섹션 인트로 (KR)<input data-bind="work.intro_ko" /></label>
+          <label class="span-2">Section intro (EN)<input data-bind="work.intro_en" /></label>
         </div>
-        <h3 class="manage-subhead">작업 항목</h3>
-        <div class="manage-list" id="work-items-list"></div>
-        <button type="button" class="manage-btn manage-btn-ghost" id="add-work-item">항목 추가</button>
+        <h3 class="manage-subhead">카테고리</h3>
+        <div class="manage-list" id="work-categories-list"></div>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-work-category">카테고리 추가</button>
       </section>
 
       <section class="manage-panel" data-panel="portfolio">
@@ -150,34 +154,42 @@
           <label class="span-2">Empty hint (EN)<textarea rows="2" data-bind="portfolio_intro.empty_hint_en"></textarea></label>
         </div>
 
-        <form class="portfolio-form" id="portfolio-form">
-          <label>YouTube URL<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." required /></label>
+        <p class="manage-panel-hint">각 항목은 영상 갤러리가 아니라 케이스 스터디입니다 — Role · Context · Challenge · Approach · Outcome 구조로 작성하세요.</p>
+        <form class="portfolio-form case-study-form" id="portfolio-form">
+          <label>YouTube URL (선택)<input name="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." /></label>
           <label>연도 / Year<input name="published" type="text" placeholder="2026" /></label>
           <label>제목 (KR)<input name="titleKo" type="text" required /></label>
-          <label>내 역할 (KR)<input name="roleKo" type="text" placeholder="기획, 촬영, 편집, 진행..." required /></label>
-          <label class="span-2">소개 (KR)<textarea name="descriptionKo" rows="4" required></textarea></label>
+          <label>Role (KR)<input name="roleKo" type="text" placeholder="Producer · Strategist · Director · PM" required /></label>
+          <label class="span-2">Context (KR) — 어떤 상황이었는지<textarea name="contextKo" rows="3"></textarea></label>
+          <label class="span-2">Challenge (KR) — 어떤 문제를 풀어야 했는지<textarea name="challengeKo" rows="3"></textarea></label>
+          <label class="span-2">Approach (KR) — 구조/메시지/프로세스를 어떻게 재설계했는지<textarea name="approachKo" rows="3"></textarea></label>
+          <label class="span-2">Outcome (KR) — 무엇이 바뀌었는지<textarea name="outcomeKo" rows="3"></textarea></label>
           <label>Title (EN)<input name="titleEn" type="text" /></label>
-          <label>My role (EN)<input name="roleEn" type="text" /></label>
-          <label class="span-2">Description (EN)<textarea name="descriptionEn" rows="4"></textarea></label>
+          <label>Role (EN)<input name="roleEn" type="text" /></label>
+          <label class="span-2">Context (EN)<textarea name="contextEn" rows="3"></textarea></label>
+          <label class="span-2">Challenge (EN)<textarea name="challengeEn" rows="3"></textarea></label>
+          <label class="span-2">Approach (EN)<textarea name="approachEn" rows="3"></textarea></label>
+          <label class="span-2">Outcome (EN)<textarea name="outcomeEn" rows="3"></textarea></label>
           <div class="form-actions">
-            <button type="submit" class="manage-btn manage-btn-primary">항목 추가</button>
+            <button type="submit" class="manage-btn manage-btn-primary">케이스 추가</button>
             <button type="button" class="manage-btn manage-btn-ghost" id="clear-portfolio">전부 비우기</button>
           </div>
         </form>
 
-        <h3 class="manage-subhead">현재 항목</h3>
+        <h3 class="manage-subhead">현재 케이스 스터디</h3>
         <div class="admin-preview" id="portfolio-preview"></div>
       </section>
 
       <section class="manage-panel" data-panel="interests">
-        <h2>Interests · 관심사</h2>
+        <h2>Principles · 원칙</h2>
+        <p class="manage-panel-hint">5개 안팎의 짧고 단정적인 문장. 톤은 절제되고 editorial.</p>
         <div class="manage-grid two-col">
-          <label>섹션 제목 (KR)<input data-bind="interests.title_ko" /></label>
-          <label>Section title (EN)<input data-bind="interests.title_en" /></label>
+          <label>섹션 제목 (KR)<input data-bind="principles.title_ko" /></label>
+          <label>Section title (EN)<input data-bind="principles.title_en" /></label>
         </div>
-        <h3 class="manage-subhead">관심사 항목</h3>
+        <h3 class="manage-subhead">원칙 목록</h3>
         <div class="manage-list" id="interests-list"></div>
-        <button type="button" class="manage-btn manage-btn-ghost" id="add-interest">항목 추가</button>
+        <button type="button" class="manage-btn manage-btn-ghost" id="add-interest">원칙 추가</button>
       </section>
 
       <section class="manage-panel" data-panel="contact">
@@ -254,7 +266,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> 박지민 · Manage</span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.004.00</span> · Admin <span class="admin-build-version">V00.003.00</span>
+          Site <span class="site-build-version">V00.005.00</span> · Admin <span class="admin-build-version">V00.004.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

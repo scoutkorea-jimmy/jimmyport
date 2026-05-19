@@ -116,20 +116,24 @@
         <div class="section-label">Profile</div>
         <div>
           <h2 id="profile-title" data-config="profile.title">차분하게 만들고, 오래 남게 정리합니다.</h2>
-          <p data-config="profile.body">
-            박지민은 스카우팅, 교육, 미디어, 디지털 운영의 접점에서 프로젝트를
-            기획하고 실행합니다. 현장의 이야기를 읽기 쉬운 형태로 정리하고,
-            반복되는 일을 줄이는 도구와 구조를 만드는 데 관심이 있습니다.
-          </p>
+          <div class="profile-body" id="profile-body">
+            <p>박지민은 미디어, 교육, 커뮤니티 운영의 교차점에서 일합니다.</p>
+            <p>스카우트 운동과 국제 프로젝트 현장을 기반으로, 사람과 사람들이 더 오래 연결될 수 있는 구조를 고민합니다.</p>
+            <p>영상과 콘텐츠를 만들기도 하지만, 실제로는 운영 흐름과 커뮤니케이션 구조를 설계하는 일에 더 가깝습니다.</p>
+            <p>좋은 결과물보다, 좋은 흐름이 먼저라고 믿습니다.</p>
+          </div>
         </div>
       </section>
 
-      <section class="section container" id="work" aria-labelledby="work-title">
+      <section class="section container experience" id="work" aria-labelledby="work-title">
         <div class="section-heading">
-          <div class="section-label">Work</div>
-          <h2 id="work-title" data-config="work.title">주요 작업</h2>
+          <div class="section-label">Experience</div>
+          <div>
+            <h2 id="work-title" data-config="work.title">Selected Experience</h2>
+            <p class="section-intro" data-config="work.intro">회사가 아니라 기능으로 정리한 작업 영역입니다.</p>
+          </div>
         </div>
-        <div class="work-list" id="work-list"></div>
+        <div class="experience-categories" id="work-list"></div>
       </section>
 
       <section class="section container" id="portfolio" aria-labelledby="portfolio-title">
@@ -147,11 +151,11 @@
         <div class="portfolio-list" id="portfolio-list" aria-live="polite"></div>
       </section>
 
-      <section class="section container interests" aria-labelledby="interests-title">
-        <div class="section-label">Interests</div>
+      <section class="section container principles" id="principles" aria-labelledby="principles-title">
+        <div class="section-label">Principles</div>
         <div>
-          <h2 id="interests-title" data-config="interests.title">관심사</h2>
-          <ul id="interests-list"></ul>
+          <h2 id="principles-title" data-config="principles.title">Principles</h2>
+          <ol class="principles-list" id="principles-list"></ol>
         </div>
       </section>
 
@@ -169,7 +173,7 @@
       <div class="container footer-inner">
         <span>© <span id="year"></span> <span data-config="brand">박지민</span></span>
         <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.004.00</span> · Admin <span class="admin-build-version">V00.003.00</span>
+          Site <span class="site-build-version">V00.005.00</span> · Admin <span class="admin-build-version">V00.004.00</span>
           <span class="footer-build-status" aria-live="polite"></span>
         </p>
         <div class="footer-links">

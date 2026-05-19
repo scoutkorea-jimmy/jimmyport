@@ -1,30 +1,30 @@
 {
-  "$schema_version": 1,
+  "$schema_version": 2,
   "lang_default": "ko",
   "meta": {
     "title_ko": "박지민 | Jimmy Park",
     "title_en": "Jimmy Park | 박지민",
-    "description_ko": "박지민의 개인 홈페이지. 프로젝트, 기록, 커뮤니티 활동을 깔끔하게 정리한 원페이지 프로필입니다.",
-    "description_en": "Jimmy Park's personal homepage. Projects, records, and community work, organized into a single calm profile."
+    "description_ko": "박지민의 전략 아카이브. 미디어·교육·커뮤니티 운영의 교차점에서 일하며, 사람과 현장을 더 오래 연결하는 구조를 정리합니다.",
+    "description_en": "Jimmy Park's strategic archive. Working at the intersection of media, education, and community operations — designing structures that keep people and the field connected for longer."
   },
   "brand": { "ko": "박지민", "en": "Jimmy Park" },
   "nav": [
-    { "key": "profile",    "ko": "Profile",   "en": "Profile",   "href": "#profile" },
-    { "key": "work",       "ko": "Work",      "en": "Work",      "href": "#work" },
-    { "key": "portfolio",  "ko": "Portfolio", "en": "Portfolio", "href": "#portfolio" },
-    { "key": "global",     "ko": "Global",    "en": "Global",    "href": "#global" },
-    { "key": "contact",    "ko": "Contact",   "en": "Contact",   "href": "#contact" }
+    { "key": "profile",    "ko": "Profile",       "en": "Profile",       "href": "#profile" },
+    { "key": "work",       "ko": "Experience",    "en": "Experience",    "href": "#work" },
+    { "key": "portfolio",  "ko": "Case Studies",  "en": "Case Studies",  "href": "#portfolio" },
+    { "key": "global",     "ko": "Global",        "en": "Global",        "href": "#global" },
+    { "key": "contact",    "ko": "Contact",       "en": "Contact",       "href": "#contact" }
   ],
   "hero": {
     "eyebrow_ko": "Media · Community · Scouting",
     "eyebrow_en": "Media · Community · Scouting",
     "title_ko": "박지민",
     "title_en": "Jimmy Park",
-    "lead_ko": "프로젝트를 만들고, 기록을 정리하고, 사람과 커뮤니티가 더 잘 연결되는 방식을 고민합니다.",
-    "lead_en": "I build projects, organize stories, and think about better ways for people and communities to connect.",
-    "meta_tags": ["Media", "Scouting", "Community", "Digital Tools"],
-    "cta_portfolio_ko": "포트폴리오 보기",
-    "cta_portfolio_en": "View portfolio",
+    "lead_ko": "미디어·교육·커뮤니티 운영의 교차점에서, 사람과 현장을 더 오래 연결하는 구조를 만듭니다.",
+    "lead_en": "Working at the intersection of media, education, and community operations — designing structures that keep people and the field connected for longer.",
+    "meta_tags": ["Strategic Production", "Global Communication", "Systems & Operations"],
+    "cta_portfolio_ko": "케이스 스터디 보기",
+    "cta_portfolio_en": "View case studies",
     "cta_email_ko": "이메일 보내기",
     "cta_email_en": "Email me",
     "image": "assets/hero-workspace.png",
@@ -32,17 +32,17 @@
     "image_alt_en": "A quiet workspace with a notebook and laptop"
   },
   "quick_facts": [
-    { "label_ko": "위치",   "label_en": "Based in", "value_ko": "한국",                 "value_en": "Korea" },
-    { "label_ko": "분야",   "label_en": "Focus",    "value_ko": "미디어, 교육, 커뮤니티", "value_en": "Media, education, community" },
-    { "label_ko": "결과물", "label_en": "Output",   "value_ko": "영상, 기록, 운영 도구",   "value_en": "Video, records, operations tools" }
+    { "label_ko": "위치",   "label_en": "Based in", "value_ko": "한국, 서울",                "value_en": "Seoul, Korea" },
+    { "label_ko": "분야",   "label_en": "Focus",    "value_ko": "운영 구조 · 커뮤니케이션",    "value_en": "Operational structure · Communication" },
+    { "label_ko": "결과물", "label_en": "Output",   "value_ko": "전략 영상 · 운영 시스템 · 기록", "value_en": "Strategic video · Operations systems · Records" }
   ],
   "global_experience": {
     "eyebrow_ko": "Global Experience",
     "eyebrow_en": "Global Experience",
-    "title_ko": "현장에서 쌓은 글로벌 역량",
-    "title_en": "Global competence built in the field",
-    "body_ko": "스카우트 운동과 교육 프로젝트로 18개국, 30개+ 도시의 현장을 직접 다녔습니다. 시차·언어·문화·운영 방식이 다른 환경을 직접 다뤘던 경험이 지금의 기획과 운영 감각을 만듭니다.",
-    "body_en": "Through scouting and education projects I've worked across 18 countries and 30+ cities — navigating different time zones, languages, cultures, and operating models that shape how I plan and run things today.",
+    "title_ko": "현장에서 쌓은 글로벌 운영 감각",
+    "title_en": "Operational instinct, built in the field",
+    "body_ko": "18개국, 30개 이상의 도시와 프로젝트 현장을 직접 경험하며 문화·운영·커뮤니케이션 방식의 차이를 다뤄왔습니다.",
+    "body_en": "Across 18 countries and 30+ cities of on-the-ground project work — navigating differences in culture, operations, and communication.",
     "stat_countries": 18,
     "stat_cities_label_ko": "30+",
     "stat_cities_label_en": "30+",
@@ -80,49 +80,121 @@
   "profile": {
     "title_ko": "차분하게 만들고, 오래 남게 정리합니다.",
     "title_en": "Making things calmly, and documenting them to last.",
-    "body_ko": "박지민은 스카우팅, 교육, 미디어, 디지털 운영의 접점에서 프로젝트를 기획하고 실행합니다. 현장의 이야기를 읽기 쉬운 형태로 정리하고, 반복되는 일을 줄이는 도구와 구조를 만드는 데 관심이 있습니다.",
-    "body_en": "Jimmy Park works across scouting, education, media, and digital operations. He plans and runs projects, shapes field stories into clear formats, and builds small systems that reduce repetitive work."
+    "body_ko_paragraphs": [
+      "박지민은 미디어, 교육, 커뮤니티 운영의 교차점에서 일합니다.",
+      "스카우트 운동과 국제 프로젝트 현장을 기반으로, 사람과 사람들이 더 오래 연결될 수 있는 구조를 고민합니다.",
+      "영상과 콘텐츠를 만들기도 하지만, 실제로는 운영 흐름과 커뮤니케이션 구조를 설계하는 일에 더 가깝습니다.",
+      "좋은 결과물보다, 좋은 흐름이 먼저라고 믿습니다."
+    ],
+    "body_en_paragraphs": [
+      "Jimmy Park works at the intersection of media, education, and community operations.",
+      "Anchored in the scouting movement and international project sites, he thinks about structures that keep people connected for longer.",
+      "He makes video and content, but his real work is closer to designing operational flow and communication structure.",
+      "A good outcome matters less than a good flow."
+    ]
   },
   "work": {
-    "title_ko": "주요 작업",
-    "title_en": "Selected work",
-    "items": [
-      { "label": "01", "title_ko": "Gilwell Media", "title_en": "Gilwell Media", "body_ko": "스카우팅과 커뮤니티 현장의 기록을 읽기 쉬운 미디어로 정리합니다.", "body_en": "Organizing stories from scouting and community fields into readable media." },
-      { "label": "02", "title_ko": "Scout Korea",  "title_en": "Scout Korea",  "body_ko": "사람이 모이고 배우는 장면을 더 넓게 연결하는 프로젝트를 기획합니다.", "body_en": "Planning projects that help people gather, learn, and connect more widely." },
-      { "label": "03", "title_ko": "Digital Tools", "title_en": "Digital Tools", "body_ko": "운영자가 더 쉽게 판단하고 움직일 수 있도록 작고 단단한 도구를 만듭니다.", "body_en": "Building focused digital tools that help operators make better decisions." }
+    "title_ko": "Selected Experience",
+    "title_en": "Selected Experience",
+    "intro_ko": "회사가 아니라 기능으로 정리한 작업 영역입니다.",
+    "intro_en": "Organized by functional expertise, not by company.",
+    "categories": [
+      {
+        "title_ko": "Strategic Production",
+        "title_en": "Strategic Production",
+        "description_ko": "정부 캠페인, IR/PR 영상, 키노트, 스타트업 커뮤니케이션, 제안 전략.",
+        "description_en": "Government campaigns, IR/PR films, keynote videos, startup communication, proposal strategy.",
+        "items_ko": [
+          "Samsung Tech Conference",
+          "CES Innovation Award projects",
+          "KOSME 캠페인",
+          "KAIST 스타트업 콘텐츠"
+        ],
+        "items_en": [
+          "Samsung Tech Conference",
+          "CES Innovation Award projects",
+          "KOSME campaigns",
+          "KAIST startup content"
+        ]
+      },
+      {
+        "title_ko": "Global & Scouting Communication",
+        "title_en": "Global & Scouting Communication",
+        "description_ko": "국제 청소년 커뮤니케이션, WOSM 협업, 대규모 커뮤니티 스토리텔링.",
+        "description_en": "International youth communication, WOSM collaboration, large-scale community storytelling.",
+        "items_ko": [
+          "한국스카우트연맹",
+          "WOSM APR Communication",
+          "World Scout Jamboree",
+          "국제 컨퍼런스"
+        ],
+        "items_en": [
+          "Korea Scout Association",
+          "WOSM APR Communication",
+          "World Scout Jamboree",
+          "International conferences"
+        ]
+      },
+      {
+        "title_ko": "Systems & Operations",
+        "title_en": "Systems & Operations",
+        "description_ko": "운영 자동화, 워크플로 시스템, 디지털 협업 도구.",
+        "description_en": "Operational automation, workflow systems, digital coordination tools.",
+        "items_ko": [
+          "Monday.com 워크플로",
+          "SMS 자동화 시스템",
+          "콘텐츠 운영 구조",
+          "내부 커뮤니케이션 시스템"
+        ],
+        "items_en": [
+          "Monday.com workflows",
+          "SMS automation systems",
+          "content operation structures",
+          "internal communication systems"
+        ]
+      }
     ]
   },
   "portfolio_intro": {
-    "title_ko": "영상 포트폴리오",
-    "title_en": "Video portfolio",
-    "intro_ko": "YouTube 영상 링크와 함께 내가 맡은 역할, 기획 의도, 작업 내용을 소개합니다.",
-    "intro_en": "A collection of YouTube-based projects with notes on my role, intention, and contribution.",
-    "role_label_ko": "내 역할",
-    "role_label_en": "My role",
-    "watch_label_ko": "YouTube에서 보기",
-    "watch_label_en": "Watch on YouTube",
-    "empty_title_ko": "영상 포트폴리오를 준비하고 있습니다.",
-    "empty_title_en": "Video portfolio is in preparation.",
-    "empty_hint_ko": "YouTube 링크와 역할 설명이 정리되는 대로 이곳에 케이스 스터디 형태로 공개됩니다.",
-    "empty_hint_en": "YouTube links and role notes will be published here as compact case studies."
+    "title_ko": "Selected Case Studies",
+    "title_en": "Selected Case Studies",
+    "intro_ko": "각 프로젝트는 결과물의 모음이 아니라 맥락 → 문제 → 접근 → 결과의 구조로 정리합니다.",
+    "intro_en": "Each project is documented as Context → Challenge → Approach → Outcome — not just as media.",
+    "role_label_ko": "Role",
+    "role_label_en": "Role",
+    "context_label_ko": "Context",
+    "context_label_en": "Context",
+    "challenge_label_ko": "Challenge",
+    "challenge_label_en": "Challenge",
+    "approach_label_ko": "Approach",
+    "approach_label_en": "Approach",
+    "outcome_label_ko": "Outcome",
+    "outcome_label_en": "Outcome",
+    "watch_label_ko": "영상 보기",
+    "watch_label_en": "Watch the media",
+    "empty_title_ko": "케이스 스터디를 준비하고 있습니다.",
+    "empty_title_en": "Case studies are being prepared.",
+    "empty_hint_ko": "맥락·문제·접근·결과 구조로 정리한 프로젝트들이 곧 공개됩니다.",
+    "empty_hint_en": "Projects structured as Context · Challenge · Approach · Outcome will appear here shortly."
   },
-  "interests": {
-    "title_ko": "관심사",
-    "title_en": "Interests",
+  "principles": {
+    "title_ko": "Principles",
+    "title_en": "Principles",
     "items": [
-      { "ko": "스카우트 운동과 청소년 교육",        "en": "Scouting and youth education" },
-      { "ko": "로컬 커뮤니티와 국제 네트워크",      "en": "Local communities and international networks" },
-      { "ko": "디지털 퍼블리싱과 운영 자동화",      "en": "Digital publishing and operations automation" },
-      { "ko": "좋은 기록, 좋은 도구, 좋은 팀워크",  "en": "Good records, good tools, good teamwork" }
+      { "ko": "기록은 사람을 오래 연결해야 한다",       "en": "Records should connect people for longer." },
+      { "ko": "좋은 운영은 사람을 덜 지치게 해야 한다", "en": "Good operations should tire people less." },
+      { "ko": "커뮤니케이션은 전달보다 이해에 가깝다",   "en": "Communication is closer to understanding than to delivery." },
+      { "ko": "시스템은 통제가 아니라 흐름이어야 한다",  "en": "Systems should be flow, not control." },
+      { "ko": "콘텐츠는 결과물이 아니라 맥락이어야 한다", "en": "Content should be context, not output." }
     ]
   },
   "contact": {
     "eyebrow_ko": "Contact",
     "eyebrow_en": "Contact",
-    "title_ko": "함께 이야기할 일이 있다면",
-    "title_en": "If there is something to discuss",
-    "body_ko": "프로젝트, 영상, 커뮤니티 협업에 대해 편하게 연락해 주세요.",
-    "body_en": "Reach out about projects, video work, or community collaboration.",
+    "title_ko": "좋은 구조는 좋은 대화에서 시작됩니다.",
+    "title_en": "Good structures start with good conversations.",
+    "body_ko": "사람과 현장을 더 오래 연결하는 일이라면, 언제든 이야기 나누고 싶습니다.",
+    "body_en": "If it's about keeping people and the field connected for longer, I'd love to talk.",
     "email": "hello@jimmypark.net"
   },
   "footer": {

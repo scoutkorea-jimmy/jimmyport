@@ -91,6 +91,13 @@ function fillSimpleBindings() {
     const value = deepGet(siteConfig, path);
     el.value = Array.isArray(value) ? value.join(', ') : '';
   });
+  document.querySelectorAll('[data-bind-paragraphs]').forEach((el) => {
+    // Paragraph arrays serialise as `paragraph 1\n\nparagraph 2\n\n…` in the
+    // textarea, so authors can use familiar blank-line separation.
+    const path = el.dataset.bindParagraphs;
+    const value = deepGet(siteConfig, path);
+    el.value = Array.isArray(value) ? value.join('\n\n') : (value || '');
+  });
 }
 
 document.addEventListener('input', (event) => {
@@ -104,6 +111,12 @@ document.addEventListener('input', (event) => {
   if (target.matches('[data-bind-list]')) {
     const list = target.value.split(',').map((s) => s.trim()).filter(Boolean);
     deepSet(siteConfig, target.dataset.bindList, list);
+    saveDraft();
+    return;
+  }
+  if (target.matches('[data-bind-paragraphs]')) {
+    const paragraphs = target.value.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+    deepSet(siteConfig, target.dataset.bindParagraphs, paragraphs);
     saveDraft();
     return;
   }
@@ -221,26 +234,30 @@ function renderNavEditor() {
 }
 
 function renderWorkEditor() {
-  const host = document.querySelector('#work-items-list');
+  const host = document.querySelector('#work-categories-list');
   if (!host) return;
-  if (!siteConfig.work) siteConfig.work = { items: [] };
-  const rows = siteConfig.work.items || (siteConfig.work.items = []);
+  if (!siteConfig.work) siteConfig.work = { categories: [] };
+  if (!Array.isArray(siteConfig.work.categories)) siteConfig.work.categories = [];
+  const rows = siteConfig.work.categories;
   host.innerHTML = '';
   rows.forEach((row, idx) => {
+    const itemsKo = Array.isArray(row.items_ko) ? row.items_ko.join(', ') : (row.items_ko || '');
+    const itemsEn = Array.isArray(row.items_en) ? row.items_en.join(', ') : (row.items_en || '');
     const div = document.createElement('div');
     div.className = 'manage-row manage-row-tall';
     div.innerHTML = `
       <div class="manage-row-grid">
-        <label>라벨 (예: 01)<input data-row="work.items" data-row-index="${idx}" data-row-key="label" value="${escapeHtml(row.label || '')}" maxlength="6" /></label>
-        <label>Title (KR)<input data-row="work.items" data-row-index="${idx}" data-row-key="title_ko" value="${escapeHtml(row.title_ko || '')}" /></label>
-        <label>Title (EN)<input data-row="work.items" data-row-index="${idx}" data-row-key="title_en" value="${escapeHtml(row.title_en || '')}" /></label>
-        <label class="span-3">본문 (KR)<textarea rows="2" data-row="work.items" data-row-index="${idx}" data-row-key="body_ko">${escapeHtml(row.body_ko || '')}</textarea></label>
-        <label class="span-3">Body (EN)<textarea rows="2" data-row="work.items" data-row-index="${idx}" data-row-key="body_en">${escapeHtml(row.body_en || '')}</textarea></label>
+        <label>Category (KR)<input data-row="work.categories" data-row-index="${idx}" data-row-key="title_ko" value="${escapeHtml(row.title_ko || '')}" /></label>
+        <label>Category (EN)<input data-row="work.categories" data-row-index="${idx}" data-row-key="title_en" value="${escapeHtml(row.title_en || '')}" /></label>
+        <label class="span-3">설명 (KR)<textarea rows="2" data-row="work.categories" data-row-index="${idx}" data-row-key="description_ko">${escapeHtml(row.description_ko || '')}</textarea></label>
+        <label class="span-3">Description (EN)<textarea rows="2" data-row="work.categories" data-row-index="${idx}" data-row-key="description_en">${escapeHtml(row.description_en || '')}</textarea></label>
+        <label class="span-3">항목 (KR, 쉼표로 구분)<input data-row="work.categories" data-row-index="${idx}" data-row-key="items_ko" data-row-list="1" value="${escapeHtml(itemsKo)}" placeholder="Samsung Tech Conference, KAIST 스타트업 콘텐츠" /></label>
+        <label class="span-3">Items (EN, comma separated)<input data-row="work.categories" data-row-index="${idx}" data-row-key="items_en" data-row-list="1" value="${escapeHtml(itemsEn)}" placeholder="Samsung Tech Conference, KAIST startup content" /></label>
       </div>
       <div class="manage-row-actions">
-        <button type="button" data-row-action="move-up" data-row-target="work.items" data-row-index="${idx}">↑</button>
-        <button type="button" data-row-action="move-down" data-row-target="work.items" data-row-index="${idx}">↓</button>
-        <button type="button" class="manage-row-delete" data-row-action="delete" data-row-target="work.items" data-row-index="${idx}">삭제</button>
+        <button type="button" data-row-action="move-up" data-row-target="work.categories" data-row-index="${idx}">↑</button>
+        <button type="button" data-row-action="move-down" data-row-target="work.categories" data-row-index="${idx}">↓</button>
+        <button type="button" class="manage-row-delete" data-row-action="delete" data-row-target="work.categories" data-row-index="${idx}">삭제</button>
       </div>`;
     host.appendChild(div);
   });
@@ -249,21 +266,29 @@ function renderWorkEditor() {
 function renderInterestsEditor() {
   const host = document.querySelector('[data-panel="interests"] #interests-list');
   if (!host) return;
-  if (!siteConfig.interests) siteConfig.interests = { items: [] };
-  const rows = siteConfig.interests.items || (siteConfig.interests.items = []);
+  // v2: data lives under `principles`. v1 legacy `interests` is auto-migrated
+  // on first edit by lazily creating the new branch from the old.
+  if (!siteConfig.principles) {
+    siteConfig.principles = siteConfig.interests
+      ? { title_ko: siteConfig.interests.title_ko || 'Principles',
+          title_en: siteConfig.interests.title_en || 'Principles',
+          items: Array.isArray(siteConfig.interests.items) ? siteConfig.interests.items : [] }
+      : { title_ko: 'Principles', title_en: 'Principles', items: [] };
+  }
+  const rows = siteConfig.principles.items || (siteConfig.principles.items = []);
   host.innerHTML = '';
   rows.forEach((row, idx) => {
     const div = document.createElement('div');
     div.className = 'manage-row';
     div.innerHTML = `
       <div class="manage-row-grid">
-        <label>관심사 (KR)<input data-row="interests.items" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
-        <label>Interest (EN)<input data-row="interests.items" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
+        <label>원칙 (KR)<input data-row="principles.items" data-row-index="${idx}" data-row-key="ko" value="${escapeHtml(row.ko || '')}" /></label>
+        <label>Principle (EN)<input data-row="principles.items" data-row-index="${idx}" data-row-key="en" value="${escapeHtml(row.en || '')}" /></label>
       </div>
       <div class="manage-row-actions">
-        <button type="button" data-row-action="move-up" data-row-target="interests.items" data-row-index="${idx}">↑</button>
-        <button type="button" data-row-action="move-down" data-row-target="interests.items" data-row-index="${idx}">↓</button>
-        <button type="button" class="manage-row-delete" data-row-action="delete" data-row-target="interests.items" data-row-index="${idx}">삭제</button>
+        <button type="button" data-row-action="move-up" data-row-target="principles.items" data-row-index="${idx}">↑</button>
+        <button type="button" data-row-action="move-down" data-row-target="principles.items" data-row-index="${idx}">↓</button>
+        <button type="button" class="manage-row-delete" data-row-action="delete" data-row-target="principles.items" data-row-index="${idx}">삭제</button>
       </div>`;
     host.appendChild(div);
   });
@@ -345,18 +370,21 @@ document.querySelector('#add-country')?.addEventListener('click', () => {
   renderCountriesEditor();
   saveDraft();
 });
-document.querySelector('#add-work-item')?.addEventListener('click', () => {
-  if (!siteConfig.work) siteConfig.work = { items: [] };
-  if (!siteConfig.work.items) siteConfig.work.items = [];
-  const next = String(siteConfig.work.items.length + 1).padStart(2, '0');
-  siteConfig.work.items.push({ label: next, title_ko: '', title_en: '', body_ko: '', body_en: '' });
+document.querySelector('#add-work-category')?.addEventListener('click', () => {
+  if (!siteConfig.work) siteConfig.work = { categories: [] };
+  if (!Array.isArray(siteConfig.work.categories)) siteConfig.work.categories = [];
+  siteConfig.work.categories.push({
+    title_ko: '', title_en: '',
+    description_ko: '', description_en: '',
+    items_ko: [], items_en: [],
+  });
   renderWorkEditor();
   saveDraft();
 });
 document.querySelector('#add-interest')?.addEventListener('click', () => {
-  if (!siteConfig.interests) siteConfig.interests = { items: [] };
-  if (!siteConfig.interests.items) siteConfig.interests.items = [];
-  siteConfig.interests.items.push({ ko: '', en: '' });
+  if (!siteConfig.principles) siteConfig.principles = { items: [] };
+  if (!Array.isArray(siteConfig.principles.items)) siteConfig.principles.items = [];
+  siteConfig.principles.items.push({ ko: '', en: '' });
   renderInterestsEditor();
   saveDraft();
 });
@@ -439,19 +467,27 @@ document.querySelector('#portfolio-form')?.addEventListener('submit', (event) =>
   const data = new FormData(form);
   const titleKo = (data.get('titleKo') || '').trim();
   if (!titleKo) return;
+  const grab = (k) => (data.get(k) || '').trim();
+  const koOrEn = (ko, en) => en || ko; // EN falls back to KR if blank
   portfolioItems.unshift({
-    id: slugify(`${data.get('published') || new Date().getFullYear()}-${titleKo}`),
-    youtubeUrl: (data.get('youtubeUrl') || '').trim(),
-    published: (data.get('published') || '').trim() || String(new Date().getFullYear()),
+    id: slugify(`${grab('published') || new Date().getFullYear()}-${titleKo}`),
+    youtubeUrl: grab('youtubeUrl'),
+    published: grab('published') || String(new Date().getFullYear()),
     ko: {
-      title: titleKo,
-      role: (data.get('roleKo') || '').trim(),
-      description: (data.get('descriptionKo') || '').trim(),
+      title:     titleKo,
+      role:      grab('roleKo'),
+      context:   grab('contextKo'),
+      challenge: grab('challengeKo'),
+      approach:  grab('approachKo'),
+      outcome:   grab('outcomeKo'),
     },
     en: {
-      title: (data.get('titleEn') || '').trim() || titleKo,
-      role: (data.get('roleEn') || '').trim() || (data.get('roleKo') || '').trim(),
-      description: (data.get('descriptionEn') || '').trim() || (data.get('descriptionKo') || '').trim(),
+      title:     koOrEn(titleKo,       grab('titleEn')),
+      role:      koOrEn(grab('roleKo'),      grab('roleEn')),
+      context:   koOrEn(grab('contextKo'),   grab('contextEn')),
+      challenge: koOrEn(grab('challengeKo'), grab('challengeEn')),
+      approach:  koOrEn(grab('approachKo'),  grab('approachEn')),
+      outcome:   koOrEn(grab('outcomeKo'),   grab('outcomeEn')),
     },
   });
   form.reset();
