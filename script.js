@@ -315,14 +315,7 @@ function normaliseCities(country, lang) {
   return [];
 }
 
-function renderCountries(config /* bilingual */) {
-  if (!countryGridEl || !config || !config.global_experience) return;
-  const ge = config.global_experience;
-  const list = Array.isArray(ge.countries) ? ge.countries : [];
-  const homeLabel = pickLang(ge, 'home_label', 'en') || 'Home';
-  countryGridEl.innerHTML = '';
-
-  list.forEach((country, idx) => {
+function buildCountryButton(country, idx, homeLabel) {
     const isHome = !!country.is_home;
     const citiesEn = normaliseCities(country, 'en');
     const citiesKo = normaliseCities(country, 'ko');
@@ -331,8 +324,6 @@ function renderCountries(config /* bilingual */) {
     const linked = String(country.linked_experience || '').trim();
     const hasDetail = reasonEn || reasonKo || linked;
 
-    // Country card is now a <button> so the click affordance is obvious and
-    // keyboard activation toggles the detail panel.
     const li = document.createElement('li');
     li.style.listStyle = 'none';
     const btn = document.createElement('button');
@@ -350,7 +341,6 @@ function renderCountries(config /* bilingual */) {
     flag.textContent = country.flag || '';
     const name = document.createElement('span');
     name.className = 'country-name';
-    name.innerHTML = '';
     const enName = String(country.en || country.code || '').trim();
     const koName = String(country.ko || '').trim();
     const enSpan = document.createElement('span');
@@ -429,8 +419,6 @@ function renderCountries(config /* bilingual */) {
         detail.hidden = open;
       });
     } else {
-      // No detail content — clicking just emphasises briefly but doesn't expand.
-      btn.disabled = false;
       btn.addEventListener('click', () => {
         btn.classList.add('country-chip-flash');
         setTimeout(() => btn.classList.remove('country-chip-flash'), 600);
@@ -438,12 +426,51 @@ function renderCountries(config /* bilingual */) {
     }
 
     li.appendChild(btn);
-    countryGridEl.appendChild(li);
+    return li;
+}
+
+function renderCountries(config /* bilingual */) {
+  if (!countryGridEl || !config || !config.global_experience) return;
+  const ge = config.global_experience;
+  const list = Array.isArray(ge.countries) ? ge.countries : [];
+  const homeLabel = pickLang(ge, 'home_label', 'en') || 'Home';
+  const homeBlockEl = document.querySelector('#country-home-block');
+  const breakdownEl = document.querySelector('#global-stat-breakdown');
+  const overseasCountEl = document.querySelector('#country-overseas-count');
+
+  const homeCountries = list.filter((c) => c.is_home);
+  const overseasCountries = list.filter((c) => !c.is_home);
+
+  // ── Home block (Korea) — separate row, no grid column take-over.
+  if (homeBlockEl) {
+    homeBlockEl.innerHTML = '';
+    homeCountries.forEach((country, idx) => {
+      homeBlockEl.appendChild(buildCountryButton(country, `h${idx}`, homeLabel));
+    });
+    homeBlockEl.hidden = !homeCountries.length;
+  }
+
+  // ── Overseas grid
+  countryGridEl.innerHTML = '';
+  overseasCountries.forEach((country, idx) => {
+    countryGridEl.appendChild(buildCountryButton(country, `o${idx}`, homeLabel));
   });
 
-  // Auto count: countries.length and unique cities (EN preferred, KR fallback).
+  if (overseasCountEl) {
+    overseasCountEl.textContent = `${overseasCountries.length}개국 · ${overseasCountries.length} countries`;
+  }
+
+  // ── Counts. Total stays the full count (Korea included) so the headline number
+  //    matches what the user lived; the breakdown line explains the split.
   const countEl = document.querySelector('#global-stat-countries');
   if (countEl) countEl.textContent = String(list.length || 0);
+  if (breakdownEl) {
+    breakdownEl.textContent = homeCountries.length
+      ? `${overseasCountries.length} overseas · ${homeCountries.length} home`
+      : '';
+  }
+
+  // Cities count (unchanged from previous logic — uses overseas-aware union too)
   const citySet = new Set();
   list.forEach((c) => {
     const arr = normaliseCities(c, 'en');
@@ -455,9 +482,170 @@ function renderCountries(config /* bilingual */) {
   });
   const cityCountEl = document.querySelector('#global-stat-cities');
   if (cityCountEl) cityCountEl.textContent = String(citySet.size || 0);
-  // Hide the legacy multi-visit note if present.
+
   const noteEl = document.querySelector('#global-stat-multi');
   if (noteEl) { noteEl.hidden = true; noteEl.textContent = ''; }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Video reel — preview grid + binge-watch playlist modal. Pulls from
+// site-config.json → videos.items[] (YouTube URLs). Hidden when empty.
+// ──────────────────────────────────────────────────────────────────────────
+const videoReelEl = document.querySelector('#video-reel');
+const videoReelGridEl = document.querySelector('#video-reel-grid');
+const videoReelWatchAllBtn = document.querySelector('#video-reel-watchall');
+const videoPlaylistModalEl = document.querySelector('#video-playlist-modal');
+let videoReelItems = [];
+
+function renderVideoReel(config) {
+  if (!videoReelEl || !videoReelGridEl) return;
+  const block = (config && config.videos) || {};
+  const items = Array.isArray(block.items) ? block.items.filter(Boolean) : [];
+  videoReelItems = items;
+  if (!items.length) {
+    videoReelEl.hidden = true;
+    return;
+  }
+  videoReelEl.hidden = false;
+  videoReelGridEl.innerHTML = '';
+  items.forEach((it, idx) => {
+    const videoId = getYouTubeId(it.youtubeUrl || '');
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'video-reel-card';
+    card.setAttribute('role', 'listitem');
+    card.dataset.idx = String(idx);
+
+    const thumb = document.createElement('div');
+    thumb.className = 'video-reel-thumb';
+    if (videoId) {
+      const img = document.createElement('img');
+      img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      img.alt = '';
+      img.loading = 'lazy';
+      thumb.appendChild(img);
+    } else {
+      thumb.classList.add('video-reel-thumb-empty');
+      thumb.textContent = 'YouTube';
+    }
+    const play = document.createElement('span');
+    play.className = 'video-reel-play';
+    play.setAttribute('aria-hidden', 'true');
+    play.textContent = '▸';
+    thumb.appendChild(play);
+    card.appendChild(thumb);
+
+    const body = document.createElement('div');
+    body.className = 'video-reel-body';
+    const t = document.createElement('span');
+    t.className = 'video-reel-card-title';
+    t.textContent = it.title_en || it.title_ko || `Video ${idx + 1}`;
+    body.appendChild(t);
+    if (it.title_ko && it.title_ko !== it.title_en) {
+      const tk = document.createElement('span');
+      tk.className = 'bilingual-ko video-reel-card-title-ko';
+      tk.setAttribute('lang', 'ko');
+      tk.textContent = it.title_ko;
+      body.appendChild(tk);
+    }
+    if (it.role_en || it.role_ko) {
+      const r = document.createElement('span');
+      r.className = 'video-reel-card-role';
+      r.textContent = it.role_en || it.role_ko || '';
+      body.appendChild(r);
+    }
+    card.appendChild(body);
+
+    card.addEventListener('click', () => openVideoPlaylist(idx));
+    videoReelGridEl.appendChild(card);
+  });
+
+  if (videoReelWatchAllBtn) {
+    videoReelWatchAllBtn.onclick = () => openVideoPlaylist(0);
+  }
+}
+
+function openVideoPlaylist(startIdx) {
+  if (!videoPlaylistModalEl || !videoReelItems.length) return;
+  let activeIdx = Math.max(0, Math.min(startIdx | 0, videoReelItems.length - 1));
+
+  videoPlaylistModalEl.innerHTML = `
+    <div class="video-playlist-backdrop" data-modal-close></div>
+    <div class="video-playlist-card" role="document">
+      <header class="video-playlist-head">
+        <h2 class="video-playlist-title" id="video-playlist-title">영상 모아보기 · Video reel</h2>
+        <button type="button" class="video-playlist-close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <div class="video-playlist-body">
+        <div class="video-playlist-player" id="video-playlist-player"></div>
+        <div class="video-playlist-meta" id="video-playlist-meta"></div>
+        <ol class="video-playlist-list" id="video-playlist-list"></ol>
+      </div>
+    </div>`;
+
+  const playerEl = videoPlaylistModalEl.querySelector('#video-playlist-player');
+  const metaEl = videoPlaylistModalEl.querySelector('#video-playlist-meta');
+  const listEl = videoPlaylistModalEl.querySelector('#video-playlist-list');
+
+  function setActive(idx) {
+    activeIdx = idx;
+    const item = videoReelItems[idx] || {};
+    const vid = getYouTubeId(item.youtubeUrl || '');
+    if (vid) {
+      playerEl.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&rel=0" title="${escapeAttr(item.title_en || item.title_ko || '')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    } else {
+      playerEl.innerHTML = `<div class="video-playlist-empty">YouTube URL 미설정 · No YouTube URL set for this entry.</div>`;
+    }
+    const titleEn = item.title_en || item.title_ko || '';
+    const titleKo = (item.title_ko && item.title_ko !== item.title_en) ? item.title_ko : '';
+    const role = item.role_en || item.role_ko || '';
+    metaEl.innerHTML = `
+      <div class="video-playlist-meta-title">${escapeAttr(titleEn)}</div>
+      ${titleKo ? `<div class="video-playlist-meta-title-ko" lang="ko">${escapeAttr(titleKo)}</div>` : ''}
+      ${role ? `<div class="video-playlist-meta-role">${escapeAttr(role)}</div>` : ''}`;
+    listEl.querySelectorAll('li').forEach((li, i) => {
+      li.classList.toggle('is-active', i === idx);
+    });
+  }
+
+  videoReelItems.forEach((it, i) => {
+    const vid = getYouTubeId(it.youtubeUrl || '');
+    const li = document.createElement('li');
+    li.className = 'video-playlist-item';
+    li.innerHTML = `
+      <button type="button" class="video-playlist-item-btn">
+        <span class="video-playlist-item-num">${String(i + 1).padStart(2, '0')}</span>
+        ${vid ? `<img class="video-playlist-item-thumb" src="https://img.youtube.com/vi/${vid}/default.jpg" alt="" loading="lazy" />` : `<span class="video-playlist-item-thumb video-playlist-item-thumb-empty"></span>`}
+        <span class="video-playlist-item-title">${escapeAttr(it.title_en || it.title_ko || `Video ${i + 1}`)}</span>
+      </button>`;
+    li.querySelector('button').addEventListener('click', () => setActive(i));
+    listEl.appendChild(li);
+  });
+
+  setActive(activeIdx);
+
+  videoPlaylistModalEl.hidden = false;
+  videoPlaylistModalEl.setAttribute('aria-hidden', 'false');
+  document.documentElement.classList.add('portfolio-modal-open');
+
+  videoPlaylistModalEl.querySelectorAll('[data-modal-close]').forEach((el) => {
+    el.addEventListener('click', closeVideoPlaylist);
+  });
+  const onKey = (e) => { if (e.key === 'Escape') closeVideoPlaylist(); };
+  document.addEventListener('keydown', onKey);
+  videoPlaylistModalEl._cleanup = () => document.removeEventListener('keydown', onKey);
+}
+
+function closeVideoPlaylist() {
+  if (!videoPlaylistModalEl) return;
+  videoPlaylistModalEl.hidden = true;
+  videoPlaylistModalEl.setAttribute('aria-hidden', 'true');
+  videoPlaylistModalEl.innerHTML = '';
+  document.documentElement.classList.remove('portfolio-modal-open');
+  if (typeof videoPlaylistModalEl._cleanup === 'function') {
+    videoPlaylistModalEl._cleanup();
+    videoPlaylistModalEl._cleanup = null;
+  }
 }
 
 function renderContact(config, lang) {
@@ -953,6 +1141,7 @@ function applyEverything(lang) {
   renderEducation(siteConfig);
   renderContact(siteConfig, 'en');
   renderFooter(siteConfig, 'en');
+  renderVideoReel(siteConfig);
   renderPortfolio('en');
 }
 

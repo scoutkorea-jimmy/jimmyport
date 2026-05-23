@@ -291,6 +291,40 @@
       }
     ]
   },
+  "videos": {
+    "title_ko": "영상 모아보기",
+    "title_en": "Video reel",
+    "watch_all_ko": "몰아보기",
+    "watch_all_en": "Binge-watch",
+    "empty_ko": "유튜브 영상이 곧 정리되어 공개됩니다.",
+    "empty_en": "Featured videos will appear here shortly.",
+    "items": [
+      {
+        "id": "sample-01",
+        "youtubeUrl": "",
+        "title_ko": "샘플 영상 1 — YouTube URL을 추가해 주세요.",
+        "title_en": "Sample video 1 — add a YouTube URL.",
+        "role_ko": "감독 · 편집",
+        "role_en": "Director · Edit"
+      },
+      {
+        "id": "sample-02",
+        "youtubeUrl": "",
+        "title_ko": "샘플 영상 2 — YouTube URL을 추가해 주세요.",
+        "title_en": "Sample video 2 — add a YouTube URL.",
+        "role_ko": "프로듀서",
+        "role_en": "Producer"
+      },
+      {
+        "id": "sample-03",
+        "youtubeUrl": "",
+        "title_ko": "샘플 영상 3 — YouTube URL을 추가해 주세요.",
+        "title_en": "Sample video 3 — add a YouTube URL.",
+        "role_ko": "기획 · 운영",
+        "role_en": "Concept · Operations"
+      }
+    ]
+  },
   "portfolio_intro": {
     "title_ko": "Portfolio",
     "title_en": "Portfolio",
