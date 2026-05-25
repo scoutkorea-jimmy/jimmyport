@@ -76,14 +76,74 @@
       "body_html": "<h2>구조</h2><ul><li>헤드라인: <em>현장에서 쌓은 글로벌 운영 감각</em></li><li>서브텍스트: <em>18개국, 30개 이상의 도시와 프로젝트 현장…</em></li><li>통계: 18개국 + 30+ 도시 + 재방문 N개국 (자동 계산)</li><li>국가 리스트: 18국 chip 그리드 — 한국은 풀폭 카드, 재방문 5개국(CN/HK/TW/BD/ZA)은 ★ 배지</li></ul><h2>tone 규칙</h2><p>travel diary 톤 금지. systems-oriented framing — '경험'이 아니라 '운영 감각'.</p>"
     },
     {
-      "id": "kms-wiki-design-admin",
-      "title": "KMS · Wiki · Design Guide admin (이 패널)",
+      "id": "admin-readonly-docs",
+      "title": "참고 문서 읽기 전용 패널 (KMS · Design · Versions)",
       "status": "active",
       "category": "Admin",
       "owner": "Jimmy",
-      "last_updated": "2026-05-19",
-      "summary": "운영자 전용 3 admin 탭. Tiptap 풀세트 에디터 + GitHub Contents API 커밋.",
-      "body_html": "<h2>의도</h2><p>지금 보고 있는 이 패널입니다. 사이트의 공개 페이지가 아니라 admin <em>안</em>에서만 보이는 internal documentation 도구. 향후 로그인 게이트(Cloudflare Access 등)로 보호 예정.</p><h2>데이터 파일</h2><ul><li><code>data/kms.json</code> — 기능 명세</li><li><code>data/wiki.json</code> — 운영자 노트, 절차, lesson</li><li><code>data/design.json</code> — 디자인 토큰·컴포넌트·톤 가이드</li></ul><h2>편집기</h2><p>Tiptap 무료 풀세트(StarterKit + Link + Image + Table + Highlight + Underline + TaskList + TextAlign + Placeholder + CharacterCount + Color + FontFamily + Typography + Youtube). 결과물은 <code>body_html</code> 필드에 HTML로 저장.</p>"
+      "last_updated": "2026-05-20",
+      "summary": "관리자 사이드네비 '참고 문서' 그룹의 KMS · Design Guide · Versions 3개 패널. v0.011에서 편집기 제거, v0.012에서 읽기 전용 뷰로 신설, v0.013에서 MutationObserver 자동 로드로 안정화.",
+      "body_html": "<h2>이력</h2><ul><li><strong>v0.007</strong> — Tiptap 풀세트 에디터 + GitHub Contents API 커밋으로 도입 (편집 가능)</li><li><strong>v0.010</strong> (커밋 <code>76adc08</code>) — 'admin docs should not be edited from manage UI' 방침으로 manage.html에서 편집 패널 <strong>제거</strong></li><li><strong>v0.012</strong> — 사이드네비에 '참고 문서 (읽기 전용)' 그룹 신설, 3개 패널 읽기 전용 뷰로 재도입</li><li><strong>v0.013</strong> — MutationObserver 기반 자동 로드로 진입 경로 race 해결</li></ul><h2>현재 동작</h2><ul><li>편집 불가. 데이터는 코드 레벨(repo 직접 commit)에서만 관리 — CLAUDE.md §6 운영 규칙</li><li><code>manage.js</code> <code>renderReadonlyDoc(source, items, renderItemBody)</code> 공통 함수가 <code>data/{kms,design,versions}.json</code>을 fetch → list + detail로 단순 innerHTML 렌더</li><li>Versions detail은 summary / highlights / non-dev / dev <code>&lt;details&gt;</code> / next 순서</li></ul><h2>자동 로드 (v0.013)</h2><p><code>_readonlyTabObserver = new MutationObserver(tryActivateReadonlyFromActiveTab)</code>가 모든 <code>.manage-tab</code>의 <code>class</code> · <code>aria-selected</code> 변경을 감지. 클릭 · URL hash 딥링크 · localStorage 마지막 탭 복원 어느 경로로 진입해도 데이터가 자동 로드됨. 초기 호출 + <code>setTimeout(0)</code> fallback으로 DOM init race 처리.</p><h2>데이터 파일</h2><ul><li><code>data/kms.json</code> — 기능 명세 (이 문서)</li><li><code>data/wiki.json</code> — 운영자 노트 (현재 패널 없음, 파일만 유지)</li><li><code>data/design.json</code> — 디자인 토큰 · 컴포넌트 · 톤 가이드</li><li><code>data/versions.json</code> — 버전 기록</li></ul>"
+    },
+    {
+      "id": "hero-background-and-tweaks",
+      "title": "Hero 배경 이미지 + Hero 전용 트윅",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-20",
+      "summary": "WHO I AM 풀-블리드 배경 이미지가 고정 헤더 뒤까지 비침 + Hero 영역 한정 트윅 5종 (title_scale · align · offset · bg_position · bg_opacity).",
+      "body_html": "<h2>레이아웃 (v0.013)</h2><ul><li><code>.site-header</code> <code>position: fixed</code> + hero 위에선 transparent · <code>body.is-scrolled</code>에서 warm paper bg + <code>backdrop-filter: blur</code></li><li><code>.section-who</code>가 y=0부터 차지, <code>figure.who-bg</code>(<code>inset:0</code>)가 투명 헤더 뒤에 깔림 (z-index 0)</li><li>모든 hero 텍스트는 z-index:2로 사진 위에 안정적으로 표시</li><li>헤더 z-index 50으로 상승, <code>.who-bg</code>+overlay는 <code>pointer-events:none</code> — 그 위 링크는 항상 클릭 가능</li></ul><h2>노출 강화 (v0.014)</h2><ul><li><code>.who-bg img</code> opacity 0.22 → 0.65, grayscale 필터 제거 — 사진이 실제로 보이도록</li><li><code>.who-bg-overlay</code>: <code>linear-gradient(to right, paper 0%, paper 88%, transparent 100%)</code> + 하단 soft fade — 텍스트 사이드는 보호, 사진 사이드는 노출</li></ul><h2>Hero 트윅 (v0.013)</h2><p><code>site-config.hero.tweaks</code> 객체:</p><ul><li><code>title_scale</code> — 0.5 ~ 2.0, 기본 1.0</li><li><code>align</code> — left / center</li><li><code>content_offset_px</code> — 80 ~ 400, 기본 180</li><li><code>bg_position</code> — center / top / bottom 등</li><li><code>bg_opacity</code> — 0.0 ~ 1.0, 기본 0.65 (v0.014부터)</li></ul><p><code>script.js</code> <code>applyHeroTweaks()</code>가 <code>.section-who</code>에 CSS 커스텀 프로퍼티(<code>--hero-title-scale</code>, <code>--hero-content-offset</code> 등)를 작성 — 다음 렌더에 즉시 반영.</p><h2>데이터 바인딩</h2><ul><li><code>data-config-attr=\"src:hero.background_image\"</code> 바인딩으로 hero 이미지 자동 갱신</li><li><code>hero.background_image_alt_ko/en</code> — 접근성 alt 텍스트</li></ul>"
+    },
+    {
+      "id": "admin-image-upload-base64",
+      "title": "관리자 이미지 파일 업로드 (base64 데이터 URI)",
+      "status": "active",
+      "category": "Admin",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-20",
+      "summary": "관리자 Hero 패널에서 이미지를 직접 선택해 base64 data URI로 siteConfig 드래프트에 저장. 영구 자산은 assets/ 경로 입력이 권장 — 업로드는 빠른 미리보기/드래프트용 (v0.014).",
+      "body_html": "<h2>동작</h2><ol><li>사용자가 <code>[data-file-upload]</code> input으로 이미지 파일 선택</li><li><code>manage.js</code> <code>handleImageUpload(input)</code>: FileReader.readAsDataURL → data URI 생성</li><li><code>siteConfig.hero.background_image = dataUri</code> 후 드래프트 mark — localStorage에 자동 저장</li><li><code>[data-file-upload-host]</code> 컨테이너에 썸네일 미리보기 + 선택 해제 버튼 표시</li><li>재진입 시 현재 저장된 값이 data URI면 썸네일 자동 복원</li></ol><h2>제약</h2><ul><li>4MB 상한 (FileReader 직전 size 검증) — 초과 시 alert + abort</li><li>data URI는 JSON에 그대로 들어가 파일 크기를 키움 → 영구 자산은 <code>assets/</code>에 올리고 경로 입력을 권장</li><li>업로드 input과 경로 input(<code>hero.background_image</code>) 둘 다 같은 필드에 쓰므로 마지막 액션이 이김</li></ul><h2>위치</h2><p>현재 Hero 패널 한 곳에만 적용. 향후 portfolio thumbnail 등으로 확장 시 같은 <code>[data-file-upload]</code> + <code>[data-file-upload-host]</code> 패턴으로 일반화.</p><h2>참조</h2><p>[[hero-background-and-tweaks]]</p>"
+    },
+    {
+      "id": "video-reel-binge-watch",
+      "title": "Video Reel + Binge-watch 모달",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-23",
+      "summary": "§What I Build 안의 영상 모음 섹션. preview 그리드 + '몰아보기' 모달(사이드바 플레이리스트 + 본문 YouTube iframe). 데이터는 site-config.videos.items[] (v0.015).",
+      "body_html": "<h2>데이터 모델</h2><pre><code>videos: {\n  title_ko/en, watch_all_ko/en, empty_ko/en,\n  items: [\n    { id, youtubeUrl, title_ko/en, role_ko/en }\n  ]\n}</code></pre><h2>렌더링</h2><ul><li><code>index.html</code> <code>section.video-reel#video-reel</code> (§Build 내부) — 기본 <code>hidden</code>, items가 있으면 노출</li><li><code>script.js</code> <code>renderVideoReel(config)</code>: <code>#video-reel-grid</code>에 카드 생성 — 16:9 썸네일 + 제목(영문 메인 / 한국어 보조) + role</li><li><code>youtubeUrl</code>이 비어있는 카드는 placeholder 표시 (<code>video-reel-thumb-empty</code>)</li><li><code>#video-reel-watchall</code> 버튼이 Binge-watch 모달 트리거</li></ul><h2>Binge-watch 모달</h2><ul><li>좌측 사이드바 플레이리스트 + 본문 큰 영상 (YouTube nocookie embed)</li><li>키보드 ↑↓ 네비, Enter 재생, ESC close</li><li>현재 항목 active 하이라이트</li></ul><h2>편집</h2><p>관리자 manage.html에는 별도 전용 패널 없음 — site-config.json 직접 편집 또는 Site &amp; SEO 탭으로 우회. (향후 admin 패널 추가 예정 — next_ko)</p>"
+    },
+    {
+      "id": "global-korea-overseas-split",
+      "title": "Global 섹션 — 한국 홈베이스 + 해외 분리 레이아웃",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-23",
+      "summary": "Global Field Experience 섹션에서 한국(is_home)을 별도 'home base' 블록으로 분리하고, 그 아래 해외 17개국 grid + 'overseas N개' eyebrow 카운트 (v0.015).",
+      "body_html": "<h2>레이아웃</h2><ul><li><code>#country-home-block</code> — <code>is_home: true</code>인 국가(한국)가 별도 풀폭 블록</li><li><code>.country-overseas-block</code> — 그 아래 해외 국가 grid</li><li><code>.country-overseas-head</code>에 eyebrow + <code>#country-overseas-count</code> (자동 카운트)</li></ul><h2>스크립트</h2><pre><code>// script.js renderCountries\nconst homeCountries = list.filter(c =&gt; c.is_home);\nconst overseasCountries = list.filter(c =&gt; !c.is_home);\n// homeBlockEl에 home 렌더\n// overseasGridEl에 overseas 렌더\n// overseasCountEl.textContent = overseasCountries.length</code></pre><h2>통계 표기</h2><ul><li>헤드라인 통계는 여전히 <strong>18국</strong> (전체 합산) — 자동 카운트</li><li>해외 그리드 위 eyebrow에 '17 overseas · 1 home' 형태로 분해 표기</li></ul><h2>이유</h2><p>한국은 단순 방문국이 아닌 '운영 거점'이라는 의미상의 위계가 있어, chip 그리드 안에 섞이지 않고 별도 home base 블록으로 분리. 그러면서도 글로벌 18국 통계는 유지해 'reach'와 'base'가 동시에 읽히도록 설계.</p><h2>관련</h2><p>[[korea-home-card]] (v0.011 이전의 한국 풀폭 카드 + 방문 도시 슬롯) — 그 패턴이 v0.015에서 별도 블록 분리로 확장됨</p>"
+    },
+    {
+      "id": "sticky-header-floating-top",
+      "title": "Sticky Hero 헤더 + Floating Top 버튼",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-20",
+      "summary": "사이트 헤더가 hero 위에선 transparent로 떠있다가 스크롤 시 paper bg로 전환 + 우측 하단 #floating-top 버튼 (600px 이후 fade-in, smooth scroll). v0.012/v0.013.",
+      "body_html": "<h2>헤더 동작 (v0.013)</h2><ul><li><code>.site-header</code> <code>position: fixed</code>, z-index 50</li><li>기본: transparent — hero 배경 이미지가 메뉴 뒤까지 비침</li><li>스크롤 60px 임계 통과 시 <code>body.is-scrolled</code> 토글 → 헤더에 warm paper bg + <code>backdrop-filter: blur</code></li><li><code>script.js</code> scroll 핸들러가 토글 (passive listener)</li></ul><h2>Floating Top (v0.012)</h2><ul><li><code>#floating-top</code> 버튼 — fixed bottom-right</li><li>스크롤 600px 이후 fade-in (opacity transition)</li><li>클릭 시 <code>window.scrollTo({ top: 0, behavior: 'smooth' })</code></li><li>인쇄 시 <code>@media print</code>에서 hide</li></ul><h2>설계 의도</h2><p>긴 아카이브 페이지(8 섹션)에서 사용자가 빠르게 처음으로 돌아갈 수 있는 출구를 만들면서, 동시에 hero 첫 화면에서는 메뉴가 시각적으로 비어 보이도록 — '읽기에 집중되는 시작 화면' 인상을 유지.</p>"
+    },
+    {
+      "id": "editorial-system-bilingual-pageline-print",
+      "title": "에디토리얼 시스템 — Bilingual EN-primary · Archive Pageline · PDF Print",
+      "status": "active",
+      "category": "Public",
+      "owner": "Jimmy",
+      "last_updated": "2026-05-20",
+      "summary": "사이트 전반에 적용되는 3가지 구현 규약: (1) 영문 메인 + 한국어 보조 헤딩 패턴, (2) 섹션 헤더 archive-pageline 통일, (3) PDF 출력 페이지 단위 분리.",
+      "body_html": "<h2>1. Bilingual EN-primary (v0.010)</h2><ul><li><code>.bilingual-en</code> (큰 영문, ink) + <code>.bilingual-ko</code> (작은 한국어, muted gray) — 한 헤딩 안에 두 줄</li><li>사이트 전체 <code>html lang=en</code></li><li>적용 범위: hero · 섹션 라벨 · eyebrow · body</li><li>한국어는 번역이 아니라 자연스러운 보조 해설 — CLAUDE.md §3 규칙</li><li><code>BILINGUAL_PATHS</code>(script.js)에 hero · how · global · education · principles · contact 경로 등록</li></ul><h2>2. Archive Pageline (v0.011/v0.012)</h2><p>모든 섹션 헤더가 동일한 3-요소 한 줄로 통일:</p><pre><code>&lt;header class=\"archive-pageline\"&gt;\n  &lt;span class=\"archive-pageline-num\"&gt;02&lt;/span&gt;\n  &lt;span class=\"archive-pageline-divider\"&gt;&lt;/span&gt;\n  &lt;span class=\"archive-pageline-eyebrow\"&gt;HOW I WORK&lt;/span&gt;\n&lt;/header&gt;</code></pre><p>num(02 두 자리 zero-pad) · 1px burgundy 디바이더 · uppercase eyebrow. 01 ~ 08 8 섹션 전부 일괄.</p><h2>3. PDF Print (v0.011)</h2><ul><li><code>section.archive-page</code> 단위로 <code>page-break-inside: avoid</code></li><li><code>@media print</code>: header / nav / floating-top / modal hide · grid 단순화</li><li>country detail 패널 자동 펼침</li><li>burgundy는 #6E1F32 그대로 (print-safe — 흑백 출력에서도 정보 계층 유지)</li><li>본문 폰트는 인쇄용 weight + 크기로 약간 조정</li></ul><h2>참조</h2><p>CLAUDE.md §3 (language structure) · §4 (8 sections) · §5 (color &amp; visual) — 코드 변경 시 항상 동기화. [[site-purpose-and-flow]]도 함께 참조.</p>"
     }
   ]
 }

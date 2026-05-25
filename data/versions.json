@@ -6,6 +6,68 @@
   "format_note_en": "YYYY.MM.DD _ V aa.bbb.cc — aa = Jimmy-managed major · bbb = Claude update count · cc = hotfix/bugfix",
   "items": [
     {
+      "id": "2026-05-23-v00-015-00",
+      "date": "2026.05.23",
+      "version": "V 00.015.00",
+      "summary_ko": "가독성 패스 (본문 굵기·줄높이 강화) + Video Reel 빈지워치 모달 + Global 섹션 한국 / 해외 분리",
+      "summary_en": "Readability pass + video reel (binge-watch modal) + Global section Korea / overseas split",
+      "highlights_ko": [
+        "본문 weight 300 → 400, muted 톤 darken, 기본 폰트와 line-height 확대 — Paybooc이 따뜻한 종이 톤 위에서 더 또렷하게 읽힘",
+        "§What I Build 안에 Video Reel 섹션 신규 — preview grid + Binge-watch 모달 (사이드바 플레이리스트)",
+        "Global 섹션: 한국이 별도 'home base' 블록으로 분리, 그 아래 해외 17개국 grid",
+        "Overseas eyebrow 줄에 'overseas N개' 카운트 자동 표시 (헤드 통계는 그대로 18국 유지)"
+      ],
+      "non_dev_html": "<p>본문이 너무 얇아 따뜻한 종이 톤 위에서 흐려진다는 인상을 받아, 글자 굵기와 줄간격을 키워 한 번에 또렷하게 읽히도록 정리했습니다. 같이 다듬은 김에 §What I Build 안에 영상 모음 섹션을 새로 만들었습니다 — 작은 미리보기 그리드를 두고, '몰아보기' 버튼을 누르면 사이드바 플레이리스트와 함께 본문에 영상이 큰 화면으로 재생됩니다.</p><p>Global 섹션은 한국을 별도 'home base' 블록으로 끌어올리고 그 아래 해외 17개국을 정렬했습니다. 통계 헤드라인은 그대로 18국으로 유지하되, 아래 한 줄에 'overseas 17개국'을 자동으로 카운트해서 한국과 해외의 비중이 시각적으로 분리됩니다.</p>",
+      "dev_html": "<ul><li><code>body</code> font-weight 300 → 400, base font 약간 키움, line-height 확대 · <code>--muted</code> 톤 darken · <code>.section-intro</code>를 <code>--ink</code> 컬러로</li><li>index.html에 <code>section.video-reel#video-reel</code> 추가 — <code>#video-reel-grid</code> (preview 카드) + <code>#video-reel-watchall</code> 트리거</li><li>script.js: <code>renderVideoReel(config)</code> — <code>site-config.videos.items[]</code>를 읽어 카드 그리드, 비어있으면 섹션 hidden</li><li>Binge-watch 모달: 사이드바 플레이리스트 + 본문 iframe (YouTube nocookie embed). 키보드 ↑↓ 네비, ESC close</li><li>script.js <code>renderCountries</code>: <code>is_home</code>인 항목은 <code>#country-home-block</code>으로, 나머지는 grid로 분리 렌더 + <code>#country-overseas-count</code>에 카운트 주입</li><li>index.html <code>.country-home-block</code> / <code>.country-overseas-block</code> 두 컨테이너 + <code>.country-overseas-head</code> eyebrow</li></ul>",
+      "next_ko": [
+        "Video Reel에 실제 YouTube URL 채우기 (현재 sample 3개)",
+        "Career narrative 보강 — 회사별 'context · role · outcome' 문장",
+        "Portfolio 모달 problem / approach / structure / tools 필드 확장",
+        "PDF print 페이지 경계 재검증 (v0.015 가독성 변경 영향)"
+      ]
+    },
+    {
+      "id": "2026-05-20-v00-014-00",
+      "date": "2026.05.20",
+      "version": "V 00.014.00",
+      "summary_ko": "Hero 배경 이미지가 실제로 보이도록 노출 강화 + 관리자에서 이미지 파일 직접 업로드 (base64 데이터 URI)",
+      "summary_en": "Hero background actually shows (opacity / overlay rework) + admin file upload via base64 data URI",
+      "highlights_ko": [
+        "Hero 배경 opacity 0.22 → 0.65 · grayscale 필터 제거 → 사진이 실제로 보임",
+        ".who-bg-overlay 재작업: 왼쪽 88% paper → 오른쪽 5% 부드러운 fade + 하단 트랜지션 — 텍스트는 그대로 살고 배경은 헤더 아래까지 자연스럽게 비침",
+        "관리자 Hero 패널에 파일 업로드 input — FileReader → base64 data URI → siteConfig.hero.background_image, 즉시 썸네일 미리보기",
+        "4MB 업로드 cap + 선택 해제 버튼 + 현재 저장된 data URI 재진입 시 표시",
+        "영구 자산은 여전히 assets/ 경로 입력이 권장 — 업로드는 빠른 미리보기/드래프트용"
+      ],
+      "non_dev_html": "<p>이전 버전에서 Hero 배경 이미지가 너무 흐려서 사진이 거의 안 보이는 상태였습니다. 이번 업데이트로 사진이 실제로 보이도록 투명도와 회색 필터를 풀고, 텍스트가 묻히지 않도록 왼쪽에서 오른쪽으로 부드럽게 종이 톤이 사라지는 오버레이로 다시 잡았습니다.</p><p>관리자에서는 그동안 이미지 경로만 입력할 수 있었는데, 이제 <strong>파일을 직접 선택해서 바로 미리보기</strong>가 가능합니다. (영구로 쓸 자산은 여전히 assets/에 올리고 경로를 적는 방식을 권장 — 업로드는 빠른 드래프트용입니다.)</p>",
+      "dev_html": "<ul><li>styles.css: <code>.who-bg img</code> opacity 0.22 → 0.65, <code>filter: grayscale</code> 제거</li><li><code>.who-bg-overlay</code>를 <code>linear-gradient(to right, paper 0%, paper 88%, transparent 100%)</code> + bottom soft fade로 재작성 — 텍스트 사이드는 보호, 사진 사이드는 노출</li><li><code>site-config.json</code> <code>hero.tweaks.bg_opacity</code> 기본값 0.22 → 0.65</li><li>manage.html: Hero 패널에 <code>[data-file-upload]</code> input + <code>[data-file-upload-host]</code> 컨테이너 (썸네일 + 선택 해제 버튼)</li><li>manage.js <code>handleImageUpload(input)</code>: FileReader.readAsDataURL → <code>siteConfig.hero.background_image = dataUri</code> 후 드래프트 mark</li><li>4MB 상한 검증 + 현재 저장된 값이 data URI면 재진입 시 썸네일 자동 복원</li><li>버전: site V00.014.00, admin V00.008.00</li></ul>",
+      "next_ko": [
+        "v0.015 가독성 패스",
+        "Video Reel 섹션 신설 (Binge-watch 모달)",
+        "Global 섹션 한국 / 해외 분리"
+      ]
+    },
+    {
+      "id": "2026-05-20-v00-013-00",
+      "date": "2026.05.20",
+      "version": "V 00.013.00",
+      "summary_ko": "Hero 배경이 고정 헤더 뒤까지 비치도록 레이아웃 재정렬 + Hero 전용 트윅 5종 + 참고 문서 패널 MutationObserver 자동 로드",
+      "summary_en": "Hero bg now bleeds under fixed header + 5 hero-only tweaks + readonly doc panels auto-load via MutationObserver",
+      "highlights_ko": [
+        "사이트 헤더 position: fixed + hero 위에선 transparent → 스크롤 시 따뜻한 종이 톤 + backdrop blur로 전환 (body.is-scrolled)",
+        "WHO I AM이 y=0부터 차지 — .who-bg figure(inset:0)가 투명 헤더 뒤에 깔려 배경 이미지가 상단 메뉴 아래까지 자연스럽게 비침",
+        "Hero 전용 트윅 5종 신규: title_scale (0.5–2.0) · align (left/center) · content_offset_px (80–400) · bg_position · bg_opacity — 관리자 Hero 패널에서 슬라이더/셀렉트로 조정",
+        "applyHeroTweaks()가 .section-who에 CSS 커스텀 프로퍼티 작성 — 다음 렌더에 즉시 반영",
+        "참고 문서 패널(KMS · Design · Versions): 기존 클릭+localStorage 복원 훅을 .manage-tab 전체에 대한 MutationObserver로 교체 — 클릭/URL hash/localStorage 어느 경로로 진입해도 데이터 자동 로드"
+      ],
+      "non_dev_html": "<p>처음 화면을 열었을 때 상단 메뉴와 본문 배경이 명확히 갈라져 보이던 문제를 정리했습니다. 이제 헤더는 hero 위에서 투명하게 떠 있다가 스크롤이 시작되면 종이 톤으로 자연스럽게 바뀝니다. 덕분에 첫 화면 배경 이미지가 메뉴 뒤까지 끊김 없이 이어집니다.</p><p>관리자에서는 Hero 영역만 따로 조정할 수 있는 트윅 5개(제목 크기 배율 / 정렬 / 상단 여백 / 배경 위치 / 배경 투명도)를 새로 만들었습니다. 또한 KMS · 디자인 · 버전 기록 패널이 어디서 진입하든 자동으로 데이터를 불러오도록 내부 로직을 안정화했습니다.</p>",
+      "dev_html": "<ul><li>styles.css: <code>.site-header</code> <code>position: fixed</code> + transparent · <code>body.is-scrolled .site-header</code>에서 warm paper bg + <code>backdrop-filter: blur</code></li><li>script.js: scroll 핸들러로 <code>body.is-scrolled</code> 토글 (60px 임계)</li><li><code>.section-who</code> 패딩 재조정 — y=0부터 차지, <code>.who-bg</code>가 <code>inset:0</code>로 헤더 뒤까지 깔림 (z-index 0) · 모든 hero 텍스트는 z-index:2</li><li><code>site-config.hero.tweaks</code> 객체 신규: <code>title_scale</code>, <code>align</code>, <code>content_offset_px</code>, <code>bg_position</code>, <code>bg_opacity</code></li><li>manage.html Hero 패널에 'Hero 트윅' grid (5개 바인딩)</li><li>script.js <code>applyHeroTweaks()</code>: <code>.section-who</code>에 <code>--hero-title-scale</code> / <code>--hero-content-offset</code> 등 CSS 변수 set</li><li>manage.js: <code>_readonlyTabObserver = new MutationObserver(tryActivateReadonlyFromActiveTab)</code> — 모든 <code>.manage-tab</code>의 <code>class</code>/<code>aria-selected</code> 변경 감지 + 초기 호출 + <code>setTimeout(0)</code> fallback으로 DOM init race 해결</li><li>body 배경 gradient를 새 palette(#f6f3ef → #eee7df)로 재도색</li></ul>",
+      "next_ko": [
+        "v0.014에서 hero 배경 노출 강화 (opacity/overlay)",
+        "관리자 이미지 파일 업로드 (base64)"
+      ]
+    },
+    {
       "id": "2026-05-20-v00-012-00",
       "date": "2026.05.20",
       "version": "V 00.012.00",
