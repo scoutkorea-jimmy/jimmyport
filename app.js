@@ -39,7 +39,7 @@
   var $dlJson = document.getElementById("download-json");
   var $dlJs = document.getElementById("download-js");
   var $results = document.querySelector(".results");
-  var $legend = null;
+  var legendControl = null;
 
   // ── state ──────────────────────────────────────────────────────────
   var UNITS = Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : [];
@@ -230,14 +230,17 @@
   function buildLegend() {
     var seen = {}, items = [];
     UNITS.forEach(function (u) { if (u.region && !seen[u.region]) { seen[u.region] = true; items.push({ color: colorOf(u), label: u.region }); } });
-    if ($legend) { $legend.remove(); $legend = null; }
-    if (!items.length || !$results) return;
-    var det = document.createElement("details");
-    det.className = "legend";
-    det.innerHTML = "<summary>" + esc(T.legend(items.length)) + "</summary><ul class='legend-list'>" +
-      items.map(function (it) { return '<li class="legend-item"><span class="legend-swatch" style="background:' + it.color + '"></span><span class="legend-name">' + esc(it.label) + "</span></li>"; }).join("") + "</ul>";
-    $results.appendChild(det);
-    $legend = det;
+    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
+    if (!items.length) return;
+    legendControl = L.control({ position: "bottomright" });
+    legendControl.onAdd = function () {
+      var div = L.DomUtil.create("div", "map-legend");
+      div.innerHTML = '<div class="map-legend-title">Region</div>' +
+        items.map(function (it) { return '<div class="legend-item"><span class="legend-swatch" style="background:' + it.color + '"></span><span class="legend-name">' + esc(it.label) + "</span></div>"; }).join("");
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    legendControl.addTo(map);
   }
 
   // ── view toggle ─────────────────────────────────────────────────────

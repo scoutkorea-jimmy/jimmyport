@@ -247,6 +247,17 @@ body {
 .legend-swatch { flex: 0 0 auto; width: 13px; height: 13px; border-radius: 4px; border: 1px solid rgba(0,0,0,.12); }
 .legend-name { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Region legend (map bottom-right, always visible) */
+.map-legend {
+  background: rgba(255,255,255,.94); border: 1px solid var(--line);
+  border-radius: var(--r-md); box-shadow: var(--shadow);
+  padding: 8px 10px; font-size: 0.74rem; line-height: 1.5;
+}
+.map-legend-title { font-weight: var(--fw-6); color: var(--ink); margin-bottom: 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .03em; }
+.map-legend .legend-item { display: flex; align-items: center; gap: 7px; }
+.map-legend .legend-swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex: 0 0 auto; }
+.map-legend .legend-name { color: var(--ink); white-space: nowrap; }
+
 /* ── Map ───────────────────────────────────────────────────────────── */
 .map { min-height: 0; height: 100%; background: var(--surface-2); z-index: 0; }
 
