@@ -1,71 +1,101 @@
-# scout-finder — Project Brief (Claude must read first)
+# scout-finder — Project Brief & Command Log (Claude는 작업 전 항상 먼저 읽을 것)
 
-> 이 레포는 이전의 jimmypark.net 개인 아카이브에서 **scout-finder 정적 웹앱**으로
-> 전면 전환되었습니다. (이전 내용은 git 히스토리에 보존)
+> **⛳️ 최우선 규칙**
+> 사용자가 어떤 명령을 하든, **무조건 이 파일(CLAUDE.md)을 먼저 확인한 뒤** 작업을 시작한다.
+> 이 문서는 (1) 프로젝트의 정체성·구조, (2) 확정된 의사결정, (3) 사용자의 명령 의도 기록을
+> 담는 **단일 컨텍스트/메모리**다. 이미 합의된 내용은 다시 설명하지 말고 바로 반영한다.
+> 의미 있는 변경/새 지시가 생기면 아래 **명령 기록 로그**에 한 줄로 append 한다.
+
+---
 
 ## 1. 목적
-
-사용자가 지역(시/구/동)을 검색하거나 지도를 클릭하면, 그 위치를 기준으로
-가까운 스카우트 지역대를 **거리순**으로 지도와 목록에 보여주는 정적 웹앱.
-GPS 미사용 — 검색·지도 클릭 기반 위치 지정.
+지역(시/구/동)을 검색하거나 지도를 클릭하면, 그 위치 기준으로 가까운 스카우트 단위대를
+**거리순**으로 지도·목록에 보여주는 정적 웹앱. GPS 미사용 — 검색·지도 클릭으로 위치 지정.
 
 ## 2. 스택 / 제약 (반드시 준수)
-
 - **Vanilla HTML/CSS/JS만.** 프레임워크·번들러·빌드 단계 도입 금지.
-- 지도: **Leaflet 1.9.4** (cdnjs CDN), 타일: **OpenStreetMap**.
-- **외부 API 키·지오코딩 호출 금지** — 전부 클라이언트에서 동작.
-- 위치 매칭은 데이터 내 `name/federation/district/address` 부분일치(오프라인).
-- UI 텍스트는 **한국어**, 식별자/코드는 **영어**.
-- 디자인: 깔끔한 '필드 가이드/지도' 무드. **보라색 그라데이션·generic AI 톤 금지.**
+- 지도: **Leaflet 1.9.4** (cdnjs), 타일: **OpenStreetMap**.
+- 클라이언트 단독 동작 — 외부 API 키·지오코딩 호출 금지. *(단, 영구저장/IP/댓글 등 §10
+  백엔드 항목은 Cloudflare Pages Functions 도입을 전제로 별도 합의 후 진행)*
+- UI 텍스트 **한국어**, 식별자/코드 **영어**.
+- 디자인: 깔끔한 '필드 가이드/지도' 무드. generic AI 톤·보라 그라데이션 남발 금지.
 
 ## 3. 파일 구조
-
 ```
-index.html   레이아웃 + Leaflet CDN + 푸터(데이터 다운로드·관리자 링크)
-styles.css   스타일 (포레스트 그린 강조 + 종이 톤, 공개+관리자 공용)
-app.js       검색·centroid anchor·haversine 정렬·지도클릭 재정렬·렌더링·다운로드
-manage.html  관리자 페이지 (단위대 CRUD + 좌표 지정)
-manage.js    관리자 로직 (localStorage 편집본 + data.js 다운로드/JSON 가져오기)
-data.js      window.SCOUT_UNITS + window.SCOUT_FEDERATIONS (← 데이터 교체 지점)
-README.md    실행·교체·배포 안내
+index.html        헤더+검색+2단(목록/지도)+푸터(데이터 다운로드·관리자 링크)
+styles.css        브랜드 팔레트 + Wanted Sans(7단계) 테마 (공개+관리자 공용)
+app.js            검색·centroid anchor·haversine 정렬·지도클릭 재정렬·핀색·범례·다운로드
+manage.html       관리자 페이지 (단위대 CRUD + 좌표 지정)
+manage.js         관리자 로직 (localStorage 편집본 + data.js 다운로드/JSON 가져오기)
+data.js           SCOUT_UNITS + SCOUT_FEDERATIONS + SCOUT_FEDERATION_COLORS (← 데이터 교체 지점)
+version-watch.js  /VERSION 폴링 → 새 배포 시 우측 상단 새로고침 알림
+VERSION           사이트 버전 (의미 있는 변경마다 bump)
+README.md         실행·교체·배포 안내
 ```
 
-## 조직 구조 (한국스카우트연맹)
-
+## 4. 조직 구조 (한국스카우트연맹)
 ```
-단위대(학교대/지역대) → 지구연합회 → 지방·특수연맹(22개)
+단위대(학교대 / 지역대) → 지구연합회 → 지방·특수연맹(22개)
 예) 비파지역대 → 목포지구연합회 → 전남연맹
 ```
-22개 연맹 = 지역연맹 18 + 특수연맹 4. 목록은 `data.js`의 `window.SCOUT_FEDERATIONS`.
+- **단위대 종류**: `type` = "지역대"(지역 중심) | "학교대"(학교 중심).
+- **22개 연맹** = 지역 18 + 특수 4. 목록은 `data.js`의 `window.SCOUT_FEDERATIONS`.
+- **연맹별 고유 핀 색상**: `window.SCOUT_FEDERATION_COLORS` (22색, 상호 절대 중복 금지).
+- 데이터 스키마: `{ id, name, type, federation, council, address, lat, lng, sections[], meetingDay, contact, note }`
+  - `federation` = 지방·특수연맹, `council` = 지구연합회.
 
-## 관리자 (manage.html)
+## 5. 디자인 시스템
+- **브랜드 컬러(첨부 Color values)** 가 테마 기본. CSS `:root` 토큰:
+  Scouting Purple `#622599`(=`--accent`), Midnight Purple `#4D006E`(=`--accent-ink`),
+  Canvas White, Blossom Pink `#FF8DFF`, Fire Red `#FF5655`, Ember Orange `#FFAE80`,
+  Ocean Blue `#0094B4`, River Blue `#82E6DE`, Forest Green `#248737`, Leaf Green `#9FED8F`.
+  배경은 옅은 라벤더 캔버스(`--bg #f6f3fa`), 본문 ink `#221b2b`.
+- **폰트: Wanted Sans Variable** (`@import` cdn.jsdelivr). **weight 7단계** `--fw-1..7`
+  = 300/400/500/600/700/800/900 을 위계에 맞게 사용.
 
-- 백엔드·키 없음 → **localStorage 기반 로컬 편집 도구** (로그인 없음).
-- 편집본은 `localStorage["scoutfinder:units"]`에 저장, 공개 사이트가 "편집본 미리보기"로 사용.
-- 실제 반영은 `data.js 다운로드` → 저장소 `data.js` 교체 → 커밋·배포.
-- 좌표는 마커 드래그 또는 "지도에서 위치 지정"(클릭)으로 입력.
+## 6. 핵심 동작 규약
+- 검색어 → 일치 유닛(name/type/federation/council/address) centroid 를 anchor 로.
+- haversine 거리 **오름차순** 정렬, 목록·핀 갱신. 지도 클릭 시 그 좌표로 재정렬.
+- anchor + 가까운 5개에 `fitBounds`. 거리 표기 **km, 소수 1자리**.
+- 핀 색 = 연맹색, 핀 번호는 거리 순위(흑/백 글자 자동 대비). 기준점 핀은 다크 plum 별도.
+- 결과 없음 → 안내 + "전체 보기".  **순서(배치) 개념 없음** — 관리자에 수동 정렬 UI 두지 않음.
+- 모바일(≤820px): 헤더 **목록/지도 토글**로 단일 패널 전환(`body.view-list/view-map`).
+- 새 버전 감지 시 우측 상단 "새로운 버전이 올라왔습니다 / 새로고침하세요" 알림.
+- 키보드 접근성·aria 기본 처리, **콘솔 에러 0**. `data.js`만 교체하면 동작(로직/데이터 분리).
 
-## 4. 핵심 로직 규약
+## 7. 관리자 (manage.html) — 현재
+- 백엔드·로그인 없음 → **localStorage 로컬 편집 도구**. 추가/수정/삭제 + 좌표 지정(드래그/클릭).
+- 편집본 `localStorage["scoutfinder:units"]` 저장 → 공개 사이트가 "편집본 미리보기"로 사용.
+- 실제 반영: `data.js 다운로드` → 저장소 `data.js` 교체 → 커밋·배포.
 
-- 검색어 → 일치 유닛들의 좌표 **centroid**를 anchor로.
-- haversine 으로 anchor→전체 거리 계산, **오름차순** 정렬해 목록·마커 갱신.
-- 지도 클릭 시 그 좌표를 anchor로 동일 재정렬.
-- 지도는 anchor + 가까운 상위 5개에 `fitBounds`.
-- 거리 표기 **km, 소수 1자리**.
-- 결과 없음 → 안내 + "전체 보기" 복귀.
-- `data.js`만 교체하면 동작하도록 **로직/데이터 분리 유지**.
-- 키보드 접근성·aria 기본 처리, **콘솔 에러 0**.
+## 8. 운영 규칙
+- **자동 commit + push + 배포**: 검증 통과 즉시 git commit + push +
+  `wrangler pages deploy . --project-name jimmyport --branch main`. 별도 지시 없어도 진행.
+- 로컬 dev server 띄우지 말 것. 의미 있는 변경마다 `VERSION` bump.
+- 배포 대상 Cloudflare Pages 프로젝트 `jimmyport` (도메인 jimmypark.net, CNAME 유지).
+  `/manage.html` 은 clean-URL 로 `/manage` 308 리다이렉트(정상).
 
-## 5. 데이터 (data.js)
+---
 
-- 현재는 **샘플** (헤더 "샘플 데이터" 배지). 실데이터 연결 시 교체.
-- 모든 위치는 '동' 단위. 좌표(lat/lng) 필수.
-- 스키마: `{ id, name, type, federation, council, address, lat, lng, sections[], meetingDay, contact, note }`
-  - `type` = "지역대" | "학교대", `federation` = 지방·특수연맹, `council` = 지구연합회.
+## 9. 명령 기록 로그 (Command Intent Log)
+> 사용자의 지시·의도를 시간 순으로 누적. 같은 작업을 다시 설명하지 않기 위한 기준.
 
-## 6. 운영 규칙
+- 이전 jimmypark.net 개인 아카이브 → **전면 백지화**(데이터/파일), 새 프로젝트로 전환.
+- **scout-finder** 신규: "내 주변 스카우트 지역대 찾기" 정적 웹앱 (위 §1~6 사양 확정).
+- 샘플 데이터는 실지명·실좌표 기반, 명시 지역 전부 포함(현재 16곳). 기존 jimmypark 파일 삭제 정리.
+- **관리자 페이지** 추가 — 정보 추가/수정 가능하게.
+- 한국스카우트연맹 **조직 구조** 반영: 단위대(학교대/지역대)→지구연합회→지방특수연맹(22). 예) 비파지역대-목포지구연합회-전남연맹.
+- 연맹/단위대/지구연합회 데이터 최신화 + **홈페이지에서 데이터 다운로드** 가능하게.
+- 새 버전 올라오면 **우측 상단 새로고침 알림**.
+- 전반적 **모바일·웹 친화 UI/UX**.
+- **지역대 순서 배치 삭제** (순서는 중요치 않음 → 관리자 정렬 UI 제거).
+- **22개 연맹을 색으로 핀 구분**, 연맹 간 색 절대 중복 금지.
+- 첨부 **브랜드 컬러를 테마 기본**으로, 첨부 **Wanted Sans 폰트 + 7단계 weight** 활용.
+- (요청) 이 CLAUDE.md 를 **명령 기록·컨텍스트 메모리**로 만들고, 명령 시 **항상 먼저 확인**하게 세팅.
 
-- **자동 commit + push + 배포**: 변경 검증 통과 즉시 git commit + push +
-  `wrangler pages deploy . --project-name jimmyport`. 별도 지시 없어도 진행.
-- 로컬 dev server는 띄우지 말 것.
-- 배포 대상 Cloudflare Pages 프로젝트는 `jimmyport` (도메인 jimmypark.net / CNAME 유지).
+## 10. 진행 예정 / 합의 필요 (백엔드 필요 — 정적 제약 초과)
+> 아래는 클라이언트 단독으로 불가능(특히 IP·공용 저장). Cloudflare Pages Functions + 저장소
+> (KV 또는 D1) 도입 시 구현 가능. **방식·인증·개인정보(IP) 합의 후 진행.**
+- **정보 영구 저장**: 관리자 편집이 실제 사이트에 바로 반영(현재는 다운로드→커밋만 가능).
+- **수정일시 기록 + 변경 로그(audit log)**: 항목 수정/클릭 시 일시·내용 누적.
+- **댓글**: 누구나 작성 가능. 제출 시 **작성자 IP 함께 기록**(IP는 서버에서만 취득 가능).
