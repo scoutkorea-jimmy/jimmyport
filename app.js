@@ -412,10 +412,11 @@
       })
       .catch(function () { setSaveStatus("Save failed (network)", false); });
   }
+  function reflectEditUI() { var eb = document.getElementById("edit-toggle"); if (eb) { eb.textContent = editMode ? "✓ Done" : "⚙"; eb.classList.toggle("active", editMode); eb.setAttribute("aria-pressed", editMode ? "true" : "false"); } }
   function toggleEditMode() {
     if (!editMode) { if (!getToken(false)) { setSaveStatus("Password required", false); return; } editMode = true; document.body.classList.add("edit-mode"); }
     else { editMode = false; document.body.classList.remove("edit-mode"); $list.querySelectorAll(".edit-panel").forEach(function (p) { p.hidden = true; p.innerHTML = ""; }); }
-    var eb = document.getElementById("edit-toggle"); if (eb) { eb.textContent = editMode ? "Done" : "Edit"; eb.setAttribute("aria-pressed", editMode ? "true" : "false"); }
+    reflectEditUI();
   }
   function unitIndex(id) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].id === id) return i; return -1; }
   function editPanelFor(id) { return $list.querySelector('.edit-panel[data-edit-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
@@ -438,7 +439,7 @@
       "</div>";
   }
   function openEdit(id) {
-    if (!editMode) { if (!getToken(false)) { setSaveStatus("Password required", false); return; } editMode = true; document.body.classList.add("edit-mode"); var e0 = document.getElementById("edit-toggle"); if (e0) e0.textContent = "Done"; }
+    if (!editMode) { if (!getToken(false)) { setSaveStatus("Password required", false); return; } editMode = true; document.body.classList.add("edit-mode"); reflectEditUI(); }
     var i = unitIndex(id); if (i < 0) return;
     $list.querySelectorAll(".edit-panel").forEach(function (p) { if (p.getAttribute("data-edit-for") !== id) { p.hidden = true; p.innerHTML = ""; } });
     var panel = editPanelFor(id); if (!panel) return;
@@ -501,7 +502,7 @@
   }
   function addUnit() {
     if (!getToken(false)) { setSaveStatus("Password required", false); return; }
-    if (!editMode) { editMode = true; document.body.classList.add("edit-mode"); var eb = document.getElementById("edit-toggle"); if (eb) eb.textContent = "Done"; }
+    if (!editMode) { editMode = true; document.body.classList.add("edit-mode"); reflectEditUI(); }
     var c = map.getCenter();
     var u = { id: "unit-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), name: "New Scout Unit", type: "Community unit", country: "Republic of Korea", lat: round5(c.lat), lng: round5(c.lng), place: "", sections: [], homepage: "", note: "", photo: "" };
     applyCountry(u); UNITS.push(u); scheduleSave(); showAll(); openEdit(u.id);

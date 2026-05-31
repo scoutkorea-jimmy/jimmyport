@@ -375,7 +375,11 @@ body:not(.edit-mode) .card-tools { display: none; }
 
 /* header editor bar */
 .header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
-.editor-bar { display: flex; align-items: center; gap: 8px; }
+.editor-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.gear-btn { border: 1px solid var(--line-2); background: var(--surface); color: var(--muted); font-size: 0.95rem; line-height: 1; padding: 7px 11px; border-radius: var(--r-md); cursor: pointer; }
+.gear-btn:hover { border-color: var(--accent); color: var(--accent); }
+.gear-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.gear-btn:focus-visible { outline: none; box-shadow: var(--focus); }
 .ed-btn { border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-weight: var(--fw-5); font-size: 0.82rem; padding: 7px 14px; border-radius: var(--r-md); cursor: pointer; }
 .ed-btn:hover { border-color: var(--accent); color: var(--accent); }
 .ed-btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
