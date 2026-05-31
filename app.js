@@ -119,7 +119,7 @@
       '<div class="popup-affil">' + esc(u.country) + (u.region ? " · " + esc(u.region) : "") + "</div>" +
       '<div class="popup-line">' + esc(u.nso) + "</div>" + photo + act + rec +
       '<div class="popup-line">' + homepageHtml(u, true) + "</div>" + dist +
-      '<button class="popup-cmt" data-cmt="' + escAttr(u.id) + '">💬 Comments</button>' +
+      '<button class="popup-cmt" data-cmt="' + escAttr(u.id) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-4 4z"></path></svg>Comments</button>' +
       '<div class="cmt-panel" data-panel-for="' + escAttr(u.id) + '" hidden></div>'
     );
   }
@@ -291,7 +291,7 @@
     return '<form class="cmt-form' + (reply ? " reply" : "") + '" data-parent="' + escAttr(parentId || "") + '">' +
       '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" value="' + escAttr(nk) + '" />' +
       '<textarea class="cmt-body" maxlength="1000" placeholder="' + (reply ? "Write a reply…" : "Write a comment (you can add a photo below)…") + '"></textarea>' +
-      '<div class="cmt-file-row"><label class="cmt-file-btn">📷 Add photo<input type="file" class="cmt-img-file" accept="image/*" /></label><span class="cmt-img-status"></span></div>' +
+      '<div class="cmt-file-row"><label class="cmt-file-btn">Add photo<input type="file" class="cmt-img-file" accept="image/*" /></label><span class="cmt-img-status"></span></div>' +
       '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree that my nickname and IP address are stored for moderation (GDPR).</span></label>' +
       '<div class="cmt-form-row"><button type="submit" class="cmt-submit">' + (reply ? "Reply" : "Post") + '</button><span class="cmt-error"></span></div>' +
       "</form>";
@@ -412,7 +412,7 @@
       })
       .catch(function () { setSaveStatus("Save failed (network)", false); });
   }
-  function reflectEditUI() { var eb = document.getElementById("edit-toggle"); if (eb) { eb.textContent = editMode ? "✓ Done" : "⚙"; eb.classList.toggle("active", editMode); eb.setAttribute("aria-pressed", editMode ? "true" : "false"); } }
+  function reflectEditUI() { var eb = document.getElementById("edit-toggle"); if (eb) { eb.classList.toggle("active", editMode); eb.setAttribute("aria-pressed", editMode ? "true" : "false"); eb.title = editMode ? "Exit admin mode" : "Admin tools"; } }
   function toggleEditMode() {
     if (!editMode) { if (!getToken(false)) { setSaveStatus("Password required", false); return; } editMode = true; document.body.classList.add("edit-mode"); }
     else { editMode = false; document.body.classList.remove("edit-mode"); $list.querySelectorAll(".edit-panel").forEach(function (p) { p.hidden = true; p.innerHTML = ""; }); }
@@ -432,7 +432,7 @@
       '<div class="readonly-line" data-enso>' + esc((u.nso || "—") + " · " + (u.region || "—")) + "</div>" +
       '<label class="ef-l">About (description)<textarea data-ef="note" rows="2">' + esc(u.note) + "</textarea></label>" +
       '<label class="ef-l">Homepage (Instagram)<input type="text" data-ef="homepage" value="' + escAttr(u.homepage) + '" placeholder="https://instagram.com/..." /></label>' +
-      '<div class="ef-l">Photo<div class="cmt-file-row"><label class="cmt-file-btn">📷 Upload<input type="file" data-ephoto accept="image/*" /></label><span class="ef-photo-status"></span></div>' + photo + "</div>" +
+      '<div class="ef-l">Photo<div class="cmt-file-row"><label class="cmt-file-btn">Upload photo<input type="file" data-ephoto accept="image/*" /></label><span class="ef-photo-status"></span></div>' + photo + "</div>" +
       '<div class="ef-l">Location<div class="coord-row"><input type="text" data-eaddr placeholder="Search address / place" value="' + escAttr(u.place || "") + '" style="flex:1 1 auto" /><button type="button" class="admin-btn" data-eaddr-btn>Find</button></div><div class="readonly-line" data-ecoord>' + editCoordText(u) + "</div></div>" +
       '<div class="ef-l">Recruiting<div class="sections-box">' + secs + "</div></div>" +
       '<div class="ef-row"><button type="button" class="cmt-submit" data-edone>Done</button><button type="button" class="ef-del" data-edel>Delete</button></div>' +
