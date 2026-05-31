@@ -350,6 +350,15 @@ body {
   flex: 0 0 auto; margin: 0; padding: 9px 12px; font-size: 0.78rem; font-weight: var(--fw-2);
   color: var(--muted); background: var(--surface-2); border-top: 1px solid var(--line);
 }
+.map-search {
+  flex: 0 0 auto; display: flex; gap: 8px; padding: 10px 12px;
+  background: var(--surface-2); border-bottom: 1px solid var(--line);
+}
+.map-search input {
+  flex: 1 1 auto; min-width: 0; font: inherit; font-size: 0.88rem; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 8px 10px;
+}
+.map-search input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
 .admin-map-wrap.picking #admin-map { cursor: crosshair; }
 .admin-map-wrap.picking .admin-map-hint { color: var(--accent); font-weight: var(--fw-5); }
 

@@ -1,69 +1,64 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scout-finder 관리자</title>
+  <title>scout-finder Admin</title>
   <meta name="robots" content="noindex" />
 
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-    crossorigin="" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="view-list">
   <header class="site-header">
     <div class="site-header-inner">
       <div class="title-block">
-        <h1>scout-finder 관리자</h1>
-        <span class="badge">로컬 편집 도구</span>
+        <h1>scout-finder Admin</h1>
+        <span class="badge">Editor</span>
       </div>
 
       <p class="admin-note">
-        편집은 자동으로 로컬에 임시 저장됩니다. <strong>"서버에 저장"</strong>을 누르면
-        Cloudflare 서버(KV)에 반영되어 모든 방문자에게 즉시 적용됩니다(관리자 비밀번호 필요).
-        <a href="./">← 사이트로</a>
+        Changes are saved to the Cloudflare server automatically and apply to every visitor.
+        An admin password is required on first edit. <a href="./">← Back to site</a>
       </p>
 
       <div class="admin-toolbar">
-        <button type="button" id="add-btn" class="admin-btn primary">+ 단위대 추가</button>
-        <button type="button" id="save-server" class="admin-btn primary">서버에 저장</button>
-        <button type="button" id="download-js" class="admin-btn">data.js 다운로드</button>
-        <button type="button" id="copy-json" class="admin-btn">JSON 복사</button>
-        <label class="admin-btn" for="import-input">JSON 가져오기
+        <button type="button" id="add-btn" class="admin-btn primary">+ Add unit</button>
+        <button type="button" id="download-js" class="admin-btn">Download data.js</button>
+        <button type="button" id="copy-json" class="admin-btn">Copy JSON</button>
+        <label class="admin-btn" for="import-input">Import JSON
           <input id="import-input" type="file" accept=".json,application/json" />
         </label>
-        <button type="button" id="reset-btn-admin" class="admin-btn danger">샘플로 초기화</button>
+        <button type="button" id="reset-btn-admin" class="admin-btn danger">Reload from server</button>
         <span id="save-status" class="save-status" role="status" aria-live="polite"></span>
       </div>
 
-      <div class="view-toggle" role="group" aria-label="편집 / 지도 보기 전환">
-        <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="true">편집</button>
-        <button type="button" class="view-toggle-btn" data-view="map" aria-pressed="false">지도</button>
+      <div class="view-toggle" role="group" aria-label="Edit / Map view">
+        <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="true">Edit</button>
+        <button type="button" class="view-toggle-btn" data-view="map" aria-pressed="false">Map</button>
       </div>
     </div>
   </header>
 
   <main class="admin-layout">
-    <section class="admin-editor" aria-label="단위대 편집">
+    <section class="admin-editor" aria-label="Unit editor">
       <div id="editor-list"></div>
-      <p id="editor-empty" class="empty-sub" hidden>
-        단위대가 없습니다. "+ 단위대 추가"로 시작하세요.
-      </p>
+      <p id="editor-empty" class="empty-sub" hidden>No units yet. Start with "+ Add unit".</p>
     </section>
 
     <div class="admin-map-wrap" id="map-wrap">
-      <div id="admin-map" role="application" aria-label="좌표 지정 지도"></div>
+      <form class="map-search" id="map-search-form">
+        <input id="map-search" type="search" placeholder="Search the map by address or place (e.g. Suva, Fiji)" />
+        <button type="submit" class="admin-btn">Search map</button>
+      </form>
+      <div id="admin-map" role="application" aria-label="Map"></div>
       <p class="admin-map-hint" id="map-hint">
-        마커를 드래그해 좌표를 조정하거나, 카드의 "지도에서 위치 지정"을 누른 뒤 지도를 클릭하세요.
+        Select a unit, click "Set on map", then click the map — or drag a marker.
       </p>
     </div>
   </main>
 
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
-    crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
   <script src="data.js"></script>
   <script src="manage.js"></script>
   <script src="version-watch.js"></script>

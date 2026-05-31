@@ -100,7 +100,10 @@ WOSM Region → 국가(NSO) → 단위대
 - 홈페이지 **국문/영문 2버전**, **영어를 기본**(외국인 친구 우선 대상).
 - 댓글: **레딧식 쓰레드(대댓글) + 닉네임 + GDPR 준용**(동의 필수, 공개 IP 마스킹, 관리자 삭제=잊혀질 권리).
 - **글로벌 표준 전환**: 지방연맹/지구연합회 제거 → **국가·NSO 선택(WOSM 176개 공식 목록)**. 영문 단위대명·영문 주소. 좌표는 **OSM(Nominatim) 검색**. 핀 색 = **WOSM 지역(Region)**. 모든 것 영문 기준.
-- 데이터는 **Cloudflare 서버(KV)에 저장**(관리자 "서버에 저장" → PUT, 비밀번호). 공개/관리자 모두 `/api/units`에서 로드.
+- 데이터는 **Cloudflare 서버(KV)에 저장**. 공개/관리자 모두 `/api/units`에서 로드.
+- 관리자 편집은 **자동으로 서버 반영**(별도 저장 버튼 X, 비밀번호 1회 입력 후 debounce auto-save).
+- 좌표는 "검색"이 아니라 **지도를 주소로 검색**(map flyTo) 후 클릭/드래그로 핀 지정. **주소·모임요일 필드 삭제**, **ID 자동 배정**. 연락처 → **Homepage (Instagram)** URL.
+- **전부 영어**: 공개·관리자 모든 메뉴 한국어 제거. type/sections 데이터도 영문(Community/School unit, Beaver/Cub/Scout/Venture/Rover).
 
 ## 10. 백엔드 (BUILT — Cloudflare Pages Functions + KV)
 - 저장소: **KV namespace `SCOUT_KV`** (id `5b8071435ace47f9a8eccb8ade1b946e`), `wrangler.toml`로 바인딩.

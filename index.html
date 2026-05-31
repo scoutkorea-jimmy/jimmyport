@@ -3,15 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Find Scout Units Near You · 스카우트 단위대 찾기</title>
-  <meta name="description" content="Search a region or click the map to find nearby scout units by distance." />
+  <title>Find Scout Units Near You</title>
+  <meta name="description" content="Search or click the map to find nearby scout units by distance." />
 
   <!-- Leaflet 1.9.4 (cdnjs) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-    crossorigin="" />
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="view-list">
@@ -23,7 +19,7 @@
       </div>
 
       <form id="search-form" class="search" role="search" autocomplete="off">
-        <label class="sr-only" for="search-input">지역 검색</label>
+        <label class="sr-only" for="search-input">Search</label>
         <div class="search-field">
           <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="11" cy="11" r="7"></circle>
@@ -33,37 +29,37 @@
             id="search-input"
             type="search"
             name="q"
-            placeholder="지역을 검색하세요 (예: 수원, 강남구, 영통동)"
+            placeholder="Search a country, NSO, or unit (e.g. Korea, Japan, Fiji)"
             aria-describedby="search-hint" />
-          <button type="submit" class="search-go">검색</button>
+          <button type="submit" class="search-go">Search</button>
         </div>
-        <p id="search-hint" class="search-hint">또는 지도를 클릭해 기준 위치를 정하세요.</p>
+        <p id="search-hint" class="search-hint">Or click the map to set your reference point.</p>
       </form>
 
-      <div class="view-toggle" role="group" aria-label="목록 / 지도 보기 전환">
-        <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="true">목록</button>
-        <button type="button" class="view-toggle-btn" data-view="map" aria-pressed="false">지도</button>
+      <div class="view-toggle" role="group" aria-label="List / Map view">
+        <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="true">List</button>
+        <button type="button" class="view-toggle-btn" data-view="map" aria-pressed="false">Map</button>
       </div>
     </div>
   </header>
 
   <main class="layout">
-    <aside class="results" aria-label="지역대 검색 결과">
+    <aside class="results" aria-label="Search results">
       <div class="results-head">
         <p id="status" class="results-status" role="status" aria-live="polite"></p>
-        <button id="reset-btn" type="button" class="reset-btn" hidden>전체 보기</button>
+        <button id="reset-btn" type="button" class="reset-btn" hidden>Show all</button>
       </div>
 
       <ol id="result-list" class="result-list"></ol>
 
       <div id="empty-state" class="empty-state" hidden>
-        <p class="empty-title">검색 결과가 없습니다.</p>
-        <p class="empty-sub">다른 지역명으로 검색하거나, 지도를 클릭해 위치를 정해보세요.</p>
-        <button type="button" class="reset-btn" data-reset>전체 보기</button>
+        <p class="empty-title">No results.</p>
+        <p class="empty-sub">Try another keyword, or click the map to set a location.</p>
+        <button type="button" class="reset-btn" data-reset>Show all</button>
       </div>
     </aside>
 
-    <div id="map" class="map" role="application" aria-label="지역대 지도"></div>
+    <div id="map" class="map" role="application" aria-label="Map"></div>
   </main>
 
   <footer class="site-footer">
@@ -77,11 +73,8 @@
   </footer>
 
   <!-- Leaflet 1.9.4 (cdnjs) -->
-  <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
-    crossorigin=""></script>
-
-  <!-- 데이터 → 로직 순서 (둘 다 classic script, 전역 공유) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
+  <!-- data then logic (classic scripts share global scope) -->
   <script src="data.js"></script>
   <script src="app.js"></script>
   <script src="version-watch.js"></script>

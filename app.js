@@ -15,7 +15,7 @@
 
   var T = {
     title: "Find Scout Units Near You", badge: "Sample data",
-    ph: "Search a region, country, or NSO (e.g. Suwon, Japan, Fiji)",
+    ph: "Search a country, NSO, or unit (e.g. Korea, Japan, Fiji)",
     hint: "Or click the map to set your reference point.",
     go: "Search", list: "List", map: "Map", showAll: "Show all",
     emptyTitle: "No results.", emptySub: "Try another keyword, or click the map to set a location.",
@@ -24,13 +24,9 @@
     statusAll: function (n) { return "All units · " + n; },
     statusMap: function (n) { return "Nearest to selected point · " + n; },
     statusNone: "No results", refMap: "Selected location",
-    meets: "Meets", activities: "Main activities", recruiting: "Recruiting",
-    contactDefault: "Contact the national scout organization", instagram: "Instagram",
-    type: { "지역대": "Community unit", "학교대": "School unit" },
-    section: { "비버": "Beaver", "컵": "Cub", "스카우트": "Scout", "벤처": "Venture", "로버": "Rover" },
-    day: { "월요일": "Monday", "화요일": "Tuesday", "수요일": "Wednesday", "목요일": "Thursday", "금요일": "Friday", "토요일": "Saturday", "일요일": "Sunday" },
+    activities: "Main activities", recruiting: "Recruiting",
+    homepage: "Homepage (Instagram)", homepageDefault: "Contact the national scout organization",
   };
-  function tr(map, v) { return (map && map[v]) || v || ""; }
 
   // ── DOM ────────────────────────────────────────────────────────────
   var $form = document.getElementById("search-form");
@@ -69,14 +65,14 @@
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? "#221b2b" : "#ffffff";
   }
   function isMobile() { return window.matchMedia(MOBILE).matches; }
-  function contactText(u) { return (u.contact && String(u.contact).trim()) ? u.contact : T.contactDefault; }
+  function hasHome(u) { return u.homepage && String(u.homepage).trim(); }
 
   // ── search ─────────────────────────────────────────────────────────
   function matchUnits(query) {
     var q = query.trim().toLowerCase();
     if (!q) return [];
     return UNITS.filter(function (u) {
-      return [u.name, u.type, u.country, u.country_ko, u.nso, u.region, u.address].join(" ").toLowerCase().indexOf(q) !== -1;
+      return [u.name, u.type, u.country, u.country_ko, u.nso, u.region].join(" ").toLowerCase().indexOf(q) !== -1;
     });
   }
 
@@ -93,19 +89,25 @@
   }
 
   // ── rendering ──────────────────────────────────────────────────────
-  function chipsHtml(u) { return (u.sections || []).map(function (s) { return '<span class="chip">' + esc(tr(T.section, s)) + "</span>"; }).join(""); }
+  function chipsHtml(u) { return (u.sections || []).map(function (s) { return '<span class="chip">' + esc(s) + "</span>"; }).join(""); }
+
+  function homepageHtml(u, link) {
+    if (hasHome(u)) {
+      if (link) return '<a class="popup-ig" href="' + escAttr(u.homepage) + '" target="_blank" rel="noopener">' + esc(T.homepage) + "</a>";
+      return esc(T.homepage);
+    }
+    return esc(T.homepageDefault);
+  }
 
   function popupHtml(u, anchor) {
     var dist = anchor ? '<div class="popup-line"><strong>' + fmtKm(haversine(anchor, u)) + "</strong></div>" : "";
     var act = u.note ? '<div class="popup-line"><b>' + esc(T.activities) + ":</b> " + esc(u.note) + "</div>" : "";
-    var rec = (u.sections && u.sections.length) ? '<div class="popup-line"><b>' + esc(T.recruiting) + ":</b> " + u.sections.map(function (s) { return esc(tr(T.section, s)); }).join(", ") + "</div>" : "";
-    var ig = u.instagram ? ' · <a class="popup-ig" href="' + escAttr(u.instagram) + '" target="_blank" rel="noopener">' + esc(T.instagram) + "</a>" : "";
+    var rec = (u.sections && u.sections.length) ? '<div class="popup-line"><b>' + esc(T.recruiting) + ":</b> " + u.sections.map(esc).join(", ") + "</div>" : "";
     return (
-      '<div class="popup-name">' + esc(u.name) + (u.type ? ' <span class="popup-type">' + esc(tr(T.type, u.type)) + "</span>" : "") + "</div>" +
+      '<div class="popup-name">' + esc(u.name) + (u.type ? ' <span class="popup-type">' + esc(u.type) + "</span>" : "") + "</div>" +
       '<div class="popup-affil">' + esc(u.country) + "</div>" +
-      '<div class="popup-line">' + esc(u.nso) + (u.region ? " · " + esc(u.region) : "") + "</div>" +
-      '<div class="popup-line">' + esc(u.address) + "</div>" + act + rec +
-      '<div class="popup-line">' + esc(T.meets) + " " + esc(tr(T.day, u.meetingDay)) + " · " + esc(contactText(u)) + ig + "</div>" + dist
+      '<div class="popup-line">' + esc(u.nso) + (u.region ? " · " + esc(u.region) : "") + "</div>" + act + rec +
+      '<div class="popup-line">' + homepageHtml(u, true) + "</div>" + dist
     );
   }
 
@@ -114,21 +116,19 @@
     var distBadge = anchor ? '<span class="card-dist">' + fmtKm(haversine(anchor, u)) + "</span>" : "";
     var chips = chipsHtml(u);
     var act = u.note ? '<p class="card-meta"><span class="card-field-label">' + esc(T.activities) + ":</span> " + esc(u.note) + "</p>" : "";
-    var ig = u.instagram ? " · " + esc(T.instagram) : "";
     var region = u.region ? ' <span class="card-region" style="background:' + color + ";color:" + textOn(color) + '">' + esc(u.region) + "</span>" : "";
     return (
       '<button type="button" class="result-card" data-id="' + escAttr(u.id) + '">' +
         '<div class="card-top">' +
           '<span class="card-rank" style="background:' + color + ";color:" + textOn(color) + '">' + rank + "</span>" +
           '<div class="card-heading">' +
-            '<p class="card-name">' + esc(u.name) + (u.type ? ' <span class="card-type">' + esc(tr(T.type, u.type)) + "</span>" : "") + "</p>" +
+            '<p class="card-name">' + esc(u.name) + (u.type ? ' <span class="card-type">' + esc(u.type) + "</span>" : "") + "</p>" +
             '<p class="card-affil">' + esc(u.country) + region + "</p>" +
           "</div>" + distBadge +
         "</div>" +
-        '<p class="card-meta">' + esc(u.nso) + "</p>" +
-        '<p class="card-addr">' + esc(u.address) + "</p>" + act +
+        '<p class="card-meta">' + esc(u.nso) + "</p>" + act +
         (chips ? '<div class="chips">' + chips + "</div>" : "") +
-        '<p class="card-meta">' + esc(T.meets) + " " + esc(tr(T.day, u.meetingDay)) + " · " + esc(contactText(u)) + ig + "</p>" +
+        '<p class="card-meta">' + homepageHtml(u, false) + "</p>" +
       "</button>"
     );
   }
