@@ -317,11 +317,9 @@ body {
 
 /* ── Comments (Reddit-style, inline expanding panel under each card) ── */
 .card-cmt-hint { color: var(--accent); font-weight: var(--fw-5); }
-.cmt-panel {
-  margin: -2px 8px 10px; padding: 12px 12px 14px;
-  background: var(--surface-2); border: 1px solid var(--line); border-top: 0;
-  border-radius: 0 0 var(--r-lg) var(--r-lg);
-}
+.cmt-panel { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.leaflet-popup-content { margin: 12px 14px; max-width: 320px; }
+.leaflet-popup-content .cmt-img { max-height: 160px; }
 .cmt-panel-head { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
 .cmt-loading, .cmt-empty { color: var(--muted); font-size: 0.86rem; text-align: center; padding: 12px 0; }
 .cmt-thread { }
@@ -370,6 +368,7 @@ body {
 .card-tool-btn { border: 1px solid var(--line); background: var(--surface); color: var(--accent); font: inherit; font-weight: var(--fw-5); font-size: 0.76rem; padding: 5px 10px; border-radius: var(--r-md); cursor: pointer; }
 .card-tool-btn:hover { border-color: var(--accent); }
 body:not(.edit-mode) .card-edit-btn { display: none; }
+body:not(.edit-mode) .card-tools { display: none; }
 
 /* header editor bar */
 .header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }

@@ -119,7 +119,8 @@
       '<div class="popup-affil">' + esc(u.country) + (u.region ? " · " + esc(u.region) : "") + "</div>" +
       '<div class="popup-line">' + esc(u.nso) + "</div>" + photo + act + rec +
       '<div class="popup-line">' + homepageHtml(u, true) + "</div>" + dist +
-      '<button class="popup-cmt" data-cmt="' + escAttr(u.id) + '">💬 Comments</button>'
+      '<button class="popup-cmt" data-cmt="' + escAttr(u.id) + '">💬 Comments</button>' +
+      '<div class="cmt-panel" data-panel-for="' + escAttr(u.id) + '" hidden></div>'
     );
   }
 
@@ -143,11 +144,7 @@
         (chips ? '<div class="chips">' + chips + "</div>" : "") +
         '<p class="card-meta">' + homepageHtml(u, false) + "</p>" +
       "</div>" +
-      '<div class="card-tools">' +
-        '<button type="button" class="card-tool-btn" data-cmt-toggle="' + escAttr(u.id) + '">💬 Comments</button>' +
-        '<button type="button" class="card-tool-btn card-edit-btn" data-edit="' + escAttr(u.id) + '">✎ Edit</button>' +
-      "</div>" +
-      '<div class="cmt-panel" data-panel-for="' + escAttr(u.id) + '" hidden></div>' +
+      '<div class="card-tools"><button type="button" class="card-tool-btn card-edit-btn" data-edit="' + escAttr(u.id) + '">✎ Edit</button></div>' +
       '<div class="edit-panel" data-edit-for="' + escAttr(u.id) + '" hidden></div>'
     );
   }
@@ -168,7 +165,7 @@
     ordered.forEach(function (u, i) {
       var rank = i + 1, color = colorOf(u);
       var marker = L.marker([u.lat, u.lng], { icon: unitIcon(rank, false, color), title: u.name, keyboard: true, alt: u.name });
-      marker.bindPopup(popupHtml(u, anchor));
+      marker.bindPopup(popupHtml(u, anchor), { maxWidth: 340, minWidth: 280, maxHeight: 440, autoPanPadding: [24, 24] });
       marker.on("click", function () { setActive(u.id, false); });
       unitLayer.addLayer(marker);
       markerInfo[u.id] = { marker: marker, rank: rank, color: color };
@@ -211,8 +208,10 @@
     });
     var u = findUnit(id);
     if (u) {
-      if (fly && !isMobile()) { try { map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 12), { duration: 0.6 }); } catch (e) {} }
-      if (!isMobile()) info.marker.openPopup();
+      if (isMobile()) setView("map");
+      setTimeout(function () {
+        try { map.invalidateSize(); if (fly) map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 12), { duration: 0.5 }); info.marker.openPopup(); } catch (e) {}
+      }, isMobile() ? 90 : 0);
     }
   }
   function findUnit(id) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].id === id) return UNITS[i]; return null; }
@@ -284,7 +283,8 @@
 
   // ── comments (Reddit-style, inline expanding panel per unit) ────────
   function fmtTime(ts) { try { return new Date(ts).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return ts; } }
-  function panelFor(id) { return $list.querySelector('.cmt-panel[data-panel-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
+  function panelFor(id) { return document.querySelector('.leaflet-popup-content .cmt-panel[data-panel-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
+  function updatePopup(id) { var info = markerInfo[id]; if (info && info.marker && info.marker.getPopup && info.marker.getPopup()) info.marker.getPopup().update(); }
 
   function formHtml(parentId, reply) {
     var nk = ""; try { nk = localStorage.getItem(NICK_KEY) || ""; } catch (e) {}
@@ -318,6 +318,7 @@
       : '<p class="cmt-empty">No comments yet. Be the first!</p>';
     var more = shown < roots.length ? '<button type="button" class="cmt-more" data-more="' + escAttr(id) + '">Load more (' + (roots.length - shown) + ")</button>" : "";
     panel.innerHTML = head + '<div class="cmt-thread">' + thread + "</div>" + more + formHtml("", false);
+    updatePopup(id);
   }
   function loadComments(id) {
     fetch("/api/comments", { cache: "no-store" })
@@ -333,16 +334,15 @@
       .catch(function () { var p = panelFor(id); if (p) p.innerHTML = '<p class="cmt-empty">Failed to load comments.</p>'; });
   }
   function openPanel(id) {
-    if (openCmtId && openCmtId !== id) { var prev = panelFor(openCmtId); if (prev) { prev.hidden = true; prev.innerHTML = ""; } }
     openCmtId = id;
     var panel = panelFor(id); if (!panel) return;
     panel.hidden = false;
     panel.innerHTML = '<p class="cmt-loading">Loading…</p>';
+    updatePopup(id);
     if (cmtCache[id]) renderPanel(id); else loadComments(id);
-    setTimeout(function () { panel.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 30);
   }
-  function collapsePanel() { if (openCmtId) { var p = panelFor(openCmtId); if (p) { p.hidden = true; p.innerHTML = ""; } openCmtId = null; } }
-  function togglePanel(id) { if (openCmtId === id) collapsePanel(); else openPanel(id); }
+  function collapsePanel() { if (openCmtId) { var p = panelFor(openCmtId); if (p) { p.hidden = true; p.innerHTML = ""; updatePopup(openCmtId); } openCmtId = null; } }
+  function togglePanel(id) { var p = panelFor(id); if (p && !p.hidden) collapsePanel(); else openPanel(id); }
 
   function uploadImage(file, statusEl, cb) {
     if (!file) { cb(""); return; }
@@ -525,21 +525,25 @@
     }).addTo(map);
     unitLayer.addTo(map);
 
+    // 좌측 목록: 클릭 → 지도에 정보(팝업). 편집 버튼만 별도. (댓글은 지도 팝업 안에서)
     $list.addEventListener("click", function (e) {
-      if (e.target.closest(".cmt-panel") || e.target.closest(".edit-panel")) return;
-      var cb = e.target.closest("[data-cmt-toggle]"); if (cb) { togglePanel(cb.getAttribute("data-cmt-toggle")); return; }
+      if (e.target.closest(".edit-panel")) return;
       var eb = e.target.closest("[data-edit]"); if (eb) { openEdit(eb.getAttribute("data-edit")); return; }
       var card = e.target.closest(".result-card"); if (card) setActive(card.getAttribute("data-id"), true);
     });
     $list.addEventListener("keydown", function (e) {
       if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("result-card")) { e.preventDefault(); setActive(e.target.getAttribute("data-id"), true); }
     });
-    $list.addEventListener("click", onPanelClick);
     $list.addEventListener("click", onEditClick);
-    $list.addEventListener("change", function (e) { onPanelChange(e); onEditChange(e); });
+    $list.addEventListener("change", onEditChange);
     $list.addEventListener("input", onEditInput);
-    $list.addEventListener("submit", onPanelSubmit);
-    document.addEventListener("click", function (e) { var b = e.target.closest("[data-cmt]"); if (b) { var id = b.getAttribute("data-cmt"); if (isMobile()) setView("list"); openPanel(id); } });
+    // 댓글은 지도 팝업 내부 → document 위임
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-cmt]"); if (b) { togglePanel(b.getAttribute("data-cmt")); return; }
+      onPanelClick(e);
+    });
+    document.addEventListener("change", onPanelChange);
+    document.addEventListener("submit", onPanelSubmit);
 
     var eb = document.getElementById("edit-toggle"); if (eb) eb.addEventListener("click", toggleEditMode);
     var sb = document.getElementById("save-btn"); if (sb) sb.addEventListener("click", function () { saveServer(true); });
