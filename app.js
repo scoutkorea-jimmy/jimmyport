@@ -165,7 +165,7 @@
     ordered.forEach(function (u, i) {
       var rank = i + 1, color = colorOf(u);
       var marker = L.marker([u.lat, u.lng], { icon: unitIcon(rank, false, color), title: u.name, keyboard: true, alt: u.name });
-      marker.bindPopup(popupHtml(u, anchor), { maxWidth: 340, minWidth: 280, maxHeight: 440, autoPanPadding: [24, 24] });
+      marker.bindPopup(popupHtml(u, anchor), { maxWidth: 360, minWidth: 300, maxHeight: 520, autoPanPadding: [24, 24], className: "unit-popup" });
       marker.on("click", function () { setActive(u.id, false); });
       unitLayer.addLayer(marker);
       markerInfo[u.id] = { marker: marker, rank: rank, color: color };

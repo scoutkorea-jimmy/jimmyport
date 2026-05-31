@@ -61,6 +61,7 @@
 
 * { box-sizing: border-box; }
 
+html { font-size: 15px; }   /* 전반 글씨 약간 축소 */
 html, body { margin: 0; height: 100%; }
 
 body {
@@ -94,7 +95,7 @@ body {
 .title-block { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .title-block h1 {
   margin: 0;
-  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
   font-weight: var(--fw-7);
   letter-spacing: -0.02em;
   color: var(--accent-ink);
@@ -317,9 +318,11 @@ body {
 
 /* ── Comments (Reddit-style, inline expanding panel under each card) ── */
 .card-cmt-hint { color: var(--accent); font-weight: var(--fw-5); }
-.cmt-panel { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
-.leaflet-popup-content { margin: 12px 14px; max-width: 320px; }
-.leaflet-popup-content .cmt-img { max-height: 160px; }
+.cmt-panel { margin-top: 10px; padding: 10px; border-top: 1px solid var(--line); background: var(--surface-2); border-radius: var(--r-md); }
+.leaflet-popup-content { margin: 12px 14px; max-width: 340px; font-size: 0.86rem; }
+.leaflet-popup-content .cmt-img { max-height: 150px; }
+.unit-popup .leaflet-popup-content-wrapper { border-radius: var(--r-lg); box-shadow: 0 8px 28px rgba(34,27,43,.22); }
+.cmt-panel-head { font-weight: var(--fw-6); color: var(--ink); }
 .cmt-panel-head { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
 .cmt-loading, .cmt-empty { color: var(--muted); font-size: 0.86rem; text-align: center; padding: 12px 0; }
 .cmt-thread { }
