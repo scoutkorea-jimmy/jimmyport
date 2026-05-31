@@ -17,12 +17,15 @@
   var WEEKDAYS = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
   var FEDERATIONS = Array.isArray(window.SCOUT_FEDERATIONS) ? window.SCOUT_FEDERATIONS : [];
   var FED_COLORS = window.SCOUT_FEDERATION_COLORS || {};
+  var COUNTRY_COLORS = window.SCOUT_COUNTRY_COLORS || {};
+  var APR_COUNTRIES = Array.isArray(window.SCOUT_APR_COUNTRIES) ? window.SCOUT_APR_COUNTRIES : [];
+  var COUNTRY_NAMES = APR_COUNTRIES.map(function (c) { return c.ko; });
   var DEFAULT_COLOR = "#622599";
   var MOBILE = "(max-width: 820px)";
 
   function baseUnits() { return Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []; }
   function clone(v) { return JSON.parse(JSON.stringify(v)); }
-  function colorOf(u) { return FED_COLORS[u.federation] || DEFAULT_COLOR; }
+  function colorOf(u) { return FED_COLORS[u.federation] || COUNTRY_COLORS[u.country || "대한민국"] || DEFAULT_COLOR; }
   function isMobile() { return window.matchMedia(MOBILE).matches; }
 
   // ── state ──────────────────────────────────────────────────────────
@@ -98,13 +101,15 @@
         '<div class="field-grid">' +
           field("이름", "name", u.name) +
           '<div class="field"><label>종류 (학교대/지역대)</label><select data-field="type">' + selectOptions(TYPES, u.type) + "</select></div>" +
-          '<div class="field"><label>지방·특수연맹</label><select data-field="federation">' + selectOptions(FEDERATIONS, u.federation) + "</select></div>" +
+          '<div class="field"><label>국가 (APR)</label><select data-field="country">' + selectOptions(COUNTRY_NAMES, u.country || "대한민국") + "</select></div>" +
+          '<div class="field"><label>지방·특수연맹 (한국)</label><select data-field="federation">' + selectOptions(FEDERATIONS, u.federation) + "</select></div>" +
           field("지구연합회", "council", u.council) +
           field("동 단위 전체주소", "address", u.address, "text", true) +
           field("ID (영문, 고유)", "id", u.id) +
           field("모임 요일", "meetingDay", u.meetingDay) +
-          field("연락처", "contact", u.contact) +
-          '<div class="field"><label>부문</label><div class="sections-box">' + secBoxes + "</div></div>" +
+          field("연락처 (전화/이메일)", "contact", u.contact) +
+          field("인스타그램 (URL)", "instagram", u.instagram) +
+          '<div class="field col-span"><label>모집 카테고리</label><div class="sections-box">' + secBoxes + "</div></div>" +
           '<div class="field col-span"><label>좌표 (위도 / 경도)</label><div class="coord-row">' +
             '<div class="field"><label class="sr-only">위도</label><input type="number" step="any" data-field="lat" value="' + escAttr(u.lat) + '" /></div>' +
             '<div class="field"><label class="sr-only">경도</label><input type="number" step="any" data-field="lng" value="' + escAttr(u.lng) + '" /></div>' +
@@ -193,7 +198,7 @@
       if (fieldName === "name" || fieldName === "federation" || fieldName === "council") {
         if (markers[i]) markers[i].setPopupContent(escHtml(u.name) + "<br>" + escHtml(u.federation) + (u.council ? " · " + escHtml(u.council) : ""));
       }
-      if (fieldName === "federation") {
+      if (fieldName === "federation" || fieldName === "country") {
         var sw = card.querySelector(".editor-card-swatch"); if (sw) sw.style.background = colorOf(u);
         if (markers[i]) markers[i].setIcon(adminPin(i === activeIndex, colorOf(u)));
       }
@@ -217,8 +222,8 @@
   // ── actions ────────────────────────────────────────────────────────
   function doAdd() {
     var center = map.getCenter();
-    units.push({ id: uid(), name: "새 단위대", type: "지역대", federation: "", council: "", address: "",
-      lat: round5(center.lat), lng: round5(center.lng), sections: [], meetingDay: "", contact: "", note: "" });
+    units.push({ id: uid(), name: "새 단위대", type: "지역대", country: "대한민국", federation: "", council: "", address: "",
+      lat: round5(center.lat), lng: round5(center.lng), sections: [], meetingDay: "", contact: "", instagram: "", note: "" });
     activeIndex = units.length - 1;
     render(); saveDraft();
     var el = cardEl(activeIndex);
@@ -252,7 +257,9 @@
       "// scout-finder 데이터. 스키마: { id, name, type, federation, council, address, lat, lng, sections[], meetingDay, contact, note }\n\n" +
       "window.SCOUT_UNITS = " + JSON.stringify(units, null, 2) + ";\n\n" +
       "window.SCOUT_FEDERATIONS = " + JSON.stringify(FEDERATIONS, null, 2) + ";\n\n" +
-      "window.SCOUT_FEDERATION_COLORS = " + JSON.stringify(FED_COLORS, null, 2) + ";\n";
+      "window.SCOUT_FEDERATION_COLORS = " + JSON.stringify(FED_COLORS, null, 2) + ";\n\n" +
+      "window.SCOUT_APR_COUNTRIES = " + JSON.stringify(APR_COUNTRIES, null, 2) + ";\n\n" +
+      "window.SCOUT_COUNTRY_COLORS = " + JSON.stringify(COUNTRY_COLORS, null, 2) + ";\n";
   }
   function validate() {
     var problems = [], seen = {};

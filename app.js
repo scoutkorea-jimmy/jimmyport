@@ -13,6 +13,7 @@
 
   var DRAFT_KEY = "scoutfinder:units";
   var FED_COLORS = window.SCOUT_FEDERATION_COLORS || {};
+  var COUNTRY_COLORS = window.SCOUT_COUNTRY_COLORS || {};
   var DEFAULT_COLOR = "#622599";
   var MOBILE = "(max-width: 820px)";
 
@@ -56,7 +57,7 @@
   }
   function fmtKm(km) { return km.toFixed(1) + "km"; }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  function colorOf(u) { return FED_COLORS[u.federation] || DEFAULT_COLOR; }
+  function colorOf(u) { return FED_COLORS[u.federation] || COUNTRY_COLORS[u.country || "대한민국"] || DEFAULT_COLOR; }
   function textOn(hex) {
     var c = String(hex).replace("#", "");
     if (c.length === 3) c = c.split("").map(function (x) { return x + x; }).join("");
@@ -237,7 +238,9 @@
       "// scout-finder 데이터. 스키마: { id, name, type, federation, council, address, lat, lng, sections[], meetingDay, contact, note }\n\n" +
       "window.SCOUT_UNITS = " + JSON.stringify(units, null, 2) + ";\n\n" +
       "window.SCOUT_FEDERATIONS = " + JSON.stringify(window.SCOUT_FEDERATIONS || [], null, 2) + ";\n\n" +
-      "window.SCOUT_FEDERATION_COLORS = " + JSON.stringify(FED_COLORS, null, 2) + ";\n";
+      "window.SCOUT_FEDERATION_COLORS = " + JSON.stringify(FED_COLORS, null, 2) + ";\n\n" +
+      "window.SCOUT_APR_COUNTRIES = " + JSON.stringify(window.SCOUT_APR_COUNTRIES || [], null, 2) + ";\n\n" +
+      "window.SCOUT_COUNTRY_COLORS = " + JSON.stringify(COUNTRY_COLORS, null, 2) + ";\n";
   }
 
   // ── init ───────────────────────────────────────────────────────────
