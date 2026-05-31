@@ -383,6 +383,8 @@ body:not(.edit-mode) .card-tools { display: none; }
 .ed-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .ed-btn.primary:hover { background: var(--accent-ink); color: #fff; }
 body:not(.edit-mode) .ed-only { display: none; }
+body:not(.edit-mode) #save-status { display: none; }      /* 상태 문구는 편집 모드에서만 */
+body:not(.edit-mode) .site-footer { display: none; }      /* 푸터(Admin·다운로드)는 관리자 모드에서만 */
 .editor-bar .save-status { font-size: 0.78rem; font-weight: var(--fw-4); color: var(--muted); }
 .editor-bar .save-status.ok { color: var(--accent); }
 
