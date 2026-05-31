@@ -269,7 +269,7 @@
   }
 
   // ── comments (Reddit-style, inline expanding panel per unit) ────────
-  function fmtTime(ts) { try { return new Date(ts).toLocaleString(); } catch (e) { return ts; } }
+  function fmtTime(ts) { try { return new Date(ts).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return ts; } }
   function panelFor(id) { return $list.querySelector('.cmt-panel[data-panel-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
 
   function formHtml(parentId, reply) {
