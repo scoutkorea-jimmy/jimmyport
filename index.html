@@ -36,9 +36,17 @@
         <p id="search-hint" class="search-hint">Or click the map to set your reference point.</p>
       </form>
 
-      <div class="view-toggle" role="group" aria-label="List / Map view">
-        <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="true">List</button>
-        <button type="button" class="view-toggle-btn" data-view="map" aria-pressed="false">Map</button>
+      <div class="header-controls">
+        <div class="view-toggle" role="group" aria-label="List / Map view">
+          <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="true">List</button>
+          <button type="button" class="view-toggle-btn" data-view="map" aria-pressed="false">Map</button>
+        </div>
+        <div class="editor-bar">
+          <button type="button" id="edit-toggle" class="ed-btn" aria-pressed="false">Edit</button>
+          <button type="button" id="add-btn-home" class="ed-btn ed-only">+ Add unit</button>
+          <button type="button" id="save-btn" class="ed-btn ed-only primary">Save</button>
+          <span id="save-status" class="save-status"></span>
+        </div>
       </div>
     </div>
   </header>

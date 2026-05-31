@@ -360,6 +360,41 @@ body {
 .cmt-error { color: var(--fire-red); font-size: 0.74rem; font-weight: var(--fw-4); }
 .popup-cmt { margin-top: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--accent); font: inherit; font-weight: var(--fw-5); font-size: 0.8rem; padding: 5px 10px; border-radius: var(--r-md); cursor: pointer; }
 .popup-cmt:hover { border-color: var(--accent); }
+.popup-photo { max-width: 100%; max-height: 160px; border-radius: var(--r-md); margin: 6px 0; display: block; }
+
+/* card info / about / photo / tools */
+.result-card { cursor: pointer; }
+.card-about { margin: 8px 0 0; font-size: 0.84rem; font-weight: var(--fw-2); color: var(--ink); }
+.card-photo { width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--r-md); margin-top: 8px; border: 1px solid var(--line); }
+.card-tools { display: flex; gap: 6px; padding: 0 8px 6px; margin-top: -2px; }
+.card-tool-btn { border: 1px solid var(--line); background: var(--surface); color: var(--accent); font: inherit; font-weight: var(--fw-5); font-size: 0.76rem; padding: 5px 10px; border-radius: var(--r-md); cursor: pointer; }
+.card-tool-btn:hover { border-color: var(--accent); }
+body:not(.edit-mode) .card-edit-btn { display: none; }
+
+/* header editor bar */
+.header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.editor-bar { display: flex; align-items: center; gap: 8px; }
+.ed-btn { border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-weight: var(--fw-5); font-size: 0.82rem; padding: 7px 14px; border-radius: var(--r-md); cursor: pointer; }
+.ed-btn:hover { border-color: var(--accent); color: var(--accent); }
+.ed-btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ed-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ed-btn.primary:hover { background: var(--accent-ink); color: #fff; }
+body:not(.edit-mode) .ed-only { display: none; }
+.editor-bar .save-status { font-size: 0.78rem; font-weight: var(--fw-4); color: var(--muted); }
+.editor-bar .save-status.ok { color: var(--accent); }
+
+/* edit panel / form */
+.edit-panel { margin: -2px 8px 10px; padding: 12px; background: var(--surface-2); border: 1px solid var(--accent); border-radius: var(--r-lg); }
+.edit-form { display: flex; flex-direction: column; gap: 9px; }
+.ef-l { display: flex; flex-direction: column; gap: 4px; font-size: 0.74rem; font-weight: var(--fw-5); color: var(--muted); }
+.ef-l input[type="text"], .ef-l textarea, .ef-l select { font: inherit; font-size: 0.86rem; font-weight: var(--fw-3); color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 7px 9px; }
+.ef-l textarea { resize: vertical; min-height: 46px; }
+.ef-l input:focus, .ef-l textarea:focus, .ef-l select:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+.edit-photo-prev { max-width: 100%; max-height: 140px; border-radius: var(--r-md); margin-top: 6px; border: 1px solid var(--line); }
+.ef-photo-status { font-size: 0.74rem; color: var(--muted); }
+.ef-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.ef-del { border: 1px solid var(--line-2); background: var(--surface); color: var(--fire-red); font: inherit; font-weight: var(--fw-5); font-size: 0.8rem; padding: 7px 14px; border-radius: var(--r-md); cursor: pointer; margin-left: auto; }
+.ef-del:hover { border-color: var(--fire-red); }
 
 /* =========================================================================
    Admin (manage.html)
