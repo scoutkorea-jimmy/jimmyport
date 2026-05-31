@@ -17,10 +17,7 @@
   var DEFAULT_COLOR = "#622599";
   var MOBILE = "(max-width: 820px)";
 
-  var LANG = (function () {
-    try { var l = localStorage.getItem(LANG_KEY); if (l === "ko" || l === "en") return l; } catch (e) {}
-    return "en"; // 기본 영어
-  })();
+  var LANG = "en"; // 홈페이지는 영어 전용 (한국어/토글 없음)
 
   // ── i18n ───────────────────────────────────────────────────────────
   var I18N = {
@@ -315,15 +312,6 @@
     if ($dlJson) $dlJson.textContent = t.dlJson;
     if ($dlJs) $dlJs.textContent = t.dlJs;
     byId("footer-note", t.note);
-    document.querySelectorAll(".lang-btn").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lang") === LANG ? "true" : "false"); });
-  }
-  function setLang(lang) {
-    if (lang !== "ko" && lang !== "en") return;
-    LANG = lang;
-    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
-    applyStaticI18n();
-    buildLegend();
-    relayout();
   }
 
   // ── downloads ──────────────────────────────────────────────────────
@@ -357,7 +345,6 @@
     $reset.addEventListener("click", showAll);
     $empty.addEventListener("click", function (e) { if (e.target.closest("[data-reset]")) showAll(); });
     document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
-    document.querySelectorAll(".lang-btn").forEach(function (b) { b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); }); });
     if ($dlJson) $dlJson.addEventListener("click", function () { triggerDownload("scout-units.json", JSON.stringify(UNITS, null, 2), "application/json"); });
     if ($dlJs) $dlJs.addEventListener("click", function () { triggerDownload("data.js", dataJsText(UNITS), "text/javascript"); });
 
