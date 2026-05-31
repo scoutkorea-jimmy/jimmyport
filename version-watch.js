@@ -30,10 +30,10 @@
     el.setAttribute("role", "alert");
     el.innerHTML =
       '<div class="version-toast-body">' +
-        '<strong class="version-toast-title">새로운 버전이 올라왔습니다</strong>' +
-        '<span class="version-toast-sub">새로고침하세요</span>' +
+        '<strong class="version-toast-title">A new version is available</strong>' +
+        '<span class="version-toast-sub">Please refresh the page</span>' +
       "</div>" +
-      '<button type="button" class="version-toast-btn">새로고침</button>';
+      '<button type="button" class="version-toast-btn">Refresh</button>';
     el.querySelector(".version-toast-btn").addEventListener("click", function () {
       location.reload();
     });
