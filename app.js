@@ -45,8 +45,9 @@
   var UNITS = Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : [];
   var map, unitLayer = L.layerGroup(), anchorMarker = null, markerInfo = {}, activeId = null;
   var lastState = { kind: "all", ordered: [], anchor: null, q: "" };
-  var cmtEls = null, cmtUnit = null;
+  var openCmtId = null, cmtCache = {};
   var NICK_KEY = "scoutfinder:nick";
+  var PAGE = 10;
 
   // ── utils ──────────────────────────────────────────────────────────
   function toRad(d) { return (d * Math.PI) / 180; }
@@ -131,8 +132,9 @@
         "</div>" +
         '<p class="card-meta">' + esc(u.nso) + "</p>" + act +
         (chips ? '<div class="chips">' + chips + "</div>" : "") +
-        '<p class="card-meta">' + homepageHtml(u, false) + ' · <span class="card-cmt-hint">💬 Comments</span></p>' +
-      "</button>"
+        '<p class="card-meta">' + homepageHtml(u, false) + ' · <span class="card-cmt-hint">💬 Comments ▾</span></p>' +
+      "</button>" +
+      '<div class="cmt-panel" data-panel-for="' + escAttr(u.id) + '" hidden></div>'
     );
   }
 
@@ -194,7 +196,10 @@
       if (on) c.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
     var u = findUnit(id);
-    if (u) { if (isMobile()) setView("map"); if (fly) map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 12), { duration: 0.6 }); info.marker.openPopup(); }
+    if (u) {
+      if (fly && !isMobile()) { try { map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 12), { duration: 0.6 }); } catch (e) {} }
+      if (!isMobile()) info.marker.openPopup();
+    }
   }
   function findUnit(id) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].id === id) return UNITS[i]; return null; }
   function sortByAnchor(anchor) { return UNITS.slice().sort(function (a, b) { return haversine(anchor, a) - haversine(anchor, b); }); }
@@ -263,102 +268,114 @@
     byId("footer-note", T.note);
   }
 
-  // ── comments (Reddit-style per unit) ────────────────────────────────
-  function buildModal() {
-    var ov = document.createElement("div");
-    ov.className = "cmt-overlay";
-    ov.innerHTML =
-      '<div class="cmt-modal" role="dialog" aria-modal="true" aria-label="Comments">' +
-        '<div class="cmt-head"><div class="cmt-head-info"><h2 class="cmt-title"></h2><p class="cmt-sub"></p></div>' +
-          '<button type="button" class="cmt-close" aria-label="Close">✕</button></div>' +
-        '<div class="cmt-list"></div>' +
-        '<form class="cmt-form" data-parent="">' +
-          '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" />' +
-          '<textarea class="cmt-body" maxlength="1000" placeholder="Write a comment…"></textarea>' +
-          '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree that my nickname and IP address are stored for moderation (GDPR).</span></label>' +
-          '<div class="cmt-form-row"><button type="submit" class="cmt-submit">Post</button><span class="cmt-error"></span></div>' +
-        "</form>" +
-      "</div>";
-    document.body.appendChild(ov);
-    ov.addEventListener("click", function (e) { if (e.target === ov) closeComments(); });
-    ov.querySelector(".cmt-close").addEventListener("click", closeComments);
-    ov.querySelector(".cmt-form").addEventListener("submit", onPost);
-    ov.querySelector(".cmt-list").addEventListener("click", onThreadClick);
-    cmtEls = { ov: ov, title: ov.querySelector(".cmt-title"), sub: ov.querySelector(".cmt-sub"),
-      list: ov.querySelector(".cmt-list"), form: ov.querySelector(".cmt-form"),
-      nick: ov.querySelector(".cmt-nick"), body: ov.querySelector(".cmt-body"),
-      agree: ov.querySelector(".cmt-agree"), err: ov.querySelector(".cmt-error") };
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && cmtEls.ov.classList.contains("open")) closeComments(); });
-  }
-  function openComments(u) {
-    if (!u) return;
-    if (!cmtEls) buildModal();
-    cmtUnit = u;
-    cmtEls.title.textContent = u.name;
-    cmtEls.sub.textContent = [u.country, u.nso].filter(Boolean).join(" · ");
-    cmtEls.form.setAttribute("data-parent", "");
-    cmtEls.err.textContent = ""; cmtEls.body.value = "";
-    try { var nk = localStorage.getItem(NICK_KEY); if (nk) cmtEls.nick.value = nk; } catch (e) {}
-    cmtEls.list.innerHTML = '<p class="cmt-empty">Loading…</p>';
-    cmtEls.ov.classList.add("open");
-    loadComments(u.id);
-  }
-  function closeComments() { if (cmtEls) cmtEls.ov.classList.remove("open"); }
+  // ── comments (Reddit-style, inline expanding panel per unit) ────────
   function fmtTime(ts) { try { return new Date(ts).toLocaleString(); } catch (e) { return ts; } }
-  function loadComments(unitId) {
+  function panelFor(id) { return $list.querySelector('.cmt-panel[data-panel-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
+
+  function formHtml(parentId, reply) {
+    var nk = ""; try { nk = localStorage.getItem(NICK_KEY) || ""; } catch (e) {}
+    return '<form class="cmt-form' + (reply ? " reply" : "") + '" data-parent="' + escAttr(parentId || "") + '">' +
+      '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" value="' + escAttr(nk) + '" />' +
+      '<textarea class="cmt-body" maxlength="1000" placeholder="' + (reply ? "Write a reply…" : "Write a comment (you can add a photo below)…") + '"></textarea>' +
+      '<div class="cmt-file-row"><label class="cmt-file-btn">📷 Add photo<input type="file" class="cmt-img-file" accept="image/*" /></label><span class="cmt-img-status"></span></div>' +
+      '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree that my nickname and IP address are stored for moderation (GDPR).</span></label>' +
+      '<div class="cmt-form-row"><button type="submit" class="cmt-submit">' + (reply ? "Reply" : "Post") + '</button><span class="cmt-error"></span></div>' +
+      "</form>";
+  }
+  function commentNode(c, byParent) {
+    var kids = (byParent[c.id] || []).map(function (k) { return commentNode(k, byParent); }).join("");
+    var img = c.imageUrl ? '<a href="' + escAttr(c.imageUrl) + '" target="_blank" rel="noopener"><img class="cmt-img" src="' + escAttr(c.imageUrl) + '" alt="attached photo" loading="lazy" /></a>' : "";
+    return '<div class="cmt" data-cid="' + escAttr(c.id) + '">' +
+      '<div class="cmt-meta"><span class="cmt-name">' + esc(c.name) + "</span>" +
+        ' <span class="cmt-ip">' + esc(c.ipMasked || "") + "</span>" +
+        ' <span class="cmt-time">' + esc(fmtTime(c.ts)) + "</span></div>" +
+      (c.body ? '<div class="cmt-text">' + esc(c.body) + "</div>" : "") + img +
+      '<div class="cmt-actions"><button type="button" class="cmt-reply-btn" data-reply="' + escAttr(c.id) + '">Reply</button></div>' +
+      (kids ? '<div class="cmt-children">' + kids + "</div>" : "") + "</div>";
+  }
+  function renderPanel(id) {
+    var panel = panelFor(id); if (!panel) return;
+    var cache = cmtCache[id];
+    if (!cache) { panel.innerHTML = '<p class="cmt-loading">Loading…</p>'; return; }
+    var roots = cache.roots, shown = Math.min(cache.shown, roots.length);
+    var head = '<div class="cmt-panel-head"><strong>' + roots.length + ' comment' + (roots.length === 1 ? "" : "s") + "</strong></div>";
+    var thread = roots.length
+      ? roots.slice(0, shown).map(function (c) { return commentNode(c, cache.byParent); }).join("")
+      : '<p class="cmt-empty">No comments yet. Be the first!</p>';
+    var more = shown < roots.length ? '<button type="button" class="cmt-more" data-more="' + escAttr(id) + '">Load more (' + (roots.length - shown) + ")</button>" : "";
+    panel.innerHTML = head + '<div class="cmt-thread">' + thread + "</div>" + more + formHtml("", false);
+  }
+  function loadComments(id) {
     fetch("/api/comments", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : { comments: [] }; })
-      .then(function (j) { if (!cmtUnit || cmtUnit.id !== unitId) return; renderThread((j.comments || []).filter(function (c) { return c.unitId === unitId; })); })
-      .catch(function () { if (cmtEls) cmtEls.list.innerHTML = '<p class="cmt-empty">Failed to load comments.</p>'; });
+      .then(function (j) {
+        var all = (j.comments || []).filter(function (c) { return c.unitId === id; });
+        var byParent = {};
+        all.forEach(function (c) { var k = c.parentId || "_root"; (byParent[k] = byParent[k] || []).push(c); });
+        Object.keys(byParent).forEach(function (k) { byParent[k].sort(function (a, b) { return a.ts < b.ts ? -1 : 1; }); });
+        cmtCache[id] = { roots: byParent._root || [], byParent: byParent, shown: PAGE };
+        if (openCmtId === id) renderPanel(id);
+      })
+      .catch(function () { var p = panelFor(id); if (p) p.innerHTML = '<p class="cmt-empty">Failed to load comments.</p>'; });
   }
-  function renderThread(all) {
-    if (!all.length) { cmtEls.list.innerHTML = '<p class="cmt-empty">No comments yet. Be the first!</p>'; return; }
-    var byParent = {};
-    all.forEach(function (c) { var k = c.parentId || "_root"; (byParent[k] = byParent[k] || []).push(c); });
-    Object.keys(byParent).forEach(function (k) { byParent[k].sort(function (a, b) { return a.ts < b.ts ? -1 : 1; }); });
-    function node(c) {
-      var kids = (byParent[c.id] || []).map(node).join("");
-      return '<div class="cmt">' +
-        '<div class="cmt-meta"><span class="cmt-name">' + esc(c.name) + "</span> · " + esc(fmtTime(c.ts)) + (c.ipMasked ? " · " + esc(c.ipMasked) : "") + "</div>" +
-        '<div class="cmt-text">' + esc(c.body) + "</div>" +
-        '<div class="cmt-actions"><button type="button" class="cmt-reply-btn" data-reply="' + escAttr(c.id) + '">Reply</button></div>' +
-        (kids ? '<div class="cmt-children">' + kids + "</div>" : "") + "</div>";
-    }
-    cmtEls.list.innerHTML = (byParent._root || []).map(node).join("");
+  function openPanel(id) {
+    if (openCmtId && openCmtId !== id) { var prev = panelFor(openCmtId); if (prev) { prev.hidden = true; prev.innerHTML = ""; } }
+    openCmtId = id;
+    var panel = panelFor(id); if (!panel) return;
+    panel.hidden = false;
+    panel.innerHTML = '<p class="cmt-loading">Loading…</p>';
+    if (cmtCache[id]) renderPanel(id); else loadComments(id);
+    setTimeout(function () { panel.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 30);
   }
-  function onThreadClick(e) {
+  function collapsePanel() { if (openCmtId) { var p = panelFor(openCmtId); if (p) { p.hidden = true; p.innerHTML = ""; } openCmtId = null; } }
+  function togglePanel(id) { if (openCmtId === id) collapsePanel(); else openPanel(id); }
+
+  function uploadImage(file, statusEl, cb) {
+    if (!file) { cb(""); return; }
+    if (file.size > 2 * 1024 * 1024) { statusEl.textContent = "Image too large (max 2MB)"; cb(""); return; }
+    statusEl.textContent = "Uploading…";
+    fetch("/api/image", { method: "POST", headers: { "content-type": file.type }, body: file })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.url) { statusEl.textContent = "Photo attached ✓"; cb(j.url); } else { statusEl.textContent = "Upload failed"; cb(""); } })
+      .catch(function () { statusEl.textContent = "Upload failed (network)"; cb(""); });
+  }
+
+  function onPanelClick(e) {
+    var more = e.target.closest("[data-more]");
+    if (more) { var id = more.getAttribute("data-more"); if (cmtCache[id]) { cmtCache[id].shown += PAGE; renderPanel(id); } return; }
     var rb = e.target.closest("[data-reply]");
-    if (!rb) return;
-    var existing = cmtEls.list.querySelector(".cmt-form.reply");
-    if (existing) existing.remove();
-    var f = document.createElement("form");
-    f.className = "cmt-form reply"; f.setAttribute("data-parent", rb.getAttribute("data-reply"));
-    f.innerHTML = '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" />' +
-      '<textarea class="cmt-body" maxlength="1000" placeholder="Write a reply…"></textarea>' +
-      '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree my nickname and IP are stored (GDPR).</span></label>' +
-      '<div class="cmt-form-row"><button type="submit" class="cmt-submit">Reply</button><span class="cmt-error"></span></div>';
-    try { var nk = localStorage.getItem(NICK_KEY); if (nk) f.querySelector(".cmt-nick").value = nk; } catch (e2) {}
-    f.addEventListener("submit", onPost);
-    rb.closest(".cmt").appendChild(f);
-    f.querySelector("textarea").focus();
+    if (rb) {
+      var panel = rb.closest(".cmt-panel");
+      var ex = panel.querySelector(".cmt-form.reply"); if (ex) ex.remove();
+      var holder = document.createElement("div"); holder.innerHTML = formHtml(rb.getAttribute("data-reply"), true);
+      var f = holder.firstChild; rb.closest(".cmt").appendChild(f); f.querySelector("textarea").focus();
+    }
   }
-  function onPost(e) {
+  function onPanelChange(e) {
+    var file = e.target.closest(".cmt-img-file");
+    if (!file) return;
+    var form = file.closest(".cmt-form"); var status = form.querySelector(".cmt-img-status");
+    uploadImage(file.files && file.files[0], status, function (url) { form.dataset.imageUrl = url || ""; });
+  }
+  function onPanelSubmit(e) {
+    var form = e.target.closest(".cmt-form"); if (!form) return;
     e.preventDefault();
-    var form = e.currentTarget;
+    if (!openCmtId) return;
     var nick = (form.querySelector(".cmt-nick").value || "").trim();
     var body = (form.querySelector(".cmt-body").value || "").trim();
     var agree = form.querySelector(".cmt-agree").checked;
     var err = form.querySelector(".cmt-error");
+    var imageUrl = form.dataset.imageUrl || "";
     var parentId = form.getAttribute("data-parent") || null;
     err.textContent = "";
-    if (!body) { err.textContent = "Please write something."; return; }
+    if (!body && !imageUrl) { err.textContent = "Write something or attach a photo."; return; }
     if (!agree) { err.textContent = "Please agree to the privacy notice."; return; }
     try { if (nick) localStorage.setItem(NICK_KEY, nick); } catch (e2) {}
     var btn = form.querySelector(".cmt-submit"); btn.disabled = true;
     fetch("/api/comments", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: nick || "Anonymous", body: body, unitId: cmtUnit.id, parentId: parentId, consent: true }) })
+      body: JSON.stringify({ name: nick || "Anonymous", body: body, unitId: openCmtId, parentId: parentId, imageUrl: imageUrl, consent: true }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (res) { btn.disabled = false; if (res.ok) { if (form.classList.contains("reply")) form.remove(); else form.querySelector(".cmt-body").value = ""; loadComments(cmtUnit.id); } else { err.textContent = "Failed: " + (res.j.error || ""); } })
+      .then(function (res) { btn.disabled = false; if (res.ok) loadComments(openCmtId); else err.textContent = "Failed: " + (res.j.error || ""); })
       .catch(function () { btn.disabled = false; err.textContent = "Network error."; });
   }
 
@@ -378,8 +395,15 @@
     }).addTo(map);
     unitLayer.addTo(map);
 
-    $list.addEventListener("click", function (e) { var card = e.target.closest(".result-card"); if (card) { var id = card.getAttribute("data-id"); setActive(id, true); openComments(findUnit(id)); } });
-    document.addEventListener("click", function (e) { var b = e.target.closest("[data-cmt]"); if (b) openComments(findUnit(b.getAttribute("data-cmt"))); });
+    $list.addEventListener("click", function (e) {
+      if (e.target.closest(".cmt-panel")) return;
+      var card = e.target.closest(".result-card");
+      if (card) { var id = card.getAttribute("data-id"); setActive(id, true); togglePanel(id); }
+    });
+    $list.addEventListener("click", onPanelClick);
+    $list.addEventListener("change", onPanelChange);
+    $list.addEventListener("submit", onPanelSubmit);
+    document.addEventListener("click", function (e) { var b = e.target.closest("[data-cmt]"); if (b) { var id = b.getAttribute("data-cmt"); if (isMobile()) setView("list"); openPanel(id); } });
     $form.addEventListener("submit", function (e) { e.preventDefault(); var q = $input.value.trim(); if (q) doSearch(q); else showAll(); });
     map.on("click", function (e) { setAnchorFromMap(e.latlng); });
     $reset.addEventListener("click", showAll);

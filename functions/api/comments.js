@@ -13,7 +13,7 @@ export async function onRequestGet({ request, env }) {
   const arr = await getArr(env, "comments");
   const out = arr.map(function (c) {
     return {
-      id: c.id, ts: c.ts, name: c.name, body: c.body,
+      id: c.id, ts: c.ts, name: c.name, body: c.body, imageUrl: c.imageUrl || "",
       parentId: c.parentId || null, unitId: c.unitId || null,
       ip: admin ? c.ip : undefined, ipMasked: maskIp(c.ip),
     };
@@ -28,9 +28,10 @@ export async function onRequestPost({ request, env }) {
   // GDPR: 개인정보(IP·닉네임) 저장 동의 필수
   if (body.consent !== true) return json({ error: "consent_required" }, 400);
 
-  const name = (body.name || "익명").toString().trim().slice(0, 40) || "익명";
+  const name = (body.name || "Anonymous").toString().trim().slice(0, 40) || "Anonymous";
   const text = (body.body || "").toString().trim().slice(0, 1000);
-  if (!text) return json({ error: "empty" }, 400);
+  const imageUrl = body.imageUrl ? String(body.imageUrl).slice(0, 500) : "";
+  if (!text && !imageUrl) return json({ error: "empty" }, 400);
 
   const arr = await getArr(env, "comments");
   const parentId = body.parentId ? String(body.parentId).slice(0, 60) : null;
@@ -39,13 +40,13 @@ export async function onRequestPost({ request, env }) {
   }
   const now = new Date().toISOString();
   const c = {
-    id: newId(), ts: now, name: name, body: text,
+    id: newId(), ts: now, name: name, body: text, imageUrl: imageUrl,
     parentId: parentId, unitId: body.unitId ? String(body.unitId).slice(0, 60) : null,
     ip: clientIp(request), consent: true, consentTs: now,
   };
   arr.unshift(c);
   await putArr(env, "comments", arr.slice(0, 5000));
-  return json({ ok: true, comment: { id: c.id, ts: c.ts, name: c.name, body: c.body, parentId: c.parentId, ipMasked: maskIp(c.ip) } });
+  return json({ ok: true, comment: { id: c.id, ts: c.ts, name: c.name, body: c.body, imageUrl: c.imageUrl, parentId: c.parentId, ipMasked: maskIp(c.ip) } });
 }
 
 export async function onRequestDelete({ request, env }) {

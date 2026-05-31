@@ -195,7 +195,7 @@
     var q = input ? input.value.trim() : "";
     if (!q) { setStatus("Enter an address/place to search", false); return; }
     var old = btn.textContent; btn.textContent = "Searching…"; btn.disabled = true;
-    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=en&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (arr) {
         if (arr && arr[0]) {
