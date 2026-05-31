@@ -38,25 +38,17 @@ WOSM Region → 국가(NSO) → 단위대(Unit)
 }
 ```
 
-## 3. 단위대 데이터 (현재 16곳, 샘플 — KV `units`가 원본)
-| Name | Type | NSO | Region | lat, lng |
-|---|---|---|---|---|
-| Yeongtong Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.2519, 127.0717 |
-| Gwonseon Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.2576, 127.001 |
-| Ingye Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.2664, 127.0287 |
-| Jeongja Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.366, 127.1085 |
-| Yeoksam Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.5006, 127.0364 |
-| Jamsil Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.5133, 127.1001 |
-| Sanggye Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.6566, 127.0568 |
-| Guwol Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.4486, 126.706 |
-| Bujeon Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 35.1577, 129.0594 |
-| Beomeo Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 35.8575, 128.6206 |
-| Dunsan Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 36.3515, 127.3786 |
-| Chipyeong Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 35.1525, 126.8497 |
-| Bipa Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 34.8055, 126.4196 |
-| Hyoja Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 37.8743, 127.7341 |
-| Hansol High School Unit | School unit | Korea Scout Association | Asia-Pacific | 36.4845, 127.262 |
-| Nohyeong Scout Unit | Community unit | Korea Scout Association | Asia-Pacific | 33.4845, 126.4795 |
+## 3. 단위대 데이터 (샘플 25곳 — KV `units`가 원본)
+국가별 5개씩, 모두 Asia-Pacific. 전체 레코드는 `data.js`/`/api/units`.
+
+| 국가 (country) | NSO | 수 |
+|---|---|---|
+| Republic of Korea | Korea Scout Association | 5 |
+| Singapore | The Singapore Scout Association | 5 |
+| Mongolia | The Scout Association of Mongolia | 5 |
+| Hong Kong | Scout Association of Hong Kong | 5 |
+| Scouts of China (Taiwan) | The General Association of the Scouts of China | 5 |
+| **합계** | | **25** |
 
 ## 4. 국가/NSO 목록 (`window.SCOUT_NSOS`, 176개국)
 각 항목: `{ country(EN, WOSM 공식명), country_ko, nso, region, lang }`. 전체 176개 배열은 `data.js`에 있음(관리자 국가 드롭다운 소스).
