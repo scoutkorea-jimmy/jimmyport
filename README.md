@@ -1,110 +1,84 @@
-# Jimmy Park Homepage
+# scout-finder — 내 주변 스카우트 지역대 찾기
 
-Static site for [jimmypark.net](https://jimmypark.net/). Hosted on **Cloudflare Pages** (project: `jimmyport`). GitHub repo is source-only — git push **alone** does not deploy. Deploys happen via `wrangler pages deploy` or the GitHub Actions workflow in `.github/workflows/deploy-on-push.yml`.
+지역(시/구/동)을 검색하거나 지도를 클릭하면, 그 위치를 기준으로 가까운
+스카우트 지역대를 거리순으로 지도와 목록에 보여주는 **정적 웹앱**입니다.
+GPS를 쓰지 않고 검색·지도 클릭으로 기준 위치를 정합니다.
 
-## Architecture
+## 특징
 
-All site copy lives in JSON files under `data/`. `index.html` keeps Korean fallback text so the site stays readable if JS or a fetch fails. `script.js` reads the JSON and renders every section.
+- **Vanilla HTML/CSS/JS** — 프레임워크·번들러·빌드 단계 없음.
+- 지도: **Leaflet 1.9.4** (cdnjs CDN) + **OpenStreetMap** 타일.
+- **외부 API 키·지오코딩 호출 없음** — 전부 클라이언트에서 동작.
+- 검색은 데이터 내 `name / federation / district / address` **부분일치**.
+  일치 항목들의 좌표 **중심(centroid)** 을 기준점으로 삼아 haversine 거리로 정렬.
+- 지도를 클릭하면 그 지점을 기준점으로 재정렬 (GPS 대체).
+- 로직과 데이터가 **완전히 분리** — `data.js`만 교체하면 다른 데이터로 바로 동작.
 
-| File | Purpose |
-|---|---|
-| `index.html`              | Homepage markup + Korean fallback copy |
-| `script.js`               | Homepage runtime — loads JSON, renders sections, KR/EN toggle, portfolio modal, CF analytics inject |
-| `styles.css`              | Light-theme visual system + admin layout + modal |
-| `version-watch.js`        | Footer "live build" pill + full-screen "new build" modal |
-| `manage.html` / `manage.js` | Unified admin — every text on the site is editable here |
-| `manage-editor.js`        | ES-module Tiptap editor for KMS / Wiki / Design Guide admin tabs |
-| `data/site-config.json`   | Hero / Profile / Experience / Career labels / Portfolio labels / Principles / Contact / SEO / analytics |
-| `data/portfolio.json`     | Portfolio item array — `{ type: video\|pm, title, role, overview, youtubeUrl, detail_ko/en, thumbnail }` |
-| `data/career.json`        | Chronological company experience |
-| `data/kms.json`           | Internal feature specifications (admin only) |
-| `data/wiki.json`          | Operator notes / procedures / lessons (admin only) |
-| `data/design.json`        | Design guide — colour / typography / spacing / motion / components / tone (admin only) |
-| `VERSION` / `ADMIN_VERSION` | Site and admin version stamps polled by `version-watch.js` |
-| `CNAME`                   | Custom domain pointer |
+## 파일 구조
 
-## Manage admin — `/manage`
+```
+index.html   레이아웃 + Leaflet CDN 로드
+styles.css   필드 가이드/지도 무드 스타일
+app.js       검색 · centroid anchor · haversine 정렬 · 지도클릭 재정렬 · 렌더링
+data.js      window.SCOUT_UNITS 샘플 데이터 (← 교체 지점)
+README.md    이 문서
+```
 
-`manage.html` edits every text on the site. Three save paths:
+## 로컬 실행
 
-1. **Local draft** — every change auto-saves to `localStorage`. Open `/` in the same browser to preview before committing.
-2. **JSON 다운로드** — download the changed JSON files and replace them under `data/`, then commit + deploy manually.
-3. **GitHub에 바로 커밋** ★ — paste a GitHub Personal Access Token in the **Deploy · GitHub** tab. One click commits up to six files (`site-config.json`, `portfolio.json`, `career.json`, `kms.json`, `wiki.json`, `design.json`) via the GitHub Contents API.
+`file://` 로 열어도 동작하지만, 일부 브라우저 캐싱/보안 정책을 피하려면
+간단한 정적 서버로 실행하는 것을 권장합니다.
 
-PAT lives in `sessionStorage` only and is cleared when the tab closes.
-
-### Image upload from admin
-
-The Hero panel has a file picker. Selecting an image PUTs it to `assets/` via the GitHub Contents API and updates `hero.image` to the new path automatically. Requires the same PAT.
-
-## Cloudflare Web Analytics (cookieless, PII-free)
-
-The site reads `analytics.cf_token` from `data/site-config.json` and injects the Cloudflare beacon at runtime. To enable:
-
-1. **dash.cloudflare.com → Analytics & Logs → Web Analytics → Add a site** — pick `jimmypark.net`.
-2. Copy the short token Cloudflare shows you (something like `a1b2c3d4...`).
-3. Open `/manage` → **Site · SEO** tab → paste the token in the *CF Web Analytics token* field. Save.
-4. Commit (Deploy tab) or download `site-config.json` and push manually.
-5. Dashboard shows visitors, pageviews, top pages, **top countries** (free plan), top referrers, browser/OS/device breakdowns. City-level breakdown requires Cloudflare's paid tier; country + referrer + browser are free.
-
-To stop tracking later: clear the token field and re-deploy.
-
-## Cloudflare Access — gate `/manage` so only you can open it
-
-The admin is otherwise reachable by anyone who knows the URL. Cloudflare Access (free Zero Trust plan, 50 users) puts an identity gate in front of it. **5-minute setup, no code change.**
-
-1. **one.dash.cloudflare.com** → sign in with the same Cloudflare account that owns the `jimmyport` Pages project.
-2. **Access → Applications → Add an application → Self-hosted.**
-3. Application configuration:
-   - Application name: `jimmypark manage`
-   - Session duration: `24 hours`
-   - Application domain → **Domain:** `jimmypark.net`, **Path:** `/manage*`
-4. Add a policy:
-   - Policy name: `owner only`
-   - Action: **Allow**
-   - Include rule → **Emails** → `scoutkorea@kakao.com` (the email you want to log in with)
-5. Identity providers — keep the default "One-time PIN" enabled so logging in just requires reading your inbox for a 6-digit code. No social login required.
-6. Save. Open `https://jimmypark.net/manage` in a fresh tab — you should see the Cloudflare Access screen, enter your email, get the PIN, and proceed.
-
-After this, the public site stays open to everyone; only `/manage` requires the email gate.
-
-## GitHub Actions auto-deploy — repo secrets
-
-The repo has `.github/workflows/deploy-on-push.yml`. It calls `wrangler pages deploy . --project-name jimmyport --branch main` on every push to `main`. It only works once the two Cloudflare secrets are set on the repo:
-
-1. **Create a Cloudflare API token** — dash.cloudflare.com → My Profile → API Tokens → Create Token → **Edit Cloudflare Workers** template. (This template includes the Pages permissions the workflow needs.)
-2. **Copy the token** Cloudflare shows you. (You can't view it again later.)
-3. **Copy your Cloudflare account id** — visible in `wrangler whoami` output. For this repo it is **`b8cc5609b10c4df5b8e31aec570937b8`**.
-4. **github.com/scoutkorea-jimmy/jimmyport → Settings → Secrets and variables → Actions → New repository secret:**
-   - Name `CLOUDFLARE_API_TOKEN`, value = the token from step 2.
-   - Name `CLOUDFLARE_ACCOUNT_ID`, value = `b8cc5609b10c4df5b8e31aec570937b8`.
-5. Make a small commit on `main` and push. Open the Actions tab — `Deploy jimmypark.net On Push` should run and `wrangler pages deploy` should finish green.
-
-After this, every `git push origin main` deploys to production automatically (1–2 minutes). To skip a specific push include `[skip deploy]` in the commit message. Markdown-only / `.github/**` changes are auto-skipped via `paths-ignore`.
-
-## Version watching
-
-`version-watch.js` polls `/VERSION` and `/ADMIN_VERSION` every 60s. The footer shows current versions plus a "최신 (HH:MM 확인)" pill. When a newer build is detected on a tab still on the old build, a full-screen modal appears prompting a refresh.
-
-## Local preview
-
-```sh
+```bash
+# Python 3
 python3 -m http.server 8080
-# → http://localhost:8080
+# 또는 Node
+npx serve .
 ```
 
-## Manual deploy (if Actions are not configured yet)
+이후 브라우저에서 `http://localhost:8080` 접속.
 
-```sh
-COMMIT_SHA=$(git rev-parse HEAD)
-COMMIT_MSG=$(git log -1 --pretty=%s)
-wrangler pages deploy . \
-  --project-name jimmyport \
-  --branch main \
-  --commit-hash "$COMMIT_SHA" \
-  --commit-message "$COMMIT_MSG" \
-  --commit-dirty=true
-curl -sS "https://jimmypark.net/VERSION?_=$(date +%s)" -H "Cache-Control: no-cache"
+## 데이터 교체
+
+`data.js`의 `window.SCOUT_UNITS` 배열만 교체하면 됩니다. app.js 수정 불필요.
+
+각 항목 스키마:
+
+```js
+{
+  id,          // 고유 식별자 (영문 kebab-case)
+  name,        // 지역대 이름
+  federation,  // 시·도연맹
+  district,    // 지구
+  address,     // 동 단위 전체주소
+  lat, lng,    // 동의 실제 대략 위경도 (검색 anchor·거리 계산)
+  sections,    // 운영 부문 배열: 비버/컵/스카우트/벤처/로버 중 일부
+  meetingDay,  // 정기모임 요일
+  contact,     // 연락처
+  note,        // 비고
+}
 ```
 
-Should print the value of the `VERSION` file. **Always pass `--project-name jimmyport`** — there is a separate project (`gilwell-media`) on the same Cloudflare account that must not receive deploys from this repo.
+- 검색·정렬은 전적으로 `lat/lng`에 의존하므로 좌표는 반드시 채워야 합니다.
+- `sections`가 비어 있어도 동작하며, 칩이 표시되지 않을 뿐입니다.
+
+## Cloudflare Pages 배포
+
+빌드 단계가 없으므로 정적 파일을 그대로 올립니다.
+
+**대시보드(Git 연동):**
+1. Cloudflare Pages → Create a project → 저장소 연결.
+2. Framework preset: **None**, Build command: 비움, Output directory: `/` (루트).
+
+**Wrangler CLI(직접 배포):**
+```bash
+wrangler pages deploy . --project-name <your-project> --branch main
+```
+
+> 외부 키·서버가 없으므로 환경변수 설정이 필요 없습니다.
+
+## 라이선스 / 데이터 주의
+
+현재 데이터는 **샘플(예시)** 입니다. 헤더의 "샘플 데이터" 배지로 표시되며,
+실제 운영 시 `data.js`를 실데이터로 교체하세요.
+지도 타일·데이터는 OpenStreetMap (ODbL) 기여자에게 귀속됩니다.

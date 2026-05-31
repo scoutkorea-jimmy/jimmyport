@@ -1,271 +1,73 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title data-config="meta.title">Jimmy Park | 박지민</title>
-    <meta
-      name="description"
-      data-config-attr="content:meta.description"
-      content="Jimmy Park's digital archive — strategic production, systems & operations, global communication, and youth-led community work."
-    />
-    <meta name="theme-color" content="#f6f3ef" />
-    <meta property="og:title" data-config-attr="content:meta.title" content="Jimmy Park | 박지민" />
-    <meta
-      property="og:description"
-      data-config-attr="content:meta.description"
-      content="A long-form archive of operational thinking, global field work, and the structures that keep people and projects connected."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://jimmypark.net/" />
-    <meta property="og:image" content="https://jimmypark.net/assets/hero-workspace.png" />
-    <link rel="canonical" href="https://jimmypark.net/" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="container header-inner">
-        <a class="brand" href="#top" aria-label="Jimmy Park · home" data-config="brand">Jimmy Park</a>
-        <nav class="nav-links" aria-label="Sections" id="primary-nav">
-          <a href="#how">How I Work</a>
-          <a href="#global">Global</a>
-          <a href="#build">Build</a>
-          <a href="#education">Teach</a>
-          <a href="#career">Career</a>
-          <a href="#principles">Principles</a>
-          <a href="#contact">Connect</a>
-        </nav>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>내 주변 스카우트 지역대 찾기</title>
+  <meta name="description" content="지역을 검색하거나 지도를 클릭해 가까운 스카우트 지역대를 거리순으로 찾아보세요." />
+
+  <!-- Leaflet 1.9.4 (cdnjs) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    crossorigin="" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="title-block">
+        <h1>내 주변 스카우트 지역대 찾기</h1>
+        <span class="badge" title="현재는 예시 데이터로 동작합니다">샘플 데이터</span>
       </div>
-    </header>
 
-    <main id="top">
-
-      <!-- 01 · WHO I AM -->
-      <section class="archive-page section-who" id="who" aria-labelledby="who-title">
-        <figure class="who-bg" aria-hidden="true">
-          <img
-            id="who-bg-image"
-            src="assets/hero-workspace.png"
-            alt=""
-            data-config-attr="src:hero.background_image"
-          />
-          <div class="who-bg-overlay"></div>
-        </figure>
-        <div class="container who-inner">
-          <header class="who-pageline">
-            <span class="who-pageline-num">01</span>
-            <span class="who-pageline-divider"></span>
-            <span class="who-pageline-eyebrow" data-config="hero.eyebrow">WHO I AM</span>
-          </header>
-
-          <div class="who-grid">
-            <div class="who-name">
-              <h1 id="who-title" data-config="hero.title">Jimmy Park</h1>
-              <p class="who-name-ko" lang="ko">박지민</p>
-            </div>
-            <div class="who-lead">
-              <p class="who-lead-primary" data-config="hero.lead">
-                Complex stories and structures,<br>made clearer.
-              </p>
-              <p class="who-lead-secondary" data-config="hero.lead_secondary">
-                And shaped into directions that actually move on the ground.
-              </p>
-            </div>
-          </div>
-
-          <div class="who-bottom">
-            <div class="who-bottom-section">
-              <p class="who-bottom-label">Current roles<span class="who-bottom-label-ko" lang="ko"> · 현재의 역할</span></p>
-              <ul class="who-roles" id="who-roles" aria-label="Current roles"></ul>
-            </div>
-            <div class="who-bottom-section">
-              <p class="who-bottom-label">At a glance<span class="who-bottom-label-ko" lang="ko"> · 정보 요약</span></p>
-              <dl class="quick-facts" id="quick-facts"></dl>
-            </div>
-          </div>
+      <form id="search-form" class="search" role="search" autocomplete="off">
+        <label class="sr-only" for="search-input">지역 검색</label>
+        <div class="search-field">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+          </svg>
+          <input
+            id="search-input"
+            type="search"
+            name="q"
+            placeholder="지역을 검색하세요 (예: 수원, 강남구, 영통동)"
+            aria-describedby="search-hint" />
+          <button type="submit" class="search-go">검색</button>
         </div>
-      </section>
+        <p id="search-hint" class="search-hint">또는 지도를 클릭해 기준 위치를 정하세요.</p>
+      </form>
+    </div>
+  </header>
 
-      <!-- 02 · HOW I WORK -->
-      <section class="archive-page section-how" id="how" aria-labelledby="how-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">02</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="how_i_work.eyebrow">HOW I WORK</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="how-title" data-config="how_i_work.title">Four disciplines, one question.</h2>
-            <p class="section-intro" data-config="how_i_work.body">Four separate disciplines, but they keep pointing back at the same question — how do you build something that outlasts the project that funded it.</p>
-          </div>
-          <div class="how-pillars" id="how-pillars"></div>
-        </div>
-      </section>
-
-      <!-- 03 · GLOBAL FIELD EXPERIENCE -->
-      <section class="archive-page section-global" id="global" aria-labelledby="global-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">03</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="global_experience.eyebrow">GLOBAL FIELD EXPERIENCE</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="global-title" data-config="global_experience.title">Operational instinct, built in the field</h2>
-            <p class="section-intro" data-config="global_experience.body">Across 18 countries and 30+ cities of on-the-ground project work — navigating differences in culture, operations, and communication.</p>
-          </div>
-          <div class="global-stats" aria-hidden="false">
-            <div class="global-stat">
-              <strong id="global-stat-countries">0</strong>
-              <span data-config="global_experience.stat_countries_label">countries</span>
-              <em class="global-stat-breakdown" id="global-stat-breakdown" aria-live="polite"></em>
-            </div>
-            <div class="global-stat">
-              <strong id="global-stat-cities">0</strong>
-              <span data-config="global_experience.stat_cities_caption">cities</span>
-            </div>
-          </div>
-          <p class="global-observations" data-config="global_experience.observations">
-            Operational rhythms differ from country to country. Communication shifts with language and hierarchy. The field is recorded for whoever arrives next.
-          </p>
-
-          <div class="country-section" id="country-section">
-            <div class="country-home-block" id="country-home-block" aria-label="Home base"></div>
-            <div class="country-overseas-block">
-              <div class="country-overseas-head">
-                <span class="country-overseas-eyebrow">
-                  <span class="bilingual-en">Overseas field work</span>
-                  <span class="bilingual-ko" lang="ko">해외 현장</span>
-                </span>
-                <span class="country-overseas-count" id="country-overseas-count"></span>
-              </div>
-              <ul class="country-grid" id="country-grid" aria-label="Overseas countries"></ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 04 · WHAT I BUILD -->
-      <section class="archive-page section-build" id="build" aria-labelledby="build-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">04</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="portfolio_intro.eyebrow">WHAT I BUILD</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="build-title" data-config="portfolio_intro.title">Selected work</h2>
-            <p class="section-intro" data-config="portfolio_intro.intro">Video, PM projects, operations and documentation work. Click a card to open the detail.</p>
-          </div>
-
-          <!-- Video reel — preview grid + binge-watch modal. Source = videos[] in
-               site-config.json (YouTube URLs). Hidden when the list is empty. -->
-          <section class="video-reel" id="video-reel" aria-labelledby="video-reel-title" hidden>
-            <header class="video-reel-head">
-              <h3 class="video-reel-title" id="video-reel-title">
-                <span class="bilingual-en">Video reel</span>
-                <span class="bilingual-ko" lang="ko">영상 모아보기</span>
-              </h3>
-              <button type="button" class="video-reel-watchall" id="video-reel-watchall">
-                <span class="bilingual-en">Binge-watch ▸</span>
-                <span class="bilingual-ko" lang="ko">몰아보기</span>
-              </button>
-            </header>
-            <div class="video-reel-grid" id="video-reel-grid" role="list"></div>
-          </section>
-
-          <div class="portfolio-groups" id="portfolio-groups" aria-live="polite"></div>
-        </div>
-      </section>
-
-      <!-- Video playlist modal — mounted lazily by script.js -->
-      <div class="video-playlist-modal" id="video-playlist-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="video-playlist-title"></div>
-
-      <!-- 05 · EDUCATION & SPEAKING -->
-      <section class="archive-page section-education" id="education" aria-labelledby="education-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">05</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="education.eyebrow">EDUCATION &amp; SPEAKING</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="education-title" data-config="education.title">What I teach, where I speak.</h2>
-            <p class="section-intro" data-config="education.body">Not a side activity — an extension of the same operational and communication thinking.</p>
-          </div>
-          <ol class="education-list" id="education-list"></ol>
-        </div>
-      </section>
-
-      <!-- 06 · EXPERIENCE & CAREER -->
-      <section class="archive-page section-career" id="career" aria-labelledby="career-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">06</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="career.eyebrow">EXPERIENCE &amp; CAREER</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="career-title" data-config="career.title">Career</h2>
-            <p class="section-intro" data-config="career.intro">Chronological company experience.</p>
-          </div>
-          <div class="career-list" id="career-list" aria-live="polite"></div>
-        </div>
-      </section>
-
-      <!-- 07 · PRINCIPLES -->
-      <section class="archive-page section-principles" id="principles" aria-labelledby="principles-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">07</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="principles.eyebrow">PRINCIPLES</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="principles-title" data-config="principles.title">Principles</h2>
-          </div>
-          <ol class="principles-list" id="principles-list"></ol>
-        </div>
-      </section>
-
-      <!-- 08 · LET'S CONNECT -->
-      <section class="archive-page section-connect" id="contact" aria-labelledby="contact-title">
-        <div class="container">
-          <header class="archive-pageline">
-            <span class="archive-pageline-num">08</span>
-            <span class="archive-pageline-divider"></span>
-            <span class="archive-pageline-eyebrow" data-config="contact.eyebrow">LET'S CONNECT</span>
-          </header>
-          <div class="archive-page-head">
-            <h2 id="contact-title" data-config="contact.title">Good structures start with good conversations.</h2>
-            <p class="section-intro" data-config="contact.body">If it's about keeping people and the field connected for longer, I'd love to talk.</p>
-          </div>
-          <a class="mail-link" href="mailto:scoutkorea@kakao.com" id="contact-email">scoutkorea@kakao.com</a>
-        </div>
-      </section>
-
-    </main>
-
-    <button type="button" class="floating-top" id="floating-top" aria-label="맨 위로 / Back to top">Top</button>
-
-    <!-- Portfolio detail modal — mounted lazily by script.js -->
-    <div class="portfolio-modal" id="portfolio-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="portfolio-modal-title"></div>
-
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <span>© <span id="year"></span> <span data-config="brand">Jimmy Park</span></span>
-        <p class="footer-build" data-version-status="checking">
-          Site <span class="site-build-version">V00.015.00</span> · Admin <span class="admin-build-version">V00.008.00</span>
-          <span class="footer-build-status" aria-live="polite"></span>
-        </p>
-        <div class="footer-links">
-          <a href="manage.html" data-footer-role="manage-link">Manage</a>
-          <a href="#top" data-footer-role="back-to-top">Back to top</a>
-        </div>
+  <main class="layout">
+    <aside class="results" aria-label="지역대 검색 결과">
+      <div class="results-head">
+        <p id="status" class="results-status" role="status" aria-live="polite"></p>
+        <button id="reset-btn" type="button" class="reset-btn" hidden>전체 보기</button>
       </div>
-    </footer>
 
-    <script src="script.js"></script>
-    <script src="version-watch.js"></script>
-  </body>
+      <ol id="result-list" class="result-list"></ol>
+
+      <div id="empty-state" class="empty-state" hidden>
+        <p class="empty-title">검색 결과가 없습니다.</p>
+        <p class="empty-sub">다른 지역명으로 검색하거나, 지도를 클릭해 위치를 정해보세요.</p>
+        <button type="button" class="reset-btn" data-reset>전체 보기</button>
+      </div>
+    </aside>
+
+    <div id="map" class="map" role="application" aria-label="지역대 지도"></div>
+  </main>
+
+  <!-- Leaflet 1.9.4 (cdnjs) -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+    crossorigin=""></script>
+
+  <!-- 데이터 → 로직 순서 (둘 다 classic script, 전역 공유) -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
