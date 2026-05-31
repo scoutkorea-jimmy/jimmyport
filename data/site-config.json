@@ -2,42 +2,35 @@
   "$schema_version": 2,
   "lang_default": "ko",
   "meta": {
-    "title_ko": "박지민 | Jimmy Park",
-    "title_en": "Jimmy Park | 박지민",
-    "description_ko": "박지민의 전략 아카이브. 미디어·교육·커뮤니티 운영의 교차점에서 일하며, 사람과 현장을 더 오래 연결하는 구조를 정리합니다.",
-    "description_en": "Jimmy Park's strategic archive. Working at the intersection of media, education, and community operations — designing structures that keep people and the field connected for longer."
+    "title_ko": "",
+    "title_en": "",
+    "description_ko": "",
+    "description_en": ""
   },
-  "brand": { "ko": "박지민", "en": "Jimmy Park" },
-  "nav": [
-    { "key": "profile",    "ko": "Profile",     "en": "Profile",     "href": "#profile" },
-    { "key": "work",       "ko": "Experience",  "en": "Experience",  "href": "#work" },
-    { "key": "career",     "ko": "Career",      "en": "Career",      "href": "#career" },
-    { "key": "portfolio",  "ko": "Portfolio",   "en": "Portfolio",   "href": "#portfolio" },
-    { "key": "global",     "ko": "Global",      "en": "Global",      "href": "#global" },
-    { "key": "contact",    "ko": "Contact",     "en": "Contact",     "href": "#contact" }
-  ],
+  "brand": { "ko": "", "en": "" },
+  "nav": [],
   "hero": {
-    "eyebrow_ko": "박지민",
-    "eyebrow_en": "WHO I AM",
-    "title_ko": "박지민",
-    "title_en": "Jimmy Park",
-    "lead_ko": "복잡한 이야기와 구조를\n조금 더 명확하게 정리합니다.",
-    "lead_en": "Complex stories and structures,\nmade clearer.",
-    "lead_secondary_ko": "그리고 실제 현장에서 움직일 수 있는 방향을 함께 고민합니다.",
-    "lead_secondary_en": "And shaped into directions that actually move on the ground.",
-    "titles_ko": ["전략 프로듀서", "시스템·운영 설계", "국제 커뮤니케이션", "커뮤니티 기록자"],
-    "titles_en": ["Strategic Producer", "Systems & Operations Designer", "Global Communication Coordinator", "Community Documentation Lead"],
-    "meta_tags": ["Strategic Production", "Global Communication", "Systems & Operations", "Media Infrastructure", "Community Documentation"],
-    "cta_portfolio_ko": "작업 살펴보기",
-    "cta_portfolio_en": "Read the archive",
-    "cta_email_ko": "이메일 보내기",
-    "cta_email_en": "Email me",
-    "image": "assets/hero-workspace.png",
-    "image_alt_ko": "노트북과 노트가 놓인 차분한 작업 공간",
-    "image_alt_en": "A quiet workspace with a notebook and laptop",
-    "background_image": "assets/hero-workspace.png",
-    "background_image_alt_ko": "히어로 배경 이미지",
-    "background_image_alt_en": "Hero background image",
+    "eyebrow_ko": "",
+    "eyebrow_en": "",
+    "title_ko": "",
+    "title_en": "",
+    "lead_ko": "",
+    "lead_en": "",
+    "lead_secondary_ko": "",
+    "lead_secondary_en": "",
+    "titles_ko": [],
+    "titles_en": [],
+    "meta_tags": [],
+    "cta_portfolio_ko": "",
+    "cta_portfolio_en": "",
+    "cta_email_ko": "",
+    "cta_email_en": "",
+    "image": "",
+    "image_alt_ko": "",
+    "image_alt_en": "",
+    "background_image": "",
+    "background_image_alt_ko": "",
+    "background_image_alt_en": "",
     "tweaks": {
       "title_scale": 1.0,
       "align": "left",
@@ -47,346 +40,124 @@
     }
   },
   "how_i_work": {
-    "eyebrow_ko": "작업 방식",
-    "eyebrow_en": "HOW I WORK",
-    "title_ko": "구조를 다루는 네 가지 방식",
-    "title_en": "Four disciplines, one question.",
-    "body_ko": "각 영역은 독립적인 작업이지만, 결국 같은 질문 위에 놓여 있습니다 — 프로젝트가 끝난 뒤에도 남는 구조를 어떻게 만들 것인가.",
-    "body_en": "Four separate disciplines, but they keep pointing back at the same question — how do you build something that outlasts the project that funded it.",
-    "pillars": [
-      {
-        "key": "video",
-        "title_ko": "영상 제작",
-        "title_en": "Video Production",
-        "summary_ko": "기획에서 편집까지. 단순한 시각물이 아니라 메시지 구조와 운영 흐름까지 함께 설계합니다.",
-        "summary_en": "From concept through edit — built around message structure and operational flow, not just visuals.",
-        "tags_ko": ["IR · PR 영상", "공공기관 콘텐츠", "국제행사 기록", "현장 다큐멘테이션", "스토리 기반 브랜딩", "운영 중심 미디어"],
-        "tags_en": ["IR · PR film", "Public-sector content", "International event records", "Field documentation", "Story-driven branding", "Operations-centred media"]
-      },
-      {
-        "key": "web",
-        "title_ko": "웹사이트 · 디지털 구조",
-        "title_en": "Website & Digital Structure",
-        "summary_ko": "사람이 실제로 읽을 수 있는 정보 구조. 오래 가는 아카이브, PDF 친화적 흐름, CMS 기반 운영을 함께 설계합니다.",
-        "summary_en": "Information architecture people can actually read. Long-lived archives, PDF-friendly flows, CMS-driven operations.",
-        "tags_ko": ["정보 구조", "UX 흐름", "콘텐츠 구조화", "운영 가능한 웹", "장기 아카이브", "PDF 친화 구조", "CMS · 워크플로"],
-        "tags_en": ["Information architecture", "UX flow", "Content structure", "Operable web", "Long-lived archive", "PDF-friendly layout", "CMS · workflow"]
-      },
-      {
-        "key": "global",
-        "title_ko": "국제 · 글로벌 운영",
-        "title_en": "International & Global Operations",
-        "summary_ko": "단순한 해외 경험이 아니라, 현장에서 쌓은 국제 프로젝트 운영 감각.",
-        "summary_en": "Cross-cultural project operations drawn from years on the ground — not from a deck.",
-        "tags_ko": ["국제 프로젝트 운영", "다국적 커뮤니케이션", "글로벌 행사 운영", "WOSM · 국제 네트워크", "청소년 · 국제활동", "현장 기반 글로벌 운영"],
-        "tags_en": ["International project ops", "Multinational communication", "Global events", "WOSM & networks", "Youth & international affairs", "On-ground global operations"]
-      },
-      {
-        "key": "education",
-        "title_ko": "교육 · 강의",
-        "title_en": "Education & Speaking",
-        "summary_ko": "현장에서 쌓은 운영과 커뮤니케이션 감각을 팀 · 청소년 · 국제 활동가들과 나눕니다.",
-        "summary_en": "Sharing operations and communication from the field — for teams, students, and youth networks.",
-        "tags_ko": ["영상 제작 강의", "미디어 교육", "청소년 중심 학습", "국제활동 강연", "운영 · 커뮤니케이션 교육", "프로젝트 기반 실무"],
-        "tags_en": ["Video production training", "Media education", "Youth-centred learning", "International activity lectures", "Operations & comms training", "Project-based practice"]
-      }
-    ]
+    "eyebrow_ko": "",
+    "eyebrow_en": "",
+    "title_ko": "",
+    "title_en": "",
+    "body_ko": "",
+    "body_en": "",
+    "pillars": []
   },
   "education": {
-    "eyebrow_ko": "교육 · 강연",
-    "eyebrow_en": "EDUCATION & SPEAKING",
-    "title_ko": "전달하는 일들",
-    "title_en": "What I teach, where I speak.",
-    "body_ko": "별개의 활동이 아니라, 같은 운영 · 커뮤니케이션 감각을 팀과 청소년에게 옮겨내는 일입니다.",
-    "body_en": "Not a side activity — an extension of the same operational and communication thinking, translated for teams, students, and youth networks.",
-    "items": [
-      {
-        "year": "2024 –",
-        "title_ko": "청소년 주도 커뮤니케이션을 위한 영상 제작",
-        "title_en": "Video production for youth-led communication",
-        "audience_ko": "한국스카우트연맹 · 시·도 연맹",
-        "audience_en": "Korean Scout Association · regional councils",
-        "summary_ko": "촬영 기술보다 메시지 구조 설계에 더 가까운, 운영형 영상 강의.",
-        "summary_en": "Practical sessions on framing message structure before production starts — closer to operations than to camera technique."
-      },
-      {
-        "year": "2023 –",
-        "title_ko": "청소년 리더를 위한 국제 프로젝트 운영",
-        "title_en": "International project operations for youth leaders",
-        "audience_ko": "WOSM 아·태지역 네트워크",
-        "audience_en": "WOSM Asia-Pacific networks",
-        "summary_ko": "다국적 프로젝트를 현재 운영자와 내년 운영자 모두에게 읽힐 수 있게 정리하는 방법.",
-        "summary_en": "How to keep a multinational project legible to the people running it — and to the people who arrive next year."
-      },
-      {
-        "year": "2022 –",
-        "title_ko": "조직을 위한 미디어 운영",
-        "title_en": "Media operations for organisations",
-        "audience_ko": "공공 · 비영리 조직",
-        "audience_en": "Public sector & non-profits",
-        "summary_ko": "더 많이 만드는 강의가 아니라, 조직이 오래 운영할 수 있는 콘텐츠를 만드는 강의.",
-        "summary_en": "Less about producing more content — more about producing content the organisation can actually carry over time."
-      }
-    ]
+    "eyebrow_ko": "",
+    "eyebrow_en": "",
+    "title_ko": "",
+    "title_en": "",
+    "body_ko": "",
+    "body_en": "",
+    "items": []
   },
-  "quick_facts": [
-    { "label_ko": "위치",   "label_en": "Based in", "value_ko": "한국, 서울",                "value_en": "Seoul, Korea" },
-    { "label_ko": "분야",   "label_en": "Focus",    "value_ko": "운영 구조 · 커뮤니케이션",    "value_en": "Operational structure · Communication" },
-    { "label_ko": "결과물", "label_en": "Output",   "value_ko": "전략 영상 · 운영 시스템 · 기록", "value_en": "Strategic video · Operations systems · Records" }
-  ],
+  "quick_facts": [],
   "global_experience": {
-    "eyebrow_ko": "Global Experience",
-    "eyebrow_en": "Global Experience",
-    "title_ko": "현장에서 쌓은 글로벌 운영 감각",
-    "title_en": "Operational instinct, built in the field",
-    "body_ko": "18개국, 30개 이상의 도시와 프로젝트 현장을 직접 경험하며 문화·운영·커뮤니케이션 방식의 차이를 다뤄왔습니다.",
-    "body_en": "Across 18 countries and 30+ cities of on-the-ground project work — navigating differences in culture, operations, and communication.",
-    "stat_countries": 18,
-    "stat_cities_label_ko": "30+",
-    "stat_cities_label_en": "30+",
-    "stat_countries_label_ko": "개국",
-    "stat_countries_label_en": "countries",
-    "stat_cities_caption_ko": "도시",
-    "stat_cities_caption_en": "cities",
-    "multi_visit_label_ko": "재방문",
-    "multi_visit_label_en": "Multi-visit",
-    "home_label_ko": "홈",
-    "home_label_en": "Home",
-    "cities_prefix_ko": "도시:",
-    "cities_prefix_en": "Cities:",
-    "countries": [
-      { "code": "KR", "flag": "🇰🇷", "ko": "대한민국",        "en": "Korea",        "visits": 1, "is_home": true, "cities_ko": [], "cities_en": [] },
-      { "code": "JP", "flag": "🇯🇵", "ko": "일본",            "en": "Japan",        "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "CN", "flag": "🇨🇳", "ko": "중국",            "en": "China",        "visits": 2, "cities_ko": [], "cities_en": [] },
-      { "code": "HK", "flag": "🇭🇰", "ko": "홍콩",            "en": "Hong Kong",    "visits": 2, "cities_ko": [], "cities_en": [] },
-      { "code": "TW", "flag": "🇹🇼", "ko": "대만",            "en": "Taiwan",       "visits": 2, "cities_ko": [], "cities_en": [] },
-      { "code": "MO", "flag": "🇲🇴", "ko": "마카오",          "en": "Macau",        "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "MN", "flag": "🇲🇳", "ko": "몽골",            "en": "Mongolia",     "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "VN", "flag": "🇻🇳", "ko": "베트남",          "en": "Vietnam",      "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "MY", "flag": "🇲🇾", "ko": "말레이시아",      "en": "Malaysia",     "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "BD", "flag": "🇧🇩", "ko": "방글라데시",      "en": "Bangladesh",   "visits": 2, "cities_ko": [], "cities_en": [] },
-      { "code": "IN", "flag": "🇮🇳", "ko": "인도",            "en": "India",        "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "AE", "flag": "🇦🇪", "ko": "아랍에미리트",    "en": "UAE",          "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "QA", "flag": "🇶🇦", "ko": "카타르",          "en": "Qatar",        "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "BH", "flag": "🇧🇭", "ko": "바레인",          "en": "Bahrain",      "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "KW", "flag": "🇰🇼", "ko": "쿠웨이트",        "en": "Kuwait",       "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "OM", "flag": "🇴🇲", "ko": "오만",            "en": "Oman",         "visits": 1, "cities_ko": [], "cities_en": [] },
-      { "code": "ZA", "flag": "🇿🇦", "ko": "남아프리카공화국", "en": "South Africa", "visits": 2, "cities_ko": [], "cities_en": [] },
-      { "code": "US", "flag": "🇺🇸", "ko": "미국",            "en": "USA",          "visits": 1, "cities_ko": [], "cities_en": [] }
-    ]
+    "eyebrow_ko": "",
+    "eyebrow_en": "",
+    "title_ko": "",
+    "title_en": "",
+    "body_ko": "",
+    "body_en": "",
+    "stat_countries": 0,
+    "stat_cities_label_ko": "",
+    "stat_cities_label_en": "",
+    "stat_countries_label_ko": "",
+    "stat_countries_label_en": "",
+    "stat_cities_caption_ko": "",
+    "stat_cities_caption_en": "",
+    "multi_visit_label_ko": "",
+    "multi_visit_label_en": "",
+    "home_label_ko": "",
+    "home_label_en": "",
+    "cities_prefix_ko": "",
+    "cities_prefix_en": "",
+    "countries": []
   },
   "profile": {
-    "title_ko": "차분하게 만들고, 오래 남게 정리합니다.",
-    "title_en": "Making things calmly, and documenting them to last.",
-    "body_ko_paragraphs": [
-      "박지민은 미디어, 교육, 커뮤니티 운영의 교차점에서 일합니다.",
-      "스카우트 운동과 국제 프로젝트 현장을 기반으로, 사람과 사람들이 더 오래 연결될 수 있는 구조를 고민합니다.",
-      "영상과 콘텐츠를 만들기도 하지만, 실제로는 운영 흐름과 커뮤니케이션 구조를 설계하는 일에 더 가깝습니다.",
-      "좋은 결과물보다, 좋은 흐름이 먼저라고 믿습니다."
-    ],
-    "body_en_paragraphs": [
-      "Jimmy Park works at the intersection of media, education, and community operations.",
-      "Anchored in the scouting movement and international project sites, he thinks about structures that keep people connected for longer.",
-      "He makes video and content, but his real work is closer to designing operational flow and communication structure.",
-      "A good outcome matters less than a good flow."
-    ]
+    "title_ko": "",
+    "title_en": "",
+    "body_ko_paragraphs": [],
+    "body_en_paragraphs": []
   },
   "work": {
-    "title_ko": "Selected Experience",
-    "title_en": "Selected Experience",
-    "intro_ko": "회사가 아니라 기능으로 정리한 작업 영역입니다.",
-    "intro_en": "Organized by functional expertise, not by company.",
-    "categories": [
-      {
-        "title_ko": "Strategic Production",
-        "title_en": "Strategic Production",
-        "description_ko": "공공·기업 커뮤니케이션, IR/PR 영상, 키노트, 제안 기반 프로덕션. 메시지·운영·미디어를 RFP 단계부터 함께 설계합니다.",
-        "description_en": "Public and corporate communication, IR/PR films, keynote storytelling, proposal-driven production. Message, operation, and media are designed together from the RFP stage.",
-        "items_ko": [
-          "Samsung Tech Conference",
-          "CES Innovation Award 프로젝트",
-          "KOSME 캠페인",
-          "KAIST 스타트업 콘텐츠",
-          "공공기관 키노트·IR"
-        ],
-        "items_en": [
-          "Samsung Tech Conference",
-          "CES Innovation Award projects",
-          "KOSME campaigns",
-          "KAIST startup content",
-          "Public-sector keynote · IR"
-        ]
-      },
-      {
-        "title_ko": "Global Communication",
-        "title_en": "Global Communication",
-        "description_ko": "국가·언어·시간대가 다른 환경에서 일관된 메시지를 유지하는 운영형 커뮤니케이션. 국제 청소년 네트워크와 다국적 행사 운영 안에서 일해 왔습니다.",
-        "description_en": "Operational communication that holds together across countries, languages, and time zones — built inside international youth networks and multi-national event ecosystems.",
-        "items_ko": [
-          "한국스카우트연맹 커뮤니케이션",
-          "WOSM APR Communication",
-          "World Scout Jamboree",
-          "국제 컨퍼런스 미디어 운영"
-        ],
-        "items_en": [
-          "Korea Scout Association communication",
-          "WOSM APR Communication",
-          "World Scout Jamboree",
-          "International conference media operations"
-        ]
-      },
-      {
-        "title_ko": "Systems & Operations",
-        "title_en": "Systems & Operations",
-        "description_ko": "운영 자동화와 워크플로 시스템. 반복되는 일을 줄이고, 사람이 판단해야 하는 지점에 집중할 수 있게 구조를 정리합니다.",
-        "description_en": "Operational automation and workflow systems. Reduce the repeatable, concentrate human judgement on the decisions that matter.",
-        "items_ko": [
-          "Monday.com 워크플로",
-          "SMS 자동화 시스템",
-          "콘텐츠 운영 구조",
-          "내부 커뮤니케이션 시스템"
-        ],
-        "items_en": [
-          "Monday.com workflows",
-          "SMS automation systems",
-          "Content operation structures",
-          "Internal communication systems"
-        ]
-      },
-      {
-        "title_ko": "Media Infrastructure",
-        "title_en": "Media Infrastructure",
-        "description_ko": "영상·콘텐츠 제작 인프라와 운영 시스템. 프로덕션 흐름, 자산 관리, 다채널 배포의 구조를 설계합니다.",
-        "description_en": "The infrastructure behind content production — production flow, asset management, and multi-channel distribution structures.",
-        "items_ko": [
-          "콘텐츠 자산 관리 구조",
-          "제작 워크플로 설계",
-          "멀티 채널 배포 구조",
-          "라이브 이벤트 미디어 시스템"
-        ],
-        "items_en": [
-          "Content asset management",
-          "Production workflow design",
-          "Multi-channel distribution structure",
-          "Live-event media systems"
-        ]
-      },
-      {
-        "title_ko": "Community Documentation",
-        "title_en": "Community Documentation",
-        "description_ko": "커뮤니티의 시간을 잇는 기록 작업. 행사·세대·국제 협력의 narrative를 길게 이어지는 형태로 정리합니다.",
-        "description_en": "Documentation that connects a community across time — events, generations, and international collaboration shaped into a continuous narrative.",
-        "items_ko": [
-          "스카우트 활동 아카이브",
-          "행사 기록 시리즈",
-          "인터뷰·구술 기록",
-          "다국어 기록 시스템"
-        ],
-        "items_en": [
-          "Scouting activity archive",
-          "Event documentation series",
-          "Interview · oral records",
-          "Multilingual documentation systems"
-        ]
-      }
-    ]
+    "title_ko": "",
+    "title_en": "",
+    "intro_ko": "",
+    "intro_en": "",
+    "categories": []
   },
   "videos": {
-    "title_ko": "영상 모아보기",
-    "title_en": "Video reel",
-    "watch_all_ko": "몰아보기",
-    "watch_all_en": "Binge-watch",
-    "empty_ko": "유튜브 영상이 곧 정리되어 공개됩니다.",
-    "empty_en": "Featured videos will appear here shortly.",
-    "items": [
-      {
-        "id": "sample-01",
-        "youtubeUrl": "",
-        "title_ko": "샘플 영상 1 — YouTube URL을 추가해 주세요.",
-        "title_en": "Sample video 1 — add a YouTube URL.",
-        "role_ko": "감독 · 편집",
-        "role_en": "Director · Edit"
-      },
-      {
-        "id": "sample-02",
-        "youtubeUrl": "",
-        "title_ko": "샘플 영상 2 — YouTube URL을 추가해 주세요.",
-        "title_en": "Sample video 2 — add a YouTube URL.",
-        "role_ko": "프로듀서",
-        "role_en": "Producer"
-      },
-      {
-        "id": "sample-03",
-        "youtubeUrl": "",
-        "title_ko": "샘플 영상 3 — YouTube URL을 추가해 주세요.",
-        "title_en": "Sample video 3 — add a YouTube URL.",
-        "role_ko": "기획 · 운영",
-        "role_en": "Concept · Operations"
-      }
-    ]
+    "title_ko": "",
+    "title_en": "",
+    "watch_all_ko": "",
+    "watch_all_en": "",
+    "empty_ko": "",
+    "empty_en": "",
+    "items": []
   },
   "portfolio_intro": {
-    "title_ko": "Portfolio",
-    "title_en": "Portfolio",
-    "intro_ko": "영상 프로젝트와 PM 프로젝트를 함께 정리합니다. 카드를 누르면 모달로 자세히 볼 수 있습니다.",
-    "intro_en": "Video projects and PM projects in one place. Click a card to open the detail modal.",
-    "video_section_ko": "영상 프로젝트",
-    "video_section_en": "Video Projects",
-    "pm_section_ko": "PM 프로젝트",
-    "pm_section_en": "PM Projects",
-    "role_label_ko": "Role",
-    "role_label_en": "Role",
-    "overview_label_ko": "Overview",
-    "overview_label_en": "Overview",
-    "watch_label_ko": "영상 보기",
-    "watch_label_en": "Watch the video",
-    "detail_label_ko": "프로젝트 자세히",
-    "detail_label_en": "Project detail",
-    "close_label_ko": "닫기",
-    "close_label_en": "Close",
-    "empty_title_ko": "포트폴리오를 준비하고 있습니다.",
-    "empty_title_en": "Portfolio in preparation.",
-    "empty_hint_ko": "영상 프로젝트와 PM 프로젝트가 곧 정리되어 공개됩니다.",
-    "empty_hint_en": "Video and PM projects will appear here shortly."
+    "title_ko": "",
+    "title_en": "",
+    "intro_ko": "",
+    "intro_en": "",
+    "video_section_ko": "",
+    "video_section_en": "",
+    "pm_section_ko": "",
+    "pm_section_en": "",
+    "role_label_ko": "",
+    "role_label_en": "",
+    "overview_label_ko": "",
+    "overview_label_en": "",
+    "watch_label_ko": "",
+    "watch_label_en": "",
+    "detail_label_ko": "",
+    "detail_label_en": "",
+    "close_label_ko": "",
+    "close_label_en": "",
+    "empty_title_ko": "",
+    "empty_title_en": "",
+    "empty_hint_ko": "",
+    "empty_hint_en": ""
   },
   "career": {
-    "title_ko": "Career",
-    "title_en": "Career",
-    "intro_ko": "회사별로 정리한 시간 순 경험.",
-    "intro_en": "Chronological company experience.",
-    "highlights_label_ko": "Highlights",
-    "highlights_label_en": "Highlights",
-    "empty_title_ko": "Career 기록을 준비하고 있습니다.",
-    "empty_title_en": "Career records are being prepared."
+    "title_ko": "",
+    "title_en": "",
+    "intro_ko": "",
+    "intro_en": "",
+    "highlights_label_ko": "",
+    "highlights_label_en": "",
+    "empty_title_ko": "",
+    "empty_title_en": ""
   },
   "analytics": {
     "cf_token": "",
-    "_note": "Cloudflare Web Analytics token. dash.cloudflare.com → Analytics & Logs → Web Analytics → Add a site로 발급. 빈 문자열이면 추적 안 됨."
+    "_note": "Cloudflare Web Analytics token. 빈 문자열이면 추적 안 됨."
   },
   "principles": {
-    "title_ko": "Principles",
-    "title_en": "Principles",
-    "items": [
-      { "ko": "기록은 사람을 오래 연결해야 한다",       "en": "Records should connect people for longer." },
-      { "ko": "좋은 운영은 사람을 덜 지치게 해야 한다", "en": "Good operations should tire people less." },
-      { "ko": "커뮤니케이션은 전달보다 이해에 가깝다",   "en": "Communication is closer to understanding than to delivery." },
-      { "ko": "시스템은 통제가 아니라 흐름이어야 한다",  "en": "Systems should be flow, not control." },
-      { "ko": "콘텐츠는 결과물이 아니라 맥락이어야 한다", "en": "Content should be context, not output." }
-    ]
+    "title_ko": "",
+    "title_en": "",
+    "items": []
   },
   "contact": {
-    "eyebrow_ko": "Contact",
-    "eyebrow_en": "Contact",
-    "title_ko": "좋은 구조는 좋은 대화에서 시작됩니다.",
-    "title_en": "Good structures start with good conversations.",
-    "body_ko": "사람과 현장을 더 오래 연결하는 일이라면, 언제든 이야기 나누고 싶습니다.",
-    "body_en": "If it's about keeping people and the field connected for longer, I'd love to talk.",
-    "email": "scoutkorea@kakao.com"
+    "eyebrow_ko": "",
+    "eyebrow_en": "",
+    "title_ko": "",
+    "title_en": "",
+    "body_ko": "",
+    "body_en": "",
+    "email": ""
   },
   "footer": {
-    "manage_link_ko": "Manage",
-    "manage_link_en": "Manage",
-    "back_to_top_ko": "맨 위로",
-    "back_to_top_en": "Back to top"
+    "manage_link_ko": "",
+    "manage_link_en": "",
+    "back_to_top_ko": "",
+    "back_to_top_en": ""
   }
 }
