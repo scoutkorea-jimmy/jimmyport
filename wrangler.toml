@@ -1,0 +1,8 @@
+name = "jimmyport"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+# scout-finder 백엔드(Pages Functions)용 KV 바인딩
+[[kv_namespaces]]
+binding = "SCOUT_KV"
+id = "5b8071435ace47f9a8eccb8ade1b946e"

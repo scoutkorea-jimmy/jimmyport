@@ -92,10 +92,30 @@ README.md         실행·교체·배포 안내
 - **22개 연맹을 색으로 핀 구분**, 연맹 간 색 절대 중복 금지.
 - 첨부 **브랜드 컬러를 테마 기본**으로, 첨부 **Wanted Sans 폰트 + 7단계 weight** 활용.
 - (요청) 이 CLAUDE.md 를 **명령 기록·컨텍스트 메모리**로 만들고, 명령 시 **항상 먼저 확인**하게 세팅.
+- **누구나 단위대 추가** 가능(→ 승인 대기), **삭제는 관리자 승인**(공개 삭제 없음). 관리자 페이지에서 승인.
+- 표시 항목 확정: ① 단위대 이름 + 지역대/학교대 ② **한국스카우트연맹 > 지방연맹 > 지구연합회** ③ 주요 활동 ④ 모집 카테고리(비버/컵/스카우트/벤처/로버) ⑤ **연락방법(없으면 "지방연맹 문의" 디폴트)**.
+- 연락처에 **인스타그램 링크**도 가능.
+- 대상 확장: 한국뿐 아니라 **전세계 172개국 스카우트**, **최초엔 아시아-태평양(APR) 중심**.
+- 홈페이지 **국문/영문 2버전**, **영어를 기본**(외국인 친구 우선 대상).
+- 댓글: **레딧식 쓰레드(대댓글) + 닉네임 + GDPR 준용**(동의 필수, 공개 IP 마스킹, 관리자 삭제=잊혀질 권리).
 
-## 10. 진행 예정 / 합의 필요 (백엔드 필요 — 정적 제약 초과)
-> 아래는 클라이언트 단독으로 불가능(특히 IP·공용 저장). Cloudflare Pages Functions + 저장소
-> (KV 또는 D1) 도입 시 구현 가능. **방식·인증·개인정보(IP) 합의 후 진행.**
-- **정보 영구 저장**: 관리자 편집이 실제 사이트에 바로 반영(현재는 다운로드→커밋만 가능).
-- **수정일시 기록 + 변경 로그(audit log)**: 항목 수정/클릭 시 일시·내용 누적.
-- **댓글**: 누구나 작성 가능. 제출 시 **작성자 IP 함께 기록**(IP는 서버에서만 취득 가능).
+## 10. 백엔드 (BUILT — Cloudflare Pages Functions + KV)
+- 저장소: **KV namespace `SCOUT_KV`** (id `5b8071435ace47f9a8eccb8ade1b946e`), `wrangler.toml`로 바인딩.
+- 관리자 인증: **Pages secret `ADMIN_TOKEN`** (값은 repo에 두지 않음). 요청 헤더 `X-Admin-Token`로 검증.
+- IP: `CF-Connecting-IP` 헤더로 취득. KV 키: `units` / `pending` / `comments` / `log`.
+- 배포: `functions/`는 `wrangler pages deploy . --project-name jimmyport`로 자동 포함.
+  ⚠️ 커밋 메시지는 **ASCII 권장**(한글 메시지로 deploy 시 "Invalid commit message" 발생) — `--commit-message`에 영문 사용.
+
+### API
+- `GET /api/units` 공개: `{units, updatedAt}` (KV 비면 `units:null` → 클라가 data.js 폴백).
+- `PUT /api/units` 관리자: 전체 저장 + updatedAt + 로그.
+- `POST /api/submissions` 누구나: 단위대 추가 제안(승인 대기 + IP). `GET`(관리자) 목록. `PATCH`(관리자) `{id,action:approve|reject}`.
+- `GET/POST/DELETE /api/comments`: 작성 `{name,body,parentId?,consent:true}` (GDPR 동의 필수). 공개 IP 마스킹, 관리자 원본. DELETE(관리자)는 댓글+대댓글 제거.
+- `GET /api/log` 관리자: 변경 로그(수정일시·동작·IP).
+
+## 11. 진행 예정 (프런트엔드 통합 — 다음 빌드)
+> 백엔드는 완료·검증됨. 아래 프런트 작업이 남음(글로벌·i18n 모델 포함).
+- 공개 사이트가 `/api/units`에서 로드(폴백 data.js), 표시 항목 §9 재구성(인스타·연락방법 디폴트).
+- **국/영문 i18n (영어 기본)**, 글로벌(APR 우선) 국가 차원 + 스키마에 `country`/`instagram` 추가.
+- 공개 **단위대 추가 제안 폼** → `/api/submissions`. 관리자 페이지 **승인 대기/승인·거절 + 로그 + 댓글(IP) 뷰**, 서버 저장(PUT, 비밀번호 게이트).
+- **레딧식 쓰레드 댓글 UI** + 닉네임 + GDPR 동의/프라이버시 고지.
