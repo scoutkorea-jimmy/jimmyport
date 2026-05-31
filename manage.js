@@ -59,6 +59,11 @@
     return opts;
   }
   function nsoInfo(u) { return escHtml((u.nso || "—") + " · " + (u.region || "—") + (u.lang ? " (" + u.lang + ")" : "")); }
+  function coordText(u) {
+    var lat = parseFloat(u.lat), lng = parseFloat(u.lng);
+    if (isNaN(lat) || isNaN(lng)) return "Not set — search an address above";
+    return "📍 " + lat + ", " + lng + (u.place ? " — " + u.place : "");
+  }
 
   function cardHtml(u, i) {
     var secBoxes = SECTIONS.map(function (s) {
@@ -79,11 +84,10 @@
           '<div class="field col-span"><label>NSO · Region · Language (auto)</label><div class="readonly-line" data-nso-info>' + nsoInfo(u) + "</div></div>" +
           '<div class="field col-span"><label>Homepage (Instagram)</label><input type="text" data-field="homepage" value="' + escAttr(u.homepage) + '" placeholder="https://instagram.com/..." /></div>' +
           '<div class="field col-span"><label>Recruiting categories</label><div class="sections-box">' + secBoxes + "</div></div>" +
-          '<div class="field col-span"><label>Location — search the map, then "Set on map" or drag the marker</label><div class="coord-row">' +
-            '<div class="field"><label class="sr-only">Latitude</label><input type="number" step="any" data-field="lat" value="' + escAttr(u.lat) + '" /></div>' +
-            '<div class="field"><label class="sr-only">Longitude</label><input type="number" step="any" data-field="lng" value="' + escAttr(u.lng) + '" /></div>' +
-            '<button type="button" class="admin-btn pick-btn" data-action="pick">Set on map</button>' +
-          "</div></div>" +
+          '<div class="field col-span"><label>Location (search an address or place)</label><div class="coord-row">' +
+            '<input type="text" data-loc-search value="' + escAttr(u.place || "") + '" placeholder="e.g. Yeongtong-dong, Suwon  ·  Suva, Fiji" style="flex:1 1 auto" />' +
+            '<button type="button" class="admin-btn pick-btn" data-action="geocode-set">Find &amp; set</button>' +
+          "</div><div class=\"readonly-line\" data-coord>" + coordText(u) + "</div></div>" +
           '<div class="field col-span"><label>Main activities</label><textarea data-field="note" rows="2">' + escHtml(u.note) + "</textarea></div>" +
         "</div>" +
       "</div>"
@@ -123,7 +127,7 @@
     var lat = round5(latlng.lat), lng = round5(latlng.lng);
     units[i].lat = lat; units[i].lng = lng;
     var el = cardEl(i);
-    if (el) { el.querySelector('[data-field="lat"]').value = lat; el.querySelector('[data-field="lng"]').value = lng; }
+    if (el) { var co = el.querySelector("[data-coord]"); if (co) co.textContent = coordText(units[i]); }
     scheduleSave();
   }
 
@@ -168,30 +172,17 @@
     if (btn) {
       var i = Number(btn.closest(".editor-card").getAttribute("data-index")), action = btn.getAttribute("data-action");
       if (action === "delete") return doDelete(i);
-      if (action === "pick") return startPick(i);
+      if (action === "geocode-set") return doGeocodeSet(i, btn);
       return;
     }
     var head = e.target.closest(".editor-card-head");
     if (head) setActive(Number(head.closest(".editor-card").getAttribute("data-index")), true);
   }
 
-  // ── map address search (pan only) ───────────────────────────────────
-  function searchMap(q) {
-    q = (q || "").trim(); if (!q) return;
-    setStatus("Searching map…", false);
-    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (arr) {
-        if (arr && arr[0]) { map.setView([parseFloat(arr[0].lat), parseFloat(arr[0].lon)], 13); setStatus("Map moved to: " + (arr[0].display_name || q), true); }
-        else setStatus("No place found — try a more specific query", false);
-      })
-      .catch(function () { setStatus("Map search failed (network)", false); });
-  }
-
   // ── actions ────────────────────────────────────────────────────────
   function doAdd() {
     var c = map.getCenter();
-    var u = { id: uid(), name: "New Scout Unit", type: "Community unit", country: "Republic of Korea", lat: round5(c.lat), lng: round5(c.lng), sections: [], homepage: "", note: "" };
+    var u = { id: uid(), name: "New Scout Unit", type: "Community unit", country: "Republic of Korea", lat: round5(c.lat), lng: round5(c.lng), place: "", sections: [], homepage: "", note: "" };
     applyCountry(u);
     units.push(u); activeIndex = units.length - 1; render(); scheduleSave();
     var el = cardEl(activeIndex);
@@ -199,13 +190,27 @@
   }
   function doDelete(i) { if (!confirm('Delete "' + (units[i].name || "this unit") + '"?')) return; units.splice(i, 1); if (activeIndex === i) activeIndex = null; render(); scheduleSave(); }
 
-  function startPick(i) {
-    pickIndex = i; activeIndex = i; $mapWrap.classList.add("picking");
-    $hint.textContent = '"' + (units[i].name || "unit") + '" — click the map to set the location. (Esc to cancel)';
-    if (isMobile()) setView("map"); setActive(i, true);
+  function doGeocodeSet(i, btn) {
+    var el = cardEl(i), input = el && el.querySelector("[data-loc-search]");
+    var q = input ? input.value.trim() : "";
+    if (!q) { setStatus("Enter an address/place to search", false); return; }
+    var old = btn.textContent; btn.textContent = "Searching…"; btn.disabled = true;
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (arr) {
+        if (arr && arr[0]) {
+          var u = units[i];
+          u.lat = round5(parseFloat(arr[0].lat)); u.lng = round5(parseFloat(arr[0].lon)); u.place = arr[0].display_name || q;
+          var co = el.querySelector("[data-coord]"); if (co) co.textContent = coordText(u);
+          if (markers[i]) markers[i].setLatLng([u.lat, u.lng]); else rebuildMarkers();
+          if (isMobile()) setView("map");
+          map.setView([u.lat, u.lng], 14); setActive(i, false);
+          scheduleSave(); setStatus("Location set: " + (arr[0].display_name || q), true);
+        } else setStatus("No place found — try a more specific address", false);
+      })
+      .catch(function () { setStatus("Search failed (network)", false); })
+      .then(function () { btn.textContent = old; btn.disabled = false; });
   }
-  function stopPick() { pickIndex = null; $mapWrap.classList.remove("picking"); $hint.textContent = DEFAULT_HINT; }
-  function onMapClick(e) { if (pickIndex === null) return; var i = pickIndex; onMarkerDrag(i, e.latlng); if (markers[i]) markers[i].setLatLng(e.latlng); else rebuildMarkers(); stopPick(); }
 
   // ── export / import / reload ────────────────────────────────────────
   function dataJsText() {
@@ -301,7 +306,6 @@
     map = L.map("admin-map", { zoomControl: true }).setView([20, 60], 2);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
     unitLayer.addTo(map);
-    map.on("click", onMapClick);
 
     $list.addEventListener("input", onFieldInput);
     $list.addEventListener("change", onFieldInput);
@@ -311,9 +315,7 @@
     document.getElementById("copy-json").addEventListener("click", doCopyJson);
     document.getElementById("reset-btn-admin").addEventListener("click", doReload);
     document.getElementById("import-input").addEventListener("change", function (e) { if (e.target.files && e.target.files[0]) doImport(e.target.files[0]); e.target.value = ""; });
-    document.getElementById("map-search-form").addEventListener("submit", function (e) { e.preventDefault(); searchMap(document.getElementById("map-search").value); });
     document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && pickIndex !== null) stopPick(); });
 
     loadFromServer(false);
   }
