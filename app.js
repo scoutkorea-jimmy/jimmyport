@@ -318,7 +318,6 @@
       : '<p class="cmt-empty">No comments yet. Be the first!</p>';
     var more = shown < roots.length ? '<button type="button" class="cmt-more" data-more="' + escAttr(id) + '">Load more (' + (roots.length - shown) + ")</button>" : "";
     panel.innerHTML = head + '<div class="cmt-thread">' + thread + "</div>" + more + formHtml("", false);
-    updatePopup(id);
   }
   function loadComments(id) {
     fetch("/api/comments", { cache: "no-store" })
@@ -338,7 +337,6 @@
     var panel = panelFor(id); if (!panel) return;
     panel.hidden = false;
     panel.innerHTML = '<p class="cmt-loading">Loading…</p>';
-    updatePopup(id);
     if (cmtCache[id]) renderPanel(id); else loadComments(id);
   }
   function collapsePanel() { if (openCmtId) { var p = panelFor(openCmtId); if (p) { p.hidden = true; p.innerHTML = ""; updatePopup(openCmtId); } openCmtId = null; } }
