@@ -92,6 +92,20 @@ body {
   color: var(--accent); background: var(--accent-soft);
   border: 1px solid #e0cdee; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
 }
+.lang-toggle {
+  margin-left: auto; display: inline-flex;
+  border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden;
+}
+.lang-btn {
+  border: 0; background: var(--surface-2); color: var(--muted);
+  font: inherit; font-weight: var(--fw-5); font-size: 0.78rem; padding: 6px 12px; cursor: pointer;
+}
+.lang-btn + .lang-btn { border-left: 1px solid var(--line-2); }
+.lang-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.lang-btn:focus-visible { outline: 2px solid rgba(98,37,153,.5); outline-offset: -2px; }
+.card-ig, .popup-ig { color: var(--accent); font-weight: var(--fw-5); text-decoration: none; }
+.card-ig:hover, .popup-ig:hover { text-decoration: underline; }
+.card-field-label { font-weight: var(--fw-5); color: var(--muted); }
 
 /* ── Search ─────────────────────────────────────────────────────────── */
 .search { margin-top: 14px; }

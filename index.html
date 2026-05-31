@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>내 주변 스카우트 지역대 찾기</title>
-  <meta name="description" content="지역을 검색하거나 지도를 클릭해 가까운 스카우트 지역대를 거리순으로 찾아보세요." />
+  <title>Find Scout Units Near You · 스카우트 단위대 찾기</title>
+  <meta name="description" content="Search a region or click the map to find nearby scout units by distance." />
 
   <!-- Leaflet 1.9.4 (cdnjs) -->
   <link
@@ -18,8 +18,12 @@
   <header class="site-header">
     <div class="site-header-inner">
       <div class="title-block">
-        <h1>내 주변 스카우트 지역대 찾기</h1>
-        <span class="badge" title="현재는 예시 데이터로 동작합니다">샘플 데이터</span>
+        <h1 id="site-title">Find Scout Units Near You</h1>
+        <span class="badge" id="site-badge">Sample data</span>
+        <div class="lang-toggle" role="group" aria-label="Language">
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" class="lang-btn" data-lang="ko" aria-pressed="false">한국어</button>
+        </div>
       </div>
 
       <form id="search-form" class="search" role="search" autocomplete="off">
@@ -67,13 +71,13 @@
   </main>
 
   <footer class="site-footer">
-    <a href="manage.html">관리자</a>
+    <a href="manage.html" id="footer-admin">Admin</a>
     <span aria-hidden="true">·</span>
-    <button type="button" id="download-json" class="link-btn">데이터 다운로드 (JSON)</button>
+    <button type="button" id="download-json" class="link-btn">Download data (JSON)</button>
     <span aria-hidden="true">·</span>
-    <button type="button" id="download-js" class="link-btn">data.js 다운로드</button>
+    <button type="button" id="download-js" class="link-btn">Download data.js</button>
     <span class="footer-note" aria-hidden="true">·</span>
-    <span class="footer-note">샘플 데이터로 동작 중</span>
+    <span class="footer-note" id="footer-note">Running on sample data</span>
   </footer>
 
   <!-- Leaflet 1.9.4 (cdnjs) -->
