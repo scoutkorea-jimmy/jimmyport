@@ -30,11 +30,12 @@ WOSM Region → 국가(NSO) → 단위대(Unit)
   country,      // WOSM 공식 국가명(영문). 미지정 시 "Republic of Korea"
   country_ko,   // 국가 한글명 (내부 참조용, 화면 비표시)
   nso, region, lang,   // 국가 선택 시 SCOUT_NSOS에서 자동 채움
-  lat, lng,     // 좌표 (관리자: OSM 주소검색 또는 마커 드래그)
-  place,        // OSM이 돌려준 영문 장소명 (관리자 참조용)
+  lat, lng,     // 좌표 (OSM 주소검색 또는 마커 드래그). 화면엔 주소 비표시
+  place,        // OSM이 돌려준 영문 장소명 (편집 참조용)
   sections,     // 모집 카테고리: "Beaver"|"Cub"|"Scout"|"Venture"|"Rover"
   homepage,     // Homepage (Instagram) URL — 없으면 "Contact the national scout organization"
-  note          // 주요 활동 (Main activities)
+  note,         // About — 단위대 간단 설명 (없으면 숨김)
+  photo         // 사진 URL (/api/image 업로드 또는 외부 URL, 없으면 숨김)
 }
 ```
 
@@ -88,9 +89,10 @@ KV namespace id `5b8071435ace47f9a8eccb8ade1b946e`. KV 키: `units` · `pending`
 
 ## 6. 기능
 - **검색/거리**: name·country·nso·region 부분일치 → 일치 centroid를 anchor → haversine 오름차순. 지도 클릭 시 그 지점으로 재정렬. anchor+상위5 fitBounds. 거리 km 1자리.
-- **표시(카드/팝업)**: 이름+종류 · 국가+지역(Region)태그 · NSO · 주요활동 · 모집 카테고리 · Homepage(Instagram)|기본문구.
-- **댓글(레딧식, 단위대별)**: 카드/팝업 💬 → 카드 아래 **인라인 펼침 패널**. 상위 댓글 **10개 페이지네이션**(Load more), 대댓글 중첩. 표시 = **닉네임 + 내용 + 마스킹 IP**. **사진 첨부**(업로드→/api/image). **GDPR 동의 필수**.
-- **관리자(manage.html)**: 국가(NSO) 드롭다운(자동 region/lang), **Location = OSM 주소검색**(한글 입력→영문 저장, `accept-language=en`)·마커 드래그, Homepage(Instagram), 모집 카테고리, 주요활동. **편집 자동 서버 저장**(비밀번호 1회). data.js 다운로드/JSON/가져오기/서버 재로드.
+- **목록 클릭 → 우측 지도에 정보**(fly + 팝업: 이름·종류·국가·지역·NSO·About·사진·Recruiting·Homepage). 댓글은 **별도 💬 Comments 토글**로 펼침. About/사진 없으면 숨김.
+- **홈 인라인 편집(Edit 모드)**: 헤더 **Edit 토글 + "+ Add unit" + Save(즉시)**. 비밀번호 1회 입력 후 **편집 시 자동 서버 저장**(debounce PUT). 카드별 편집 폼: 이름·종류·국가(NSO 자동)·About·Homepage·사진 업로드·**Location=OSM 주소검색**(한글→영문)·Recruiting·삭제.
+- **댓글(레딧식, 단위대별)**: 카드/팝업 💬 → 카드 아래 **인라인 펼침 패널**. 상위 댓글 **10개 페이지네이션**, 대댓글 중첩. 표시 = **닉네임 + 내용 + 마스킹 IP + 사진**. **GDPR 동의 필수**.
+- **관리자(manage.html)**: 홈 편집과 동일 기능의 전용 페이지(병행 유지).
 - **버전 알림**: `/VERSION` 폴링 → 새 배포 시 우측 상단 "A new version is available / Refresh".
 - **모바일**: ≤820px 목록/지도 토글.
 
