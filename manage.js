@@ -283,11 +283,9 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         var server = (j && Array.isArray(j.units)) ? j.units : null;
-        var draft = null;
-        if (!forceServer) { try { var raw = localStorage.getItem(DRAFT_KEY); if (raw) { var a = JSON.parse(raw); if (Array.isArray(a)) draft = a; } } catch (e) {} }
-        if (draft) { units = draft; setStatus("Unsaved local changes (" + units.length + ")", false); }
-        else if (server) { units = server; setStatus("Loaded from server (" + units.length + ")", true); }
-        else { units = clone(baseUnits()); setStatus("Sample data (" + units.length + ")", false); }
+        // 서버를 항상 우선(진실의 원천). 오래된 로컬 드래프트가 서버를 덮어쓰는 사고 방지.
+        if (server) { units = server; try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} setStatus("Loaded from server (" + units.length + ")", true); }
+        else { try { var raw = localStorage.getItem(DRAFT_KEY); var a = raw ? JSON.parse(raw) : null; units = Array.isArray(a) ? a : clone(baseUnits()); } catch (e) { units = clone(baseUnits()); } setStatus("Server unreachable — local/sample (" + units.length + ")", false); }
         activeIndex = null; render();
       })
       .catch(function () { units = clone(baseUnits()); render(); setStatus("Server unreachable — using sample", false); });
