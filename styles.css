@@ -315,6 +315,58 @@ body {
 .version-toast-btn:hover { background: var(--accent-ink); }
 .version-toast-btn:focus-visible { outline: 3px solid rgba(98,37,153,.4); outline-offset: 2px; }
 
+/* ── Comments modal (Reddit-style per unit) ─────────────────────────── */
+.cmt-overlay {
+  position: fixed; inset: 0; z-index: 2500;
+  background: rgba(34,27,43,.45); display: flex; align-items: center; justify-content: center;
+  padding: 16px; opacity: 0; pointer-events: none; transition: opacity .18s ease;
+}
+.cmt-overlay.open { opacity: 1; pointer-events: auto; }
+.cmt-modal {
+  background: var(--surface); border-radius: var(--r-lg); box-shadow: 0 18px 50px rgba(34,27,43,.35);
+  width: 100%; max-width: 560px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+  transform: translateY(8px); transition: transform .18s ease;
+}
+.cmt-overlay.open .cmt-modal { transform: translateY(0); }
+.cmt-head { display: flex; align-items: flex-start; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.cmt-head-info { flex: 1 1 auto; min-width: 0; }
+.cmt-title { margin: 0; font-size: 1.05rem; font-weight: var(--fw-6); }
+.cmt-sub { margin: 2px 0 0; font-size: 0.8rem; font-weight: var(--fw-4); color: var(--muted); }
+.cmt-close { flex: 0 0 auto; border: 0; background: var(--surface-2); color: var(--ink); width: 32px; height: 32px; border-radius: var(--r-md); font-size: 1.1rem; cursor: pointer; }
+.cmt-close:hover { color: var(--accent); }
+.cmt-close:focus-visible { outline: none; box-shadow: var(--focus); }
+
+.cmt-list { flex: 1 1 auto; overflow-y: auto; padding: 14px 18px; }
+.cmt-empty { color: var(--muted); font-size: 0.88rem; text-align: center; padding: 18px 0; }
+.cmt { padding: 10px 0; border-top: 1px solid var(--line); }
+.cmt:first-child { border-top: 0; }
+.cmt-meta { font-size: 0.76rem; color: var(--muted); margin-bottom: 3px; }
+.cmt-meta .cmt-name { color: var(--ink); font-weight: var(--fw-6); }
+.cmt-text { font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; }
+.cmt-actions { margin-top: 4px; }
+.cmt-reply-btn { border: 0; background: none; color: var(--accent); font: inherit; font-size: 0.76rem; font-weight: var(--fw-5); cursor: pointer; padding: 0; }
+.cmt-reply-btn:hover { text-decoration: underline; }
+.cmt-children { margin-left: 14px; padding-left: 10px; border-left: 2px solid var(--line); margin-top: 6px; }
+
+.cmt-form { flex: 0 0 auto; border-top: 1px solid var(--line); padding: 12px 18px 16px; background: var(--surface-2); }
+.cmt-form.reply { background: transparent; border-top: 0; padding: 8px 0 4px; }
+.cmt-form input[type="text"], .cmt-form textarea {
+  width: 100%; font: inherit; font-size: 0.88rem; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 8px 10px; margin-bottom: 6px;
+}
+.cmt-form textarea { resize: vertical; min-height: 56px; }
+.cmt-form input:focus, .cmt-form textarea:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+.cmt-consent { display: flex; align-items: flex-start; gap: 7px; font-size: 0.74rem; color: var(--muted); margin: 2px 0 8px; }
+.cmt-consent input { accent-color: var(--accent); margin-top: 2px; }
+.cmt-form-row { display: flex; gap: 8px; align-items: center; }
+.cmt-submit { border: 0; background: var(--accent); color: #fff; font: inherit; font-weight: var(--fw-5); font-size: 0.84rem; padding: 8px 16px; border-radius: var(--r-md); cursor: pointer; }
+.cmt-submit:hover { background: var(--accent-ink); }
+.cmt-submit:disabled { opacity: .5; cursor: default; }
+.cmt-error { color: var(--fire-red); font-size: 0.76rem; font-weight: var(--fw-4); }
+.popup-cmt { margin-top: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--accent); font: inherit; font-weight: var(--fw-5); font-size: 0.8rem; padding: 5px 10px; border-radius: var(--r-md); cursor: pointer; }
+.popup-cmt:hover { border-color: var(--accent); }
+.card-cmt-hint { color: var(--accent); font-weight: var(--fw-5); }
+
 /* =========================================================================
    Admin (manage.html)
    ========================================================================= */

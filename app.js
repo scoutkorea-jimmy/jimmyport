@@ -45,6 +45,8 @@
   var UNITS = Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : [];
   var map, unitLayer = L.layerGroup(), anchorMarker = null, markerInfo = {}, activeId = null;
   var lastState = { kind: "all", ordered: [], anchor: null, q: "" };
+  var cmtEls = null, cmtUnit = null;
+  var NICK_KEY = "scoutfinder:nick";
 
   // ── utils ──────────────────────────────────────────────────────────
   function toRad(d) { return (d * Math.PI) / 180; }
@@ -107,7 +109,8 @@
       '<div class="popup-name">' + esc(u.name) + (u.type ? ' <span class="popup-type">' + esc(u.type) + "</span>" : "") + "</div>" +
       '<div class="popup-affil">' + esc(u.country) + "</div>" +
       '<div class="popup-line">' + esc(u.nso) + (u.region ? " · " + esc(u.region) : "") + "</div>" + act + rec +
-      '<div class="popup-line">' + homepageHtml(u, true) + "</div>" + dist
+      '<div class="popup-line">' + homepageHtml(u, true) + "</div>" + dist +
+      '<button class="popup-cmt" data-cmt="' + escAttr(u.id) + '">💬 Comments</button>'
     );
   }
 
@@ -128,7 +131,7 @@
         "</div>" +
         '<p class="card-meta">' + esc(u.nso) + "</p>" + act +
         (chips ? '<div class="chips">' + chips + "</div>" : "") +
-        '<p class="card-meta">' + homepageHtml(u, false) + "</p>" +
+        '<p class="card-meta">' + homepageHtml(u, false) + ' · <span class="card-cmt-hint">💬 Comments</span></p>' +
       "</button>"
     );
   }
@@ -260,6 +263,105 @@
     byId("footer-note", T.note);
   }
 
+  // ── comments (Reddit-style per unit) ────────────────────────────────
+  function buildModal() {
+    var ov = document.createElement("div");
+    ov.className = "cmt-overlay";
+    ov.innerHTML =
+      '<div class="cmt-modal" role="dialog" aria-modal="true" aria-label="Comments">' +
+        '<div class="cmt-head"><div class="cmt-head-info"><h2 class="cmt-title"></h2><p class="cmt-sub"></p></div>' +
+          '<button type="button" class="cmt-close" aria-label="Close">✕</button></div>' +
+        '<div class="cmt-list"></div>' +
+        '<form class="cmt-form" data-parent="">' +
+          '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" />' +
+          '<textarea class="cmt-body" maxlength="1000" placeholder="Write a comment…"></textarea>' +
+          '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree that my nickname and IP address are stored for moderation (GDPR).</span></label>' +
+          '<div class="cmt-form-row"><button type="submit" class="cmt-submit">Post</button><span class="cmt-error"></span></div>' +
+        "</form>" +
+      "</div>";
+    document.body.appendChild(ov);
+    ov.addEventListener("click", function (e) { if (e.target === ov) closeComments(); });
+    ov.querySelector(".cmt-close").addEventListener("click", closeComments);
+    ov.querySelector(".cmt-form").addEventListener("submit", onPost);
+    ov.querySelector(".cmt-list").addEventListener("click", onThreadClick);
+    cmtEls = { ov: ov, title: ov.querySelector(".cmt-title"), sub: ov.querySelector(".cmt-sub"),
+      list: ov.querySelector(".cmt-list"), form: ov.querySelector(".cmt-form"),
+      nick: ov.querySelector(".cmt-nick"), body: ov.querySelector(".cmt-body"),
+      agree: ov.querySelector(".cmt-agree"), err: ov.querySelector(".cmt-error") };
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && cmtEls.ov.classList.contains("open")) closeComments(); });
+  }
+  function openComments(u) {
+    if (!u) return;
+    if (!cmtEls) buildModal();
+    cmtUnit = u;
+    cmtEls.title.textContent = u.name;
+    cmtEls.sub.textContent = [u.country, u.nso].filter(Boolean).join(" · ");
+    cmtEls.form.setAttribute("data-parent", "");
+    cmtEls.err.textContent = ""; cmtEls.body.value = "";
+    try { var nk = localStorage.getItem(NICK_KEY); if (nk) cmtEls.nick.value = nk; } catch (e) {}
+    cmtEls.list.innerHTML = '<p class="cmt-empty">Loading…</p>';
+    cmtEls.ov.classList.add("open");
+    loadComments(u.id);
+  }
+  function closeComments() { if (cmtEls) cmtEls.ov.classList.remove("open"); }
+  function fmtTime(ts) { try { return new Date(ts).toLocaleString(); } catch (e) { return ts; } }
+  function loadComments(unitId) {
+    fetch("/api/comments", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : { comments: [] }; })
+      .then(function (j) { if (!cmtUnit || cmtUnit.id !== unitId) return; renderThread((j.comments || []).filter(function (c) { return c.unitId === unitId; })); })
+      .catch(function () { if (cmtEls) cmtEls.list.innerHTML = '<p class="cmt-empty">Failed to load comments.</p>'; });
+  }
+  function renderThread(all) {
+    if (!all.length) { cmtEls.list.innerHTML = '<p class="cmt-empty">No comments yet. Be the first!</p>'; return; }
+    var byParent = {};
+    all.forEach(function (c) { var k = c.parentId || "_root"; (byParent[k] = byParent[k] || []).push(c); });
+    Object.keys(byParent).forEach(function (k) { byParent[k].sort(function (a, b) { return a.ts < b.ts ? -1 : 1; }); });
+    function node(c) {
+      var kids = (byParent[c.id] || []).map(node).join("");
+      return '<div class="cmt">' +
+        '<div class="cmt-meta"><span class="cmt-name">' + esc(c.name) + "</span> · " + esc(fmtTime(c.ts)) + (c.ipMasked ? " · " + esc(c.ipMasked) : "") + "</div>" +
+        '<div class="cmt-text">' + esc(c.body) + "</div>" +
+        '<div class="cmt-actions"><button type="button" class="cmt-reply-btn" data-reply="' + escAttr(c.id) + '">Reply</button></div>' +
+        (kids ? '<div class="cmt-children">' + kids + "</div>" : "") + "</div>";
+    }
+    cmtEls.list.innerHTML = (byParent._root || []).map(node).join("");
+  }
+  function onThreadClick(e) {
+    var rb = e.target.closest("[data-reply]");
+    if (!rb) return;
+    var existing = cmtEls.list.querySelector(".cmt-form.reply");
+    if (existing) existing.remove();
+    var f = document.createElement("form");
+    f.className = "cmt-form reply"; f.setAttribute("data-parent", rb.getAttribute("data-reply"));
+    f.innerHTML = '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" />' +
+      '<textarea class="cmt-body" maxlength="1000" placeholder="Write a reply…"></textarea>' +
+      '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree my nickname and IP are stored (GDPR).</span></label>' +
+      '<div class="cmt-form-row"><button type="submit" class="cmt-submit">Reply</button><span class="cmt-error"></span></div>';
+    try { var nk = localStorage.getItem(NICK_KEY); if (nk) f.querySelector(".cmt-nick").value = nk; } catch (e2) {}
+    f.addEventListener("submit", onPost);
+    rb.closest(".cmt").appendChild(f);
+    f.querySelector("textarea").focus();
+  }
+  function onPost(e) {
+    e.preventDefault();
+    var form = e.currentTarget;
+    var nick = (form.querySelector(".cmt-nick").value || "").trim();
+    var body = (form.querySelector(".cmt-body").value || "").trim();
+    var agree = form.querySelector(".cmt-agree").checked;
+    var err = form.querySelector(".cmt-error");
+    var parentId = form.getAttribute("data-parent") || null;
+    err.textContent = "";
+    if (!body) { err.textContent = "Please write something."; return; }
+    if (!agree) { err.textContent = "Please agree to the privacy notice."; return; }
+    try { if (nick) localStorage.setItem(NICK_KEY, nick); } catch (e2) {}
+    var btn = form.querySelector(".cmt-submit"); btn.disabled = true;
+    fetch("/api/comments", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: nick || "Anonymous", body: body, unitId: cmtUnit.id, parentId: parentId, consent: true }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) { btn.disabled = false; if (res.ok) { if (form.classList.contains("reply")) form.remove(); else form.querySelector(".cmt-body").value = ""; loadComments(cmtUnit.id); } else { err.textContent = "Failed: " + (res.j.error || ""); } })
+      .catch(function () { btn.disabled = false; err.textContent = "Network error."; });
+  }
+
   // ── 서버 로드 (Cloudflare KV) → 폴백 data.js ────────────────────────
   function loadFromServer() {
     return fetch("/api/units", { cache: "no-store" })
@@ -276,7 +378,8 @@
     }).addTo(map);
     unitLayer.addTo(map);
 
-    $list.addEventListener("click", function (e) { var card = e.target.closest(".result-card"); if (card) setActive(card.getAttribute("data-id"), true); });
+    $list.addEventListener("click", function (e) { var card = e.target.closest(".result-card"); if (card) { var id = card.getAttribute("data-id"); setActive(id, true); openComments(findUnit(id)); } });
+    document.addEventListener("click", function (e) { var b = e.target.closest("[data-cmt]"); if (b) openComments(findUnit(b.getAttribute("data-cmt"))); });
     $form.addEventListener("submit", function (e) { e.preventDefault(); var q = $input.value.trim(); if (q) doSearch(q); else showAll(); });
     map.on("click", function (e) { setAnchorFromMap(e.latlng); });
     $reset.addEventListener("click", showAll);
