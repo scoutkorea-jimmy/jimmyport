@@ -21,13 +21,14 @@
       </div>
 
       <p class="admin-note">
-        편집 내용은 이 브라우저(localStorage)에만 저장됩니다.
-        실제 사이트 반영은 <strong>data.js 다운로드 → 저장소에 커밋·배포</strong>로 이루어집니다.
+        편집은 자동으로 로컬에 임시 저장됩니다. <strong>"서버에 저장"</strong>을 누르면
+        Cloudflare 서버(KV)에 반영되어 모든 방문자에게 즉시 적용됩니다(관리자 비밀번호 필요).
         <a href="./">← 사이트로</a>
       </p>
 
       <div class="admin-toolbar">
         <button type="button" id="add-btn" class="admin-btn primary">+ 단위대 추가</button>
+        <button type="button" id="save-server" class="admin-btn primary">서버에 저장</button>
         <button type="button" id="download-js" class="admin-btn">data.js 다운로드</button>
         <button type="button" id="copy-json" class="admin-btn">JSON 복사</button>
         <label class="admin-btn" for="import-input">JSON 가져오기

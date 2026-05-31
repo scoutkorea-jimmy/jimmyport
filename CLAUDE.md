@@ -33,16 +33,17 @@ VERSION           사이트 버전 (의미 있는 변경마다 bump)
 README.md         실행·교체·배포 안내
 ```
 
-## 4. 조직 구조 (한국스카우트연맹)
+## 4. 조직 구조 (글로벌 표준 — WOSM)
 ```
-단위대(학교대 / 지역대) → 지구연합회 → 지방·특수연맹(22개)
-예) 비파지역대 → 목포지구연합회 → 전남연맹
+WOSM Region → 국가(NSO) → 단위대
+예) Asia-Pacific → Korea Scout Association → Yeongtong Scout Unit
 ```
-- **단위대 종류**: `type` = "지역대"(지역 중심) | "학교대"(학교 중심).
-- **22개 연맹** = 지역 18 + 특수 4. 목록은 `data.js`의 `window.SCOUT_FEDERATIONS`.
-- **연맹별 고유 핀 색상**: `window.SCOUT_FEDERATION_COLORS` (22색, 상호 절대 중복 금지).
-- 데이터 스키마: `{ id, name, type, federation, council, address, lat, lng, sections[], meetingDay, contact, note }`
-  - `federation` = 지방·특수연맹, `council` = 지구연합회.
+- **지방연맹/지구연합회 개념 제거.** 국가(NSO)를 WOSM 공식 목록에서 선택.
+- **단위대 종류**: `type` = "지역대" | "학교대" (표시: Community/School unit).
+- **국가/NSO 목록**: `window.SCOUT_NSOS` (176개국: country EN/KO · nso · region · lang). 추후 전세계로 확장.
+- **WOSM 5개 지역 색**: `window.SCOUT_REGION_COLORS` (Asia-Pacific/European/Arab/Africa/Interamerican). **핀 색 = 지역색.**
+- 데이터 스키마: `{ id, name, type, country, country_ko, nso, region, lang, address(EN), lat, lng, sections[], meetingDay, contact, instagram, note }`
+  - `country` 미지정 시 코드에서 "Republic of Korea" 기본. 좌표는 관리자에서 **OSM(Nominatim) 검색**으로 등록.
 
 ## 5. 디자인 시스템
 - **브랜드 컬러(첨부 Color values)** 가 테마 기본. CSS `:root` 토큰:
@@ -98,6 +99,8 @@ README.md         실행·교체·배포 안내
 - 대상 확장: 한국뿐 아니라 **전세계 172개국 스카우트**, **최초엔 아시아-태평양(APR) 중심**.
 - 홈페이지 **국문/영문 2버전**, **영어를 기본**(외국인 친구 우선 대상).
 - 댓글: **레딧식 쓰레드(대댓글) + 닉네임 + GDPR 준용**(동의 필수, 공개 IP 마스킹, 관리자 삭제=잊혀질 권리).
+- **글로벌 표준 전환**: 지방연맹/지구연합회 제거 → **국가·NSO 선택(WOSM 176개 공식 목록)**. 영문 단위대명·영문 주소. 좌표는 **OSM(Nominatim) 검색**. 핀 색 = **WOSM 지역(Region)**. 모든 것 영문 기준.
+- 데이터는 **Cloudflare 서버(KV)에 저장**(관리자 "서버에 저장" → PUT, 비밀번호). 공개/관리자 모두 `/api/units`에서 로드.
 
 ## 10. 백엔드 (BUILT — Cloudflare Pages Functions + KV)
 - 저장소: **KV namespace `SCOUT_KV`** (id `5b8071435ace47f9a8eccb8ade1b946e`), `wrangler.toml`로 바인딩.
@@ -113,21 +116,19 @@ README.md         실행·교체·배포 안내
 - `GET/POST/DELETE /api/comments`: 작성 `{name,body,parentId?,consent:true}` (GDPR 동의 필수). 공개 IP 마스킹, 관리자 원본. DELETE(관리자)는 댓글+대댓글 제거.
 - `GET /api/log` 관리자: 변경 로그(수정일시·동작·IP).
 
-## 11. 글로벌 모델 (BUILT — 데이터/색 체계)
-- 위계: **WOSM APR(지역) → 국가(NSO) → [한국: 지방연맹 → 지구연합회] → 단위대**.
-- `data.js`: `window.SCOUT_APR_COUNTRIES`(26개국: code/ko/en/lat/lng) + `window.SCOUT_COUNTRY_COLORS`(국가별 26색, 상호 중복 0). 추후 전세계 172개국으로 확장.
-- 스키마 확장 필드(선택): `country`, `country_en`, `instagram`. `country` 미지정 → 코드에서 "대한민국" 기본.
-- **핀 색 우선순위**: 연맹색(한국 단위대) > 국가색 > 기본색. (`colorOf` in app.js/manage.js)
-- 관리자 폼에 **국가(APR) 셀렉트 + 인스타그램** 필드 추가. 다운로드 data.js에 APR/국가색 포함.
+## 11. 글로벌 모델 (BUILT — WOSM 국가/NSO)
+- 위계: **WOSM Region → 국가(NSO) → 단위대**. 지방연맹/지구연합회 제거.
+- `data.js`: `window.SCOUT_NSOS`(176개국 country EN/KO·nso·region·lang) + `window.SCOUT_REGION_COLORS`(5지역색).
+- 핀/범례 색 = **WOSM 지역(Region)**. (`colorOf` = `REGION_COLORS[u.region]`)
+- 영문 단위대명·영문 주소. 좌표는 관리자 **OSM(Nominatim) 검색** 또는 마커 드래그/지도클릭.
+- 디자인은 [DESIGN.md](DESIGN.md) 준용 (브랜드 토큰 + Wanted Sans 7단계 + 간격/반경 스케일).
 
-## 12. 프런트엔드 i18n + 표시 (BUILT)
-- **홈페이지는 영어 전용** — 한국어/언어 토글 없음(`<html lang="en">`). (관리자 manage.html은 내부용이라 한국어 유지)
-- UI 텍스트 영어. type·모집 카테고리(섹션)·요일 라벨 영어. 국가는 영문명. 단위대/연맹명은 데이터(한국어 고유명사) 그대로.
-- **표시 위계(외국인 대상)**: `국가 · 지방연맹(있을 경우)`까지만. **지구연합회(council)는 표시하지 않음**(데이터엔 유지).
-- 카드/팝업: 이름+종류, org line, 주소, **주요 활동(note)**, **모집 카테고리(sections)**, 모임요일 + **연락방법(없으면 "지방연맹 문의"/"Contact the federation")** + 인스타그램.
-- 초기 지도뷰 APR 전체([20,120] z4). 핀 색 연맹>국가>기본.
+## 12. 프런트엔드 i18n + 표시 + 서버 (BUILT)
+- **홈페이지 영어 전용**(`<html lang="en">`, 토글 없음). 관리자(manage.html)는 내부용 한국어.
+- 공개/관리자 모두 **`/api/units`(Cloudflare KV)에서 로드**, 실패 시 data.js 폴백.
+- 관리자 **"서버에 저장"** → `PUT /api/units`(비밀번호) → KV 반영 → 전 방문자 적용. 로컬 드래프트 병행.
+- 카드/팝업: 이름+종류 · **국가 + 지역(Region) 태그** · NSO · 주소 · 주요활동 · 모집 카테고리 · 모임요일 + 연락방법(없으면 "Contact the national scout organization") + 인스타그램.
 
 ## 13. 진행 예정 (다음 빌드)
-- 공개 사이트가 `/api/units`에서 로드(폴백 data.js) — 현재는 data.js/localStorage 사용.
-- 공개 **단위대 추가 제안 폼** → `/api/submissions`. 관리자 **승인 대기/승인·거절 + 로그 + 댓글(IP) 뷰** + 서버 저장(PUT, 비밀번호).
-- **레딧식 쓰레드 댓글 UI** + 닉네임 + GDPR 동의/프라이버시 고지. 관리자 페이지 i18n.
+- 공개 **단위대 추가 제안 폼** → `/api/submissions`. 관리자 **승인 대기/승인·거절 + 로그 + 댓글(IP) 뷰**.
+- **레딧식 쓰레드 댓글 UI** + 닉네임 + GDPR 동의/프라이버시 고지.

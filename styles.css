@@ -32,7 +32,19 @@
   --anchor:    #1c1524;   /* 기준점 마커 — 22색과 겹치지 않는 다크 plum */
 
   --shadow: 0 1px 2px rgba(34,27,43,.06), 0 8px 22px rgba(34,27,43,.07);
-  --radius: 12px;
+
+  /* 반경 스케일 (DESIGN.md 준용) */
+  --r-sm: 7px;   /* 칩·작은 버튼·배지 */
+  --r-md: 8px;   /* 입력·버튼 */
+  --r-lg: 12px;  /* 카드·패널 */
+  --r-pill: 999px;
+  --radius: 12px; /* = --r-lg (하위호환) */
+
+  /* 간격 스케일 (4px 베이스) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 22px; --sp-6: 32px;
+
+  /* 포커스 링 (모든 인터랙티브 공통) */
+  --focus: 0 0 0 3px rgba(98,37,153,.4);
 
   /* ── 7단계 weight (Wanted Sans variable) ── */
   --fw-1: 300;  /* light    — 보조 캡션 */
@@ -263,6 +275,8 @@ body {
 .leaflet-popup-content { margin: 12px 14px; font-family: var(--font); }
 .popup-name { font-weight: var(--fw-6); font-size: 0.98rem; }
 .popup-type { font-size: 0.7rem; font-weight: var(--fw-5); color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; }
+.card-region { display: inline-block; font-size: 0.62rem; font-weight: var(--fw-5); border-radius: var(--r-sm); padding: 1px 6px; margin-left: 4px; vertical-align: middle; }
+.readonly-line { font-size: 0.84rem; font-weight: var(--fw-3); color: var(--muted); background: var(--surface-2); border: 1px dashed var(--line-2); border-radius: var(--r-md); padding: 7px 9px; }
 .popup-affil { color: var(--muted); font-size: 0.78rem; font-weight: var(--fw-4); margin-top: 2px; }
 .popup-line { font-size: 0.82rem; font-weight: var(--fw-2); margin-top: 6px; }
 
