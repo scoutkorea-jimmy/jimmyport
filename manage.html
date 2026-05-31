@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>scout-finder 관리자</title>
+  <meta name="robots" content="noindex" />
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="title-block">
+        <h1>scout-finder 관리자</h1>
+        <span class="badge">로컬 편집 도구</span>
+      </div>
+
+      <p class="admin-note">
+        편집 내용은 이 브라우저(localStorage)에만 저장됩니다.
+        실제 사이트 반영은 <strong>data.js 다운로드 → 저장소에 커밋·배포</strong>로 이루어집니다.
+        <a href="./">← 사이트로</a>
+      </p>
+
+      <div class="admin-toolbar">
+        <button type="button" id="add-btn" class="admin-btn primary">+ 단위대 추가</button>
+        <button type="button" id="download-js" class="admin-btn">data.js 다운로드</button>
+        <button type="button" id="copy-json" class="admin-btn">JSON 복사</button>
+        <label class="admin-btn" for="import-input">JSON 가져오기
+          <input id="import-input" type="file" accept=".json,application/json" />
+        </label>
+        <button type="button" id="reset-btn-admin" class="admin-btn danger">샘플로 초기화</button>
+        <span id="save-status" class="save-status" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-layout">
+    <section class="admin-editor" aria-label="단위대 편집">
+      <div id="editor-list"></div>
+      <p id="editor-empty" class="empty-sub" hidden>
+        단위대가 없습니다. "+ 단위대 추가"로 시작하세요.
+      </p>
+    </section>
+
+    <div class="admin-map-wrap" id="map-wrap">
+      <div id="admin-map" role="application" aria-label="좌표 지정 지도"></div>
+      <p class="admin-map-hint" id="map-hint">
+        마커를 드래그해 좌표를 조정하거나, 카드의 "지도에서 위치 지정"을 누른 뒤 지도를 클릭하세요.
+      </p>
+    </div>
+  </main>
+
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+    crossorigin=""></script>
+  <script src="data.js"></script>
+  <script src="manage.js"></script>
+</body>
+</html>

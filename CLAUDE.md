@@ -18,15 +18,32 @@ GPS 미사용 — 검색·지도 클릭 기반 위치 지정.
 - UI 텍스트는 **한국어**, 식별자/코드는 **영어**.
 - 디자인: 깔끔한 '필드 가이드/지도' 무드. **보라색 그라데이션·generic AI 톤 금지.**
 
-## 3. 파일 구조 (이 5개로 유지)
+## 3. 파일 구조
 
 ```
-index.html   레이아웃 + Leaflet CDN
-styles.css   스타일 (포레스트 그린 강조 + 종이 톤)
-app.js       검색·centroid anchor·haversine 정렬·지도클릭 재정렬·렌더링
-data.js      window.SCOUT_UNITS (← 데이터 교체 지점, 로직과 완전 분리)
+index.html   레이아웃 + Leaflet CDN + 푸터(데이터 다운로드·관리자 링크)
+styles.css   스타일 (포레스트 그린 강조 + 종이 톤, 공개+관리자 공용)
+app.js       검색·centroid anchor·haversine 정렬·지도클릭 재정렬·렌더링·다운로드
+manage.html  관리자 페이지 (단위대 CRUD + 좌표 지정)
+manage.js    관리자 로직 (localStorage 편집본 + data.js 다운로드/JSON 가져오기)
+data.js      window.SCOUT_UNITS + window.SCOUT_FEDERATIONS (← 데이터 교체 지점)
 README.md    실행·교체·배포 안내
 ```
+
+## 조직 구조 (한국스카우트연맹)
+
+```
+단위대(학교대/지역대) → 지구연합회 → 지방·특수연맹(22개)
+예) 비파지역대 → 목포지구연합회 → 전남연맹
+```
+22개 연맹 = 지역연맹 18 + 특수연맹 4. 목록은 `data.js`의 `window.SCOUT_FEDERATIONS`.
+
+## 관리자 (manage.html)
+
+- 백엔드·키 없음 → **localStorage 기반 로컬 편집 도구** (로그인 없음).
+- 편집본은 `localStorage["scoutfinder:units"]`에 저장, 공개 사이트가 "편집본 미리보기"로 사용.
+- 실제 반영은 `data.js 다운로드` → 저장소 `data.js` 교체 → 커밋·배포.
+- 좌표는 마커 드래그 또는 "지도에서 위치 지정"(클릭)으로 입력.
 
 ## 4. 핵심 로직 규약
 
@@ -43,7 +60,8 @@ README.md    실행·교체·배포 안내
 
 - 현재는 **샘플** (헤더 "샘플 데이터" 배지). 실데이터 연결 시 교체.
 - 모든 위치는 '동' 단위. 좌표(lat/lng) 필수.
-- 스키마: `{ id, name, federation, district, address, lat, lng, sections[], meetingDay, contact, note }`
+- 스키마: `{ id, name, type, federation, council, address, lat, lng, sections[], meetingDay, contact, note }`
+  - `type` = "지역대" | "학교대", `federation` = 지방·특수연맹, `council` = 지구연합회.
 
 ## 6. 운영 규칙
 
