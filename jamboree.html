@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>한국잼버리 카드뉴스 제작기</title>
+
+  <!-- Pretendard (CDN, dynamic subset) — chrome/body fallback -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+
+  <style>
+    /* 브랜드 폰트 (자체호스트) */
+    @font-face { font-family:'Cafe24ProSlim'; src:url('jamboree/fonts/cafe24proslim-300.woff2') format('woff2'); font-weight:300; font-display:swap; }
+    @font-face { font-family:'Cafe24ProSlim'; src:url('jamboree/fonts/cafe24proslim-400.woff2') format('woff2'); font-weight:400; font-display:swap; }
+    @font-face { font-family:'Cafe24ProSlim'; src:url('jamboree/fonts/cafe24proslim-700.woff2') format('woff2'); font-weight:700; font-display:swap; }
+    @font-face { font-family:'Aggravo'; src:url('jamboree/fonts/aggravo-300.woff') format('woff'); font-weight:300; font-display:swap; }
+    @font-face { font-family:'Aggravo'; src:url('jamboree/fonts/aggravo-500.woff') format('woff'); font-weight:500; font-display:swap; }
+    @font-face { font-family:'Aggravo'; src:url('jamboree/fonts/aggravo-700.woff') format('woff'); font-weight:700; font-display:swap; }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: var(--cc-main, 'Cafe24ProSlim'), 'Apple SD Gothic Neo', sans-serif; background: #f3eef0; }
+    #root { width: 100vw; height: 100vh; }
+    /* 제목용 디스플레이 페이스 (Aggravo) */
+    .hi { font-family: var(--cc-hi, 'Aggravo'), 'Cafe24ProSlim', sans-serif; }
+    img { -webkit-user-drag: none; user-select: none; }
+    #__boot { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: #9a93a3; font: 14px/1.4 'Pretendard', sans-serif; }
+  </style>
+
+  <!-- React + Babel + html-to-image (CDN) -->
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"><div id="__boot">불러오는 중…</div></div>
+
+  <!-- 공용 도형 데이터 (plain JS) -->
+  <script src="jamboree/shapes.js"></script>
+
+  <!-- 카드 컴포넌트 (JSX, 의존 순서) -->
+  <script type="text/babel" data-presets="react" src="jamboree/base.jsx"></script>
+  <script type="text/babel" data-presets="react" src="jamboree/shapes-comp.jsx"></script>
+  <script type="text/babel" data-presets="react" src="jamboree/lib.jsx"></script>
+  <script type="text/babel" data-presets="react" src="jamboree/cover.jsx"></script>
+  <script type="text/babel" data-presets="react" src="jamboree/templates.jsx"></script>
+  <script type="text/babel" data-presets="react" src="jamboree/news.jsx"></script>
+  <script type="text/babel" data-presets="react" src="jamboree/dday.jsx"></script>
+
+  <!-- 제작기 셸 (마지막) -->
+  <script type="text/babel" data-presets="react" src="jamboree/app.jsx"></script>
+
+  <script src="version-watch.js"></script>
+</body>
+</html>

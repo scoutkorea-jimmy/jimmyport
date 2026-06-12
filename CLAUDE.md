@@ -108,8 +108,7 @@ WOSM Region → 국가(NSO) → 단위대
 - 관리자 편집은 **자동으로 서버 반영**(별도 저장 버튼 X, 비밀번호 1회 입력 후 debounce auto-save).
 - 좌표는 "검색"이 아니라 **지도를 주소로 검색**(map flyTo) 후 클릭/드래그로 핀 지정. **주소·모임요일 필드 삭제**, **ID 자동 배정**. 연락처 → **Homepage (Instagram)** URL.
 - **전부 영어**: 공개·관리자 모든 메뉴 한국어 제거. type/sections 데이터도 영문(Community/School unit, Beaver/Cub/Scout/Venture/Rover).
-
-## 10. 백엔드 (BUILT — Cloudflare Pages Functions + KV)
+- **`/jamboree` 신규 — 한국잼버리 카드뉴스 제작기**(별개 미니앱): 25MB React 디자인 시안 번들을 포팅, 폰트 CDN 슬림화(25MB→~1.2MB). 6 패밀리 선택→프리뷰→PNG 다운로드→KV 저장. 홈에 링크 없음. React는 이 페이지에만 격리(본 앱 vanilla 유지). 상세 §15.
 - 저장소: **KV namespace `SCOUT_KV`** (id `5b8071435ace47f9a8eccb8ade1b946e`), `wrangler.toml`로 바인딩.
 - 관리자 인증: **Pages secret `ADMIN_TOKEN`** (값은 repo에 두지 않음). 요청 헤더 `X-Admin-Token`로 검증.
 - IP: `CF-Connecting-IP` 헤더로 취득. KV 키: `units` / `pending` / `comments` / `log`.
@@ -143,3 +142,17 @@ WOSM Region → 국가(NSO) → 단위대
 ## 14. 진행 예정 (다음 빌드)
 - 공개 **단위대 추가 제안 폼** → `/api/submissions`(누구나 추가→승인 대기).
 - 관리자 **승인 대기/승인·거절 + 변경 로그(/api/log) + 댓글 관리(IP·삭제) 뷰**.
+
+## 15. /jamboree — 한국잼버리 카드뉴스 제작기 (BUILT, Phase 1)
+- **정체**: 제16회 한국잼버리(2026.8.5–8.9, 강원) 카드뉴스 제작·편집·PNG출력·KV저장 미니앱.
+  scout-finder 본 앱과 **격리된 React 페이지**(본 앱 vanilla 규칙 불변). clean-URL `jamboree.html`→`/jamboree`(`/manage`와 동일, 홈 링크 없음).
+- **출처**: `한국잼버리 카드뉴스 (포팅용)` 25MB React 번들(디자인 시안)에서 카드 컴포넌트만 추출.
+  원본은 repo 밖(`../한국잼버리 카드뉴스 (포팅용 원본).html`)으로 이동(배포 제외). 폰트 CDN 슬림화로 25MB→~1.2MB.
+- **파일**: `jamboree.html`(React18+Babel standalone+html-to-image CDN, Pretendard CDN, 브랜드폰트 자체호스트) ·
+  `jamboree/{shapes.js,base.jsx,shapes-comp.jsx,lib.jsx,cover.jsx,templates.jsx,news.jsx,dday.jsx,app.jsx}` ·
+  `jamboree/fonts/`(Cafe24ProSlim·Aggravo) · `jamboree/assets/logo.svg`(★플레이스홀더 — 실제 엠블럼 교체 필요).
+  스크립트 로드 순서가 의존성(각 파일 `Object.assign(window,…)`로 공유); `app.jsx` 마지막.
+- **6 패밀리**: 표지(SEC_COVER 5)·콘텐츠(SEC_TEMPLATES 12)·소식형(SEC_NEWS 3, 1080×1350)·D피드(SEC_DDAY 8)·D스토리(_TALL 1080×1920)·D가로(_WIDE 1480×1047). 핀/도형색 = WOSM 팔레트(PAL, 본 앱과 동일 `#622599`계열).
+- **편집**: 콘텐츠·소식형은 `Editable` 더블클릭 인라인편집(→`localStorage['cc-edit:'+ekey]`). 표지·D-day는 prop 하드코딩이라 프리셋 선택만(폼편집은 Phase 2). 전역 브랜드(행사명/날짜/장소/주최/개영문구)는 우측 폼 → `GContentCtx`.
+- **PNG**: `html-to-image` 네이티브 해상도 캡처(`document.fonts.ready` 후). **저장/불러오기**: `/api/jamboree`(GET 공개·PUT 관리자, `_lib.js` 재사용, KV 키 `jamboree`). 상태=`{editKeys,brand}`. 토큰 1회 입력 후 `localStorage['jamboree:token']`.
+- **Phase 2 예정**: 표지·D-day prop 폼편집(제목/부제/티저/카테고리/색/D숫자), 다중 카드 "덱" 일괄 export, 실제 엠블럼, Placeholder 자리 사진 업로드.
