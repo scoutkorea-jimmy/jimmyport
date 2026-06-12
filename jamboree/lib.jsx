@@ -27,20 +27,25 @@ function CategoryChip({ label, color, top, right, bottom, left, dot }) {
   );
 }
 
-/* 더블클릭하면 편집 가능한 텍스트 (localStorage 저장) */
-function Editable({ ekey, tag = 'span', className, style, children }) {
+/* 더블클릭 인라인 편집 + 우측 폼 자동등록 (둘 다 CCStore 텍스트로 공유)
+ * flabel: 우측 폼 라벨(짧게). 없으면 기본 텍스트를 라벨로 사용. */
+function Editable({ ekey, tag = 'span', flabel, className, style, children }) {
   const Tag = tag;
+  const store = useCCStore();
+  const register = React.useContext(window.CCRegisterFieldCtx);
   const ref = React.useRef(null);
-  const init = (() => { try { return localStorage.getItem('cc-edit:' + ekey); } catch (e) { return null; } })();
-  const [val, setVal] = React.useState(init);
   const [editing, setEditing] = React.useState(false);
-  const display = val != null ? val : children;
+  const stored = store.getText(ekey);
+  const display = stored != null ? stored : children;
+  React.useEffect(() => {
+    if (register) register(ekey, flabel || textOf(children), textOf(children));
+  }, [ekey]); // eslint-disable-line
   return (
     <Tag ref={ref} className={className} title="더블클릭하여 수정"
       style={{ ...style, cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
-      onBlur={(e) => { const t = e.currentTarget.textContent; try { localStorage.setItem('cc-edit:' + ekey, t); } catch (_) { } setVal(t); setEditing(false); }}
+      onBlur={(e) => { store.setText(ekey, e.currentTarget.textContent); setEditing(false); }}
       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); } }}
     >{display}</Tag>
   );
@@ -98,7 +103,7 @@ function TopicIntro({ ek = 'intro', kicker, title, body, kc = PAL.ocean, tab, ph
         <Editable ekey={ek + '-title'} tag="div" className="hi" style={{ marginTop: 12, fontWeight: 700, fontSize: 88, color: INK, lineHeight: 1.02 }}>{title}</Editable>
       </div>
       <Editable ekey={ek + '-body'} tag="div" style={{ position: 'absolute', left: tab ? 100 : 64, right: 64, top: 322, fontSize: 38, fontWeight: 300, lineHeight: 1.6, color: INK, paddingLeft: 28, borderLeft: `8px solid ${accentBar}` }}>{body}</Editable>
-      <Placeholder tone="light" label={photo} radius={18} style={{ position: 'absolute', left: tab ? 100 : 64, right: 64, bottom: 64, height: 300 }} />
+      <Placeholder tone="light" label={photo} slot={ek + '-photo'} slotLabel="사진" radius={18} style={{ position: 'absolute', left: tab ? 100 : 64, right: 64, bottom: 64, height: 300 }} />
     </Card>
   );
 }

@@ -17,7 +17,7 @@ function NewsChip({ label, color, top, left, right, bottom }) {
 function NewsFull({ ek }) {
   return (
     <Card bg={PAL.midnight} color="#fff" pad={0}>
-      <Placeholder tone="dark" label="소식 이미지 (전체)" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
+      <Placeholder tone="dark" label="소식 이미지 (전체)" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,0,30,.35) 0%, rgba(20,0,30,0) 26%, rgba(20,0,30,0) 44%, rgba(20,0,30,.9) 86%)' }} />
       <div style={{ position: 'absolute', top: NS, left: NS, right: NS, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <NewsChip label="공지" color={NP.pink} />
@@ -37,7 +37,7 @@ function NewsBand({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 760, overflow: 'hidden' }}>
-        <Placeholder tone="light" label="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
+        <Placeholder tone="light" label="소식 이미지" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
         <NewsChip label="안내" color={NP.ocean} top={NS} left={NS} />
         <Logo size={104} style={{ position: 'absolute', top: NS, right: NS }} />
       </div>
@@ -54,8 +54,8 @@ function NewsBand({ ek }) {
 function NewsCard({ ek }) {
   return (
     <Card bg={NP.forest} color="#fff" pad={0}>
-      <Placeholder tone="dark" label="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
-      <div style={{ position: 'absolute', inset: 0, background: NP.forest, opacity: .5 }} />
+      <Placeholder tone="dark" label="소식 이미지" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
+      <div style={{ position: 'absolute', inset: 0, background: NP.forest, opacity: .5, pointerEvents: 'none' }} />
       <ShapeScatter items={[
         { n: '02', fill: NP.leaf, h: 70, top: 150, left: 150 },
         { n: '05', fill: NP.river, h: 88, top: 180, right: 160 }

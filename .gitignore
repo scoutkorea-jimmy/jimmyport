@@ -1,2 +1,6 @@
 .wrangler/
 .DS_Store
+
+# Jamboree design-source bundle (~25MB) — never deploy. Live port lives in jamboree/*
+한국잼버리 카드뉴스 (포팅용).html
+한국잼버리 카드뉴스*.html

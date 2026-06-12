@@ -70,8 +70,8 @@ function T_Quote({ ek }) {
 function T_FullImage({ ek }) {
   return (
     <Card bg={PAL.midnight} color="#fff" pad={0}>
-      <Placeholder tone="dark" label="대표 이미지 (전체 배경)" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,0,30,.15) 35%, rgba(20,0,30,.82))' }} />
+      <Placeholder tone="dark" label="대표 이미지 (전체 배경)" slot={ek + '-img'} slotLabel="배경 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,0,30,.15) 35%, rgba(20,0,30,.82))', pointerEvents: 'none' }} />
       <CategoryChip label="메인" color={P.purple} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, bottom: S }}>
         <Kicker c={P.river}>IMAGE · 풀이미지형</Kicker>
@@ -85,7 +85,7 @@ function T_FullImage({ ek }) {
 function T_ImageCaption({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
-      <Placeholder tone="light" label="이미지" radius={26} style={{ position: 'absolute', top: S, left: S, right: S, height: 556 }} />
+      <Placeholder tone="light" label="이미지" slot={ek + '-img'} slotLabel="이미지" radius={26} style={{ position: 'absolute', top: S, left: S, right: S, height: 556 }} />
       <CategoryChip label="영외활동" color={P.ocean} top={S + 22} right={S + 22} />
       <Editable ekey={ek + '-cap'} tag="div" className="hi" style={{ position: 'absolute', left: S, right: S, top: 712, fontSize: 62, fontWeight: 700, color: INK, lineHeight: 1.14 }}>강원의 명소를 발로 누비는 영외활동</Editable>
       <div style={{ position: 'absolute', left: S, bottom: S, fontSize: 30, fontWeight: 300, color: DMUTE }}>OUT-CAMP · 지역 탐방</div>
@@ -97,7 +97,7 @@ function T_ImageCaption({ ek }) {
 function T_SplitImage({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
-      <Placeholder tone="light" label="이미지" radius={26} style={{ position: 'absolute', top: S, bottom: S, left: S, width: 520 }} />
+      <Placeholder tone="light" label="이미지" slot={ek + '-img'} slotLabel="이미지" radius={26} style={{ position: 'absolute', top: S, bottom: S, left: S, width: 520 }} />
       <CategoryChip label="식사" color={P.orange} top={S} right={S} />
       <div style={{ position: 'absolute', left: 668, right: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <Kicker c={P.red}>MEALS</Kicker>
@@ -115,7 +115,7 @@ function T_Gallery({ ek }) {
     <Card bg={PAL.white} color={INK} pad={0}>
       <THead ek={ek} kicker="IMAGE · 갤러리형" title="현장 스케치" cat={{ label: '현장', color: P.ocean }} />
       <div style={{ position: 'absolute', left: S, right: S, top: 300, bottom: S, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 20 }}>
-        {labels.map((l, i) => <Placeholder key={i} tone="light" label={l} radius={16} />)}
+        {labels.map((l, i) => <Placeholder key={i} tone="light" label={l} slot={ek + '-img' + i} slotLabel={l} radius={16} />)}
       </div>
     </Card>
   );
@@ -125,8 +125,8 @@ function T_Gallery({ ek }) {
 function T_BigNumImage({ ek }) {
   return (
     <Card bg={PAL.red} color="#fff" pad={0}>
-      <Placeholder tone="dark" label="배경 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .5 }} />
-      <div style={{ position: 'absolute', inset: 0, background: P.red, opacity: .72 }} />
+      <Placeholder tone="dark" label="배경 이미지" slot={ek + '-img'} slotLabel="배경 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .5 }} />
+      <div style={{ position: 'absolute', inset: 0, background: P.red, opacity: .72, pointerEvents: 'none' }} />
       <CategoryChip label="규모" color={'#fff'} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <Kicker c="#fff">IMAGE · 빅넘버형</Kicker>
@@ -166,7 +166,7 @@ function T_ImageGrid({ ek }) {
       <div style={{ position: 'absolute', left: S, right: S, top: 300, bottom: S, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 22 }}>
         {items.map((x, i) => (
           <div key={i} style={{ position: 'relative', borderRadius: 22, overflow: 'hidden' }}>
-            <Placeholder tone="light" label="" radius={22} style={{ position: 'absolute', inset: 0 }} />
+            <Placeholder tone="light" label="" slot={ek + '-img' + i} slotLabel={x.t} radius={22} style={{ position: 'absolute', inset: 0 }} />
             <span style={{ position: 'absolute', left: 14, top: 14, width: 16, height: 16, borderRadius: '50%', background: x.c }} />
             <Editable ekey={ek + '-i' + i} tag="div" className="hi" style={{ position: 'absolute', left: 22, bottom: 18, fontSize: 36, fontWeight: 700, color: INK }}>{x.t}</Editable>
           </div>
@@ -206,7 +206,7 @@ function T_VisualTimeline({ ek }) {
       <div style={{ position: 'absolute', left: S, right: S, top: 360, display: 'flex', gap: 18 }}>
         {nodes.map((x, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <Placeholder tone="light" label="" radius={18} style={{ width: '100%', height: 230 }} />
+            <Placeholder tone="light" label="" slot={ek + '-img' + i} slotLabel={x.t} radius={18} style={{ width: '100%', height: 230 }} />
             <span style={{ width: 18, height: 18, borderRadius: '50%', background: x.c, marginTop: 22 }} />
             <span className="hi" style={{ fontSize: 34, fontWeight: 700, color: INK, marginTop: 14 }}>{x.t}</span>
             <span style={{ fontSize: 26, fontWeight: 300, color: DMUTE }}>{x.d}</span>

@@ -143,16 +143,24 @@ WOSM Region → 국가(NSO) → 단위대
 - 공개 **단위대 추가 제안 폼** → `/api/submissions`(누구나 추가→승인 대기).
 - 관리자 **승인 대기/승인·거절 + 변경 로그(/api/log) + 댓글 관리(IP·삭제) 뷰**.
 
-## 15. /jamboree — 한국잼버리 카드뉴스 제작기 (BUILT, Phase 1)
+## 15. /jamboree — 한국잼버리 카드뉴스 제작기 (BUILT, Phase 1+2)
 - **정체**: 제16회 한국잼버리(2026.8.5–8.9, 강원) 카드뉴스 제작·편집·PNG출력·KV저장 미니앱.
   scout-finder 본 앱과 **격리된 React 페이지**(본 앱 vanilla 규칙 불변). clean-URL `jamboree.html`→`/jamboree`(`/manage`와 동일, 홈 링크 없음).
 - **출처**: `한국잼버리 카드뉴스 (포팅용)` 25MB React 번들(디자인 시안)에서 카드 컴포넌트만 추출.
   원본은 repo 밖(`../한국잼버리 카드뉴스 (포팅용 원본).html`)으로 이동(배포 제외). 폰트 CDN 슬림화로 25MB→~1.2MB.
 - **파일**: `jamboree.html`(React18+Babel standalone+html-to-image CDN, Pretendard CDN, 브랜드폰트 자체호스트) ·
-  `jamboree/{shapes.js,base.jsx,shapes-comp.jsx,lib.jsx,cover.jsx,templates.jsx,news.jsx,dday.jsx,app.jsx}` ·
+  `jamboree/{shapes.js,store.js,base.jsx,shapes-comp.jsx,lib.jsx,cover.jsx,templates.jsx,news.jsx,dday.jsx,app.jsx}` ·
   `jamboree/fonts/`(Cafe24ProSlim·Aggravo) · `jamboree/assets/logo.svg`(★플레이스홀더 — 실제 엠블럼 교체 필요).
   스크립트 로드 순서가 의존성(각 파일 `Object.assign(window,…)`로 공유); `app.jsx` 마지막.
 - **6 패밀리**: 표지(SEC_COVER 5)·콘텐츠(SEC_TEMPLATES 12)·소식형(SEC_NEWS 3, 1080×1350)·D피드(SEC_DDAY 8)·D스토리(_TALL 1080×1920)·D가로(_WIDE 1480×1047). 핀/도형색 = WOSM 팔레트(PAL, 본 앱과 동일 `#622599`계열).
-- **편집**: 콘텐츠·소식형은 `Editable` 더블클릭 인라인편집(→`localStorage['cc-edit:'+ekey]`). 표지·D-day는 prop 하드코딩이라 프리셋 선택만(폼편집은 Phase 2). 전역 브랜드(행사명/날짜/장소/주최/개영문구)는 우측 폼 → `GContentCtx`.
-- **PNG**: `html-to-image` 네이티브 해상도 캡처(`document.fonts.ready` 후). **저장/불러오기**: `/api/jamboree`(GET 공개·PUT 관리자, `_lib.js` 재사용, KV 키 `jamboree`). 상태=`{editKeys,brand}`. 토큰 1회 입력 후 `localStorage['jamboree:token']`.
-- **Phase 2 예정**: 표지·D-day prop 폼편집(제목/부제/티저/카테고리/색/D숫자), 다중 카드 "덱" 일괄 export, 실제 엠블럼, Placeholder 자리 사진 업로드.
+- **편집**: 모든 패밀리 `Editable` 더블클릭 인라인편집(→`localStorage['cc-edit:'+ekey]`). 전역 브랜드(행사명/날짜/장소/주최/개영문구)는 우측 폼 → `GContentCtx`.
+- **PNG**: `html-to-image` 네이티브 해상도 캡처(`document.fonts.ready` 후). **저장/불러오기**: `/api/jamboree`(GET 공개·PUT 관리자, `_lib.js` 재사용, KV 키 `jamboree`). 상태=`{text,props,images,brand}`(Phase 1 `editKeys` 호환). 토큰 1회 입력 후 `localStorage['jamboree:token']`.
+
+### 15.1 Phase 2 (BUILT, v0.9.1)
+- **편집 스토어** `jamboree/store.js`(plain JS, shapes.js 다음 로드) = `window.CCStore`: 텍스트(`cc-edit:`)·구조오버라이드(`cc-prop:<scope>` JSON)·이미지(`cc-img:<slot>` dataURL) + collect/hydrate(KV) + 구독 emit + `idealInk()`(배경 대비 잉크).
+- **자동 폼**: `Editable`/`Placeholder`가 `CCRegisterFieldCtx`/`CCRegisterPhotoCtx`로 우측 패널에 자기 자신 등록 → **카드별 텍스트 폼·사진 목록 자동 생성**(카드 스키마 수기 X). 폼↔인라인 양방향(스토어 공유).
+- **표지/D-day 폼편집**: 표지=에이브로우/제목 2행/부제/카테고리(Editable)+배경색·카테고리색 스와치. D-day=티저(Editable)+**D숫자(구조필드 → 진행바·키커 자동 재계산)**+배경색 스와치. 색 오버라이드 시 `idealInk` 자동 대비.
+- **사진 업로드**: `Placeholder` slot화(표지·소식형·콘텐츠 전부) → 업로드 이미지로 교체. 업로드 시 다운스케일(사진 1600px JPEG / 엠블럼 1024px PNG).
+- **엠블럼**: `Logo`가 `cc-img:logo` 업로드본 우선(플레이스홀더 SVG 폴백). 우측 '엠블럼' 업로드로 실제 엠블럼 교체.
+- **덱 일괄 export**: 오프스크린 네이티브 렌더(별도 ReactDOM root) → 패밀리 전체 PNG 순차 다운로드("덱 PNG (n)").
+- 검증: 벤더 Babel 전 모듈 컴파일체크 + 헤드리스 Chrome 오프스크린 렌더(표지·D-day override·사진·뉴스 정상). 원본 25MB 포팅 파일 `.gitignore` 처리.

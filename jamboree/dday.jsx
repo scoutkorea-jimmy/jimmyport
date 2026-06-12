@@ -1,4 +1,5 @@
-/* D-## 카운트다운 — WOSM 팔레트 풀활용(알록달록) · 도형 적극 활용 · 3비율 · 여백 Tweak */
+/* D-## 카운트다운 — WOSM 팔레트 풀활용 · 3비율 · 여백 Tweak
+ * Phase 2: D숫자(구조 필드, 진행바 자동 재계산) + 티저(인라인/폼) + 배경색 오버라이드(cc-prop:<ek>) */
 
 /* 도형 스캐터 — 우측 컬러 클러스터 + 코너 블리더 (숫자/카피 영역 회피) */
 function ddScatter(i, isDay, cols, bleed) {
@@ -21,12 +22,30 @@ function ddScatter(i, isDay, cols, bleed) {
   return arr;
 }
 
+/* 오버라이드(배경색·D숫자) 반영한 유효값 — 3비율 컴포넌트가 공유 */
+function useDDeff(c) {
+  const store = useCCStore();
+  const ov = store.getProps(c.ek);
+  const themed = !!ov.bg;
+  const bg = ov.bg || c.bg;
+  const ink = themed ? store.idealInk(bg) : c.ink;
+  const numColor = themed ? store.idealInk(bg) : c.num;
+  const kickerColor = themed ? numColor : c.kickerColor;
+  const fill = themed ? numColor : c.fill;
+  const track = themed ? (ink === '#fff' ? 'rgba(255,255,255,.2)' : 'rgba(77,0,110,.16)') : c.track;
+  const bleed = themed ? (ink === '#fff' ? 'rgba(255,255,255,.08)' : 'rgba(77,0,110,.07)') : c.bleed;
+  const n = (ov.n != null && ov.n !== '') ? (parseInt(ov.n, 10) || 0) : c.n;
+  const prog = c.isDay ? 100 : Math.max(0, Math.min(100, Math.round((50 - n) / 50 * 100)));
+  const kickerText = c.isDay ? c.kickerText : ('COUNTDOWN · ' + n + '일 전');
+  return { bg, ink, numColor, kickerColor, fill, track, bleed, n, prog, kickerText };
+}
+
 function NumStack({ ek, numColor, ink, isDay, num, teaser, dSize, nSize, tSize, gap, lead = 0, align = 'flex-start' }) {
   return (
     <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: align }}>
       <div style={{ fontWeight: 700, fontSize: dSize, lineHeight: .9, color: numColor, letterSpacing: '.03em' }}>D-</div>
-      <Editable ekey={ek + '-num'} tag="div" style={{ fontWeight: 700, fontSize: nSize, lineHeight: .92, color: numColor, marginTop: lead }}>{isDay ? 'DAY' : String(num)}</Editable>
-      <Editable ekey={ek + '-teaser'} tag="div" style={{ fontSize: tSize, fontWeight: 300, marginTop: gap != null ? gap : Math.round(tSize * 0.9), color: ink, textAlign: align === 'center' ? 'center' : 'left' }}>{teaser}</Editable>
+      <div style={{ fontWeight: 700, fontSize: nSize, lineHeight: .92, color: numColor, marginTop: lead }}>{isDay ? 'DAY' : String(num)}</div>
+      <Editable ekey={ek + '-teaser'} flabel="티저" tag="div" style={{ fontSize: tSize, fontWeight: 300, marginTop: gap != null ? gap : Math.round(tSize * 0.9), color: ink, textAlign: align === 'center' ? 'center' : 'left' }}>{teaser}</Editable>
     </div>
   );
 }
@@ -42,18 +61,19 @@ function Prog({ prog, fill, track, bottom }) {
 /* 정사각 1080×1080 */
 function DDaySquare({ c }) {
   const tw = React.useContext(window.DDayTweakCtx) || {}; const ns = tw.numScale || 1;
+  const e = useDDeff(c);
   return (
-    <Card bg={c.bg} color={c.ink} pad={0}>
-      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, c.bleed)} />
+    <Card bg={e.bg} color={e.ink} pad={0}>
+      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed)} />
       <div style={{ position: 'absolute', top: 70, left: 72, right: 72, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <Kicker c={c.kickerColor}>{c.kickerText}</Kicker>{!c.isDay && <Logo size={100} />}
+        <Kicker c={e.kickerColor}>{e.kickerText}</Kicker>{!c.isDay && <Logo size={100} />}
       </div>
       {c.isDay && <Logo size={300} style={{ position: 'absolute', right: 80, top: 350 }} />}
       <div style={{ position: 'absolute', left: 72, right: 72, top: 220 + (tw.topAdj || 0), bottom: 240 + (tw.botAdj || 0), display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <NumStack ek={c.ek} numColor={c.num} ink={c.ink} isDay={c.isDay} num={c.n} teaser={c.teaser} dSize={120 * ns} nSize={272 * ns} tSize={44} gap={40 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} />
+        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={120 * ns} nSize={272 * ns} tSize={44} gap={40 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} />
       </div>
-      <Prog prog={c.prog} fill={c.fill} track={c.track} bottom={186} />
-      <FooterBand bg="transparent" color={c.ink} brandFoot />
+      <Prog prog={e.prog} fill={e.fill} track={e.track} bottom={186} />
+      <FooterBand bg="transparent" color={e.ink} brandFoot />
     </Card>
   );
 }
@@ -61,18 +81,19 @@ function DDaySquare({ c }) {
 /* 세로형 인스타 1080×1350 */
 function DDayTall({ c }) {
   const tw = React.useContext(window.DDayTweakCtx) || {}; const ns = tw.numScale || 1;
+  const e = useDDeff(c);
   return (
-    <Card bg={c.bg} color={c.ink} pad={0}>
-      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, c.bleed)} />
+    <Card bg={e.bg} color={e.ink} pad={0}>
+      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed)} />
       <div style={{ position: 'absolute', top: 92, left: 80, right: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
         <Logo size={c.isDay ? 230 : 116} />
-        <Kicker c={c.kickerColor} style={{ textAlign: 'center' }}>{c.kickerText}</Kicker>
+        <Kicker c={e.kickerColor} style={{ textAlign: 'center' }}>{e.kickerText}</Kicker>
       </div>
       <div style={{ position: 'absolute', left: 80, right: 80, top: 360 + (tw.topAdj || 0), bottom: 300 + (tw.botAdj || 0), display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <NumStack ek={c.ek} numColor={c.num} ink={c.ink} isDay={c.isDay} num={c.n} teaser={c.teaser} dSize={150 * ns} nSize={336 * ns} tSize={50} gap={45 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} align="center" />
+        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={150 * ns} nSize={336 * ns} tSize={50} gap={45 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} align="center" />
       </div>
-      <Prog prog={c.prog} fill={c.fill} track={c.track} bottom={214} />
-      <FooterBand bg="transparent" color={c.ink} brandFoot h={160} />
+      <Prog prog={e.prog} fill={e.fill} track={e.track} bottom={214} />
+      <FooterBand bg="transparent" color={e.ink} brandFoot h={160} />
     </Card>
   );
 }
@@ -80,17 +101,18 @@ function DDayTall({ c }) {
 /* A4 가로 1480×1047 */
 function DDayWide({ c }) {
   const tw = React.useContext(window.DDayTweakCtx) || {}; const ns = tw.numScale || 1;
+  const e = useDDeff(c);
   return (
-    <Card bg={c.bg} color={c.ink} pad={0}>
-      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, c.bleed)} />
-      <div style={{ position: 'absolute', top: 64, left: 84 }}><Kicker c={c.kickerColor}>{c.kickerText}</Kicker></div>
+    <Card bg={e.bg} color={e.ink} pad={0}>
+      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed)} />
+      <div style={{ position: 'absolute', top: 64, left: 84 }}><Kicker c={e.kickerColor}>{e.kickerText}</Kicker></div>
       {!c.isDay && <Logo size={120} style={{ position: 'absolute', top: 58, right: 96 }} />}
       {c.isDay && <Logo size={360} style={{ position: 'absolute', right: 130, top: 300 }} />}
       <div style={{ position: 'absolute', left: 84, top: 150 + (tw.topAdj || 0), bottom: 210 + (tw.botAdj || 0), width: 880, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <NumStack ek={c.ek} numColor={c.num} ink={c.ink} isDay={c.isDay} num={c.n} teaser={c.teaser} dSize={156 * ns} nSize={(c.isDay ? 320 : 372) * ns} tSize={54} gap={49 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} />
+        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={156 * ns} nSize={(c.isDay ? 320 : 372) * ns} tSize={54} gap={49 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} />
       </div>
-      <Prog prog={c.prog} fill={c.fill} track={c.track} bottom={154} />
-      <FooterBand bg="transparent" color={c.ink} brandFoot h={130} />
+      <Prog prog={e.prog} fill={e.fill} track={e.track} bottom={154} />
+      <FooterBand bg="transparent" color={e.ink} brandFoot h={130} />
     </Card>
   );
 }
@@ -113,10 +135,9 @@ function buildDD(Comp, fmt) {
     const isDay = !!x.dday;
     const id = isDay ? 'dday' : 'd' + x.n;
     const label = isDay ? 'D-DAY' : 'D-' + x.n;
-    const prog = isDay ? 100 : Math.round((50 - x.n) / 50 * 100);
     const kickerText = isDay ? '2026. 8. 5 · 드디어!' : 'COUNTDOWN · ' + x.n + '일 전';
     const bleed = x.ink === '#fff' ? 'rgba(255,255,255,.08)' : 'rgba(77,0,110,.07)';
-    const c = { ...x, i, isDay, prog, kickerText, bleed, ek: fmt + '-' + id };
+    const c = { ...x, i, isDay, kickerText, bleed, ek: fmt + '-' + id };
     return { id, label, node: <Comp c={c} /> };
   });
 }

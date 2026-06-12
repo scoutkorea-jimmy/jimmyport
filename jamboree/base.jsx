@@ -60,6 +60,29 @@ const PAL = {
   ocean: '#0094B4', river: '#82E6DE', forest: '#248737', leaf: '#9FED8F'
 };
 
+/* ── Phase 2 편집 인프라 ──
+ * 카드 내부 컴포넌트(Editable/Placeholder)가 자기 자신을 우측 패널에 '등록'하면
+ * 제작기 셸이 카드별 폼을 자동 생성한다. (카드마다 스키마를 손으로 적지 않음) */
+window.CCRegisterFieldCtx = React.createContext(null);   // (ekey, label) → 텍스트 폼
+window.CCRegisterPhotoCtx = React.createContext(null);   // (slot, label) → 사진 업로드
+
+/* 스토어 구독 훅 — 폼/인라인 어느 쪽에서 바꿔도 카드가 즉시 갱신 */
+function useCCStore() {
+  const [, force] = React.useReducer((x) => x + 1, 0);
+  React.useEffect(() => window.CCStore.sub(force), []);
+  return window.CCStore;
+}
+
+/* React children → 순수 텍스트 (<br/>=공백, 중첩 span 재귀) — 폼 입력 기본값용 */
+function textOf(node) {
+  if (node == null || node === false || node === true) return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join('');
+  if (node.type === 'br') return ' ';
+  if (node.props && node.props.children != null) return textOf(node.props.children);
+  return '';
+}
+
 /* Card shell — 1080×1080, clipped, brand body font */
 function Card({ bg, color = '#fff', pad = 88, children, style }) {
   return (
@@ -72,7 +95,9 @@ function Card({ bg, color = '#fff', pad = 88, children, style }) {
 }
 
 function Logo({ size = 150, style }) {
-  return <img src="jamboree/assets/logo.svg" alt="제16회 한국잼버리 엠블럼" width={size} height={size} style={{ display: 'block', ...style }} />;
+  const store = useCCStore();
+  const src = store.getImage('logo') || 'jamboree/assets/logo.svg';
+  return <img src={src} alt="제16회 한국잼버리 엠블럼" width={size} height={size} style={{ display: 'block', objectFit: 'contain', ...style }} />;
 }
 
 function Pill({ children, bg, color, style }) {
@@ -85,8 +110,21 @@ function Pill({ children, bg, color, style }) {
   );
 }
 
-/* Striped photo placeholder with monospace label */
-function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, style }) {
+/* Striped photo placeholder with monospace label.
+ * slot 지정 시: (1) 업로드된 사진이 있으면 그 사진을 cover로 렌더,
+ *              (2) 우측 패널 '사진' 목록에 자기 자신을 등록한다. */
+function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot, slotLabel, style }) {
+  const store = useCCStore();
+  const register = React.useContext(window.CCRegisterPhotoCtx);
+  React.useEffect(() => { if (slot && register) register(slot, slotLabel || label || slot); }, [slot]);
+  const img = slot ? store.getImage(slot) : null;
+  if (img) {
+    return (
+      <div style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style }}>
+        <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
+    );
+  }
   const dark = tone === 'dark';
   const a = dark ? 'rgba(255,255,255,.12)' : 'rgba(98,37,153,.10)';
   const b = dark ? 'rgba(255,255,255,.04)' : 'rgba(98,37,153,.035)';
@@ -98,7 +136,7 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, styl
       background: `repeating-linear-gradient(45deg, ${a} 0 16px, ${b} 16px 32px)`,
       border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style
     }}>
-      <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span>
+      {label ? <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span> : null}
     </div>
   );
 }
@@ -120,4 +158,4 @@ function GeoCluster({ style, scale = 1 }) {
   );
 }
 
-Object.assign(window, { C, PAL, Card, Logo, Pill, Placeholder, GeoCluster });
+Object.assign(window, { C, PAL, Card, Logo, Pill, Placeholder, GeoCluster, useCCStore, textOf });
