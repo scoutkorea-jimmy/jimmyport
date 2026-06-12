@@ -38,15 +38,18 @@ function useDDeff(c) {
   const n = (ov.n != null && ov.n !== '') ? (parseInt(ov.n, 10) || 0) : c.n;
   const prog = c.isDay ? 100 : Math.max(0, Math.min(100, Math.round((50 - n) / 50 * 100)));
   const kickerText = c.isDay ? c.kickerText : ('COUNTDOWN · ' + n + '일 전');
-  return { bg, ink, numColor, kickerColor, fill, track, bleed, n, prog, kickerText };
+  // 정렬 오버라이드: left/center/right → flex align
+  const align = ov.align === 'center' ? 'center' : ov.align === 'right' ? 'flex-end' : ov.align === 'left' ? 'flex-start' : null;
+  return { bg, ink, numColor, kickerColor, fill, track, bleed, n, prog, kickerText, align };
 }
 
 function NumStack({ ek, numColor, ink, isDay, num, teaser, dSize, nSize, tSize, gap, lead = 0, align = 'flex-start' }) {
+  const ta = align === 'center' ? 'center' : align === 'flex-end' ? 'right' : 'left';
   return (
     <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: align }}>
       <div style={{ fontWeight: 700, fontSize: dSize, lineHeight: .9, color: numColor, letterSpacing: '.03em' }}>D-</div>
       <div style={{ fontWeight: 700, fontSize: nSize, lineHeight: .92, color: numColor, marginTop: lead }}>{isDay ? 'DAY' : String(num)}</div>
-      <Editable ekey={ek + '-teaser'} flabel="티저" tag="div" style={{ fontSize: tSize, fontWeight: 300, marginTop: gap != null ? gap : Math.round(tSize * 0.9), color: ink, textAlign: align === 'center' ? 'center' : 'left' }}>{teaser}</Editable>
+      <Editable ekey={ek + '-teaser'} flabel="티저" tag="div" style={{ fontSize: tSize, fontWeight: 300, marginTop: gap != null ? gap : Math.round(tSize * 0.9), color: ink, textAlign: ta }}>{teaser}</Editable>
     </div>
   );
 }
@@ -69,9 +72,9 @@ function DDaySquare({ c }) {
       <div style={{ position: 'absolute', top: 70, left: 72, right: 72, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Kicker c={e.kickerColor}>{e.kickerText}</Kicker>{!c.isDay && <Logo size={100} />}
       </div>
-      {c.isDay && <Logo size={300} style={{ position: 'absolute', right: 80, top: 350 }} />}
+      {c.isDay && <Logo size={250} style={{ position: 'absolute', right: 64, top: 300 }} />} {/* "DAY" 글자와 간격 확보 */}
       <div style={{ position: 'absolute', left: 72, right: 72, top: 220 + (tw.topAdj || 0), bottom: 240 + (tw.botAdj || 0), display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={120 * ns} nSize={272 * ns} tSize={44} gap={40 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} />
+        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={120 * ns} nSize={272 * ns} tSize={44} gap={40 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} align={e.align || 'flex-start'} />
       </div>
       <Prog prog={e.prog} fill={e.fill} track={e.track} bottom={186} />
       <FooterBand bg="transparent" color={e.ink} brandFoot />
@@ -91,7 +94,7 @@ function DDayTall({ c }) {
         <Kicker c={e.kickerColor} style={{ textAlign: 'center' }}>{e.kickerText}</Kicker>
       </div>
       <div style={{ position: 'absolute', left: 80, right: 80, top: 360 + (tw.topAdj || 0), bottom: 300 + (tw.botAdj || 0), display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={150 * ns} nSize={336 * ns} tSize={50} gap={45 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} align="center" />
+        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={150 * ns} nSize={336 * ns} tSize={50} gap={45 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} align={e.align || 'center'} />
       </div>
       <Prog prog={e.prog} fill={e.fill} track={e.track} bottom={214} />
       <FooterBand bg="transparent" color={e.ink} brandFoot h={160} />
@@ -110,7 +113,7 @@ function DDayWide({ c }) {
       {!c.isDay && <Logo size={120} style={{ position: 'absolute', top: 58, right: 96 }} />}
       {c.isDay && <Logo size={360} style={{ position: 'absolute', right: 130, top: 300 }} />}
       <div style={{ position: 'absolute', left: 84, top: 150 + (tw.topAdj || 0), bottom: 210 + (tw.botAdj || 0), width: 880, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={156 * ns} nSize={(c.isDay ? 320 : 372) * ns} tSize={54} gap={49 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} />
+        <NumStack ek={c.ek} numColor={e.numColor} ink={e.ink} isDay={c.isDay} num={e.n} teaser={c.teaser} dSize={156 * ns} nSize={(c.isDay ? 320 : 372) * ns} tSize={54} gap={49 + (tw.gapAdj || 0)} lead={tw.lineAdj || 0} align={e.align || 'flex-start'} />
       </div>
       <Prog prog={e.prog} fill={e.fill} track={e.track} bottom={154} />
       <FooterBand bg="transparent" color={e.ink} brandFoot h={130} />

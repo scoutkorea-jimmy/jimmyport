@@ -16,6 +16,7 @@ function NewsChip({ label, color, top, left, right, bottom }) {
 
 /* A · 풀블리드 이미지 + 하단 그라데이션 헤드라인 */
 function NewsFull({ ek }) {
+  const align = useCCStore().getProp(ek, 'align', 'left');
   return (
     <Card bg={PAL.midnight} color="#fff" pad={0}>
       <Placeholder tone="dark" label="소식 이미지 (전체)" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0 }} />
@@ -24,7 +25,7 @@ function NewsFull({ ek }) {
         <NewsChip label="공지" color={NP.pink} />
         <Logo size={104} />
       </div>
-      <div style={{ position: 'absolute', left: NS, right: NS, bottom: NS }}>
+      <div style={{ position: 'absolute', left: NS, right: NS, bottom: NS, textAlign: align }}>
         <Editable ekey={ek + '-k'} tag="div" className="hi" style={{ fontWeight: 500, fontSize: 28, letterSpacing: '.1em', color: NP.river, textTransform: 'uppercase' }}>NEWS · 2026. 6. 12</Editable>
         <Editable ekey={ek + '-h'} tag="div" className="hi" style={{ marginTop: 16, fontWeight: 700, fontSize: 84, lineHeight: 1.12, color: '#fff', textWrap: 'balance' }}>참가 신청, 이렇게 진행돼요</Editable>
         <Editable ekey={ek + '-s'} tag="div" style={{ marginTop: 18, fontSize: 34, fontWeight: 300, lineHeight: 1.5, color: 'rgba(255,255,255,.9)' }}>자세한 일정과 방법은 공식 채널에서 확인하세요.</Editable>
@@ -35,6 +36,7 @@ function NewsFull({ ek }) {
 
 /* B · 이미지(상) + 컬러 밴드(하) 헤드라인 */
 function NewsBand({ ek }) {
+  const align = useCCStore().getProp(ek, 'align', 'left');
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 760, overflow: 'hidden' }}>
@@ -42,7 +44,7 @@ function NewsBand({ ek }) {
         <NewsChip label="안내" color={NP.ocean} top={NS} left={NS} />
         <Logo size={104} style={{ position: 'absolute', top: NS, right: NS }} />
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 590, background: NP.purple, color: '#fff', padding: '54px 100px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 590, background: NP.purple, color: '#fff', padding: '54px 100px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: align }}>
         <Editable ekey={ek + '-k'} tag="div" className="hi" style={{ fontWeight: 500, fontSize: 28, letterSpacing: '.1em', color: NP.leaf, textTransform: 'uppercase' }}>NOTICE · 새 소식</Editable>
         <Editable ekey={ek + '-h'} tag="div" className="hi" style={{ marginTop: 14, fontWeight: 700, fontSize: 80, lineHeight: 1.12, color: '#fff', textWrap: 'balance' }}>K-POP 콘서트 라인업 공개</Editable>
         <Editable ekey={ek + '-s'} tag="div" style={{ marginTop: 16, fontSize: 33, fontWeight: 300, lineHeight: 1.5, color: 'rgba(255,255,255,.88)' }}>잼버리의 밤을 밝힐 무대, 곧 만나요.</Editable>

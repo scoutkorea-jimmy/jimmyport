@@ -130,9 +130,9 @@ function T_BigNumImage({ ek }) {
       <div style={{ position: 'absolute', inset: 0, background: P.red, opacity: .72, pointerEvents: 'none' }} />
       <CategoryChip label="규모" color={'#fff'} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <Kicker c="#fff">IMAGE · 빅넘버형</Kicker>
-        <Editable ekey={ek + '-n'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 300, lineHeight: .82, color: '#fff' }}>3,000</Editable>
-        <Editable ekey={ek + '-s'} tag="div" style={{ fontSize: 46, fontWeight: 300, color: '#fff', marginTop: 8 }}>20개국이 함께하는 글로벌 캠프</Editable>
+        <Kicker c="#fff" style={{ marginBottom: 30 }}>IMAGE · 빅넘버형</Kicker>
+        <Editable ekey={ek + '-n'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 230, lineHeight: 1, color: '#fff', letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>3,000</Editable>
+        <Editable ekey={ek + '-s'} tag="div" style={{ fontSize: 46, fontWeight: 300, color: '#fff', marginTop: 26 }}>20개국이 함께하는 글로벌 캠프</Editable>
       </div>
     </Card>
   );
@@ -219,6 +219,28 @@ function T_VisualTimeline({ ek }) {
   );
 }
 
+/* 13 엔딩형 — 카드뉴스 마지막 장 (아웃트로) */
+function T_Outro({ ek }) {
+  return (
+    <Card bg={PAL.purple} color="#fff" pad={0}>
+      <ShapeScatter items={[
+        { n: '03', outline: true, fill: 'rgba(255,255,255,.1)', h: 560, top: -140, right: -150 },
+        { n: '06', fill: P.leaf, h: 120, top: 170, left: 110 },
+        { n: '02', fill: P.orange, h: 64, top: 320, left: 180 },
+        { n: '05', fill: P.river, h: 96, bottom: 320, right: 140 },
+        { n: '04', fill: P.pink, h: 52, bottom: 250, right: 260 }
+      ]} />
+      <Logo size={150} style={{ position: 'absolute', top: S, left: '50%', transform: 'translateX(-50%)' }} />
+      <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+        <Editable ekey={ek + '-l1'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 110, lineHeight: 1.08, color: '#fff' }}>재밌겠지?</Editable>
+        <Editable ekey={ek + '-l2'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 110, lineHeight: 1.08, color: P.leaf }}>기대되지?</Editable>
+        <Editable ekey={ek + '-l3'} tag="div" style={{ marginTop: 34, fontSize: 40, fontWeight: 300, color: 'rgba(255,255,255,.92)' }}>궁금한 건 언제든 물어봐!</Editable>
+      </div>
+      <FooterBand bg={PAL.white} color={PAL.midnight} brandFoot />
+    </Card>
+  );
+}
+
 window.SEC_TEMPLATES = [
   { id: 'intro', label: '01 · 소개형 (텍스트)', node: <T_Intro ek="tpl-intro" /> },
   { id: 'faq', label: '02 · FAQ형 (텍스트)', node: <T_FAQ ek="tpl-faq" /> },
@@ -231,6 +253,7 @@ window.SEC_TEMPLATES = [
   { id: 'poster', label: '09 · 그래픽 포스터형', node: <T_GraphicPoster ek="tpl-poster" /> },
   { id: 'imggrid', label: '10 · 이미지 그리드형', node: <T_ImageGrid ek="tpl-imggrid" /> },
   { id: 'icongrid', label: '11 · 아이콘 그리드형', node: <T_IconGrid ek="tpl-icongrid" /> },
-  { id: 'vtimeline', label: '12 · 비주얼 타임라인형', node: <T_VisualTimeline ek="tpl-vtimeline" /> }
+  { id: 'vtimeline', label: '12 · 비주얼 타임라인형', node: <T_VisualTimeline ek="tpl-vtimeline" /> },
+  { id: 'outro', label: '13 · 엔딩형', node: <T_Outro ek="tpl-outro" /> }
 ];
 })();

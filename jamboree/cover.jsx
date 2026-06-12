@@ -11,6 +11,7 @@ function CoverThemed(props) {
   const BG = ov.bg || bg;
   const INKC = ov.bg ? store.idealInk(ov.bg) : ink;   // 배경색 바꾸면 본문 잉크 자동 대비
   const catColor = cat && (ov.catColor || cat.color);
+  const align = ov.align || 'left';   // 제목·부제 블록 정렬 오버라이드
   const ek = 'cover-' + id;
   return (
     <Card bg={BG} color={INKC} pad={0}>
@@ -22,7 +23,7 @@ function CoverThemed(props) {
         <Editable ekey={ek + '-eyebrow'} flabel="에이브로우" tag="div" className="hi" style={{ fontWeight: 500, fontSize: 27, letterSpacing: '.14em', color: eyebrowColor, textTransform: 'uppercase' }}>{eyebrow}</Editable>
         <Logo size={116} />
       </div>
-      <div style={{ position: 'absolute', left: 100, right: 100, bottom: 214 }}>
+      <div style={{ position: 'absolute', left: 100, right: 100, bottom: 214, textAlign: align }}>
         <div className="hi" style={{ fontWeight: 700, fontSize: 130, lineHeight: .96, color: INKC }}>
           <Editable ekey={ek + '-t1'} flabel="제목 1행" tag="div">{t1}</Editable>
           {t2 != null && <Editable ekey={ek + '-t2'} flabel="제목 2행" tag="div" style={{ color: t2Color || INKC }}>{t2}</Editable>}
@@ -70,10 +71,11 @@ window.SEC_COVER = [
       t1="영외에서" t2="만나는 강원"
       sub="지역 탐방 · 생태교육 · 문화체험" subColor={W92} stitchFill={WST}
       scatter={[
-        { n: '02', fill: PAL.leaf, h: 64, bottom: 232, left: 120 },
-        { n: '05', fill: PAL.river, h: 88, bottom: 226, left: 260, rot: 90 },
-        { n: '04', fill: PAL.orange, h: 56, bottom: 250, left: 430 },
-        { n: '06', fill: PAL.pink, h: 110, bottom: 210, left: 560 },
+        /* 좌상단 클러스터 — 부제 텍스트 라인 침범 금지 (title top ≈546 위에서 끝남) */
+        { n: '02', fill: PAL.leaf, h: 64, top: 160, left: 70 },
+        { n: '05', fill: PAL.river, h: 88, top: 256, left: 132, rot: 90 },
+        { n: '04', fill: PAL.orange, h: 56, top: 384, left: 72 },
+        { n: '06', fill: PAL.pink, h: 100, top: 420, left: 150 },
         { n: '03', outline: true, fill: 'rgba(255,255,255,.12)', h: 460, top: -120, right: -120 }
       ]} footEng="OUT-CAMP" />
   },
@@ -85,7 +87,7 @@ window.SEC_COVER = [
       scatter={[
         { n: '04', fill: PAL.purple, h: 96, top: 130, left: 80 },
         { n: '02', fill: PAL.red, h: 60, top: 150, right: 150 },
-        { n: '05', fill: PAL.forest, h: 80, bottom: 250, left: 120 },
+        { n: '05', fill: PAL.forest, h: 80, bottom: 420, right: 330 }, /* 부제 라인 침범 방지: 우측 상단으로 */
         { n: '06', fill: PAL.midnight, h: 110, bottom: 240, right: 130 }
       ]} footEng="MEALS" />
   },

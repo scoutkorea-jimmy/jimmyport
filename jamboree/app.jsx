@@ -1,7 +1,8 @@
-/* 한국잼버리 카드뉴스 제작기 — 제작기 셸 (Phase 2)
- * 좌: 패밀리/베리에이션 · 중앙: 라이브 프리뷰(더블클릭 인라인편집)
- * 우: ① 이 카드 편집(자동 텍스트 폼 + 색/ D숫자 + 사진 업로드) ② 공통 브랜드 + 엠블럼
- * 상단: PNG · 덱 일괄 PNG · 서버 저장/불러오기(KV) */
+/* 한국잼버리 카드뉴스 제작기 — 제작기 셸 (Phase 3)
+ * 좌: 패밀리/베리에이션 + 카드뉴스 구성(덱: 표지→본문→엔딩, ZIP 일괄)
+ * 중앙: 라이브 프리뷰(더블클릭 인라인편집)
+ * 우: ① 이 카드 편집(D숫자/색/정렬/텍스트/사진) ② 트윅(폰트·글자색·D여백) ③ 브랜드 ④ 엠블럼
+ * 상단: PNG · ZIP(덱) · 서버 저장/불러오기(KV — 덱·트윅 포함) */
 
 (function () { // module scope - Babel standalone runs scripts in shared global scope
 const { useState, useRef, useEffect, useLayoutEffect, useCallback, useReducer } = React;
@@ -15,6 +16,7 @@ const FAMILIES = [
   { key: 'ddayTall', label: 'D-스토리',  sec: () => window.SEC_DDAY_TALL,  w: 1080, h: 1920 },
   { key: 'ddayWide', label: 'D-가로',    sec: () => window.SEC_DDAY_WIDE,  w: 1480, h: 1047 },
 ];
+const famOf = (key) => FAMILIES.find((f) => f.key === key);
 const DD_FMT = { dday: 'feed', ddayTall: 'story', ddayWide: 'wide' };
 
 const BRAND_FIELDS = [
@@ -32,16 +34,21 @@ const DEFAULT_BRAND = {
 const TOKEN_KEY = 'jamboree:token';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
+/* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원) */
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1 };
+const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
+const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
+const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
+
 const inputStyle = { width: '100%', boxSizing: 'border-box', border: '1px solid rgba(0,0,0,.14)', borderRadius: 8, padding: '8px 10px', fontSize: 13.5, fontFamily: 'inherit', color: '#2b2630' };
 const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 600, color: '#5a5364', marginBottom: 4 };
 const secLabel = { fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#9a93a3', textTransform: 'uppercase', margin: '4px 0 8px' };
 
-/* ── 색 스와치 ── */
-function Swatches({ value, onPick, clearable }) {
+function Swatches({ value, onPick, colors = SWATCHES, clearable }) {
   const v = (value || '').toLowerCase();
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
-      {SWATCHES.map((c) => (
+      {colors.map((c) => (
         <button key={c} type="button" title={c} onClick={() => onPick(c)}
           style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: 'pointer', padding: 0,
             border: v === c.toLowerCase() ? '3px solid #2b2630' : '1px solid rgba(0,0,0,.18)' }} />
@@ -54,7 +61,34 @@ function Swatches({ value, onPick, clearable }) {
   );
 }
 
-/* 업로드 이미지 다운스케일 → dataURL (사진=JPEG, 엠블럼=PNG 투명 유지) */
+/* 세그먼트 버튼 (정렬 등) */
+function Seg({ value, options, onPick }) {
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {options.map(([k, l]) => (
+        <button key={k} type="button" onClick={() => onPick(k)} style={{
+          flex: 1, padding: '7px 4px', borderRadius: 8, border: '1px solid',
+          borderColor: value === k ? P.purple : 'rgba(0,0,0,.14)',
+          background: value === k ? P.purple : '#fff', color: value === k ? '#fff' : '#5a5364',
+          fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+        }}>{l}</button>
+      ))}
+    </div>
+  );
+}
+
+function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
+  return (
+    <label style={{ display: 'block', marginBottom: 10 }}>
+      <span style={{ ...fieldLabel, display: 'flex', justifyContent: 'space-between' }}>
+        <span>{label}</span><span style={{ color: '#9a93a3' }}>{value}{unit}</span>
+      </span>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))} style={{ width: '100%', accentColor: P.purple }} />
+    </label>
+  );
+}
+
 function imageFileToDataUrl(file, opts) {
   const { maxDim = 1600, mime = 'image/jpeg', quality = 0.85 } = opts || {};
   return new Promise((resolve, reject) => {
@@ -74,17 +108,13 @@ function imageFileToDataUrl(file, opts) {
   });
 }
 
-/* 사진/엠블럼 한 줄 — 썸네일 + 업로드/변경/삭제 */
 function PhotoRow({ slot, label, png }) {
   const store = useCCStore();
   const inputRef = useRef(null);
   const cur = store.getImage(slot);
   const onFile = async (e) => {
     const f = e.target.files && e.target.files[0];
-    if (f) {
-      try { store.setImage(slot, await imageFileToDataUrl(f, png ? { mime: 'image/png', maxDim: 1024 } : {})); }
-      catch (_) {}
-    }
+    if (f) { try { store.setImage(slot, await imageFileToDataUrl(f, png ? { mime: 'image/png', maxDim: 1024 } : {})); } catch (_) {} }
     e.target.value = '';
   };
   return (
@@ -104,7 +134,6 @@ function PhotoRow({ slot, label, png }) {
   );
 }
 
-/* 자동 텍스트 폼 한 줄 — 스토어 구독(인라인 편집과 양방향 동기화) */
 function FieldInput({ field }) {
   const store = useCCStore();
   const v = store.getText(field.ekey);
@@ -118,14 +147,14 @@ function FieldInput({ field }) {
   );
 }
 
-function Toolbar({ onPng, onDeck, onSave, onLoad, status, busy, deckCount }) {
+function Toolbar({ onPng, onZip, onSave, onLoad, status, busy, zipCount }) {
   const btn = (extra) => ({ border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1, fontFamily: 'inherit', ...extra });
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
       <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', minWidth: 96, textAlign: 'right' }}>{status}</span>
       <button disabled={busy} onClick={onLoad} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>불러오기</button>
       <button disabled={busy} onClick={onSave} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>서버 저장</button>
-      <button disabled={busy} onClick={onDeck} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>덱 PNG ({deckCount})</button>
+      <button disabled={busy} onClick={onZip} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>카드뉴스 ZIP ({zipCount})</button>
       <button disabled={busy} onClick={onPng} style={btn({ background: P.leaf, color: P.midnight })}>PNG 다운로드</button>
     </div>
   );
@@ -141,21 +170,43 @@ function App() {
   const [remount, setRemount] = useState(0);
   const [box, setBox] = useState({ w: 0, h: 0 });
 
-  const family = FAMILIES.find((f) => f.key === familyKey);
+  const family = famOf(familyKey);
   const cards = family.sec() || [];
   const card = cards.find((c) => c.id === variationId) || cards[0];
   const cardKey = familyKey + '|' + (card ? card.id : '');
 
-  /* ── 카드별 폼 자동등록 (Editable/Placeholder가 자기 자신을 등록) ── */
+  /* ── 트윅 (스토어 cc-prop:_tweaks — 서버 저장에 자동 포함) ── */
+  const tweaks = { ...TWEAK_DEFAULTS, ...store.getProps('_tweaks') };
+  const setTweak = (k, v) => store.setProp('_tweaks', k, v === TWEAK_DEFAULTS[k] ? '' : v);
+  useEffect(() => {
+    const r = document.documentElement.style;
+    r.setProperty('--cc-ink', tweaks.ink);
+    r.setProperty('--cc-main', (FONT_MAIN[tweaks.fontMain] || FONT_MAIN.cafe24).v);
+    r.setProperty('--cc-hi', (FONT_HI[tweaks.fontHi] || FONT_HI.aggravo).v);
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi]);
+
+  /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
+  const deck = store.getProp('_deck', 'cards', []);
+  const setDeck = (arr) => store.setProp('_deck', 'cards', arr.length ? arr : '');
+  const deckAdd = () => { if (card) setDeck([...deck, { f: familyKey, id: card.id }]); };
+  const deckMove = (i, d) => { const a = deck.slice(); const j = i + d; if (j < 0 || j >= a.length) return; const t = a[i]; a[i] = a[j]; a[j] = t; setDeck(a); };
+  const deckRemove = (i) => { const a = deck.slice(); a.splice(i, 1); setDeck(a); };
+  const deckResolve = (it) => {
+    const f = famOf(it.f); if (!f) return null;
+    const c = (f.sec() || []).find((x) => x.id === it.id);
+    return c ? { fam: f, card: c } : null;
+  };
+
+  /* ── 카드별 폼 자동등록 ── */
   const reg = useRef({ field: new Map(), photo: new Map() });
   const [, bump] = useReducer((x) => x + 1, 0);
   const registerField = useCallback((ekey, label, def) => {
-    const k = cardKey + ' ' + ekey;
+    const k = cardKey + ' ' + ekey;
     if (reg.current.field.has(k)) return;
     reg.current.field.set(k, { cardKey, ekey, label, def }); bump();
   }, [cardKey]);
   const registerPhoto = useCallback((slot, label) => {
-    const k = cardKey + ' ' + slot;
+    const k = cardKey + ' ' + slot;
     if (reg.current.photo.has(k)) return;
     reg.current.photo.set(k, { cardKey, slot, label }); bump();
   }, [cardKey]);
@@ -164,6 +215,8 @@ function App() {
 
   const coverScope = familyKey === 'cover' && card ? 'cover-' + card.id : null;
   const ddScope = DD_FMT[familyKey] && card ? DD_FMT[familyKey] + '-' + card.id : null;
+  const newsScope = familyKey === 'news' && card ? 'news-' + card.id : null;
+  const alignScope = coverScope || ddScope || newsScope;
   const ddIsDay = !!ddScope && card && card.id === 'dday';
   const ddDefaultN = ddScope && card && !ddIsDay ? card.id.replace(/^d/, '') : '';
 
@@ -229,48 +282,58 @@ function App() {
     } catch (e) { console.error(e); flash('PNG 실패'); } finally { setBusy(false); }
   }, [family, card]);
 
-  /* ── 덱 일괄 export: 오프스크린 네이티브 렌더 → PNG 순차 다운로드 ── */
-  const deckRef = useRef(null);
-  const ensureDeck = () => {
-    if (deckRef.current) return deckRef.current;
+  /* ── 카드뉴스 ZIP: 덱 순서대로 오프스크린 네이티브 렌더 → JSZip ── */
+  const offRef = useRef(null);
+  const ensureOff = () => {
+    if (offRef.current) return offRef.current;
     const host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:-99999px;top:0;z-index:-1;pointer-events:none;';
     document.body.appendChild(host);
-    deckRef.current = { host, root: ReactDOM.createRoot(host) };
-    return deckRef.current;
+    offRef.current = { host, root: ReactDOM.createRoot(host) };
+    return offRef.current;
   };
-  const onDeck = useCallback(async () => {
-    if (!window.htmlToImage || !cards.length) { flash('준비 안 됨'); return; }
+  const onZip = useCallback(async () => {
+    if (!window.htmlToImage || !window.JSZip) { flash('준비 안 됨'); return; }
+    if (!deck.length) { flash('덱이 비어 있어요 — 카드를 담아주세요'); return; }
     setBusy(true);
     try {
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      const { host, root } = ensureDeck();
-      for (let i = 0; i < cards.length; i++) {
-        const c = cards[i];
-        flash(`덱 ${i + 1}/${cards.length}`);
+      const zip = new window.JSZip();
+      const { host, root } = ensureOff();
+      for (let i = 0; i < deck.length; i++) {
+        const r = deckResolve(deck[i]); if (!r) continue;
+        flash(`ZIP ${i + 1}/${deck.length}`);
         await new Promise((res) => {
           root.render(
-            <div style={{ position: 'relative', width: family.w, height: family.h, background: '#fff', overflow: 'hidden' }}>
-              <window.GContentCtx.Provider value={brand}>{c.node}</window.GContentCtx.Provider>
-            </div>
+            <window.DDayTweakCtx.Provider value={tweaks}>
+              <window.GContentCtx.Provider value={brand}>
+                <div style={{ position: 'relative', width: r.fam.w, height: r.fam.h, background: '#fff', overflow: 'hidden' }}>{r.card.node}</div>
+              </window.GContentCtx.Provider>
+            </window.DDayTweakCtx.Provider>
           );
           requestAnimationFrame(() => requestAnimationFrame(res));
         });
         const target = host.firstElementChild;
-        const dataUrl = await window.htmlToImage.toPng(target, { width: family.w, height: family.h, pixelRatio: 1, cacheBust: true, backgroundColor: '#ffffff' });
-        const a = document.createElement('a'); a.download = `jamboree_${family.key}_${c.id}.png`; a.href = dataUrl; a.click();
-        await new Promise((r) => setTimeout(r, 350));
+        const dataUrl = await window.htmlToImage.toPng(target, { width: r.fam.w, height: r.fam.h, pixelRatio: 1, cacheBust: true, backgroundColor: '#ffffff' });
+        zip.file(`${String(i + 1).padStart(2, '0')}_${deck[i].f}_${deck[i].id}.png`, dataUrl.split(',')[1], { base64: true });
       }
       root.render(null);
-      flash('덱 완료 ✓');
-    } catch (e) { console.error(e); flash('덱 실패'); } finally { setBusy(false); }
-  }, [cards, family, brand]);
+      flash('압축 중…');
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const a = document.createElement('a');
+      a.download = 'jamboree_cardnews.zip';
+      a.href = URL.createObjectURL(blob); a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      flash('ZIP 완료 ✓');
+    } catch (e) { console.error(e); flash('ZIP 실패'); } finally { setBusy(false); }
+  }, [deck, brand, tweaks]);
 
   const sideBtn = (active) => ({
     display: 'block', width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer',
     background: active ? P.purple : 'transparent', color: active ? '#fff' : '#2b2630',
     padding: '9px 12px', borderRadius: 8, fontSize: 13.5, fontWeight: active ? 700 : 500, fontFamily: 'inherit', marginBottom: 2, lineHeight: 1.3,
   });
+  const tinyBtn = { border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: '#8b8492', padding: '2px 4px', fontFamily: 'inherit' };
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: '#f3eef0', fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", color: '#2b2630' }}>
@@ -282,49 +345,74 @@ function App() {
             <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
           </div>
         </div>
-        <Toolbar onPng={onPng} onDeck={onDeck} onSave={onSave} onLoad={onLoad} status={status} busy={busy} deckCount={cards.length} />
+        <Toolbar onPng={onPng} onZip={onZip} onSave={onSave} onLoad={onLoad} status={status} busy={busy} zipCount={deck.length} />
       </header>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {/* 좌: 패밀리 + 베리에이션 */}
-        <aside style={{ width: 248, flex: '0 0 auto', background: '#fff', borderRight: '1px solid rgba(0,0,0,.08)', overflowY: 'auto', padding: 14 }}>
-          <div style={secLabel}>템플릿 종류</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-            {FAMILIES.map((f) => (
-              <button key={f.key} onClick={() => setFamilyKey(f.key)} style={{
-                border: '1px solid', borderColor: f.key === familyKey ? P.purple : 'rgba(0,0,0,.12)',
-                background: f.key === familyKey ? P.purple : '#fff', color: f.key === familyKey ? '#fff' : '#2b2630',
-                borderRadius: 999, padding: '6px 13px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              }}>{f.label}</button>
+        {/* 좌: 패밀리 + 베리에이션 + 덱 */}
+        <aside style={{ width: 264, flex: '0 0 auto', background: '#fff', borderRight: '1px solid rgba(0,0,0,.08)', overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column' }}>
+          <div>
+            <div style={secLabel}>템플릿 종류</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {FAMILIES.map((f) => (
+                <button key={f.key} onClick={() => setFamilyKey(f.key)} style={{
+                  border: '1px solid', borderColor: f.key === familyKey ? P.purple : 'rgba(0,0,0,.12)',
+                  background: f.key === familyKey ? P.purple : '#fff', color: f.key === familyKey ? '#fff' : '#2b2630',
+                  borderRadius: 999, padding: '6px 13px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}>{f.label}</button>
+              ))}
+            </div>
+            <div style={secLabel}>베리에이션 · {family.w}×{family.h}</div>
+            {cards.map((c) => (
+              <button key={c.id} onClick={() => setVariationId(c.id)} style={sideBtn(card && c.id === card.id)}>{c.label}</button>
             ))}
           </div>
-          <div style={secLabel}>베리에이션 · {family.w}×{family.h}</div>
-          {cards.map((c) => (
-            <button key={c.id} onClick={() => setVariationId(c.id)} style={sideBtn(card && c.id === card.id)}>{c.label}</button>
-          ))}
+
+          {/* 카드뉴스 한 편 구성 (덱) */}
+          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,.08)' }}>
+            <div style={secLabel}>카드뉴스 구성 · {deck.length}장</div>
+            <p style={{ fontSize: 11.5, color: '#8b8492', margin: '0 0 8px', lineHeight: 1.5 }}>표지 → 본문 → 엔딩 순서로 담고, 상단 "카드뉴스 ZIP"으로 한 번에 내려받으세요.</p>
+            <button onClick={deckAdd} style={{ width: '100%', border: '1.5px dashed ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>+ 현재 카드 담기</button>
+            {deck.map((it, i) => {
+              const r = deckResolve(it);
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 6px', borderRadius: 8, background: '#f7f4fa', marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: P.purple, width: 18, textAlign: 'right', flex: '0 0 auto' }}>{i + 1}</span>
+                  <button onClick={() => { setFamilyKey(it.f); setVariationId(it.id); }} title="이 카드 편집" style={{ flex: 1, minWidth: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12, color: '#2b2630', fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 0 }}>
+                    {r ? (famOf(it.f).label + ' · ' + r.card.label) : '(삭제된 카드)'}
+                  </button>
+                  <button onClick={() => deckMove(i, -1)} style={tinyBtn} title="위로">↑</button>
+                  <button onClick={() => deckMove(i, 1)} style={tinyBtn} title="아래로">↓</button>
+                  <button onClick={() => deckRemove(i)} style={{ ...tinyBtn, color: '#b04a4a' }} title="빼기">✕</button>
+                </div>
+              );
+            })}
+          </div>
         </aside>
 
         {/* 중앙: 프리뷰 */}
         <main ref={stageRef} style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 28 }}>
           <window.CCRegisterFieldCtx.Provider value={registerField}>
             <window.CCRegisterPhotoCtx.Provider value={registerPhoto}>
-              <window.GContentCtx.Provider value={brand}>
-                <div key={remount + ':' + cardKey} style={{ width: family.w * scale, height: family.h * scale, position: 'relative', flex: '0 0 auto' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: family.w * scale, height: family.h * scale }}>
-                    <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
-                      <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
-                        {card ? card.node : null}
+              <window.DDayTweakCtx.Provider value={tweaks}>
+                <window.GContentCtx.Provider value={brand}>
+                  <div key={remount + ':' + cardKey} style={{ width: family.w * scale, height: family.h * scale, position: 'relative', flex: '0 0 auto' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: family.w * scale, height: family.h * scale }}>
+                      <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
+                        <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
+                          {card ? card.node : null}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </window.GContentCtx.Provider>
+                </window.GContentCtx.Provider>
+              </window.DDayTweakCtx.Provider>
             </window.CCRegisterPhotoCtx.Provider>
           </window.CCRegisterFieldCtx.Provider>
           <div style={pillHint}>텍스트 <b>더블클릭</b> 또는 오른쪽 패널에서 편집</div>
         </main>
 
-        {/* 우: 카드 편집 + 브랜드 */}
+        {/* 우: 카드 편집 + 트윅 + 브랜드 */}
         <aside style={{ width: 300, flex: '0 0 auto', background: '#fff', borderLeft: '1px solid rgba(0,0,0,.08)', overflowY: 'auto', padding: 18 }}>
           <div style={secLabel}>이 카드 편집 · {card ? card.label : ''}</div>
 
@@ -332,7 +420,7 @@ function App() {
             <div style={{ marginBottom: 14 }}>
               {ddScope && !ddIsDay && (
                 <label style={{ display: 'block', marginBottom: 10 }}>
-                  <span style={fieldLabel}>D-숫자 (진행바 자동 반영)</span>
+                  <span style={fieldLabel}>D-숫자 (진행바·문구 자동 반영)</span>
                   <input type="number" min="0" max="999" value={store.getProp(ddScope, 'n', '')} placeholder={ddDefaultN}
                     onChange={(e) => store.setProp(ddScope, 'n', e.target.value)} style={inputStyle} />
                 </label>
@@ -345,6 +433,14 @@ function App() {
                   <Swatches value={store.getProp(coverScope, 'catColor', '')} onPick={(c) => store.setProp(coverScope, 'catColor', c)} clearable />
                 </div>
               )}
+            </div>
+          )}
+
+          {alignScope && (
+            <div style={{ marginBottom: 14 }}>
+              <span style={fieldLabel}>텍스트 정렬</span>
+              <Seg value={store.getProp(alignScope, 'align', '')} onPick={(v) => store.setProp(alignScope, 'align', v)}
+                options={[['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽'], ['', '기본']]} />
             </div>
           )}
 
@@ -361,11 +457,36 @@ function App() {
               {photos.map((p) => <PhotoRow key={p.slot} slot={p.slot} label={p.label} />)}
             </div>
           )}
-          {fields.length === 0 && photos.length === 0 && !coverScope && !ddScope && (
-            <p style={{ fontSize: 12.5, color: '#8b8492', lineHeight: 1.5, margin: '0 0 14px' }}>이 카드에는 편집 항목이 없습니다.</p>
-          )}
 
-          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid rgba(0,0,0,.08)' }}>
+          {/* 트윅 — 전 카드 공통 */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,.08)' }}>
+            <div style={secLabel}>트윅 (전체 카드 공통)</div>
+            <span style={fieldLabel}>본문 글자색</span>
+            <div style={{ marginBottom: 10 }}><Swatches value={tweaks.ink} colors={INK_SWATCHES} onPick={(c) => setTweak('ink', c || TWEAK_DEFAULTS.ink)} /></div>
+            <label style={{ display: 'block', marginBottom: 10 }}>
+              <span style={fieldLabel}>본문 폰트</span>
+              <select value={tweaks.fontMain} onChange={(e) => setTweak('fontMain', e.target.value)} style={inputStyle}>
+                {Object.entries(FONT_MAIN).map(([k, f]) => <option key={k} value={k}>{f.l}</option>)}
+              </select>
+            </label>
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <span style={fieldLabel}>하이라이트(제목) 폰트</span>
+              <select value={tweaks.fontHi} onChange={(e) => setTweak('fontHi', e.target.value)} style={inputStyle}>
+                {Object.entries(FONT_HI).map(([k, f]) => <option key={k} value={k}>{f.l}</option>)}
+              </select>
+            </label>
+            <details>
+              <summary style={{ ...fieldLabel, cursor: 'pointer', marginBottom: 8 }}>D-day 여백·크기 조정</summary>
+              <Slider label="상단 여백" value={tweaks.topAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('topAdj', v)} />
+              <Slider label="하단 여백" value={tweaks.botAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('botAdj', v)} />
+              <Slider label="숫자↔티저 간격" value={tweaks.gapAdj} min={-40} max={160} unit="px" onChange={(v) => setTweak('gapAdj', v)} />
+              <Slider label="줄 간격 (D-↔숫자)" value={tweaks.lineAdj} min={-60} max={120} unit="px" onChange={(v) => setTweak('lineAdj', v)} />
+              <Slider label="숫자 크기" value={tweaks.numScale} min={0.7} max={1.2} step={0.02} onChange={(v) => setTweak('numScale', v)} />
+            </details>
+          </div>
+
+          {/* 브랜드 + 엠블럼 */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,.08)' }}>
             <div style={secLabel}>공통 브랜드 정보</div>
             <p style={{ fontSize: 12, color: '#8b8492', margin: '0 0 12px', lineHeight: 1.5 }}>표지 푸터·하단 띠 등 모든 카드에 반영됩니다.</p>
             {BRAND_FIELDS.map((f) => (
@@ -375,8 +496,7 @@ function App() {
               </label>
             ))}
             <button onClick={() => setBrand(DEFAULT_BRAND)} style={{ marginTop: 2, border: '1px solid rgba(0,0,0,.14)', background: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: '#5a5364' }}>기본값으로</button>
-
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 16 }}>
               <div style={secLabel}>엠블럼</div>
               <PhotoRow slot="logo" label="제16회 한국잼버리 엠블럼 (PNG 권장)" png />
             </div>
