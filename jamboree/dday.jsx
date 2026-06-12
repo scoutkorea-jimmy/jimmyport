@@ -1,6 +1,7 @@
 /* D-## 카운트다운 — WOSM 팔레트 풀활용 · 3비율 · 여백 Tweak
  * Phase 2: D숫자(구조 필드, 진행바 자동 재계산) + 티저(인라인/폼) + 배경색 오버라이드(cc-prop:<ek>) */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 /* 도형 스캐터 — 우측 컬러 클러스터 + 코너 블리더 (숫자/카피 영역 회피) */
 function ddScatter(i, isDay, cols, bleed) {
   if (isDay) return [
@@ -145,3 +146,4 @@ function buildDD(Comp, fmt) {
 window.SEC_DDAY = buildDD(DDaySquare, 'feed');
 window.SEC_DDAY_TALL = buildDD(DDayTall, 'story');
 window.SEC_DDAY_WIDE = buildDD(DDayWide, 'wide');
+})();

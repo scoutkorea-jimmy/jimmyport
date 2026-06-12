@@ -1,5 +1,6 @@
 /* 이미지 1장 + 소식 전달형 카드뉴스 — 3 베리에이션 (1080×1350, 인스타 피드) */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 const NP = PAL;
 const NS = 100; // Safe Zone
 
@@ -75,3 +76,4 @@ window.SEC_NEWS = [
   { id: 'band', label: 'B · 이미지+컬러밴드', node: <NewsBand ek="news-band" /> },
   { id: 'card', label: 'C · 카드 오버레이', node: <NewsCard ek="news-card" /> }
 ];
+})();

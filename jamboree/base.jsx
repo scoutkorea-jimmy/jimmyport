@@ -1,5 +1,6 @@
 /* 한국잼버리 카드뉴스 — 공유 콘텐츠 + 프리미티브 */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 const C = {
   brandKr: '제16회 한국잼버리',
   brandEn: '16th Korea National Jamboree',
@@ -159,3 +160,4 @@ function GeoCluster({ style, scale = 1 }) {
 }
 
 Object.assign(window, { C, PAL, Card, Logo, Pill, Placeholder, GeoCluster, useCCStore, textOf });
+})();

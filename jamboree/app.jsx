@@ -3,6 +3,7 @@
  * 우: ① 이 카드 편집(자동 텍스트 폼 + 색/ D숫자 + 사진 업로드) ② 공통 브랜드 + 엠블럼
  * 상단: PNG · 덱 일괄 PNG · 서버 저장/불러오기(KV) */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 const { useState, useRef, useEffect, useLayoutEffect, useCallback, useReducer } = React;
 const P = window.PAL;
 
@@ -393,3 +394,4 @@ const pillHint = {
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+})();

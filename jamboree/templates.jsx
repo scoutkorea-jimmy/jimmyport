@@ -1,5 +1,6 @@
 /* 콘텐츠 템플릿 · 베리에이션 — 텍스트형 3 + 이미지/그래픽형 9 · Safe Zone 10%(100px) */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 const P = PAL;
 const S = 100;            // 상하좌우 Safe Zone (1080 * 약 9.3%)
 
@@ -232,3 +233,4 @@ window.SEC_TEMPLATES = [
   { id: 'icongrid', label: '11 · 아이콘 그리드형', node: <T_IconGrid ek="tpl-icongrid" /> },
   { id: 'vtimeline', label: '12 · 비주얼 타임라인형', node: <T_VisualTimeline ek="tpl-vtimeline" /> }
 ];
+})();

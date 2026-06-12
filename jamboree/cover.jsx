@@ -2,6 +2,7 @@
  * Phase 2: 에이브로우/제목(2행)/부제/카테고리 인라인·폼 편집, 배경사진 업로드,
  *          배경색·카테고리색 오버라이드(cc-prop:cover-<id>). */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 function CoverThemed(props) {
   const { id, bg, ink = '#fff', eyebrow, eyebrowColor, t1, t2, t2Color, sub, subColor, stitchFill, scatter, footEng, main, cat } = props;
   const gc = React.useContext(window.GContentCtx) || {};
@@ -102,3 +103,4 @@ window.SEC_COVER = [
       ]} footEng="CEREMONY" />
   }
 ];
+})();

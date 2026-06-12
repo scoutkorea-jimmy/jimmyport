@@ -1,5 +1,6 @@
 /* 라이브러리 공용 헬퍼 — 잉크색(톤다운 블랙) · 더블클릭 편집 · 흰배경 템플릿 */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 const DMUTE = 'var(--cc-mute, #6f6878)';            // 보조 텍스트(그레이)
 const INK = 'var(--cc-ink, #2b2630)';              // 본문 텍스트(톤다운 블랙)
 window.DDayTweakCtx = React.createContext({});
@@ -109,3 +110,4 @@ function TopicIntro({ ek = 'intro', kicker, title, body, kc = PAL.ocean, tab, ph
 }
 
 Object.assign(window, { DMUTE, INK, Kicker, CategoryChip, Editable, EdgeStitch, FooterBand, TopicList, TopicIntro });
+})();

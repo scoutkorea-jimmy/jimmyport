@@ -1,5 +1,6 @@
 /* World Scouting 공식 도형/스티치 — 인라인 SVG, fill 상속으로 리컬러 */
 
+(function () { // module scope - Babel standalone runs scripts in shared global scope
 function _wh(vb, h) { const p = vb.split(/\s+/).map(Number); return { w: h * (p[2] / p[3]), vw: p[2], vh: p[3] }; }
 
 /* 단일 도형. n=번호, h=높이(px), outline=아웃라인본, fill=색 */
@@ -51,3 +52,4 @@ function ShapeScatter({ items, style }) {
 }
 
 Object.assign(window, { Shape, ShapeBadge, Stitch, ShapeScatter });
+})();
