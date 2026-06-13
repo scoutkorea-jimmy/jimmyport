@@ -41,9 +41,11 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children }) {
   React.useEffect(() => {
     if (register) register(ekey, flabel || textOf(children), textOf(children));
   }, [ekey]); // eslint-disable-line
+  // 글자크기 일괄 트윅: 숫자 px → calc(px * --cc-fz)로 변환 (내용 텍스트 전체 스케일)
+  const fz = (style && typeof style.fontSize === 'number') ? `calc(${style.fontSize}px * var(--cc-fz, 1))` : (style ? style.fontSize : undefined);
   return (
     <Tag ref={ref} className={className} title="더블클릭하여 수정"
-      style={{ ...style, cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
+      style={{ ...style, fontSize: fz, cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
       onBlur={(e) => { store.setText(ekey, e.currentTarget.textContent); setEditing(false); }}

@@ -34,8 +34,8 @@ const DEFAULT_BRAND = {
 const TOKEN_KEY = 'jamboree:token';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
-/* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원) */
-const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1 };
+/* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, margin: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1 };
 const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
 const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
@@ -88,6 +88,18 @@ function Slider({ label, value, min, max, step = 1, unit = '', onChange }) {
     </label>
   );
 }
+
+/* 여백 트윅: 카드 콘텐츠를 균일하게 안쪽으로(흰 테두리) — 미리보기/내보내기 공용 */
+function Framed({ w, h, margin, children }) {
+  const s = margin > 0 ? (w - 2 * margin) / w : 1;
+  return (
+    <div style={{ position: 'relative', width: w, height: h, background: '#fff', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, transform: s !== 1 ? `scale(${s})` : 'none', transformOrigin: 'center center' }}>{children}</div>
+    </div>
+  );
+}
+
+function loadImage(src) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
 
 function imageFileToDataUrl(file, opts) {
   const { maxDim = 1600, mime = 'image/jpeg', quality = 0.85 } = opts || {};
@@ -147,15 +159,16 @@ function FieldInput({ field }) {
   );
 }
 
-function Toolbar({ onPng, onZip, onSave, onLoad, status, busy, zipCount }) {
-  const btn = (extra) => ({ border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1, fontFamily: 'inherit', ...extra });
+function Toolbar({ onPng, onStitch, onZip, onSave, onLoad, status, busy, zipCount }) {
+  const btn = (extra) => ({ border: 'none', borderRadius: 10, padding: '10px 15px', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1, fontFamily: 'inherit', ...extra });
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-      <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', minWidth: 96, textAlign: 'right' }}>{status}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', minWidth: 92, textAlign: 'right' }}>{status}</span>
       <button disabled={busy} onClick={onLoad} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>불러오기</button>
       <button disabled={busy} onClick={onSave} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>서버 저장</button>
-      <button disabled={busy} onClick={onZip} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>카드뉴스 ZIP ({zipCount})</button>
-      <button disabled={busy} onClick={onPng} style={btn({ background: P.leaf, color: P.midnight })}>PNG 다운로드</button>
+      <button disabled={busy} onClick={onZip} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>ZIP ({zipCount})</button>
+      <button disabled={busy} onClick={onStitch} style={btn({ background: P.river, color: P.midnight })}>한 편 PNG ({zipCount})</button>
+      <button disabled={busy} onClick={onPng} style={btn({ background: P.leaf, color: P.midnight })}>이 카드 PNG</button>
     </div>
   );
 }
@@ -183,7 +196,10 @@ function App() {
     r.setProperty('--cc-ink', tweaks.ink);
     r.setProperty('--cc-main', (FONT_MAIN[tweaks.fontMain] || FONT_MAIN.cafe24).v);
     r.setProperty('--cc-hi', (FONT_HI[tweaks.fontHi] || FONT_HI.aggravo).v);
-  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi]);
+    r.setProperty('--cc-fz', String(tweaks.fz || 1));
+    r.setProperty('--cc-track', tweaks.track ? tweaks.track + 'em' : 'normal');
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track]);
+  const mScale = tweaks.margin > 0 ? (family.w - 2 * tweaks.margin) / family.w : 1;
 
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
   const deck = store.getProp('_deck', 'cards', []);
@@ -307,7 +323,7 @@ function App() {
           root.render(
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
-                <div style={{ position: 'relative', width: r.fam.w, height: r.fam.h, background: '#fff', overflow: 'hidden' }}>{r.card.node}</div>
+                <Framed w={r.fam.w} h={r.fam.h} margin={tweaks.margin}>{r.card.node}</Framed>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
           );
@@ -328,6 +344,50 @@ function App() {
     } catch (e) { console.error(e); flash('ZIP 실패'); } finally { setBusy(false); }
   }, [deck, brand, tweaks]);
 
+  /* ── 한 편 PNG: 덱 모듈을 세로로 이어붙인 단일 이미지 (카드뉴스 한 편) ── */
+  const onStitch = useCallback(async () => {
+    if (!window.htmlToImage) { flash('준비 안 됨'); return; }
+    if (!deck.length) { flash('덱이 비어 있어요 — 카드를 담아주세요'); return; }
+    setBusy(true);
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      const { host, root } = ensureOff();
+      const targetW = Math.max(...deck.map((it) => { const f = famOf(it.f); return f ? f.w : 1080; }));
+      const imgs = [];
+      for (let i = 0; i < deck.length; i++) {
+        const r = deckResolve(deck[i]); if (!r) continue;
+        flash(`한 편 ${i + 1}/${deck.length}`);
+        await new Promise((res) => {
+          root.render(
+            <window.DDayTweakCtx.Provider value={tweaks}>
+              <window.GContentCtx.Provider value={brand}>
+                <Framed w={r.fam.w} h={r.fam.h} margin={tweaks.margin}>{r.card.node}</Framed>
+              </window.GContentCtx.Provider>
+            </window.DDayTweakCtx.Provider>
+          );
+          requestAnimationFrame(() => requestAnimationFrame(res));
+        });
+        const dataUrl = await window.htmlToImage.toPng(host.firstElementChild, { width: r.fam.w, height: r.fam.h, pixelRatio: 1, cacheBust: true, backgroundColor: '#ffffff' });
+        imgs.push({ im: await loadImage(dataUrl), w: r.fam.w, h: r.fam.h });
+      }
+      root.render(null);
+      if (!imgs.length) { flash('내보낼 카드 없음'); return; }
+      flash('이어붙이는 중…');
+      const scaled = imgs.map((x) => ({ im: x.im, h: Math.round(x.h * targetW / x.w) }));
+      const totalH = scaled.reduce((a, x) => a + x.h, 0);
+      const cv = document.createElement('canvas'); cv.width = targetW; cv.height = totalH;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, targetW, totalH);
+      let y = 0;
+      for (const x of scaled) { ctx.drawImage(x.im, 0, y, targetW, x.h); y += x.h; }
+      const blob = await new Promise((res) => cv.toBlob(res, 'image/png'));
+      const a = document.createElement('a');
+      a.download = 'jamboree_cardnews_full.png';
+      a.href = URL.createObjectURL(blob); a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      flash('한 편 완성 ✓');
+    } catch (e) { console.error(e); flash('한 편 실패'); } finally { setBusy(false); }
+  }, [deck, brand, tweaks]);
+
   const sideBtn = (active) => ({
     display: 'block', width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer',
     background: active ? P.purple : 'transparent', color: active ? '#fff' : '#2b2630',
@@ -345,7 +405,7 @@ function App() {
             <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
           </div>
         </div>
-        <Toolbar onPng={onPng} onZip={onZip} onSave={onSave} onLoad={onLoad} status={status} busy={busy} zipCount={deck.length} />
+        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onSave={onSave} onLoad={onLoad} status={status} busy={busy} zipCount={deck.length} />
       </header>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -400,7 +460,9 @@ function App() {
                     <div style={{ position: 'absolute', top: 0, left: 0, width: family.w * scale, height: family.h * scale }}>
                       <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
                         <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
-                          {card ? card.node : null}
+                          <div style={{ position: 'absolute', inset: 0, transform: mScale !== 1 ? `scale(${mScale})` : 'none', transformOrigin: 'center center' }}>
+                            {card ? card.node : null}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -475,6 +537,9 @@ function App() {
                 {Object.entries(FONT_HI).map(([k, f]) => <option key={k} value={k}>{f.l}</option>)}
               </select>
             </label>
+            <Slider label="내용 글자 크기" value={Math.round(tweaks.fz * 100) / 100} min={0.8} max={1.3} step={0.02} unit="×" onChange={(v) => setTweak('fz', v)} />
+            <Slider label="자간" value={Math.round(tweaks.track * 1000) / 1000} min={-0.03} max={0.2} step={0.005} unit="em" onChange={(v) => setTweak('track', v)} />
+            <Slider label="카드 여백(흰 테두리)" value={tweaks.margin} min={0} max={120} step={4} unit="px" onChange={(v) => setTweak('margin', v)} />
             <details>
               <summary style={{ ...fieldLabel, cursor: 'pointer', marginBottom: 8 }}>D-day 여백·크기 조정</summary>
               <Slider label="상단 여백" value={tweaks.topAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('topAdj', v)} />

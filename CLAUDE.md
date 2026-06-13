@@ -174,3 +174,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **정렬 오버라이드**: 표지(제목 블록)·D-day(NumStack)·소식형(헤드라인) `align`(left/center/right) — 우측 "텍스트 정렬" 세그먼트.
 - **D숫자**: 모든 D-day 프리셋(50~1)에서 우측 "D-숫자" 필드로 자유 수정(진행바·키커 자동 재계산). 더블클릭 인라인 편집은 텍스트 전용(숫자는 폼).
 - **겹침 감사**: puppeteer-core(벤더, /tmp) 실상호작용 테스트(더블클릭 편집·D숫자·덱·트윅 전부 패스) + 46종 전수 스크린샷 감사 → 표지 영외·식사 도형/부제 겹침, D-피드 D-DAY 로고/글자 터치, 빅넘버형(300px→230px) 수정. **디자인 변경 시 전수 스크린샷 감사 재실행할 것.**
+
+### 15.3 Phase 4 (BUILT, v0.9.4) — 자간·글자크기·여백 트윅 + 한 편 결합
+- **자간**: 트윅 `track`(em) → `--cc-track`, `Card`에 `letterSpacing: var(--cc-track, normal)` cascade(본문/제목 텍스트). kicker/번호 등 자체 letterSpacing은 유지.
+- **글자크기 일괄(내용 기준)**: 트윅 `fz` → `--cc-fz`. `Editable`의 숫자 fontSize를 `calc(px * var(--cc-fz,1))`로 변환 → 모든 '내용' 텍스트만 일괄 스케일(라벨·D번호 제외; D번호는 numScale).
+- **전체 여백 일괄**: 트윅 `margin`(px) → `Framed` 래퍼가 카드 콘텐츠를 균일 축소(흰 테두리). 미리보기/PNG/ZIP/한편 모두 공용. 기본 0(무변화).
+- **한 편 PNG(카드뉴스 결합)**: 덱 모듈을 세로로 이어붙인 **단일 PNG**(`jamboree_cardnews_full.png`). 오프스크린 네이티브 렌더 → html-to-image → canvas로 targetW(=덱 최대폭) 정규화·세로 누적. 툴바: ZIP / 한 편 PNG / 이 카드 PNG.
+- **D-피드 배경 강화**: `ddScatter`에 `fmt='feed'` 분기 — 우측 컬럼·하단(y780~1050) 도형 4종+좌하단 1종 추가(숫자/티저/푸터/진행바 회피). story/wide는 기존 유지.
+- 트윅 4종(ink·track·fz·margin)·정렬·D번호·덱 전부 `cc-prop:_tweaks/_deck`로 서버 저장 포함. 검증: 실상호작용(트윅 CSS var·덱 2장·한편 1080×2160 다운로드 OK) + 전수 감사 무겹침.

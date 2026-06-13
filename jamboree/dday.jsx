@@ -2,8 +2,9 @@
  * Phase 2: D숫자(구조 필드, 진행바 자동 재계산) + 티저(인라인/폼) + 배경색 오버라이드(cc-prop:<ek>) */
 
 (function () { // module scope - Babel standalone runs scripts in shared global scope
-/* 도형 스캐터 — 우측 컬러 클러스터 + 코너 블리더 (숫자/카피 영역 회피) */
-function ddScatter(i, isDay, cols, bleed) {
+/* 도형 스캐터 — 우측 컬러 클러스터 + 코너 블리더 (숫자/카피 영역 회피)
+ * fmt='feed'(1080×1350)는 하단·우측 빈 공간을 도형으로 더 적극적으로 채운다. */
+function ddScatter(i, isDay, cols, bleed, fmt) {
   if (isDay) return [
     { n: '03', outline: true, fill: bleed, h: 320, top: -100, left: -100 },
     { n: '02', fill: cols[0], h: 60, top: 132, right: 540 },
@@ -20,6 +21,34 @@ function ddScatter(i, isDay, cols, bleed) {
   ];
   const arr = L[i % L.length].map((s, k) => ({ n: s[0], fill: cols[k % cols.length], h: s[1], top: s[2], right: s[3] }));
   arr.push({ n: i % 2 ? '02' : '05', outline: true, fill: bleed, h: 560, bottom: -170, left: -150 });
+
+  if (fmt === 'feed') {
+    /* 1080×1350 — 숫자(좌)·티저(좌중) 영역 피해 우측 컬럼과 하단을 채움
+     * (티저 끝 ≈ y940, 진행바 y≈1148, 푸터 y>1204 → 우측 x>620 / 하단 코너 활용) */
+    const F = [
+      [
+        { n: '04', fill: cols[1], h: 84, top: 792, right: 150 },
+        { n: '02', fill: cols[3], h: 132, top: 900, right: 250 },
+        { n: '06', fill: cols[2], h: 60, top: 1000, right: 130 },
+        { n: '03', outline: true, fill: bleed, h: 300, top: 880, right: -110 }
+      ],
+      [
+        { n: '05', fill: cols[2], h: 116, top: 812, right: 250, rot: 90 },
+        { n: '06', fill: cols[0], h: 150, top: 940, right: 110 },
+        { n: '04', fill: cols[3], h: 56, top: 1040, right: 300 },
+        { n: '02', outline: true, fill: bleed, h: 280, top: 940, right: -90 }
+      ],
+      [
+        { n: '06', fill: cols[3], h: 138, top: 800, right: 130 },
+        { n: '02', fill: cols[1], h: 64, top: 980, right: 300 },
+        { n: '04', fill: cols[0], h: 92, top: 1020, right: 170 },
+        { n: '05', outline: true, fill: bleed, h: 320, top: 860, right: -130 }
+      ]
+    ];
+    F[i % F.length].forEach((s) => arr.push(s));
+    /* 좌하단 — 티저 아래 코너에 살짝 (티저 끝 y940 아래) */
+    arr.push({ n: i % 2 ? '04' : '06', fill: cols[(i + 2) % cols.length], h: 70, top: 1000, left: 86 });
+  }
   return arr;
 }
 
@@ -68,7 +97,7 @@ function DDaySquare({ c }) {
   const e = useDDeff(c);
   return (
     <Card bg={e.bg} color={e.ink} pad={0}>
-      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed)} />
+      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed, c.fmt)} />
       <div style={{ position: 'absolute', top: 70, left: 72, right: 72, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Kicker c={e.kickerColor}>{e.kickerText}</Kicker>{!c.isDay && <Logo size={100} />}
       </div>
@@ -88,7 +117,7 @@ function DDayTall({ c }) {
   const e = useDDeff(c);
   return (
     <Card bg={e.bg} color={e.ink} pad={0}>
-      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed)} />
+      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed, c.fmt)} />
       <div style={{ position: 'absolute', top: 92, left: 80, right: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
         <Logo size={c.isDay ? 230 : 116} />
         <Kicker c={e.kickerColor} style={{ textAlign: 'center' }}>{e.kickerText}</Kicker>
@@ -108,7 +137,7 @@ function DDayWide({ c }) {
   const e = useDDeff(c);
   return (
     <Card bg={e.bg} color={e.ink} pad={0}>
-      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed)} />
+      <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed, c.fmt)} />
       <div style={{ position: 'absolute', top: 64, left: 84 }}><Kicker c={e.kickerColor}>{e.kickerText}</Kicker></div>
       {!c.isDay && <Logo size={120} style={{ position: 'absolute', top: 58, right: 96 }} />}
       {c.isDay && <Logo size={360} style={{ position: 'absolute', right: 130, top: 300 }} />}
@@ -141,7 +170,7 @@ function buildDD(Comp, fmt) {
     const label = isDay ? 'D-DAY' : 'D-' + x.n;
     const kickerText = isDay ? '2026. 8. 5 · 드디어!' : 'COUNTDOWN · ' + x.n + '일 전';
     const bleed = x.ink === '#fff' ? 'rgba(255,255,255,.08)' : 'rgba(77,0,110,.07)';
-    const c = { ...x, i, isDay, kickerText, bleed, ek: fmt + '-' + id };
+    const c = { ...x, i, isDay, kickerText, bleed, fmt, ek: fmt + '-' + id };
     return { id, label, node: <Comp c={c} /> };
   });
 }

@@ -90,6 +90,7 @@ function Card({ bg, color = '#fff', pad = 88, children, style }) {
     <div style={{
       position: 'absolute', inset: 0, overflow: 'hidden', background: bg, color,
       fontFamily: "var(--cc-main, 'Cafe24ProSlim'), 'Apple SD Gothic Neo', sans-serif",
+      letterSpacing: 'var(--cc-track, normal)',
       padding: pad, boxSizing: 'border-box', ...style
     }}>{children}</div>
   );
