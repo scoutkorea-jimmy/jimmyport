@@ -85,7 +85,8 @@ function useDDeff(c) {
   const bleed = themed ? (ink === '#fff' ? 'rgba(255,255,255,.08)' : 'rgba(77,0,110,.07)') : c.bleed;
   const n = (ov.n != null && ov.n !== '') ? (parseInt(ov.n, 10) || 0) : c.n;
   const prog = c.isDay ? 100 : Math.max(0, Math.min(100, Math.round((50 - n) / 50 * 100)));
-  const kickerText = c.isDay ? c.kickerText : ('COUNTDOWN · ' + n + '일 전');
+  const autoKicker = c.isDay ? c.kickerText : ('COUNTDOWN · ' + n + '일 전');
+  const kickerText = (ov.kicker != null && ov.kicker !== '') ? ov.kicker : autoKicker;
   // 정렬 오버라이드: left/center/right → flex align
   const align = ov.align === 'center' ? 'center' : ov.align === 'right' ? 'flex-end' : ov.align === 'left' ? 'flex-start' : null;
   return { bg, ink, numColor, kickerColor, fill, track, bleed, n, prog, kickerText, align, gfx: ov.gfx };

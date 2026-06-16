@@ -149,12 +149,14 @@ function PhotoRow({ slot, label, png }) {
 function FieldInput({ field }) {
   const store = useCCStore();
   const v = store.getText(field.ekey);
-  const long = (field.def || '').length > 22;
-  const common = { value: v != null ? v : (field.def || ''), placeholder: field.def || '', onChange: (e) => store.setText(field.ekey, e.target.value), style: { ...inputStyle, ...(long ? { resize: 'vertical', minHeight: 56, lineHeight: 1.4 } : null) } };
+  const cur = v != null ? v : (field.def || '');
+  const long = (field.def || '').length > 14 || cur.indexOf('\n') >= 0;   // 줄바꿈 있으면/길면 textarea
+  const common = { value: cur, placeholder: field.def || '', onChange: (e) => store.setText(field.ekey, e.target.value), style: { ...inputStyle, ...(long ? { resize: 'vertical', minHeight: 56, lineHeight: 1.4, whiteSpace: 'pre-wrap' } : null) } };
   return (
     <label style={{ display: 'block', marginBottom: 10 }}>
       <span style={fieldLabel}>{(field.label || '항목').slice(0, 22)}</span>
       {long ? <textarea rows={2} {...common} /> : <input {...common} />}
+      {long && <span style={{ fontSize: 10.5, color: '#a9a2b3', display: 'block', marginTop: 2 }}>줄바꿈(Enter) 가능</span>}
     </label>
   );
 }
@@ -569,6 +571,13 @@ function App() {
                   <span style={fieldLabel}>D-숫자 (진행바·문구 자동 반영)</span>
                   <input type="number" min="0" max="999" value={store.getProp(ddScope, 'n', '')} placeholder={ddDefaultN}
                     onChange={(e) => store.setProp(ddScope, 'n', e.target.value)} style={inputStyle} />
+                </label>
+              )}
+              {ddScope && (
+                <label style={{ display: 'block', marginBottom: 10 }}>
+                  <span style={fieldLabel}>키커 문구 (상단)</span>
+                  <input value={store.getProp(ddScope, 'kicker', '')} placeholder={ddIsDay ? '비우면 자동' : ('COUNTDOWN · ' + (store.getProp(ddScope, 'n', '') || ddDefaultN || '') + '일 전')}
+                    onChange={(e) => store.setProp(ddScope, 'kicker', e.target.value)} style={inputStyle} />
                 </label>
               )}
               <span style={fieldLabel}>배경색</span>

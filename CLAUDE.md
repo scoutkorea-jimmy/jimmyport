@@ -225,3 +225,7 @@ WOSM Region → 국가(NSO) → 단위대
 ### 15.12 v0.9.14
 - **워터마크 회전 추가** + 컨트롤 위치 이동: `wmRot`(`--cc-wm-rot`, transform에 rotate 추가). 워터마크 크기/좌우/상하/**회전**/투명도 슬라이더를 접힌 트윅에서 **D-피드 "이 카드 편집" 패널 상단('배경 오브제')으로 이동**(발견성↑, familyKey==='dday'에 노출).
 - **D-숫자 1·2행 좌우 이동**: `_tweaks.dx1/dx2` → `NumStack`의 "D-"(1행)·숫자(2행) `translateX`. 편집 패널 'D-숫자 줄 위치' 슬라이더 2종.
+
+### 15.13 v0.9.15
+- **키커 문구 편집**: D-day `useDDeff`에 `ov.kicker` 오버라이드(비우면 자동 'COUNTDOWN · N일 전'/isDay 기본). 편집 패널 '키커 문구(상단)' 입력(ddScope, 자동 placeholder). 카드별 저장.
+- **텍스트 줄바꿈 지원**: `Editable` — 인라인 편집 시 Enter로 줄바꿈(커밋=blur/Escape), 저장은 `innerText`(줄바꿈 보존), 렌더 `white-space: pre-wrap`. 폼(`FieldInput`)은 def>14자 또는 값에 `\n` 있으면 textarea(줄바꿈 가능 안내). 티저 등 전체 텍스트 적용.

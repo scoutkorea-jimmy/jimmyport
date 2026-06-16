@@ -45,11 +45,11 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children }) {
   const fz = (style && typeof style.fontSize === 'number') ? `calc(${style.fontSize}px * var(--cc-fz, 1))` : (style ? style.fontSize : undefined);
   return (
     <Tag ref={ref} className={className} title="더블클릭하여 수정"
-      style={{ ...style, fontSize: fz, cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
+      style={{ ...style, fontSize: fz, whiteSpace: 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
-      onBlur={(e) => { store.setText(ekey, e.currentTarget.textContent); setEditing(false); }}
-      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); } }}
+      onBlur={(e) => { store.setText(ekey, e.currentTarget.innerText.replace(/\n$/, '')); setEditing(false); }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.currentTarget.blur(); } }}
     >{display}</Tag>
   );
 }
