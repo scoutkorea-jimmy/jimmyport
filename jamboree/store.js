@@ -63,6 +63,15 @@
       Object.keys(imgMem).forEach((s) => { if (imgMem[s] != null) images[s] = imgMem[s]; });
       return { text, props, images };
     },
+    clearAll() {
+      try {
+        const rm = [];
+        for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k.indexOf(TEXT) === 0 || k.indexOf(PROP) === 0 || k.indexOf(IMG) === 0)) rm.push(k); }
+        rm.forEach((k) => lsDel(k));
+      } catch (_) {}
+      Object.keys(imgMem).forEach((s) => delete imgMem[s]);
+      store.emit();
+    },
     hydrate(state) {
       if (!state) return;
       const t = state.text || state.editKeys; // Phase 1 저장본(editKeys) 호환

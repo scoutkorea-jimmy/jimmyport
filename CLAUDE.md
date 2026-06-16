@@ -232,6 +232,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **콘솔 정리(v0.9.17)**: jamboree.html에서 Babel in-browser advisory 경고만 console.warn 필터로 억제. (라이브 스윕 결과 에러·네트워크 실패 0, Babel 경고만 있었음)
 
 
+
+### 15.16 v0.9.19 — 덱 썸네일 미리보기 + 새로 만들기 + 즉시 삭제
+- **하단 덱 칩 = 실제 카드 썸네일**: 각 칩에 `r.card.node`를 `transform: scale(116/famW)`로 축소 렌더(DDayTweakCtx+GContentCtx 래핑, pointerEvents:none). 순번 배지·✕삭제 오버레이·◀▶ 순서·패밀리 라벨.
+- **새로 만들기**: `CCStore.clearAll()`(cc-edit/cc-prop/cc-img 전체 삭제)+brand 리셋+currentId 해제. 상단 툴바 "+ 새로 만들기" & 모달 "+ 새로 만들기"(confirm).
+- **삭제 즉시 반영**: 모달 목록에서 삭제 시 `savedItems` 즉시 필터(KV 최종 일관성 지연 보완).
+
 ### 15.15 v0.9.18 — 작성자 이름 기반 저장 + 컬러 엠블럼 교체
 - **토큰 제거 → 작성자 이름**: `functions/api/jamboree.js` PUT/POST/DELETE에서 `isAdmin` 제거. POST/PUT body에 `author` 저장(index에 `author` 포함). PUT은 `id` 있으면 해당 항목 갱신, 없으면 작업 슬롯.
 - 프런트: `token`→`author`(localStorage `jamboree:author`). 불러온/저장한 항목 `currentId` 추적 → **자동 저장이 그 항목을 갱신**(작성자 이름 있을 때). 모달: 작성자 이름 입력 + "저장(덮어쓰기)"/"새 사본"/"+ 새 카드뉴스" + 목록(작성자·날짜 표시·현재 항목 강조).

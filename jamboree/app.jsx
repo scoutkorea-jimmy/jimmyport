@@ -161,11 +161,12 @@ function FieldInput({ field }) {
   );
 }
 
-function Toolbar({ onPng, onStitch, onZip, onList, status, busy, zipCount }) {
+function Toolbar({ onPng, onStitch, onZip, onList, onNew, status, busy, zipCount }) {
   const btn = (extra) => ({ border: 'none', borderRadius: 10, padding: '10px 15px', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1, fontFamily: 'inherit', ...extra });
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', minWidth: 92, textAlign: 'right' }}>{status}</span>
+      <button disabled={busy} onClick={onNew} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>+ 새로 만들기</button>
       <button disabled={busy} onClick={onList} style={btn({ background: 'rgba(255,255,255,.2)', color: '#fff' })}>💾 저장 · 불러오기</button>
       <button disabled={busy} onClick={onZip} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>ZIP ({zipCount})</button>
       <button disabled={busy} onClick={onStitch} style={btn({ background: P.river, color: P.midnight })}>한 편 PNG ({zipCount})</button>
@@ -335,11 +336,17 @@ function App() {
       const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE' });
       if (!res.ok) { setListMsg('삭제 실패'); return; }
       if (currentId === it.id) { setCurrentId(null); setCurrentName(''); }
-      setListMsg('삭제됨 ✓'); refreshList();
+      setSavedItems((prev) => Array.isArray(prev) ? prev.filter((x) => x.id !== it.id) : prev);  // 즉시 반영(KV 지연 보완)
+      setListMsg('삭제됨 ✓');
     } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
   }, [currentId, refreshList]);
 
-  const newDoc = useCallback(() => { setCurrentId(null); setCurrentName(''); setListMsg('새 카드뉴스로 전환 — 저장 시 새 항목으로 생성됩니다'); }, []);
+  const newProject = useCallback(() => {
+    if (!window.confirm('새 카드뉴스를 시작할까요? 저장하지 않은 현재 편집 내용은 사라집니다.')) return;
+    window.CCStore.clearAll();
+    setBrand(DEFAULT_BRAND); setCurrentId(null); setCurrentName(''); setSaveName('');
+    setRemount((n) => n + 1); setListMsg('새 카드뉴스 시작됨'); flash('새 카드뉴스 ✓');
+  }, []);
 
   /* ── 자동 저장: 불러온/저장한 항목이 있으면 그 항목을 갱신(작성자 이름 필요) ── */
   const brandRef = useRef(brand);
@@ -490,7 +497,7 @@ function App() {
             <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
           </div>
         </div>
-        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onList={openList} status={status} busy={busy} zipCount={deck.length} />
+        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onList={openList} onNew={newProject} status={status} busy={busy} zipCount={deck.length} />
       </header>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -684,20 +691,26 @@ function App() {
           {deck.map((it, i) => {
             const r = deckResolve(it);
             const active = card && it.f === familyKey && it.id === card.id;
+            const fw = r ? r.fam.w : 1080, fh = r ? r.fam.h : 1350;
+            const tW = 116, tH = Math.round(tW * fh / fw), tS = tW / fw;
             return (
-              <div key={i} style={{ flex: '0 0 auto', width: 158, border: '1px solid ' + (active ? P.purple : 'rgba(0,0,0,.12)'), borderRadius: 10, background: active ? '#f6f0fb' : '#fff', padding: '7px 8px', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: P.purple, borderRadius: 5, padding: '1px 6px', flex: '0 0 auto' }}>{i + 1}</span>
-                  <button onClick={() => { setFamilyKey(it.f); setVariationId(it.id); }} title="이 카드 편집" style={{ flex: 1, minWidth: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 11.5, fontWeight: 600, color: '#2b2630', fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 0 }}>
-                    {r ? (famOf(it.f).label + ' · ' + r.card.label) : '(삭제된 카드)'}
-                  </button>
+              <div key={i} style={{ flex: '0 0 auto', width: tW + 16, border: '1px solid ' + (active ? P.purple : 'rgba(0,0,0,.12)'), borderRadius: 10, background: active ? '#f6f0fb' : '#fff', padding: 7, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {/* 썸네일 미리보기 (클릭=편집) */}
+                <div onClick={() => { setFamilyKey(it.f); setVariationId(it.id); }} title="이 카드 편집" style={{ position: 'relative', width: tW, height: tH, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#fff', border: '1px solid rgba(0,0,0,.1)' }}>
+                  {r ? (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, transform: `scale(${tS})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
+                      <window.DDayTweakCtx.Provider value={tweaks}>
+                        <window.GContentCtx.Provider value={brand}>{r.card.node}</window.GContentCtx.Provider>
+                      </window.DDayTweakCtx.Provider>
+                    </div>
+                  ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, color: '#b04a4a' }}>삭제된 카드</div>}
+                  <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(43,38,48,.8)', borderRadius: 5, padding: '1px 6px' }}>{i + 1}</span>
+                  <button onClick={(e) => { e.stopPropagation(); deckRemove(i); }} title="빼기" style={{ position: 'absolute', top: 3, right: 3, border: 'none', background: 'rgba(176,74,74,.92)', color: '#fff', borderRadius: 5, width: 18, height: 18, fontSize: 11, lineHeight: '18px', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>✕</button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: 2 }}>
-                    <button onClick={() => deckMove(i, -1)} disabled={i === 0} style={{ ...tinyBtn, opacity: i === 0 ? .3 : 1 }} title="앞으로">◀</button>
-                    <button onClick={() => deckMove(i, 1)} disabled={i === deck.length - 1} style={{ ...tinyBtn, opacity: i === deck.length - 1 ? .3 : 1 }} title="뒤로">▶</button>
-                  </div>
-                  <button onClick={() => deckRemove(i)} style={{ ...tinyBtn, color: '#b04a4a', fontWeight: 700 }} title="빼기">✕ 삭제</button>
+                  <button onClick={() => deckMove(i, -1)} disabled={i === 0} style={{ ...tinyBtn, opacity: i === 0 ? .3 : 1 }} title="앞으로">◀</button>
+                  <span style={{ fontSize: 9.5, color: '#9a93a3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'center' }}>{r ? famOf(it.f).label : '—'}</span>
+                  <button onClick={() => deckMove(i, 1)} disabled={i === deck.length - 1} style={{ ...tinyBtn, opacity: i === deck.length - 1 ? .3 : 1 }} title="뒤로">▶</button>
                 </div>
               </div>
             );
@@ -736,7 +749,7 @@ function App() {
               <div style={{ padding: '12px 16px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px' }}>
                   <span style={fieldLabel}>저장된 카드뉴스</span>
-                  <button disabled={busy} onClick={newDoc} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#5a5364', borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ 새 카드뉴스</button>
+                  <button disabled={busy} onClick={newProject} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#5a5364', borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ 새로 만들기</button>
                 </div>
                 {savedItems === null && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>불러오는 중…</div>}
                 {savedItems && savedItems.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>저장된 카드뉴스가 없습니다.<br />이름 입력 후 "저장"으로 만들어 보세요.</div>}
