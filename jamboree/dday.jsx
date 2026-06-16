@@ -93,10 +93,12 @@ function useDDeff(c) {
 
 function NumStack({ ek, numColor, ink, isDay, num, teaser, dSize, nSize, tSize, gap, lead = 0, align = 'flex-start' }) {
   const ta = align === 'center' ? 'center' : align === 'flex-end' ? 'right' : 'left';
+  const tw = React.useContext(window.DDayTweakCtx) || {};
+  const dx1 = tw.dx1 || 0, dx2 = tw.dx2 || 0;   // 1행("D-")·2행(숫자) 좌우 이동
   return (
     <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: align }}>
-      <div style={{ fontWeight: 700, fontSize: dSize, lineHeight: .84, color: numColor, letterSpacing: '.03em' }}>D-</div>
-      <div style={{ fontWeight: 700, fontSize: nSize, lineHeight: .9, color: numColor, marginTop: lead }}>{isDay ? 'DAY' : String(num)}</div>
+      <div style={{ fontWeight: 700, fontSize: dSize, lineHeight: .84, color: numColor, letterSpacing: '.03em', transform: dx1 ? `translateX(${dx1}px)` : undefined }}>D-</div>
+      <div style={{ fontWeight: 700, fontSize: nSize, lineHeight: .9, color: numColor, marginTop: lead, transform: dx2 ? `translateX(${dx2}px)` : undefined }}>{isDay ? 'DAY' : String(num)}</div>
       <Editable ekey={ek + '-teaser'} flabel="티저" tag="div" style={{ fontSize: tSize, fontWeight: 300, marginTop: gap != null ? gap : Math.round(tSize * 0.9), color: ink, textAlign: ta }}>{teaser}</Editable>
     </div>
   );
@@ -119,7 +121,7 @@ function DDaySquare({ c }) {
     <Card bg={e.bg} color={e.ink} pad={0}>
       {/* 잼버리 매듭(에셋) 배경 워터마크 — 크기/위치/농도 트윅(--cc-wm-*) */}
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <img src="jamboree/assets/logo-asset.png" alt="" style={{ position: 'absolute', width: 1560, height: 1560, left: -480, top: 110, objectFit: 'contain', opacity: 'calc(' + (wmDark ? 0.13 : 0.1) + ' * var(--cc-wm-opacity, 1))', filter: wmDark ? 'none' : 'invert(1)', transform: 'translate(var(--cc-wm-dx,0px), var(--cc-wm-dy,0px)) scale(var(--cc-wm-scale,1))', transformOrigin: 'center center' }} />
+        <img src="jamboree/assets/logo-asset.png" alt="" style={{ position: 'absolute', width: 1560, height: 1560, left: -480, top: 110, objectFit: 'contain', opacity: 'calc(' + (wmDark ? 0.13 : 0.1) + ' * var(--cc-wm-opacity, 1))', filter: wmDark ? 'none' : 'invert(1)', transform: 'translate(var(--cc-wm-dx,0px), var(--cc-wm-dy,0px)) rotate(var(--cc-wm-rot,0deg)) scale(var(--cc-wm-scale,1))', transformOrigin: 'center center' }} />
       </div>
       <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed, c.fmt, e.gfx)} />
       <div style={{ position: 'absolute', top: 70, left: 72, right: 72, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

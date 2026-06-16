@@ -221,3 +221,7 @@ WOSM Region → 국가(NSO) → 단위대
 - **새 에셋 `jamboree/assets/logo-asset.png`**(굵은 매듭 마크) — D-피드 배경 워터마크를 이 에셋으로 교체(기존 흐릿한 중앙 stamp → 좌측 풀블리드 앵커, base 1560px). 어두운=흰(.13)/밝은=invert(.1).
 - **워터마크 트윅**: `_tweaks.wmScale/wmDX/wmDY/wmOpacity` → CSS 변수 `--cc-wm-scale/dx/dy/opacity`(opacity는 `calc(base * var)`). 우측 '트윅 > D-피드 배경 매듭(에셋)' 슬라이더 4종.
 - **전체 자동 저장**: store(텍스트/도형/사진/트윅/덱)+brand 변경을 1.6s 디바운스로 작업 슬롯(`PUT /api/jamboree`)에 자동 저장. **토큰 1회 입력("작업 저장") 후 동작**(localStorage `jamboree:token`). 첫 마운트 emit 1회는 skip.
+
+### 15.12 v0.9.14
+- **워터마크 회전 추가** + 컨트롤 위치 이동: `wmRot`(`--cc-wm-rot`, transform에 rotate 추가). 워터마크 크기/좌우/상하/**회전**/투명도 슬라이더를 접힌 트윅에서 **D-피드 "이 카드 편집" 패널 상단('배경 오브제')으로 이동**(발견성↑, familyKey==='dday'에 노출).
+- **D-숫자 1·2행 좌우 이동**: `_tweaks.dx1/dx2` → `NumStack`의 "D-"(1행)·숫자(2행) `translateX`. 편집 패널 'D-숫자 줄 위치' 슬라이더 2종.

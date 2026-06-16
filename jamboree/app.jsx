@@ -35,7 +35,7 @@ const TOKEN_KEY = 'jamboree:token';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
-const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0, wmScale: 1, wmDX: 0, wmDY: 0, wmOpacity: 1 };
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0, wmScale: 1, wmDX: 0, wmDY: 0, wmRot: 0, wmOpacity: 1, dx1: 0, dx2: 0 };
 const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
 const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
@@ -208,8 +208,9 @@ function App() {
     r.setProperty('--cc-wm-scale', String(tweaks.wmScale || 1));
     r.setProperty('--cc-wm-dx', (tweaks.wmDX || 0) + 'px');
     r.setProperty('--cc-wm-dy', (tweaks.wmDY || 0) + 'px');
+    r.setProperty('--cc-wm-rot', (tweaks.wmRot || 0) + 'deg');
     r.setProperty('--cc-wm-opacity', String(tweaks.wmOpacity != null ? tweaks.wmOpacity : 1));
-  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad, tweaks.wmScale, tweaks.wmDX, tweaks.wmDY, tweaks.wmOpacity]);
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad, tweaks.wmScale, tweaks.wmDX, tweaks.wmDY, tweaks.wmRot, tweaks.wmOpacity]);
 
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
   const deck = store.getProp('_deck', 'cards', []);
@@ -595,6 +596,20 @@ function App() {
             </div>
           )}
 
+          {familyKey === 'dday' && (
+            <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+              <span style={fieldLabel}>배경 오브제 (매듭 에셋)</span>
+              <Slider label="크기" value={Math.round((tweaks.wmScale || 1) * 100) / 100} min={0.3} max={2.4} step={0.05} unit="×" onChange={(v) => setTweak('wmScale', v)} />
+              <Slider label="좌우 위치" value={tweaks.wmDX} min={-800} max={800} step={10} unit="px" onChange={(v) => setTweak('wmDX', v)} />
+              <Slider label="상하 위치" value={tweaks.wmDY} min={-800} max={800} step={10} unit="px" onChange={(v) => setTweak('wmDY', v)} />
+              <Slider label="회전" value={tweaks.wmRot} min={-180} max={180} step={5} unit="°" onChange={(v) => setTweak('wmRot', v)} />
+              <Slider label="투명도(농도)" value={Math.round((tweaks.wmOpacity != null ? tweaks.wmOpacity : 1) * 100)} min={0} max={300} step={5} unit="%" onChange={(v) => setTweak('wmOpacity', v / 100)} />
+              <span style={{ ...fieldLabel, marginTop: 10 }}>D-숫자 줄 위치</span>
+              <Slider label="1행 (D-) 좌우" value={tweaks.dx1} min={-300} max={300} step={5} unit="px" onChange={(v) => setTweak('dx1', v)} />
+              <Slider label="2행 (숫자) 좌우" value={tweaks.dx2} min={-300} max={300} step={5} unit="px" onChange={(v) => setTweak('dx2', v)} />
+            </div>
+          )}
+
           {alignScope && (
             <div style={{ marginBottom: 14 }}>
               <span style={fieldLabel}>텍스트 정렬</span>
@@ -644,13 +659,6 @@ function App() {
               <Slider label="숫자↔티저 간격" value={tweaks.gapAdj} min={-40} max={160} unit="px" onChange={(v) => setTweak('gapAdj', v)} />
               <Slider label="줄 간격 (D-↔숫자)" value={tweaks.lineAdj} min={-60} max={120} unit="px" onChange={(v) => setTweak('lineAdj', v)} />
               <Slider label="숫자 크기" value={tweaks.numScale} min={0.7} max={1.2} step={0.02} onChange={(v) => setTweak('numScale', v)} />
-            </details>
-            <details>
-              <summary style={{ ...fieldLabel, cursor: 'pointer', marginBottom: 8 }}>D-피드 배경 매듭(에셋)</summary>
-              <Slider label="매듭 크기" value={Math.round((tweaks.wmScale || 1) * 100) / 100} min={0.4} max={2.2} step={0.05} unit="×" onChange={(v) => setTweak('wmScale', v)} />
-              <Slider label="매듭 좌우 위치" value={tweaks.wmDX} min={-700} max={700} step={10} unit="px" onChange={(v) => setTweak('wmDX', v)} />
-              <Slider label="매듭 상하 위치" value={tweaks.wmDY} min={-700} max={700} step={10} unit="px" onChange={(v) => setTweak('wmDY', v)} />
-              <Slider label="매듭 농도" value={Math.round((tweaks.wmOpacity != null ? tweaks.wmOpacity : 1) * 100)} min={0} max={250} step={5} unit="%" onChange={(v) => setTweak('wmOpacity', v / 100)} />
             </details>
           </div>
 
