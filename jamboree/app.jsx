@@ -161,14 +161,12 @@ function FieldInput({ field }) {
   );
 }
 
-function Toolbar({ onPng, onStitch, onZip, onSave, onLoad, onList, status, busy, zipCount }) {
+function Toolbar({ onPng, onStitch, onZip, onList, status, busy, zipCount }) {
   const btn = (extra) => ({ border: 'none', borderRadius: 10, padding: '10px 15px', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1, fontFamily: 'inherit', ...extra });
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', minWidth: 92, textAlign: 'right' }}>{status}</span>
-      <button disabled={busy} onClick={onList} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>목록</button>
-      <button disabled={busy} onClick={onLoad} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>작업 불러오기</button>
-      <button disabled={busy} onClick={onSave} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>작업 저장</button>
+      <button disabled={busy} onClick={onList} style={btn({ background: 'rgba(255,255,255,.2)', color: '#fff' })}>💾 저장 · 불러오기</button>
       <button disabled={busy} onClick={onZip} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>ZIP ({zipCount})</button>
       <button disabled={busy} onClick={onStitch} style={btn({ background: P.river, color: P.midnight })}>한 편 PNG ({zipCount})</button>
       <button disabled={busy} onClick={onPng} style={btn({ background: P.leaf, color: P.midnight })}>이 카드 PNG</button>
@@ -187,6 +185,10 @@ function App() {
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [listOpen, setListOpen] = useState(false);
   const [savedItems, setSavedItems] = useState(null);   // null=미로딩, []=빈
+  const [listMsg, setListMsg] = useState('');
+  const [saveName, setSaveName] = useState('');
+  const [token, setTokenState] = useState(() => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (_) { return ''; } });
+  const setToken = useCallback((v) => { setTokenState(v); try { if (v) localStorage.setItem(TOKEN_KEY, v); else localStorage.removeItem(TOKEN_KEY); } catch (_) {} }, []);
 
   const family = famOf(familyKey);
   const cards = family.sec() || [];
@@ -266,51 +268,89 @@ function App() {
 
   const flash = (msg) => { setStatus(msg); window.clearTimeout(flash._t); flash._t = window.setTimeout(() => setStatus(''), 3500); };
 
-  const getToken = () => {
-    let t = '';
-    try { t = localStorage.getItem(TOKEN_KEY) || ''; } catch (_) {}
-    if (!t) { t = window.prompt('관리자 토큰 (X-Admin-Token)') || ''; if (t) { try { localStorage.setItem(TOKEN_KEY, t); } catch (_) {} } }
-    return t;
-  };
+  /* ── 서버 저장/불러오기 (모달 통합, 토큰=상태) ── */
+  const refreshList = useCallback(async () => {
+    try {
+      const res = await fetch('/api/jamboree?list=1');
+      const data = await res.json();
+      setSavedItems(Array.isArray(data.items) ? data.items : []);
+    } catch (e) { setSavedItems([]); setListMsg('목록 불러오기 실패'); }
+  }, []);
+  const openList = useCallback(() => { setListOpen(true); setListMsg(''); setSavedItems(null); refreshList(); }, [refreshList]);
 
-  const onSave = useCallback(async () => {
-    const token = getToken(); if (!token) return;
-    setBusy(true); flash('저장 중…');
+  const saveWorking = useCallback(async () => {
+    if (!token) { setListMsg('관리자 토큰을 먼저 입력하세요'); return; }
+    setBusy(true); setListMsg('저장 중…');
     try {
       const state = Object.assign(window.CCStore.collect(), { brand });
       const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ state }) });
-      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} flash('토큰 오류'); return; }
-      if (!res.ok) { flash('저장 실패'); return; }
-      flash('저장됨 ✓');
-    } catch (e) { flash('네트워크 오류'); } finally { setBusy(false); }
-  }, [brand]);
+      if (res.status === 401) { setListMsg('토큰이 올바르지 않습니다'); return; }
+      if (!res.ok) { setListMsg('저장 실패 (' + res.status + ')'); return; }
+      setListMsg('작업 저장됨 ✓ (자동 저장 활성화)'); flash('저장됨 ✓');
+    } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
+  }, [brand, token]);
 
-  const onLoad = useCallback(async () => {
-    setBusy(true); flash('불러오는 중…');
+  const saveAsNew = useCallback(async () => {
+    if (!token) { setListMsg('관리자 토큰을 먼저 입력하세요'); return; }
+    const name = (saveName || brand.brand || '카드뉴스').trim();
+    setBusy(true); setListMsg('저장 중…');
+    try {
+      const state = Object.assign(window.CCStore.collect(), { brand });
+      const res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ name, state }) });
+      if (res.status === 401) { setListMsg('토큰이 올바르지 않습니다'); return; }
+      if (!res.ok) { setListMsg('저장 실패 (' + res.status + ')'); return; }
+      setListMsg('"' + name + '" 저장됨 ✓'); setSaveName(''); refreshList();
+    } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
+  }, [brand, token, saveName, refreshList]);
+
+  const loadWorking = useCallback(async () => {
+    setBusy(true); setListMsg('불러오는 중…');
     try {
       const res = await fetch('/api/jamboree');
       const data = await res.json();
-      if (!data || !data.state) { flash('저장본 없음'); return; }
+      if (!data || !data.state) { setListMsg('저장된 작업이 없습니다'); return; }
       window.CCStore.hydrate(data.state);
       if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
-      setRemount((n) => n + 1);
-      flash('불러옴 ✓');
-    } catch (e) { flash('불러오기 실패'); } finally { setBusy(false); }
+      setRemount((n) => n + 1); setListOpen(false); flash('불러옴 ✓');
+    } catch (e) { setListMsg('불러오기 실패'); } finally { setBusy(false); }
   }, []);
 
-  /* ── 자동 저장: 모든 변경(텍스트/도형/사진/트윅/덱/브랜드)을 디바운스로 작업 슬롯에 PUT ──
-   * 토큰이 있을 때만 동작(최초 1회 "작업 저장"으로 토큰 입력하면 이후 자동). */
+  const loadItem = useCallback(async (it) => {
+    setBusy(true); setListMsg('불러오는 중…');
+    try {
+      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id));
+      const data = await res.json();
+      if (!data || !data.state) { setListMsg('불러오기 실패'); return; }
+      window.CCStore.hydrate(data.state);
+      if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
+      setRemount((n) => n + 1); setListOpen(false); flash('불러옴 ✓');
+    } catch (e) { setListMsg('불러오기 실패'); } finally { setBusy(false); }
+  }, []);
+
+  const deleteItem = useCallback(async (it) => {
+    if (!token) { setListMsg('관리자 토큰을 먼저 입력하세요'); return; }
+    if (!window.confirm('"' + it.name + '" 삭제할까요?')) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE', headers: { 'X-Admin-Token': token } });
+      if (res.status === 401) { setListMsg('토큰이 올바르지 않습니다'); return; }
+      if (!res.ok) { setListMsg('삭제 실패'); return; }
+      setListMsg('삭제됨 ✓'); refreshList();
+    } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
+  }, [token, refreshList]);
+
+  /* ── 자동 저장: 모든 변경을 디바운스로 작업 슬롯에 PUT (토큰 있을 때만) ── */
   const brandRef = useRef(brand);
   useEffect(() => { brandRef.current = brand; }, [brand]);
+  const tokenRef = useRef(token);
+  useEffect(() => { tokenRef.current = token; }, [token]);
   const autosaveT = useRef(0);
-  const autosaveReady = useRef(false);   // 첫 emit(초기 마운트) 1회는 건너뜀
+  const autosaveReady = useRef(false);
   const doAutosave = useCallback(async () => {
-    let token = ''; try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (_) {}
-    if (!token) return;
+    const tk = tokenRef.current; if (!tk) return;
     try {
       const state = Object.assign(window.CCStore.collect(), { brand: brandRef.current });
-      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ state }) });
-      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} return; }
+      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json', 'X-Admin-Token': tk }, body: JSON.stringify({ state }) });
       if (res.ok) flash('자동 저장됨 ✓');
     } catch (_) {}
   }, []);
@@ -324,52 +364,6 @@ function App() {
     return () => { if (unsub) unsub(); window.clearTimeout(autosaveT.current); };
   }, [scheduleAutosave]);
   useEffect(() => { if (autosaveReady.current) scheduleAutosave(); /* eslint-disable-next-line */ }, [brand]);
-
-  /* ── 서버 저장 카드뉴스 목록 ── */
-  const refreshList = useCallback(async () => {
-    try {
-      const res = await fetch('/api/jamboree?list=1');
-      const data = await res.json();
-      setSavedItems(Array.isArray(data.items) ? data.items : []);
-    } catch (e) { setSavedItems([]); flash('목록 불러오기 실패'); }
-  }, []);
-  const openList = useCallback(() => { setListOpen(true); setSavedItems(null); refreshList(); }, [refreshList]);
-  const saveAsNew = useCallback(async () => {
-    const token = getToken(); if (!token) return;
-    const name = (window.prompt('카드뉴스 이름', brand.brand || '카드뉴스') || '').trim();
-    if (!name) return;
-    setBusy(true); flash('저장 중…');
-    try {
-      const state = Object.assign(window.CCStore.collect(), { brand });
-      const res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ name, state }) });
-      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} flash('토큰 오류'); return; }
-      if (!res.ok) { flash('저장 실패'); return; }
-      flash('목록에 저장됨 ✓'); refreshList();
-    } catch (e) { flash('네트워크 오류'); } finally { setBusy(false); }
-  }, [brand, refreshList]);
-  const loadItem = useCallback(async (it) => {
-    setBusy(true); flash('불러오는 중…');
-    try {
-      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id));
-      const data = await res.json();
-      if (!data || !data.state) { flash('불러오기 실패'); return; }
-      window.CCStore.hydrate(data.state);
-      if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
-      setRemount((n) => n + 1); setListOpen(false);
-      flash('불러옴 ✓');
-    } catch (e) { flash('불러오기 실패'); } finally { setBusy(false); }
-  }, []);
-  const deleteItem = useCallback(async (it) => {
-    const token = getToken(); if (!token) return;
-    if (!window.confirm('"' + it.name + '" 삭제할까요?')) return;
-    setBusy(true);
-    try {
-      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE', headers: { 'X-Admin-Token': token } });
-      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} flash('토큰 오류'); return; }
-      if (!res.ok) { flash('삭제 실패'); return; }
-      flash('삭제됨 ✓'); refreshList();
-    } catch (e) { flash('네트워크 오류'); } finally { setBusy(false); }
-  }, [refreshList]);
 
   const onPng = useCallback(async () => {
     const node = nativeRef.current; if (!node || !window.htmlToImage) { flash('준비 안 됨'); return; }
@@ -491,7 +485,7 @@ function App() {
             <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
           </div>
         </div>
-        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onSave={onSave} onLoad={onLoad} onList={openList} status={status} busy={busy} zipCount={deck.length} />
+        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onList={openList} status={status} busy={busy} zipCount={deck.length} />
       </header>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -697,27 +691,49 @@ function App() {
 
       {listOpen && (
         <div onClick={() => setListOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,12,28,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px,92vw)', maxHeight: '82vh', background: '#fff', borderRadius: 16, boxShadow: '0 30px 80px rgba(0,0,0,.4)', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(580px,94vw)', maxHeight: '88vh', background: '#fff', borderRadius: 16, boxShadow: '0 30px 80px rgba(0,0,0,.4)', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif" }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,.08)' }}>
-              <div style={{ fontWeight: 800, fontSize: 16, color: '#2b2630' }}>저장된 카드뉴스</div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: '#2b2630' }}>저장 · 불러오기</div>
               <button onClick={() => setListOpen(false)} style={{ border: 'none', background: 'none', fontSize: 22, lineHeight: 1, cursor: 'pointer', color: '#8b8492' }}>×</button>
             </div>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
-              <button disabled={busy} onClick={saveAsNew} style={{ width: '100%', border: '1.5px dashed ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '10px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ 현재 작업을 새 카드뉴스로 저장</button>
-            </div>
-            <div style={{ overflowY: 'auto', padding: '8px 12px 14px' }}>
-              {savedItems === null && <div style={{ padding: 24, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>불러오는 중…</div>}
-              {savedItems && savedItems.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>저장된 카드뉴스가 없습니다.</div>}
-              {savedItems && savedItems.map((it) => (
-                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', borderRadius: 10, background: '#f7f4fa', marginBottom: 6 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
-                    <div style={{ fontSize: 11.5, color: '#9a93a3', marginTop: 2 }}>{(it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
-                  </div>
-                  <button disabled={busy} onClick={() => loadItem(it)} style={{ border: 'none', background: P.purple, color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
-                  <button disabled={busy} onClick={() => deleteItem(it)} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#b4304a', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
+
+            <div style={{ overflowY: 'auto' }}>
+              {/* 관리자 토큰 */}
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+                <div style={{ ...fieldLabel, display: 'flex', justifyContent: 'space-between' }}><span>관리자 토큰</span><span style={{ color: token ? P.forest : '#c08a2a', fontWeight: 700 }}>{token ? '● 입력됨' : '○ 미입력'}</span></div>
+                <input type="password" value={token} placeholder="X-Admin-Token (저장·삭제에 필요)" onChange={(e) => setToken(e.target.value)} style={inputStyle} autoComplete="off" />
+                <p style={{ fontSize: 11.5, color: '#8b8492', margin: '6px 0 0', lineHeight: 1.5 }}>토큰 입력 후에는 모든 변경이 <b>자동 저장</b>됩니다. (불러오기·목록 보기는 토큰 불필요)</p>
+              </div>
+
+              {/* 저장 액션 */}
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+                <button disabled={busy} onClick={saveWorking} style={{ width: '100%', border: 'none', background: P.purple, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>현재 작업 저장 (덮어쓰기)</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input value={saveName} placeholder="새 카드뉴스 이름" onChange={(e) => setSaveName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                  <button disabled={busy} onClick={saveAsNew} style={{ flex: '0 0 auto', border: '1.5px solid ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>새로 저장</button>
                 </div>
-              ))}
+                {listMsg && <div style={{ fontSize: 12.5, color: /오류|실패|않|먼저/.test(listMsg) ? '#c0392b' : P.forest, fontWeight: 600, marginTop: 10 }}>{listMsg}</div>}
+              </div>
+
+              {/* 목록 */}
+              <div style={{ padding: '12px 16px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px' }}>
+                  <span style={fieldLabel}>저장된 카드뉴스</span>
+                  <button disabled={busy} onClick={loadWorking} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#5a5364', borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>최근 작업 불러오기</button>
+                </div>
+                {savedItems === null && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>불러오는 중…</div>}
+                {savedItems && savedItems.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>저장된 카드뉴스가 없습니다.<br />위 "새로 저장"으로 만들어 보세요.</div>}
+                {savedItems && savedItems.map((it) => (
+                  <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', borderRadius: 10, background: '#f7f4fa', marginBottom: 6 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+                      <div style={{ fontSize: 11.5, color: '#9a93a3', marginTop: 2 }}>{(it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
+                    </div>
+                    <button disabled={busy} onClick={() => loadItem(it)} style={{ border: 'none', background: P.purple, color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
+                    <button disabled={busy} onClick={() => deleteItem(it)} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#b4304a', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
