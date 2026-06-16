@@ -279,3 +279,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **채널(기본 페이스북)**: `EDEF.channel='페이스북'`, `CHANNELS`. 모달 상태·채널 셀렉트, 카드 `.chchip`(페북/인스타/유튜브 색). 링크 라벨/placeholder 페이스북 우선. export에 channel 포함.
 - **로고 장식**: 헤더에 `jamboree/assets/logo.png`(색 엠블럼)+favicon. 장소 = '강원특별자치도 고성군 토성면 잼버리로 244'(공식 엠블럼 Goseong 표기 반영).
 - 검증: 헤드리스 — 탭 전환·캘린더 칩 클릭→슬롯모달(채널 셀렉트)·셀＋추가·카드 채널칩/삭제·이미지 10/10 캡·리스트뷰 추가 모두 동작, 콘솔 에러 0.
+
+### 16.4 v0.9.24 — 카드(콘텐츠)별 서버 저장 + 업데이트 히스토리(Tiptap) + IP기록/보관고지
+- **per-card 저장**(`functions/api/jamboree-plan.js` 전면 재작성): 보드 전체 한 덩어리 저장 폐기 → 카드(슬롯)별 KV 키 `jp:s:<slotKey>` = `{edit, history:[{ts,author,ip,html}], deleted, updatedAt, author}`. 마케팅=`jp:marketing`. GET=list(prefix)+병렬 get로 `{slots,marketing}`. PUT는 `{slotKey,edit?,deleted?,addHistory?,author}` 또는 `{marketing,author}`.
+- 클라: `scheduleSync/doSync`(전체저장) 제거 → `saveCard(k)`(900ms 디바운스, 카드별)·`sendDelete(k)`·`addHistoryNote(k,html)`·`saveMarketing()`·`saveAll()`(서버 저장 버튼=전 카드 일괄). `applyServer(j)`가 slots→edits/extra/hidden/history 복원. 편집 핸들러 전부 `renderAfterEdit(s.k,s)`로 변경.
+- **업데이트 히스토리 = Tiptap 리치 에디터**: 모달에 히스토리 타임라인(작성자·시간·IP·렌더HTML) + 작성기. Tiptap v2 무료확장 전부를 **CDN ESM**(`esm.sh@2.11.5`, 빌드 없음, `window.__ttReady` 프라미스, 실패 시 contentEditable 폴백)로 로드: StarterKit+Underline/Link/Image/TextAlign/Highlight/Sub/Sup/TaskList/Table셋/TextStyle/Color/Typography/Placeholder. 24버튼 툴바. `addHistoryNote`→서버 append(작성자·IP 부여). `mdEditors` 라이프사이클(모달 닫기/새로고침 시 destroy).
+- **작성자 IP 기록**: `maskIp(clientIp)`를 히스토리 항목·레코드에 저장(공개 마스킹). 변경로그(`log`)에는 기존대로 기록.
+- **보관 고지 푸터**: 잼버리 종료(2026-08-09) 후 **3개월(~2026-11-09)** 보관 후 삭제 명시. **국문 주제 교체**: "평화를 잇다, 지구를 살리다, 미래를 개척하다". 카드뉴스 CTA(`/jamboree` 링크) 슬롯에 추가(본격 연동은 다음 단계).
+- 검증: node 구문 + 헤드리스 — Tiptap 18확장 로드·24버튼 툴바·ProseMirror 마운트·히스토리 추가/표시·per-card 저장 무에러·applyServer 복원(edit/history/extra/hidden/marketing)·푸터/슬로건, 콘솔 에러 0.

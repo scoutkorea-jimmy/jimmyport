@@ -6,6 +6,39 @@
 <meta name="robots" content="noindex">
 <title>제16회 한국잼버리 · 미디어부 SNS 운영 캘린더</title>
 <link rel="icon" type="image/png" href="jamboree/assets/logo.png">
+
+<!-- Tiptap (무료 확장 전부) — CDN ESM, 빌드 없음. 실패 시 plain textarea 폴백 -->
+<script type="module">
+(function(){
+  var V='2.11.5';
+  var U=function(n){ return 'https://esm.sh/@tiptap/'+n+'@'+V; };
+  window.__ttReady=(async function(){
+    try{
+      var m=await Promise.all([
+        import(U('core')), import(U('starter-kit')), import(U('extension-underline')),
+        import(U('extension-link')), import(U('extension-image')), import(U('extension-text-align')),
+        import(U('extension-highlight')), import(U('extension-subscript')), import(U('extension-superscript')),
+        import(U('extension-task-list')), import(U('extension-task-item')), import(U('extension-table')),
+        import(U('extension-table-row')), import(U('extension-table-header')), import(U('extension-table-cell')),
+        import(U('extension-text-style')), import(U('extension-color')), import(U('extension-typography')),
+        import(U('extension-placeholder'))
+      ]);
+      var d=function(x){ return x.default||x; };
+      var extensions=[
+        d(m[1]).configure({}),
+        d(m[2]), d(m[3]).configure({openOnClick:false,autolink:true}), d(m[4]),
+        d(m[5]).configure({types:['heading','paragraph']}),
+        d(m[6]).configure({multicolor:true}),
+        d(m[7]), d(m[8]), d(m[9]), d(m[10]).configure({nested:true}),
+        d(m[11]).configure({resizable:true}), d(m[12]), d(m[13]), d(m[14]),
+        d(m[15]), d(m[16]), d(m[17]),
+        d(m[18]).configure({placeholder:'업데이트 메모를 입력하세요…'})
+      ];
+      return { Editor: m[0].Editor, extensions: extensions };
+    }catch(err){ console.warn('Tiptap load failed', err); return null; }
+  })();
+})();
+</script>
 <style>
 :root{
   --bg:#F4F5F2; --surface:#FFFFFF; --ink:#1C211D; --muted:#6A706A; --line:#E0E2DD;
@@ -123,6 +156,38 @@ td.title .mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top
 .cell .cadd{margin-top:auto;align-self:flex-end;width:18px;height:18px;border-radius:5px;border:1px dashed var(--line);background:#fff;color:var(--muted);font-size:13px;line-height:1;cursor:pointer;padding:0;opacity:0;transition:opacity .12s}
 .cell.clickable:hover .cadd{opacity:1}
 .cell .citem{cursor:pointer}
+/* update history + tiptap memo */
+.histsec{border-top:1px dashed var(--line);margin-top:8px;padding-top:10px}
+.histlist{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:240px;overflow:auto}
+.histitem{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:8px 10px;background:#FAFBF9}
+.histmeta{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.histhtml{font-size:13px;line-height:1.5}
+.histhtml p{margin:.25em 0} .histhtml :is(h1,h2,h3){margin:.3em 0;line-height:1.25}
+.histhtml ul,.histhtml ol{margin:.25em 0;padding-left:1.4em}
+.histhtml blockquote{border-left:3px solid var(--line);margin:.3em 0;padding-left:.7em;color:var(--muted)}
+.histhtml table{border-collapse:collapse} .histhtml td,.histhtml th{border:1px solid var(--line);padding:2px 6px}
+.histhtml mark{background:#FFE8A3;padding:0 2px;border-radius:2px} .histhtml a{color:var(--c-intl)}
+.histhtml pre{background:#0d1117;color:#e6edf3;padding:8px;border-radius:6px;overflow:auto;font-size:12px}
+.memo-composer{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.tt-toolbar{display:flex;flex-wrap:wrap;gap:2px;padding:6px;background:#F4F5F2;border-bottom:1px solid var(--line);align-items:center}
+.ttb{min-width:26px;height:26px;padding:0 6px;border:1px solid transparent;background:transparent;border-radius:5px;cursor:pointer;font-size:12px;color:var(--ink);line-height:1}
+.ttb:hover{background:#E7EFEA} .ttb.on{background:var(--accent);color:#fff}
+.ttcolor{width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:5px;background:#fff;cursor:pointer}
+.tt-editor{padding:10px 12px;min-height:88px;max-height:300px;overflow:auto;font-size:13.5px;line-height:1.55}
+.tt-editor .ProseMirror{outline:none;min-height:64px}
+.tt-editor .ProseMirror p.is-editor-empty:first-child::before{content:attr(data-placeholder);color:#B7BBB5;float:left;height:0;pointer-events:none}
+.tt-editor.fallback{min-height:64px;outline:none} .tt-editor.fallback:empty::before{content:attr(data-ph);color:#B7BBB5}
+.tt-editor :is(h1,h2,h3){margin:.3em 0;line-height:1.25}
+.tt-editor ul,.tt-editor ol{padding-left:1.4em;margin:.25em 0}
+.tt-editor ul[data-type=taskList]{list-style:none;padding-left:.2em}
+.tt-editor ul[data-type=taskList] li{display:flex;gap:6px;align-items:flex-start}
+.tt-editor blockquote{border-left:3px solid var(--line);padding-left:.7em;color:var(--muted)}
+.tt-editor table{border-collapse:collapse} .tt-editor td,.tt-editor th{border:1px solid var(--line);padding:2px 6px;min-width:36px}
+.tt-editor mark{background:#FFE8A3} .tt-editor a{color:var(--c-intl)}
+.tt-editor pre{background:#0d1117;color:#e6edf3;padding:8px;border-radius:6px;overflow:auto;font-size:12px}
+.addhist{margin:8px}
+.foot{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);line-height:1.6}
+.foot b{color:var(--ink)}
 /* sync bar */
 .syncbar{position:sticky;top:0;z-index:30;background:rgba(244,245,242,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:-32px -20px 0;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .syncbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;width:140px}
@@ -258,6 +323,10 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
     <p class="note">잼버리 외 연간 스카우트 마케팅 일정. 칸을 클릭해 직접 수정/추가하세요. (날짜는 <code>YYYY-MM-DD</code> 또는 <code>2026-03</code> 형식)</p>
   </section>
 
+  <footer class="foot">
+    <p><b>개인정보 · 데이터 보관 안내</b> — 본 보드는 미디어부 내부 운영용입니다. 콘텐츠 작성/수정 시 <b>작성자 이름</b>과 <b>접속 IP(마스킹)</b>가 업데이트 기록에 함께 저장됩니다. 입력 데이터는 혹시 모를 상황에 대비해 제16회 한국잼버리 종료(2026-08-09) 후 <b>3개월(~2026-11-09)</b>까지만 보관하며, 그 이후 일괄 삭제됩니다.</p>
+  </footer>
+
 </div>
 
 <!-- day detail modal -->
@@ -282,7 +351,7 @@ var RANGE_END   = '2026-08-09';
 var WD = ['일','월','화','수','목','금','토'];
 var HEADER_DEF = {
   title:'제16회 한국잼버리 · 미디어부 SNS 운영 캘린더',
-  slogan:'평화를 심다, 지구를 이끌다, 미래를 개척하다 (Peace and Planet, Ready for Future)',
+  slogan:'평화를 잇다, 지구를 살리다, 미래를 개척하다 (Peace and Planet, Ready for Future)',
   place:'강원특별자치도 고성군 토성면 잼버리로 244',
   period:'2026-08-05 ~ 2026-08-09'
 };
@@ -347,17 +416,18 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}}; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}}; }
 var state = stateDefaults();
 function adopt(s){ return Object.assign(stateDefaults(), s||{}); }
 function loadLocal(){ try{var r=localStorage.getItem(LS); if(r) state=adopt(JSON.parse(r));}catch(e){} }
 function saveLocal(){ prune(); try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} }
 function key(date,type){return date+'#'+type;}
-function EDEF(){ return {title:'',link:'',images:[],status:'planned',memo:'',channel:'페이스북'}; }
+function EDEF(){ return {title:'',link:'',images:[],status:'planned',channel:'페이스북'}; }
 function getEdit(k){ return state.edits[k] || (state.edits[k]=EDEF()); }   // editing (persists)
 function peek(k){ return state.edits[k] || EDEF(); }                       // read-only (no store)
-function isDefaultEdit(e){ return !e.title && !e.link && (!e.images||!e.images.length) && (!e.status||e.status==='planned') && !e.memo && (!e.channel||e.channel==='페이스북'); }
-function prune(){ Object.keys(state.edits).forEach(function(k){ if(isDefaultEdit(state.edits[k])) delete state.edits[k]; }); }
+function hist(k){ return state.history[k] || []; }
+function isDefaultEdit(e){ return !e.title && !e.link && (!e.images||!e.images.length) && (!e.status||e.status==='planned') && (!e.channel||e.channel==='페이스북'); }
+function prune(){ Object.keys(state.edits).forEach(function(k){ if(isDefaultEdit(state.edits[k]) && !(state.history[k]&&state.history[k].length) && k.indexOf('#extra#')<0) delete state.edits[k]; }); }
 function defaultMarketing(){
   return [
     {id:mkid(),date:'2026-02-22',title:'세계 스카우트의 날 (Thinking Day)',channel:'인스타·페이스북',memo:'B-P 탄생 기념 · 글로벌 연대 메시지'},
@@ -369,34 +439,91 @@ function defaultMarketing(){
 }
 var _mk=0; function mkid(){_mk++;return 'mk'+Date.now().toString(36)+_mk;}
 
-/* ===== sync ===== */
-var syncTimer=null, lastSavedAt=null;
+/* ===== sync (per-card save) ===== */
 function setSt(msg,ok){var e=document.getElementById('syncst'); e.innerHTML = ok?('<b>'+msg+'</b>'):msg;}
-function scheduleSync(){
-  saveLocal();
-  var author=(document.getElementById('author').value||'').trim();
-  if(!author){ setSt('로컬 편집 중 (작성자 입력 시 서버 저장)'); return; }
-  setSt('저장 대기…');
-  if(syncTimer) clearTimeout(syncTimer);
-  syncTimer=setTimeout(doSync,1500);
+function authorVal(){ return (document.getElementById('author').value||'').trim(); }
+function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
+function slotEditPayload(k,s){
+  var e=peek(k);
+  return {title:e.title||'',link:e.link||'',channel:e.channel||'페이스북',status:e.status||'planned',images:e.images||[],category:(s&&s.category)||''};
 }
-function doSync(){
-  var author=(document.getElementById('author').value||'').trim();
-  if(!author){ setSt('로컬 편집 중'); return; }
-  prune(); setSt('저장 중…');
+var cardTimers={};
+function saveCard(k,s){            // debounced per-card server save
+  saveLocal();
+  if(!authorVal()){ setSt('로컬 편집 중 (작성자 입력 시 카드별 서버 저장)'); return; }
+  if(cardTimers[k]) clearTimeout(cardTimers[k]);
+  setSt('저장 대기…');
+  cardTimers[k]=setTimeout(function(){ doSaveCard(k,s); }, 900);
+}
+function doSaveCard(k,s){
+  var author=authorVal(); if(!author) return;
+  setSt('카드 저장 중…');
   fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
-    body:JSON.stringify({state:state,author:author})})
+    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k,s), author:author})})
     .then(function(r){return r.json();})
-    .then(function(j){ if(j&&j.ok){ lastSavedAt=j.updatedAt; setSt('서버 저장됨 · '+fmtTime(j.updatedAt),true);} else setSt('저장 실패'); })
+    .then(function(j){ setSt(j&&j.ok?('카드 저장됨 · '+fmtTime(j.slot&&j.slot.updatedAt)):'저장 실패', j&&j.ok); })
     .catch(function(){ setSt('저장 실패 (네트워크)'); });
 }
-function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
+function sendDelete(k){
+  saveLocal();
+  if(!authorVal()) return;
+  fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+    body:JSON.stringify({slotKey:k, deleted:true, author:authorVal()})})
+    .then(function(r){return r.json();}).then(function(){ setSt('카드 삭제됨',true); }).catch(function(){});
+}
+function addHistoryNote(k, html){
+  if(!html || !html.replace(/<[^>]*>/g,'').trim()) { toast('내용을 입력하세요'); return; }
+  state.history[k]=state.history[k]||[];
+  var author=authorVal();
+  if(!author){ state.history[k].push({ts:new Date().toISOString(),author:'(로컬)',ip:'',html:html}); saveLocal(); refreshModal(); renderAfterEdit(); toast('작성자 이름 입력 시 서버에 기록됩니다'); return; }
+  setSt('기록 저장 중…');
+  fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k), addHistory:{html:html}, author:author})})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(j&&j.slot){ state.history[k]=j.slot.history||[]; saveLocal(); refreshModal(); renderAfterEdit(); setSt('업데이트 기록 추가됨',true); toast('업데이트 기록 추가됨'); } else setSt('기록 저장 실패'); })
+    .catch(function(){ setSt('기록 저장 실패'); });
+}
+var mktTimer=null;
+function saveMarketing(){
+  saveLocal();
+  if(!authorVal()) return;
+  if(mktTimer) clearTimeout(mktTimer);
+  mktTimer=setTimeout(function(){
+    fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+      body:JSON.stringify({marketing:state.marketing||[], author:authorVal()})})
+      .then(function(r){return r.json();}).then(function(){ setSt('마케팅 저장됨',true); }).catch(function(){});
+  }, 900);
+}
+function saveAll(){
+  var author=authorVal(); if(!author){ toast('작성자 이름을 먼저 입력하세요'); return; }
+  prune();
+  var ks={}; Object.keys(state.edits).forEach(function(k){ks[k]=1;}); Object.keys(state.hidden).forEach(function(k){ks[k]=1;});
+  Object.keys(state.history).forEach(function(k){ if((state.history[k]||[]).length) ks[k]=1; });
+  var arr=Object.keys(ks);
+  setSt('전체 저장 중… ('+arr.length+')');
+  Promise.all(arr.map(function(k){
+    var body = state.hidden[k] ? {slotKey:k,deleted:true,author:author} : {slotKey:k,edit:slotEditPayload(k),author:author};
+    return fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).catch(function(){return null;});
+  })).then(function(){
+    return fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({marketing:state.marketing||[],author:author})});
+  }).then(function(){ setSt('전체 저장 완료',true); toast('서버에 전체 저장됨'); }).catch(function(){ setSt('전체 저장 일부 실패'); });
+}
+function applyServer(j){
+  state.edits={}; state.extra={}; state.hidden={}; state.history={};
+  var slots=j&&j.slots||{};
+  Object.keys(slots).forEach(function(k){
+    var r=slots[k]||{}; var isExtra=k.indexOf('#extra#')>=0;
+    if(r.deleted){ if(!isExtra) state.hidden[k]=true; return; }
+    if(r.edit) state.edits[k]=Object.assign(EDEF(), r.edit);
+    if(r.history&&r.history.length) state.history[k]=r.history;
+    if(isExtra){ var p=k.split('#'), date=p[0], id=p[2]; if(!state.extra[date]) state.extra[date]=[]; if(!state.extra[date].some(function(x){return x.id===id;})) state.extra[date].push({id:id,category:(r.edit&&r.edit.category)||'콘텐츠'}); }
+  });
+  if(j&&j.marketing) state.marketing=j.marketing;
+}
 function reloadServer(){
   setSt('불러오는 중…');
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
-    if(j&&j.state){ state=adopt(j.state);
-      saveLocal(); renderAll(); setSt('서버에서 불러옴'+(j.author?(' · '+j.author):''),true); toast('서버 데이터 불러옴'); }
-    else setSt('서버에 저장된 보드 없음');
+    applyServer(j); saveLocal(); renderAll(); setSt('서버에서 불러옴',true); toast('서버 데이터 불러옴');
   }).catch(function(){ setSt('불러오기 실패'); });
 }
 
@@ -455,7 +582,7 @@ function renderCalendar(){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); var sl=findSlot(byDate[rc.date], el.getAttribute('data-sk')); if(sl) openSlot(rc.date, sl); });
       });
       var ab=cell.querySelector('.cadd');
-      if(ab) ab.addEventListener('click',function(ev){ ev.stopPropagation(); var k=addContent(rc.date); renderAfterEdit(); openSlot(rc.date, findSlot(byDate[rc.date],k)); });
+      if(ab) ab.addEventListener('click',function(ev){ ev.stopPropagation(); var k=addContent(rc.date); var sl=findSlot(byDate[rc.date],k); renderAfterEdit(k,sl); openSlot(rc.date, sl); });
       cell.addEventListener('click',function(){ openDay(rc.date); });
     })(rec);
     cal.appendChild(cell);
@@ -519,7 +646,7 @@ function cardEl(d,s,e){
   var bits=['<span class="chchip '+chanClass(ch)+'">'+esc(ch)+'</span>'];
   if(e.link) bits.push('<span class="minic">🔗</span>');
   if(e.images&&e.images.length) bits.push('<span class="minic">🖼 '+e.images.length+'</span>');
-  if(e.memo) bits.push('<span class="minic">📝</span>');
+  if(hist(s.k).length) bits.push('<span class="minic">📝 '+hist(s.k).length+'</span>');
   var card=document.createElement('div'); card.className='card'; card.style.borderLeftColor=col;
   card.innerHTML=
     '<div class="crow1"><span class="dlab">'+(d.dlabel||'—')+'</span><span>'+d.label+' '+d.weekday+'</span>'+
@@ -528,13 +655,13 @@ function cardEl(d,s,e){
     '<div class="ctitle'+(title?'':' empty')+'">'+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
     '<div class="cmeta">'+bits.join('')+'</div>';
   var del=document.createElement('button'); del.className='cdel'; del.textContent='✕'; del.title='삭제';
-  del.onclick=function(ev){ ev.stopPropagation(); if(confirm('이 콘텐츠를 삭제할까요?')){ deleteSlot(d.date,s); renderAfterEdit(); } };
+  del.onclick=function(ev){ ev.stopPropagation(); if(confirm('이 콘텐츠를 삭제할까요?')){ deleteSlot(d.date,s); afterDelete(s.k); } };
   card.appendChild(del);
   var seg=document.createElement('div'); seg.className='seg';
   STAGES.forEach(function(st){
     var btn=document.createElement('button'); btn.textContent=st[1];
     if((e.status||'planned')===st[0]){ btn.style.background=STCOL[st[0]]; btn.style.color='#fff'; btn.style.fontWeight='700'; }
-    btn.onclick=function(ev){ ev.stopPropagation(); getEdit(s.k).status=st[0]; renderAfterEdit(); };
+    btn.onclick=function(ev){ ev.stopPropagation(); getEdit(s.k).status=st[0]; renderAfterEdit(s.k,s); };
     seg.appendChild(btn);
   });
   card.appendChild(seg);
@@ -553,8 +680,11 @@ function showModal(){
   refreshModal();
   document.getElementById('scrim').classList.add('show');
 }
-function closeDay(){ document.getElementById('scrim').classList.remove('show'); curView=null; }
+function closeDay(){ destroyEditors(); document.getElementById('scrim').classList.remove('show'); curView=null; }
+var mdEditors=[];
+function destroyEditors(){ mdEditors.forEach(function(ed){ try{ed.destroy();}catch(e){} }); mdEditors=[]; }
 function refreshModal(){
+  destroyEditors();
   var rec=byDate[curView.date], body=document.getElementById('md-body'); body.innerHTML='';
   if(curView.mode==='slot'){
     body.appendChild(slotEl(rec,curView.slot));
@@ -562,9 +692,8 @@ function refreshModal(){
     daySlots(rec).forEach(function(s){ body.appendChild(slotEl(rec,s)); });
     var add=document.createElement('button'); add.className='btn ghost sm addslot'; add.textContent='+ 콘텐츠 슬롯 추가';
     add.onclick=function(){
-      if(!state.extra[curView.date]) state.extra[curView.date]=[];
-      state.extra[curView.date].push({id:mkid(),category:'콘텐츠'});
-      refreshModal(); renderAfterEdit();
+      var k=addContent(curView.date); var sl=findSlot(byDate[curView.date],k);
+      refreshModal(); renderAfterEdit(k,sl);
     };
     body.appendChild(add);
   }
@@ -579,17 +708,18 @@ function slotEl(rec,s){
   var rm=document.createElement('button'); rm.className='rm'; rm.textContent='삭제';
   rm.onclick=function(){
     if(!confirm('이 콘텐츠를 삭제할까요?')) return;
+    var dk=s.k;
     deleteSlot(curView.date, s);
     if(curView.mode==='slot') closeDay(); else refreshModal();
-    renderAfterEdit();
+    afterDelete(dk);
   };
   head.appendChild(rm);
   wrap.appendChild(head);
 
   // title
-  wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 참가국 ① 일본 대표단', function(v){ e.title=v; renderAfterEdit(true); })));
+  wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 참가국 ① 일본 대표단', function(v){ e.title=v; renderAfterEdit(s.k,s); })));
   // link (페이스북 우선)
-  var linkIn=inputEl('url', e.link||'', 'https://facebook.com/… (게시물 링크)', function(v){ e.link=v.trim(); updLinkPrev(); renderAfterEdit(true); });
+  var linkIn=inputEl('url', e.link||'', 'https://facebook.com/… (게시물 링크)', function(v){ e.link=v.trim(); updLinkPrev(); renderAfterEdit(s.k,s); });
   var linkFld=fld('콘텐츠 링크 (페이스북 등)', linkIn);
   var prev=document.createElement('div'); prev.className='linkprev';
   function updLinkPrev(){ prev.innerHTML = e.link?('<a href="'+esc(e.link)+'" target="_blank" rel="noopener">'+esc(e.link)+' ↗</a>'):''; }
@@ -602,17 +732,13 @@ function slotEl(rec,s){
   var r2=document.createElement('div'); r2.className='row2';
   var sel=document.createElement('select');
   ['planned','draft','ready'].forEach(function(st){var o=document.createElement('option');o.value=st;o.textContent=STATUS_LABEL[st];if((e.status||'planned')===st)o.selected=true;sel.appendChild(o);});
-  sel.onchange=function(){ e.status=sel.value; renderAfterEdit(); };
+  sel.onchange=function(){ e.status=sel.value; renderAfterEdit(s.k,s); };
   var chsel=document.createElement('select');
   CHANNELS.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;if((e.channel||'페이스북')===c)o.selected=true;chsel.appendChild(o);});
-  chsel.onchange=function(){ e.channel=chsel.value; renderAfterEdit(); };
+  chsel.onchange=function(){ e.channel=chsel.value; renderAfterEdit(s.k,s); };
   r2.appendChild(sel); r2.appendChild(chsel); row.appendChild(r2); wrap.appendChild(row);
-  // memo
-  var memo=document.createElement('input'); memo.type='text'; memo.value=e.memo||''; memo.placeholder='담당자·비고';
-  memo.oninput=function(){ e.memo=memo.value; renderAfterEdit(true); };
-  wrap.appendChild(fld('메모', memo));
 
-  // images (max 10)
+  // images (max 10) — 대부분 카드뉴스
   var imgFld=document.createElement('div'); imgFld.className='fld';
   var cnt=(e.images||[]).length;
   imgFld.innerHTML='<label>업로드 콘텐츠 이미지 ('+cnt+'/'+MAX_IMG+')</label>';
@@ -621,21 +747,108 @@ function slotEl(rec,s){
     var th=document.createElement('div'); th.className='th';
     th.innerHTML='<img src="'+esc(url)+'" alt=""><button class="del" title="삭제">×</button>';
     th.querySelector('img').onclick=function(){ openLightbox(url); };
-    th.querySelector('.del').onclick=function(ev){ ev.stopPropagation(); e.images.splice(idx,1); refreshModal(); renderAfterEdit(); };
+    th.querySelector('.del').onclick=function(ev){ ev.stopPropagation(); e.images.splice(idx,1); refreshModal(); renderAfterEdit(s.k,s); };
     grid.appendChild(th);
   });
   if(cnt<MAX_IMG){
     var add=document.createElement('label'); add.className='add'; add.textContent='+';
     var fileIn=document.createElement('input'); fileIn.type='file'; fileIn.accept='image/*'; fileIn.multiple=true; fileIn.style.display='none';
-    fileIn.onchange=function(){ handleFiles(fileIn.files, e, add); };
+    fileIn.onchange=function(){ handleFiles(fileIn.files, e, add, s.k, s); };
     add.appendChild(fileIn); grid.appendChild(add);
   }
   imgFld.appendChild(grid);
   var hint=document.createElement('div'); hint.className='note'; hint.style.marginTop='6px';
-  hint.textContent='최대 '+MAX_IMG+'장 · 업로드 시 자동 축소(1600px) 후 서버 저장';
+  hint.innerHTML='최대 '+MAX_IMG+'장 · 자동 축소(1600px) 후 서버 저장 · <a href="/jamboree" target="_blank" rel="noopener">🎨 카드뉴스 제작기 열기 ↗</a>';
   imgFld.appendChild(hint);
   wrap.appendChild(imgFld);
+
+  // update history (Tiptap memo)
+  var hsec=document.createElement('div'); hsec.className='fld histsec';
+  hsec.innerHTML='<label>업데이트 기록 (메모 · 누가 언제 무엇을)</label>';
+  hsec.appendChild(buildHistoryList(s.k));
+  hsec.appendChild(buildMemoComposer(s.k));
+  wrap.appendChild(hsec);
   return wrap;
+}
+/* ===== Tiptap memo + history ===== */
+function fmtDateTime(s){ try{var d=new Date(s);return (''+d.getFullYear()).slice(2)+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
+function sanitizeHtml(h){ return (h||'').replace(/<\s*script/gi,'&lt;script').replace(/\son\w+\s*=/gi,' data-x='); }
+function buildHistoryList(k){
+  var box=document.createElement('div'); box.className='histlist';
+  var entries=hist(k).slice().reverse();
+  if(!entries.length){ box.innerHTML='<div class="note" style="margin:4px 0">아직 업데이트 기록이 없습니다. 아래에서 첫 메모를 남겨보세요.</div>'; return box; }
+  entries.forEach(function(h){
+    var item=document.createElement('div'); item.className='histitem';
+    var meta=document.createElement('div'); meta.className='histmeta';
+    meta.textContent=(h.author||'익명')+' · '+fmtDateTime(h.ts)+(h.ip?(' · '+h.ip):'');
+    var content=document.createElement('div'); content.className='histhtml'; content.innerHTML=sanitizeHtml(h.html||'');
+    item.appendChild(meta); item.appendChild(content); box.appendChild(item);
+  });
+  return box;
+}
+function buildMemoComposer(k){
+  var box=document.createElement('div'); box.className='memo-composer';
+  var tb=document.createElement('div'); tb.className='tt-toolbar';
+  var ed=document.createElement('div'); ed.className='tt-editor';
+  var addBtn=document.createElement('button'); addBtn.type='button'; addBtn.className='btn sm solid addhist'; addBtn.textContent='＋ 업데이트 기록 추가'; addBtn.disabled=true;
+  box.appendChild(tb); box.appendChild(ed); box.appendChild(addBtn);
+  function fallback(){
+    ed.contentEditable='true'; ed.classList.add('fallback'); ed.setAttribute('data-ph','업데이트 메모를 입력하세요…');
+    tb.innerHTML='<span class="note" style="margin:0">서식 도구를 불러오지 못했습니다 — 일반 텍스트로 기록됩니다.</span>';
+    addBtn.disabled=false;
+    addBtn.onclick=function(){ addHistoryNote(k, ed.innerHTML); ed.innerHTML=''; };
+  }
+  if(window.__ttReady){
+    window.__ttReady.then(function(TT){
+      if(!TT){ fallback(); return; }
+      try{
+        var editor=new TT.Editor({element:ed, extensions:TT.extensions, content:''});
+        mdEditors.push(editor);
+        buildToolbar(tb, editor);
+        addBtn.disabled=false;
+        addBtn.onclick=function(){ addHistoryNote(k, editor.getHTML()); editor.commands.clearContent(); };
+      }catch(err){ console.warn('editor init failed', err); fallback(); }
+    });
+  } else fallback();
+  return box;
+}
+function buildToolbar(tb, ed){
+  tb.innerHTML='';
+  var items=[];
+  function add(label,title,run,active){
+    var btn=document.createElement('button'); btn.type='button'; btn.className='ttb'; btn.title=title; btn.innerHTML=label;
+    btn.onmousedown=function(ev){ ev.preventDefault(); };
+    btn.onclick=function(){ run(); sync(); };
+    btn._active=active||null; tb.appendChild(btn); items.push(btn); return btn;
+  }
+  add('<b>B</b>','굵게',function(){ed.chain().focus().toggleBold().run();},function(){return ed.isActive('bold');});
+  add('<i>I</i>','기울임',function(){ed.chain().focus().toggleItalic().run();},function(){return ed.isActive('italic');});
+  add('<u>U</u>','밑줄',function(){ed.chain().focus().toggleUnderline().run();},function(){return ed.isActive('underline');});
+  add('<s>S</s>','취소선',function(){ed.chain().focus().toggleStrike().run();},function(){return ed.isActive('strike');});
+  add('H1','제목1',function(){ed.chain().focus().toggleHeading({level:1}).run();},function(){return ed.isActive('heading',{level:1});});
+  add('H2','제목2',function(){ed.chain().focus().toggleHeading({level:2}).run();},function(){return ed.isActive('heading',{level:2});});
+  add('H3','제목3',function(){ed.chain().focus().toggleHeading({level:3}).run();},function(){return ed.isActive('heading',{level:3});});
+  add('• 목록','글머리 목록',function(){ed.chain().focus().toggleBulletList().run();},function(){return ed.isActive('bulletList');});
+  add('1. 목록','번호 목록',function(){ed.chain().focus().toggleOrderedList().run();},function(){return ed.isActive('orderedList');});
+  add('☑ 체크','체크리스트',function(){ed.chain().focus().toggleTaskList().run();},function(){return ed.isActive('taskList');});
+  add('❝','인용',function(){ed.chain().focus().toggleBlockquote().run();},function(){return ed.isActive('blockquote');});
+  add('&lt;/&gt;','인라인 코드',function(){ed.chain().focus().toggleCode().run();},function(){return ed.isActive('code');});
+  add('▤','코드블록',function(){ed.chain().focus().toggleCodeBlock().run();},function(){return ed.isActive('codeBlock');});
+  add('🖍','형광펜',function(){ed.chain().focus().toggleHighlight().run();},function(){return ed.isActive('highlight');});
+  add('🔗','링크',function(){ var u=prompt('링크 URL'); if(u){ed.chain().focus().extendMarkRange('link').setLink({href:u}).run();} else {ed.chain().focus().unsetLink().run();} },function(){return ed.isActive('link');});
+  add('⬅','왼쪽 정렬',function(){ed.chain().focus().setTextAlign('left').run();},function(){return ed.isActive({textAlign:'left'});});
+  add('⬌','가운데 정렬',function(){ed.chain().focus().setTextAlign('center').run();},function(){return ed.isActive({textAlign:'center'});});
+  add('➡','오른쪽 정렬',function(){ed.chain().focus().setTextAlign('right').run();},function(){return ed.isActive({textAlign:'right'});});
+  add('x²','위첨자',function(){ed.chain().focus().toggleSuperscript().run();},function(){return ed.isActive('superscript');});
+  add('x₂','아래첨자',function(){ed.chain().focus().toggleSubscript().run();},function(){return ed.isActive('subscript');});
+  add('▦ 표','표 삽입',function(){ed.chain().focus().insertTable({rows:3,cols:3,withHeaderRow:true}).run();});
+  add('―','구분선',function(){ed.chain().focus().setHorizontalRule().run();});
+  var color=document.createElement('input'); color.type='color'; color.className='ttcolor'; color.title='글자색'; color.value='#1C211D';
+  color.onchange=function(){ ed.chain().focus().setColor(color.value).run(); }; tb.appendChild(color);
+  add('↶','실행취소',function(){ed.chain().focus().undo().run();});
+  add('↷','다시실행',function(){ed.chain().focus().redo().run();});
+  function sync(){ items.forEach(function(b){ if(b._active){ try{ b.classList.toggle('on', !!b._active()); }catch(e){} } }); }
+  ed.on('selectionUpdate',sync); ed.on('transaction',sync); sync();
 }
 function fld(label, inputNode){
   var f=document.createElement('div'); f.className='fld';
@@ -649,7 +862,7 @@ function inputEl(type,val,ph,oninput){
 }
 
 /* image upload (downscale -> /api/image) */
-function handleFiles(files, edit, addBtn){
+function handleFiles(files, edit, addBtn, k, s){
   if(!files||!files.length) return;
   if(!edit.images) edit.images=[];
   var remaining=MAX_IMG-edit.images.length;
@@ -658,7 +871,7 @@ function handleFiles(files, edit, addBtn){
   if(list.length>remaining){ toast('최대 '+MAX_IMG+'장 (초과 '+(list.length-remaining)+'장 제외)'); list=list.slice(0,remaining); }
   addBtn.classList.add('busy');
   (function next(){
-    if(!list.length){ addBtn.classList.remove('busy'); refreshModal(); renderAfterEdit(); return; }
+    if(!list.length){ addBtn.classList.remove('busy'); refreshModal(); renderAfterEdit(k,s); return; }
     var f=list.shift();
     downscale(f,1600,0.85).then(function(blob){ return uploadBlob(blob); })
       .then(function(url){ if(url && edit.images.length<MAX_IMG){ edit.images.push(url); } next(); })
@@ -700,20 +913,21 @@ function renderMarketing(){
       '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
       '<td><button class="rm" style="border:none;background:none;color:#B85C49;cursor:pointer;font-size:13px">✕</button></td>';
     tr.querySelectorAll('td.mk').forEach(function(td){
-      td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); scheduleSync(); });
+      td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveMarketing(); });
     });
-    tr.querySelector('.rm').onclick=function(){ state.marketing=state.marketing.filter(function(x){return x!==m;}); renderMarketing(); scheduleSync(); };
+    tr.querySelector('.rm').onclick=function(){ state.marketing=state.marketing.filter(function(x){return x!==m;}); renderMarketing(); saveMarketing(); };
     tb.appendChild(tr);
   });
 }
 
 /* ===== render orchestration ===== */
 function renderAll(){ renderHeader(); renderCalendar(); renderBoard(); renderMarketing(); }
-function renderAfterEdit(){
-  // persist + refresh overview (calendar + board); modal stays as-is
+function renderAfterEdit(k,s){
+  // refresh overview (calendar + board); save the affected card (per-card)
   renderCalendar(); renderBoard();
-  scheduleSync();
+  if(k) saveCard(k,s);
 }
+function afterDelete(k){ renderCalendar(); renderBoard(); sendDelete(k); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},1800);}
 
@@ -721,7 +935,7 @@ function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.c
 function exportJSON(){
   var out={meta:hdr(),event_day:EVENT_DAY,generated:todayISO(),days:DAYS.map(function(d){
     return {date:d.date,dlabel:d.dlabel,weekday:d.weekday,phase:d.phase,items:daySlots(d).map(function(s){
-      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',link:e.link||'',channel:e.channel||'페이스북',images:e.images||[],status:e.status||'planned',memo:e.memo||''};
+      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',link:e.link||'',channel:e.channel||'페이스북',images:e.images||[],status:e.status||'planned',history:hist(s.k)};
     })};
   }),marketing:state.marketing||[]};
   var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -748,13 +962,13 @@ function init(){
   renderAll();
   // try server (shared board) — overrides local if present
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
-    if(j&&j.state){ state=adopt(j.state); saveLocal(); renderAll();
-      setSt('서버 보드 불러옴'+(j.author?(' · '+j.author):''),true); }
-    else setSt(au?'서버 자동 저장 켜짐':'로컬 편집 중 (작성자 입력 시 서버 저장)');
+    if(j && j.slots && Object.keys(j.slots).length){ applyServer(j); saveLocal(); renderAll();
+      setSt('서버 보드 불러옴',true); }
+    else setSt(au?'카드별 서버 자동 저장 켜짐':'로컬 편집 중 (작성자 입력 시 카드별 서버 저장)');
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 
   document.getElementById('author').addEventListener('input',function(){ localStorage.setItem(LS_AUTHOR,this.value.trim()); });
-  document.getElementById('save-now').onclick=doSync;
+  document.getElementById('save-now').onclick=saveAll;
   document.getElementById('reload').onclick=reloadServer;
   document.getElementById('export').onclick=exportJSON;
   // view tabs
@@ -766,9 +980,9 @@ function init(){
   ad.value=(td>='2026-06-15'&&td<='2026-08-09')?td:'2026-06-26';
   document.getElementById('add-content').onclick=function(){
     var d=ad.value; if(!d||!byDate[d]){ toast('범위 내 날짜를 선택하세요 (6/15~8/9)'); return; }
-    var k=addContent(d); renderAfterEdit(); openSlot(d, findSlot(byDate[d],k));
+    var k=addContent(d); var sl=findSlot(byDate[d],k); renderAfterEdit(k,sl); openSlot(d, sl);
   };
-  document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); scheduleSync(); };
+  document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); saveMarketing(); };
   document.getElementById('md-close').onclick=closeDay;
   document.getElementById('scrim').addEventListener('click',function(e){ if(e.target===this) closeDay(); });
   document.getElementById('lightbox').addEventListener('click',function(){ this.classList.remove('show'); });
