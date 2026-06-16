@@ -205,3 +205,8 @@ WOSM Region → 국가(NSO) → 단위대
 - **엠블럼 크기·위치 트윅**: `_tweaks.logoScale/logoDX/logoDY` → CSS 변수 `--cc-logo-scale/dx/dy`. `Logo`가 span(위치)+img(transform scale+translate)로 분리 적용 → 전 카드 엠블럼 일괄. 우측 '엠블럼' 섹션 슬라이더 3종.
 - **에이브로 기본**: 표지 메인 "2026 · KOREA NATIONAL JAMBOREE".
 - **D-DAY 당일 배경 흰색**(`#ffffff`, num=purple) — 밝은 배경이라 컬러 엠블럼 자동.
+
+### 15.8 Phase 9 (BUILT, v0.9.10)
+- **서버 저장 카드뉴스 목록**: `functions/api/jamboree.js` 확장 — 작업 슬롯(KEY=jamboree, GET/PUT 기존)은 그대로 + 이름 있는 다중 저장(index `jamboree:index`=[{id,name,updatedAt}], item `jamboree:item:<id>`). `GET ?list=1` 목록, `GET ?id=` 개별, `POST {name,state}` 새 저장(관리자), `DELETE ?id=` 삭제(관리자). 툴바 "목록" 버튼 → 모달(목록·불러오기·삭제·"현재를 새 카드뉴스로 저장"). 기존 "서버 저장/불러오기"는 "작업 저장/작업 불러오기"로 라벨 변경(작업 슬롯).
+- **전체 여백 트윅(배경색 유지)**: 흰 테두리(Framed) 제거 → `Card`가 콘텐츠를 `transform: scale(var(--cc-content-scale))`로 안쪽 축소, **배경색은 가장자리까지 유지**. 트윅 `pad`(0~16%) → `--cc-content-scale=1-pad`. 미리보기/PNG/ZIP/한편 공용(전역 CSS 변수). (기존 px margin·Framed·mScale 제거)
+- **D넘버 줄간격**: NumStack "D-" lineHeight .84 / 숫자 .9 로 기본 간격 조정(겹침 없이 타이트). `lineAdj` 트윅 병행.

@@ -92,9 +92,13 @@ function Card({ bg, color = '#fff', pad = 88, children, style }) {
       <div style={{
         position: 'absolute', inset: 0, overflow: 'hidden', background: bg, color,
         fontFamily: "var(--cc-main, 'Cafe24ProSlim'), 'Apple SD Gothic Neo', sans-serif",
-        letterSpacing: 'var(--cc-track, normal)',
-        padding: pad, boxSizing: 'border-box', ...style
-      }}>{children}</div>
+        letterSpacing: 'var(--cc-track, normal)', ...style
+      }}>
+        {/* 전체 여백: 콘텐츠만 안쪽으로 축소(배경색은 가장자리까지 유지) */}
+        <div style={{ position: 'absolute', inset: 0, padding: pad, boxSizing: 'border-box', transform: 'scale(var(--cc-content-scale, 1))', transformOrigin: 'center center' }}>
+          {children}
+        </div>
+      </div>
     </window.CCCardBgCtx.Provider>
   );
 }

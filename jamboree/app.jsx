@@ -35,7 +35,7 @@ const TOKEN_KEY = 'jamboree:token';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
-const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, margin: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0 };
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0 };
 const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
 const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
@@ -159,13 +159,14 @@ function FieldInput({ field }) {
   );
 }
 
-function Toolbar({ onPng, onStitch, onZip, onSave, onLoad, status, busy, zipCount }) {
+function Toolbar({ onPng, onStitch, onZip, onSave, onLoad, onList, status, busy, zipCount }) {
   const btn = (extra) => ({ border: 'none', borderRadius: 10, padding: '10px 15px', fontSize: 14, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .6 : 1, fontFamily: 'inherit', ...extra });
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', minWidth: 92, textAlign: 'right' }}>{status}</span>
-      <button disabled={busy} onClick={onLoad} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>불러오기</button>
-      <button disabled={busy} onClick={onSave} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>서버 저장</button>
+      <button disabled={busy} onClick={onList} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>목록</button>
+      <button disabled={busy} onClick={onLoad} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>작업 불러오기</button>
+      <button disabled={busy} onClick={onSave} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>작업 저장</button>
       <button disabled={busy} onClick={onZip} style={btn({ background: 'rgba(255,255,255,.14)', color: '#fff' })}>ZIP ({zipCount})</button>
       <button disabled={busy} onClick={onStitch} style={btn({ background: P.river, color: P.midnight })}>한 편 PNG ({zipCount})</button>
       <button disabled={busy} onClick={onPng} style={btn({ background: P.leaf, color: P.midnight })}>이 카드 PNG</button>
@@ -182,6 +183,8 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [remount, setRemount] = useState(0);
   const [box, setBox] = useState({ w: 0, h: 0 });
+  const [listOpen, setListOpen] = useState(false);
+  const [savedItems, setSavedItems] = useState(null);   // null=미로딩, []=빈
 
   const family = famOf(familyKey);
   const cards = family.sec() || [];
@@ -201,8 +204,8 @@ function App() {
     r.setProperty('--cc-logo-scale', String(tweaks.logoScale || 1));
     r.setProperty('--cc-logo-dx', (tweaks.logoDX || 0) + 'px');
     r.setProperty('--cc-logo-dy', (tweaks.logoDY || 0) + 'px');
-  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY]);
-  const mScale = tweaks.margin > 0 ? (family.w - 2 * tweaks.margin) / family.w : 1;
+    r.setProperty('--cc-content-scale', String(1 - (tweaks.pad || 0)));
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad]);
 
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
   const deck = store.getProp('_deck', 'cards', []);
@@ -288,6 +291,52 @@ function App() {
     } catch (e) { flash('불러오기 실패'); } finally { setBusy(false); }
   }, []);
 
+  /* ── 서버 저장 카드뉴스 목록 ── */
+  const refreshList = useCallback(async () => {
+    try {
+      const res = await fetch('/api/jamboree?list=1');
+      const data = await res.json();
+      setSavedItems(Array.isArray(data.items) ? data.items : []);
+    } catch (e) { setSavedItems([]); flash('목록 불러오기 실패'); }
+  }, []);
+  const openList = useCallback(() => { setListOpen(true); setSavedItems(null); refreshList(); }, [refreshList]);
+  const saveAsNew = useCallback(async () => {
+    const token = getToken(); if (!token) return;
+    const name = (window.prompt('카드뉴스 이름', brand.brand || '카드뉴스') || '').trim();
+    if (!name) return;
+    setBusy(true); flash('저장 중…');
+    try {
+      const state = Object.assign(window.CCStore.collect(), { brand });
+      const res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ name, state }) });
+      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} flash('토큰 오류'); return; }
+      if (!res.ok) { flash('저장 실패'); return; }
+      flash('목록에 저장됨 ✓'); refreshList();
+    } catch (e) { flash('네트워크 오류'); } finally { setBusy(false); }
+  }, [brand, refreshList]);
+  const loadItem = useCallback(async (it) => {
+    setBusy(true); flash('불러오는 중…');
+    try {
+      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id));
+      const data = await res.json();
+      if (!data || !data.state) { flash('불러오기 실패'); return; }
+      window.CCStore.hydrate(data.state);
+      if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
+      setRemount((n) => n + 1); setListOpen(false);
+      flash('불러옴 ✓');
+    } catch (e) { flash('불러오기 실패'); } finally { setBusy(false); }
+  }, []);
+  const deleteItem = useCallback(async (it) => {
+    const token = getToken(); if (!token) return;
+    if (!window.confirm('"' + it.name + '" 삭제할까요?')) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE', headers: { 'X-Admin-Token': token } });
+      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} flash('토큰 오류'); return; }
+      if (!res.ok) { flash('삭제 실패'); return; }
+      flash('삭제됨 ✓'); refreshList();
+    } catch (e) { flash('네트워크 오류'); } finally { setBusy(false); }
+  }, [refreshList]);
+
   const onPng = useCallback(async () => {
     const node = nativeRef.current; if (!node || !window.htmlToImage) { flash('준비 안 됨'); return; }
     setBusy(true); flash('PNG 생성 중…');
@@ -326,7 +375,7 @@ function App() {
           root.render(
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
-                <Framed w={r.fam.w} h={r.fam.h} margin={tweaks.margin}>{r.card.node}</Framed>
+                {r.card.node}
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
           );
@@ -364,7 +413,7 @@ function App() {
           root.render(
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
-                <Framed w={r.fam.w} h={r.fam.h} margin={tweaks.margin}>{r.card.node}</Framed>
+                {r.card.node}
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
           );
@@ -408,7 +457,7 @@ function App() {
             <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
           </div>
         </div>
-        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onSave={onSave} onLoad={onLoad} status={status} busy={busy} zipCount={deck.length} />
+        <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onSave={onSave} onLoad={onLoad} onList={openList} status={status} busy={busy} zipCount={deck.length} />
       </header>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -463,7 +512,7 @@ function App() {
                     <div style={{ position: 'absolute', top: 0, left: 0, width: family.w * scale, height: family.h * scale }}>
                       <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
                         <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', inset: 0, transform: mScale !== 1 ? `scale(${mScale})` : 'none', transformOrigin: 'center center' }}>
+                          <div style={{ position: 'absolute', inset: 0 }}>
                             {card ? card.node : null}
                           </div>
                         </div>
@@ -556,7 +605,7 @@ function App() {
             </label>
             <Slider label="내용 글자 크기" value={Math.round(tweaks.fz * 100) / 100} min={0.8} max={1.3} step={0.02} unit="×" onChange={(v) => setTweak('fz', v)} />
             <Slider label="자간" value={Math.round(tweaks.track * 1000) / 1000} min={-0.03} max={0.2} step={0.005} unit="em" onChange={(v) => setTweak('track', v)} />
-            <Slider label="카드 여백(흰 테두리)" value={tweaks.margin} min={0} max={120} step={4} unit="px" onChange={(v) => setTweak('margin', v)} />
+            <Slider label="전체 여백 (배경색 유지)" value={Math.round((tweaks.pad || 0) * 100)} min={0} max={16} step={1} unit="%" onChange={(v) => setTweak('pad', v / 100)} />
             <details>
               <summary style={{ ...fieldLabel, cursor: 'pointer', marginBottom: 8 }}>D-day 여백·크기 조정</summary>
               <Slider label="상단 여백" value={tweaks.topAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('topAdj', v)} />
@@ -590,6 +639,34 @@ function App() {
           </div>
         </aside>
       </div>
+
+      {listOpen && (
+        <div onClick={() => setListOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,12,28,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px,92vw)', maxHeight: '82vh', background: '#fff', borderRadius: 16, boxShadow: '0 30px 80px rgba(0,0,0,.4)', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif" }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,.08)' }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: '#2b2630' }}>저장된 카드뉴스</div>
+              <button onClick={() => setListOpen(false)} style={{ border: 'none', background: 'none', fontSize: 22, lineHeight: 1, cursor: 'pointer', color: '#8b8492' }}>×</button>
+            </div>
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+              <button disabled={busy} onClick={saveAsNew} style={{ width: '100%', border: '1.5px dashed ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '10px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ 현재 작업을 새 카드뉴스로 저장</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '8px 12px 14px' }}>
+              {savedItems === null && <div style={{ padding: 24, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>불러오는 중…</div>}
+              {savedItems && savedItems.length === 0 && <div style={{ padding: 24, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>저장된 카드뉴스가 없습니다.</div>}
+              {savedItems && savedItems.map((it) => (
+                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', borderRadius: 10, background: '#f7f4fa', marginBottom: 6 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+                    <div style={{ fontSize: 11.5, color: '#9a93a3', marginTop: 2 }}>{(it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
+                  </div>
+                  <button disabled={busy} onClick={() => loadItem(it)} style={{ border: 'none', background: P.purple, color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
+                  <button disabled={busy} onClick={() => deleteItem(it)} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#b4304a', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

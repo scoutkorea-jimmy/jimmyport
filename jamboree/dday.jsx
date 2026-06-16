@@ -95,8 +95,8 @@ function NumStack({ ek, numColor, ink, isDay, num, teaser, dSize, nSize, tSize, 
   const ta = align === 'center' ? 'center' : align === 'flex-end' ? 'right' : 'left';
   return (
     <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: align }}>
-      <div style={{ fontWeight: 700, fontSize: dSize, lineHeight: .9, color: numColor, letterSpacing: '.03em' }}>D-</div>
-      <div style={{ fontWeight: 700, fontSize: nSize, lineHeight: .92, color: numColor, marginTop: lead }}>{isDay ? 'DAY' : String(num)}</div>
+      <div style={{ fontWeight: 700, fontSize: dSize, lineHeight: .84, color: numColor, letterSpacing: '.03em' }}>D-</div>
+      <div style={{ fontWeight: 700, fontSize: nSize, lineHeight: .9, color: numColor, marginTop: lead }}>{isDay ? 'DAY' : String(num)}</div>
       <Editable ekey={ek + '-teaser'} flabel="티저" tag="div" style={{ fontSize: tSize, fontWeight: 300, marginTop: gap != null ? gap : Math.round(tSize * 0.9), color: ink, textAlign: ta }}>{teaser}</Editable>
     </div>
   );
