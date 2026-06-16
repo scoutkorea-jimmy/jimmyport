@@ -59,11 +59,12 @@ function NewsCard({ ek }) {
     <Card bg={NP.forest} color="#fff" pad={0}>
       <Placeholder tone="dark" label="소식 이미지" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
       <div style={{ position: 'absolute', inset: 0, background: NP.forest, opacity: .5, pointerEvents: 'none' }} />
-      <ShapeScatter items={window.richScatter({
-        w: 1080, h: 1350, cols: [NP.leaf, NP.river, NP.orange, NP.pink], bleed: 'rgba(255,255,255,.1)', seed: 61,
-        count: 11, minH: 52, maxH: 158, bleeders: 3,
-        avoid: [{ x: 420, y: 80, w: 240, h: 150 }, { x: 70, y: 430, w: 940, h: 620 }]
-      })} />
+      <ShapeScatter items={window.scene(
+        window.MOTIF.sun(170, 300, 0.9, NP.leaf), window.MOTIF.cloud(900, 300, 0.78, NP.river),
+        window.MOTIF.tree(180, 1296, 1.05, NP.leaf), window.MOTIF.tent(355, 1296, 0.9, NP.orange, NP.midnight),
+        window.MOTIF.campfire(545, 1296, 1.05), window.MOTIF.hills(800, 1296, 0.95, [NP.leaf, NP.river]),
+        window.MOTIF.mountain(985, 1296, 1.0, NP.river, NP.leaf)
+      )} />
       <Logo size={108} style={{ position: 'absolute', top: NS, left: '50%', transform: 'translateX(-50%)' }} />
       <div style={{ position: 'absolute', left: NS, right: NS, top: '50%', transform: 'translateY(-46%)', background: '#fff', borderRadius: 34, padding: '54px 52px', boxShadow: '0 20px 50px rgba(0,0,0,.28)', textAlign: 'center' }}>
         <span className="hi" style={{ display: 'inline-block', background: NP.forest, color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 26, fontWeight: 700 }}>현장 소식</span>

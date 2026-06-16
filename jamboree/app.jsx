@@ -9,8 +9,8 @@ const { useState, useRef, useEffect, useLayoutEffect, useCallback, useReducer } 
 const P = window.PAL;
 
 const FAMILIES = [
-  { key: 'cover',    label: '표지',      sec: () => window.SEC_COVER,      w: 1080, h: 1080 },
-  { key: 'tpl',      label: '콘텐츠',    sec: () => window.SEC_TEMPLATES,  w: 1080, h: 1080 },
+  { key: 'cover',    label: '표지',      sec: () => window.SEC_COVER,      w: 1080, h: 1350 },
+  { key: 'tpl',      label: '콘텐츠',    sec: () => window.SEC_TEMPLATES,  w: 1080, h: 1350 },
   { key: 'news',     label: '소식형',    sec: () => window.SEC_NEWS,       w: 1080, h: 1350 },
   { key: 'dday',     label: 'D-피드',    sec: () => window.SEC_DDAY,       w: 1080, h: 1350 },
   { key: 'ddayTall', label: 'D-스토리',  sec: () => window.SEC_DDAY_TALL,  w: 1080, h: 1920 },

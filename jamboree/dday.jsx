@@ -2,36 +2,44 @@
  * Phase 2: D숫자(구조 필드, 진행바 자동 재계산) + 티저(인라인/폼) + 배경색 오버라이드(cc-prop:<ek>) */
 
 (function () { // module scope - Babel standalone runs scripts in shared global scope
-/* 도형 스캐터 — 포맷 실제 크기 기반으로 숫자/티저/로고/푸터 영역(avoid)을 피해
- * 빈 공간(주로 우측·상하 코너)을 '풍성하게' 채운다. 결정론적(richScatter). */
-const DD_DIM = { feed: { w: 1080, h: 1350 }, story: { w: 1080, h: 1920 }, wide: { w: 1480, h: 1047 } };
-function ddAvoid(isDay, fmt) {
-  if (fmt === 'wide') return [
-    { x: 60, y: 44, w: 620, h: 124 },                                  // 키커
-    isDay ? { x: 940, y: 270, w: 420, h: 420 } : { x: 1320, y: 40, w: 170, h: 170 }, // 로고
-    { x: 60, y: 168, w: 920, h: 700 },                                 // 숫자+티저
-    { x: 0, y: 838, w: 1480, h: 210 }                                  // 진행바+푸터
-  ];
-  if (fmt === 'story') return [
-    { x: 280, y: 70, w: 520, h: isDay ? 360 : 300 },                   // 로고+키커(중앙)
-    { x: 130, y: 620, w: 820, h: 760 },                                // 숫자+티저(중앙)
-    { x: 0, y: 1620, w: 1080, h: 300 }                                 // 진행바+푸터
-  ];
-  /* feed (1080×1350) */
-  return [
-    { x: 56, y: 52, w: 640, h: 120 },                                  // 키커
-    isDay ? { x: 720, y: 270, w: 320, h: 320 } : { x: 836, y: 50, w: 190, h: 170 }, // 로고
-    { x: 48, y: 350, w: 660, h: 640 },                                 // 숫자+티저
-    { x: 0, y: 1110, w: 1080, h: 240 }                                 // 진행바+푸터
-  ];
-}
+/* 캠핑/자연물 풍경 — 무작위 더미 대신 나무·텐트·모닥불·태양·언덕·산으로 구성.
+ * 숫자/티저/로고/푸터 영역을 피해 우측 컬럼 또는 상하 빈 띠에 '캠프 장면'을 배치. */
+const M = window.MOTIF, sc = window.scene;
 function ddScatter(i, isDay, cols, bleed, fmt) {
-  const d = DD_DIM[fmt] || DD_DIM.feed;
-  return window.richScatter({
-    w: d.w, h: d.h, cols, bleed, seed: (i + 1) * 7 + (isDay ? 99 : 0),
-    avoid: ddAvoid(isDay, fmt),
-    count: isDay ? 8 : 13, minH: 54, maxH: 168, bleeders: 3
-  });
+  const c0 = cols[0], c1 = cols[1], c2 = cols[2], c3 = cols[3] || cols[0];
+  if (fmt === 'story') {
+    if (isDay) return sc(                                  // 1080×1920, 큰 로고 중앙 → 하단 띠에 캠프
+      M.mountain(820, 1560, 1.4, c1, c2), M.tree(250, 1560, 1.4, c3),
+      M.tent(470, 1560, 1.2, c0, c2), M.campfire(660, 1560, 1.3), M.hills(940, 1560, 1.2, [c3, c1]),
+      M.sun(870, 470, 1.0, c0)
+    );
+    return sc(                                             // 상단 띠(로고 아래) + 하단 띠
+      M.sun(560, 470, 1.0, c0), M.cloud(840, 470, 0.8, c2),
+      M.tree(240, 660, 1.4, c3), M.tent(430, 660, 1.2, c0, c2), M.mountain(850, 660, 1.4, c1, c2),
+      M.campfire(360, 1560, 1.5), M.hills(720, 1560, 1.3, [c3, c1]), M.tree(910, 1560, 1.1, c3)
+    );
+  }
+  if (fmt === 'wide') {
+    if (isDay) return sc(                                  // 1480×1047, 큰 로고 우중앙 → 하단 캠프
+      M.tree(220, 880, 1.4, c3), M.tent(420, 880, 1.2, c0, c2), M.campfire(610, 880, 1.3),
+      M.hills(840, 880, 1.2, [c3, c1]), M.mountain(1080, 880, 1.3, c1, c2), M.sun(1330, 250, 1.0, c0)
+    );
+    return sc(                                             // 우측 컬럼 캠프 + 태양
+      M.sun(1330, 300, 1.05, c0), M.cloud(1130, 270, 0.8, c2),
+      M.tree(1110, 700, 1.5, c3), M.tent(1310, 700, 1.3, c0, c2), M.campfire(1210, 870, 1.2),
+      M.hills(1380, 870, 1.0, [c3, c1])
+    );
+  }
+  /* feed (1080×1350) — 우측 컬럼 캠프 (숫자는 좌측) */
+  if (isDay) return sc(                                    // 큰 로고 중앙 → 하단 캠프 띠
+    M.tree(190, 1060, 1.3, c3), M.tent(380, 1060, 1.15, c0, c2), M.campfire(560, 1060, 1.2),
+    M.hills(780, 1060, 1.1, [c3, c1]), M.mountain(960, 1060, 1.2, c1, c2), M.sun(880, 250, 0.9, c0)
+  );
+  return sc(
+    M.sun(975, 300, 1.05, c0), M.cloud(800, 320, 0.8, c2),
+    M.tree(840, 770, 1.4, c3), M.tent(995, 770, 1.15, c0, c2), M.campfire(905, 980, 1.25),
+    M.hills(900, 1080, 1.0, [c3, c1])
+  );
 }
 
 /* 오버라이드(배경색·D숫자) 반영한 유효값 — 3비율 컴포넌트가 공유 */

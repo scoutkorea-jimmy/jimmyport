@@ -18,12 +18,12 @@ function CoverThemed(props) {
   const lightBg = INKC !== '#fff';
   const cols = [PAL.orange, PAL.river, PAL.pink, PAL.leaf, PAL.ocean, PAL.red, PAL.forest, PAL.purple].filter((c) => c !== BG);
   const genScatter = scatter || window.richScatter({
-    cols, bleed: lightBg ? 'rgba(77,0,110,.10)' : 'rgba(255,255,255,.10)', seed,
-    count: 11, minH: 52, maxH: 168, bleeders: 3,
+    w: 1080, h: 1350, cols, bleed: lightBg ? 'rgba(77,0,110,.10)' : 'rgba(255,255,255,.10)', seed,
+    count: 13, minH: 54, maxH: 176, bleeders: 3,
     avoid: [
       { x: 70, y: 78, w: 480, h: 96 },     // 에이브로우
       { x: 786, y: 70, w: 224, h: 176 },   // 엠블럼
-      { x: 64, y: 508, w: 952, h: 572 }    // 제목+부제+스티치+카테고리+푸터
+      { x: 64, y: 780, w: 952, h: 570 }    // 제목+부제+스티치+카테고리+푸터(하단 앵커)
     ]
   });
   return (

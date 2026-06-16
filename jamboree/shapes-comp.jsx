@@ -104,5 +104,56 @@ function richScatter(opt) {
   return out;
 }
 
-Object.assign(window, { Shape, ShapeBadge, Stitch, ShapeScatter, richScatter });
+/* ── 형상화 모티프 (캠핑/자연물) ───────────────────────────────────────
+ * WOSM 도형을 조합해 나무·텐트·모닥불·태양·언덕·산·구름을 만든다.
+ * 각 함수는 절대좌표 items[] 반환 → ShapeScatter로 렌더. 무작위 더미 대신
+ * '의미 있는 오브젝트'로 빈 공간을 채운다. cx=가로중심, by=바닥선(baseline). */
+function _W(n, h) { const d = window.SHAPES.fills[n]; const p = d.vb.split(/\s+/).map(Number); return h * p[2] / p[3]; }
+const MOTIF = {
+  /* 소나무 — 삼각형 3단(노치 보이게 적층) */
+  tree(cx, by, s, c) {
+    c = c || PAL.leaf;
+    const T = (H, baseY) => { const w = _W('09', H); return { n: '09', fill: c, h: H, left: cx - w / 2, top: baseY - H }; };
+    return [T(120 * s, by), T(104 * s, by - 66 * s), T(86 * s, by - 128 * s)];
+  },
+  /* 산 — 큰 봉우리 + 뒤 봉우리 */
+  mountain(cx, by, s, c1, c2) {
+    c1 = c1 || PAL.forest; c2 = c2 || PAL.river;
+    const M = (H, cxx, col) => { const w = _W('09', H); return { n: '09', fill: col, h: H, left: cxx - w / 2, top: by - H }; };
+    return [M(112 * s, cx + 74 * s, c2), M(152 * s, cx, c1)];
+  },
+  /* 텐트 — 오두막 도형 + 어두운 입구 삼각형 */
+  tent(cx, by, s, c, door) {
+    c = c || PAL.orange; door = door || PAL.midnight;
+    const w = _W('08', 120 * s), dh = 48 * s, dw = _W('09', dh);
+    return [
+      { n: '08', fill: c, h: 120 * s, left: cx - w / 2, top: by - 120 * s },
+      { n: '09', fill: door, h: dh, left: cx - dw / 2, top: by - dh }
+    ];
+  },
+  /* 모닥불 — 장작(사다리꼴) X + 불꽃(삼각형) 3겹 */
+  campfire(cx, by, s) {
+    const log = (rot, dx) => { const h = 22 * s, w = _W('07', h); return { n: '07', fill: PAL.midnight, h, left: cx + dx - w / 2, top: by - h, rot }; };
+    const fl = (H, dx, col) => { const w = _W('09', H); return { n: '09', fill: col, h: H, left: cx + dx - w / 2, top: by - 16 * s - H }; };
+    return [log(16, -13 * s), log(-16, 13 * s), fl(80 * s, 0, PAL.red), fl(58 * s, -17 * s, PAL.orange), fl(40 * s, 14 * s, PAL.leaf)];
+  },
+  /* 태양/달 — 원 */
+  sun(cx, cy, s, c) { c = c || PAL.orange; const h = 86 * s, w = _W('04', h); return [{ n: '04', fill: c, h, left: cx - w / 2, top: cy - h / 2 }]; },
+  /* 구름 — 반원 3개 */
+  cloud(cx, by, s, c) {
+    c = c || 'rgba(255,255,255,.9)';
+    const D = (H, dx) => { const w = _W('10', H); return { n: '10', fill: c, h: H, left: cx + dx - w / 2, top: by - H }; };
+    return [D(46 * s, -42 * s), D(46 * s, 42 * s), D(66 * s, 0)];
+  },
+  /* 언덕/덤불 — 반원 2~3개 */
+  hills(cx, by, s, cols) {
+    cols = cols || [PAL.leaf, PAL.forest];
+    const D = (H, dx, col) => { const w = _W('10', H); return { n: '10', fill: col, h: H, left: cx + dx - w / 2, top: by - H }; };
+    return [D(70 * s, -64 * s, cols[0]), D(58 * s, 62 * s, cols[1] || cols[0])];
+  }
+};
+/* 여러 모티프를 한 배열로 합치는 헬퍼 */
+function scene() { return Array.prototype.concat.apply([], Array.prototype.slice.call(arguments)); }
+
+Object.assign(window, { Shape, ShapeBadge, Stitch, ShapeScatter, richScatter, MOTIF, scene });
 })();
