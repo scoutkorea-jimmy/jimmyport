@@ -32,7 +32,7 @@
         d(m[7]), d(m[8]), d(m[9]), d(m[10]).configure({nested:true}),
         d(m[11]).configure({resizable:true}), d(m[12]), d(m[13]), d(m[14]),
         d(m[15]), d(m[16]), d(m[17]),
-        d(m[18]).configure({placeholder:'업데이트 메모를 입력하세요…'})
+        d(m[18]).configure({placeholder:'SNS 게시 문구를 입력하세요…'})
       ];
       return { Editor: m[0].Editor, extensions: extensions };
     }catch(err){ console.warn('Tiptap load failed', err); return null; }
@@ -188,6 +188,34 @@ td.title .mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top
 .addhist{margin:8px}
 .foot{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--muted);line-height:1.6}
 .foot b{color:var(--ink)}
+/* live clock timer */
+.clock .hms{font-family:ui-monospace,Menlo,monospace;font-size:18px;letter-spacing:.02em}
+/* calendar: titles + status dots */
+.cell .sdots{display:inline-flex;gap:2px;vertical-align:middle}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.cell .ctitle-cell{font-size:11.5px;line-height:1.3;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--line);padding-left:5px;cursor:pointer}
+.cell .ctitle-cell.faint{color:#A7ADA6}
+.cell .restmark{font-size:11px;color:var(--c-rest)}
+/* modal: status seg / channels / links / attachments / last editor */
+.lastedit{font-size:11.5px;color:var(--muted);margin:2px 0 8px}
+.statusseg{max-width:300px;border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex}
+.statusseg button{flex:1;font-size:12px;padding:6px 0;border:none;border-right:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+.statusseg button:last-child{border-right:none}
+.chtoggles{display:flex;flex-wrap:wrap;gap:6px}
+.chtog{font-size:12px;padding:5px 11px;border:1px solid var(--line);background:#fff;border-radius:20px;cursor:pointer;color:var(--muted)}
+.chtog.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.linkswrap{display:flex;flex-direction:column;gap:6px}
+.linkrow{display:flex;align-items:center;gap:8px}
+.linklab{flex:0 0 72px;font-size:11.5px;font-weight:600;padding:5px 6px;border-radius:5px;background:#EAF0F6;color:#2E6FAE;text-align:center}
+.linklab.ig{background:#FCE9F3;color:#B4377E} .linklab.yt{background:#FBE6E6;color:#C0392B} .linklab.etc{background:#ECEFEC;color:#4B524B}
+.linkrow input{flex:1;font:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:6px}
+.linkopen{flex:0 0 auto;color:var(--c-intl);text-decoration:none;font-size:15px;padding:0 4px}
+.filelist{display:flex;flex-direction:column;gap:5px}
+.filerow{display:flex;align-items:center;gap:6px;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:#FAFBF9}
+.filerow a{color:var(--c-intl);text-decoration:none;word-break:break-all}
+.filedel{margin-left:auto;border:none;background:none;color:#B85C49;cursor:pointer;font-size:12px}
+.btn.busy{opacity:.6;pointer-events:none}
+.authlab{font-size:12px;color:var(--muted);font-weight:600}
 /* sync bar */
 .syncbar{position:sticky;top:0;z-index:30;background:rgba(244,245,242,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:-32px -20px 0;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .syncbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;width:140px}
@@ -259,10 +287,10 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
 
   <div class="syncbar">
     <span class="eyebrow" style="margin:0">Media Dept · SNS Ops</span>
-    <input id="author" placeholder="작성자 이름" autocomplete="off">
-    <button class="btn sm solid" id="save-now">서버 저장</button>
-    <button class="btn sm ghost" id="reload">불러오기</button>
-    <span class="st" id="syncst">로컬 편집 중</span>
+    <label class="authlab" for="author">작성자</label>
+    <input id="author" placeholder="이름 입력 (기록용)" autocomplete="off">
+    <button class="btn sm ghost" id="reload">↻ 새로고침</button>
+    <span class="st" id="syncst">자동 저장</span>
   </div>
 
   <header class="top">
@@ -416,17 +444,29 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}}; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}}; }
 var state = stateDefaults();
-function adopt(s){ return Object.assign(stateDefaults(), s||{}); }
+function normEdit(e){
+  e=Object.assign(EDEF(), e||{});
+  if(!Array.isArray(e.channels)||!e.channels.length) e.channels = e.channel ? [e.channel] : ['페이스북'];
+  if(typeof e.links!=='object'||!e.links) e.links = e.link ? (function(){var o={};o[e.channels[0]]=e.link;return o;})() : {};
+  if(!Array.isArray(e.files)) e.files=[];
+  delete e.channel; delete e.link;
+  return e;
+}
+function adopt(s){ var st=Object.assign(stateDefaults(), s||{}); Object.keys(st.edits).forEach(function(k){ st.edits[k]=normEdit(st.edits[k]); }); return st; }
 function loadLocal(){ try{var r=localStorage.getItem(LS); if(r) state=adopt(JSON.parse(r));}catch(e){} }
 function saveLocal(){ prune(); try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} }
 function key(date,type){return date+'#'+type;}
-function EDEF(){ return {title:'',link:'',images:[],status:'planned',channel:'페이스북'}; }
+function EDEF(){ return {title:'',status:'planned',channels:['페이스북'],links:{},images:[],files:[]}; }
 function getEdit(k){ return state.edits[k] || (state.edits[k]=EDEF()); }   // editing (persists)
 function peek(k){ return state.edits[k] || EDEF(); }                       // read-only (no store)
 function hist(k){ return state.history[k] || []; }
-function isDefaultEdit(e){ return !e.title && !e.link && (!e.images||!e.images.length) && (!e.status||e.status==='planned') && (!e.channel||e.channel==='페이스북'); }
+function hasLink(e){ return e.links && Object.keys(e.links).some(function(c){return e.links[c];}); }
+function linkCount(e){ return e.links ? Object.keys(e.links).filter(function(c){return e.links[c];}).length : 0; }
+function channelPh(c){ return ({'페이스북':'https://facebook.com/…','인스타그램':'https://instagram.com/…','유튜브':'https://youtube.com/…','블로그':'https://blog…/…'})[c]||'https://…'; }
+function lastEditText(k){ var m=state.meta[k]; if(!m||!m.updatedAt) return ''; return '마지막 작업: '+(m.author||'익명')+(m.ip?(' · IP '+m.ip):'')+' · '+fmtDateTime(m.updatedAt); }
+function isDefaultEdit(e){ var defCh=!e.channels||(e.channels.length===1&&e.channels[0]==='페이스북'); return !e.title && !hasLink(e) && (!e.images||!e.images.length) && (!e.files||!e.files.length) && (!e.status||e.status==='planned') && defCh; }
 function prune(){ Object.keys(state.edits).forEach(function(k){ if(isDefaultEdit(state.edits[k]) && !(state.history[k]&&state.history[k].length) && k.indexOf('#extra#')<0) delete state.edits[k]; }); }
 function defaultMarketing(){
   return [
@@ -445,57 +485,55 @@ function authorVal(){ return (document.getElementById('author').value||'').trim(
 function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
 function slotEditPayload(k,s){
   var e=peek(k);
-  return {title:e.title||'',link:e.link||'',channel:e.channel||'페이스북',status:e.status||'planned',images:e.images||[],category:(s&&s.category)||''};
+  return {title:e.title||'',status:e.status||'planned',channels:(e.channels&&e.channels.length?e.channels:['페이스북']),links:e.links||{},images:e.images||[],files:e.files||[],category:(s&&s.category)||''};
 }
+function applyMeta(k,slot){ if(slot){ state.meta[k]={author:slot.author,ip:slot.ip,updatedAt:slot.updatedAt}; updateLastEditUI(k); } }
+function updateLastEditUI(k){ var els=document.querySelectorAll('[data-lastedit="'+k+'"]'); for(var i=0;i<els.length;i++) els[i].textContent=lastEditText(k); }
 var cardTimers={};
-function saveCard(k,s){            // debounced per-card server save
+function saveCard(k,s,now){        // per-card server save (즉시 또는 짧은 디바운스). 항상 서버.
   saveLocal();
-  if(!authorVal()){ setSt('로컬 편집 중 (작성자 입력 시 카드별 서버 저장)'); return; }
   if(cardTimers[k]) clearTimeout(cardTimers[k]);
+  if(now){ doSaveCard(k,s); return; }
   setSt('저장 대기…');
-  cardTimers[k]=setTimeout(function(){ doSaveCard(k,s); }, 900);
+  cardTimers[k]=setTimeout(function(){ doSaveCard(k,s); }, 500);
 }
 function doSaveCard(k,s){
-  var author=authorVal(); if(!author) return;
-  setSt('카드 저장 중…');
+  setSt('서버 저장 중…');
   fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
-    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k,s), author:author})})
+    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k,s), author:authorVal()})})
     .then(function(r){return r.json();})
-    .then(function(j){ setSt(j&&j.ok?('카드 저장됨 · '+fmtTime(j.slot&&j.slot.updatedAt)):'저장 실패', j&&j.ok); })
+    .then(function(j){ if(j&&j.ok&&j.slot){ applyMeta(k,j.slot); saveLocal(); setSt('서버 저장됨 · '+fmtTime(j.slot.updatedAt),true); } else setSt('저장 실패'); })
     .catch(function(){ setSt('저장 실패 (네트워크)'); });
 }
 function sendDelete(k){
   saveLocal();
-  if(!authorVal()) return;
   fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
     body:JSON.stringify({slotKey:k, deleted:true, author:authorVal()})})
-    .then(function(r){return r.json();}).then(function(){ setSt('카드 삭제됨',true); }).catch(function(){});
+    .then(function(r){return r.json();}).then(function(){ setSt('서버에서 삭제됨',true); }).catch(function(){ setSt('삭제 저장 실패'); });
 }
 function addHistoryNote(k, html){
   if(!html || !html.replace(/<[^>]*>/g,'').trim()) { toast('내용을 입력하세요'); return; }
-  state.history[k]=state.history[k]||[];
-  var author=authorVal();
-  if(!author){ state.history[k].push({ts:new Date().toISOString(),author:'(로컬)',ip:'',html:html}); saveLocal(); refreshModal(); renderAfterEdit(); toast('작성자 이름 입력 시 서버에 기록됩니다'); return; }
-  setSt('기록 저장 중…');
+  setSt('SNS 문구 저장 중…');
   fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
-    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k), addHistory:{html:html}, author:author})})
+    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k), addHistory:{html:html}, author:authorVal()})})
     .then(function(r){return r.json();})
-    .then(function(j){ if(j&&j.slot){ state.history[k]=j.slot.history||[]; saveLocal(); refreshModal(); renderAfterEdit(); setSt('업데이트 기록 추가됨',true); toast('업데이트 기록 추가됨'); } else setSt('기록 저장 실패'); })
-    .catch(function(){ setSt('기록 저장 실패'); });
+    .then(function(j){ if(j&&j.slot){ state.history[k]=j.slot.history||[]; applyMeta(k,j.slot); saveLocal(); refreshModal(); renderCalendar(); renderBoard(); setSt('SNS 문구 저장됨',true); toast('SNS 문구 저장됨'); } else setSt('저장 실패'); })
+    .catch(function(){ setSt('저장 실패 (네트워크)'); });
 }
 var mktTimer=null;
 function saveMarketing(){
   saveLocal();
-  if(!authorVal()) return;
   if(mktTimer) clearTimeout(mktTimer);
+  setSt('마케팅 저장 대기…');
   mktTimer=setTimeout(function(){
+    setSt('마케팅 저장 중…');
     fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
       body:JSON.stringify({marketing:state.marketing||[], author:authorVal()})})
-      .then(function(r){return r.json();}).then(function(){ setSt('마케팅 저장됨',true); }).catch(function(){});
-  }, 900);
+      .then(function(r){return r.json();}).then(function(){ setSt('마케팅 저장됨',true); }).catch(function(){ setSt('마케팅 저장 실패'); });
+  }, 500);
 }
 function saveAll(){
-  var author=authorVal(); if(!author){ toast('작성자 이름을 먼저 입력하세요'); return; }
+  var author=authorVal();
   prune();
   var ks={}; Object.keys(state.edits).forEach(function(k){ks[k]=1;}); Object.keys(state.hidden).forEach(function(k){ks[k]=1;});
   Object.keys(state.history).forEach(function(k){ if((state.history[k]||[]).length) ks[k]=1; });
@@ -503,18 +541,19 @@ function saveAll(){
   setSt('전체 저장 중… ('+arr.length+')');
   Promise.all(arr.map(function(k){
     var body = state.hidden[k] ? {slotKey:k,deleted:true,author:author} : {slotKey:k,edit:slotEditPayload(k),author:author};
-    return fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).catch(function(){return null;});
+    return fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(j){ if(j&&j.slot) applyMeta(k,j.slot); }).catch(function(){return null;});
   })).then(function(){
     return fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({marketing:state.marketing||[],author:author})});
   }).then(function(){ setSt('전체 저장 완료',true); toast('서버에 전체 저장됨'); }).catch(function(){ setSt('전체 저장 일부 실패'); });
 }
 function applyServer(j){
-  state.edits={}; state.extra={}; state.hidden={}; state.history={};
+  state.edits={}; state.extra={}; state.hidden={}; state.history={}; state.meta={};
   var slots=j&&j.slots||{};
   Object.keys(slots).forEach(function(k){
     var r=slots[k]||{}; var isExtra=k.indexOf('#extra#')>=0;
+    state.meta[k]={author:r.author,ip:r.ip,updatedAt:r.updatedAt};
     if(r.deleted){ if(!isExtra) state.hidden[k]=true; return; }
-    if(r.edit) state.edits[k]=Object.assign(EDEF(), r.edit);
+    if(r.edit) state.edits[k]=normEdit(r.edit);
     if(r.history&&r.history.length) state.history[k]=r.history;
     if(isExtra){ var p=k.split('#'), date=p[0], id=p[2]; if(!state.extra[date]) state.extra[date]=[]; if(!state.extra[date].some(function(x){return x.id===id;})) state.extra[date].push({id:id,category:(r.edit&&r.edit.category)||'콘텐츠'}); }
   });
@@ -535,10 +574,18 @@ function renderHeader(){
   document.getElementById('m-slogan').textContent=h.slogan;
   document.getElementById('m-meta').innerHTML =
     '<span><b>회기</b> '+h.period+'</span><span><b>장소</b> '+h.place+'</span>';
-  var dd=dayDiff(EVENT_DAY,todayISO());
-  var cl=document.getElementById('m-clock');
-  cl.textContent = dd>0?('D-'+dd):(dd===0?'D-DAY':'행사 종료');
-  document.getElementById('m-clocksub').textContent='오늘 기준 · 개영식까지';
+  renderClock();
+}
+// 개영식 = 2026-08-05 20:00 (KST). 시·분·초 라이브 카운트다운.
+var EVENT_DT = new Date(2026,7,5,20,0,0);
+function pad2(n){ return String(n).padStart(2,'0'); }
+function renderClock(){
+  var cl=document.getElementById('m-clock'), sub=document.getElementById('m-clocksub'); if(!cl) return;
+  var diff=EVENT_DT-new Date();
+  if(diff<=0){ cl.textContent='D-DAY · 개영!'; sub.textContent='개영식 2026-08-05 20:00 시작'; return; }
+  var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000), m=Math.floor(diff%3600000/60000), sc=Math.floor(diff%60000/1000);
+  cl.innerHTML='D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>';
+  sub.textContent='개영식(2026-08-05 20:00)까지';
 }
 
 /* ===== calendar ===== */
@@ -556,25 +603,15 @@ function renderCalendar(){
     var tint = CAT_TINT[rec.phase]||'#fff';
     cell.style.background=tint;
     var slots=daySlots(rec);
-    var html='<div class="ctop"><span class="date">'+rec.label+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
-    var dcSlot=slots.filter(function(s){return s.type==='dcount';})[0];
-    if(dcSlot){
-      var col=CAT_COLOR[dcSlot.category], de=peek(dcSlot.k), dlab=de.title||dcSlot.seedTitle||dcSlot.category;
-      if(dcSlot.category==='피날레')
-        html+='<span class="tag fin citem" data-sk="'+dcSlot.k+'" style="background:rgba(192,73,47,.16);color:var(--c-fin)">'+esc(dlab)+'</span>';
-      else
-        html+='<span class="tag citem" data-sk="'+dcSlot.k+'" style="background:#fff;color:'+col+';border:1px solid '+col+'33">'+esc(dlab)+'</span>';
-    }
-    if(rec.phase==='휴지기'&&!slots.length) html+='<span class="tag" style="background:#fff;color:var(--c-rest);border:1px solid var(--line)">휴지</span>';
-    var soSlot=slots.filter(function(s){return s.type==='sosik';})[0];
-    if(soSlot) html+='<span class="pill citem" data-sk="'+soSlot.k+'"><span class="dot" style="background:var(--c-app)"></span>소식</span>';
-    var evSlot=slots.filter(function(s){return s.type==='event';})[0];
-    if(evSlot){ var ee=peek(evSlot.k); html+='<span class="pill ev citem" data-sk="'+evSlot.k+'">'+esc((ee.title||'이벤트').slice(0,10))+'</span>'; }
-    slots.filter(function(s){return s.type==='extra';}).forEach(function(s){
-      var xe=peek(s.k); html+='<span class="pill has citem" data-sk="'+s.k+'">'+esc((xe.title||'콘텐츠').slice(0,8))+'</span>';
+    // 날짜 옆 작은 진행상태 점(슬롯별)
+    var dots=slots.map(function(s){ var st=peek(s.k).status||'planned'; return '<span class="sdot" style="background:'+STCOL[st]+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
+    var html='<div class="ctop"><span class="date">'+rec.label+(dots?(' <span class="sdots">'+dots+'</span>'):'')+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
+    // 각 콘텐츠를 '제목'으로 표시 (타입 태그 없음)
+    slots.forEach(function(s){
+      var e=peek(s.k), t=e.title||s.seedTitle||s.category, faint=e.title?'':' faint';
+      html+='<div class="citem ctitle-cell'+faint+'" data-sk="'+s.k+'" title="'+esc(t)+'">'+esc(t)+'</div>';
     });
-    var filled=slots.filter(function(s){var e=peek(s.k);return e.title||e.link||(e.images&&e.images.length);});
-    if(filled.length) html+='<span class="pill has summary" title="등록된 콘텐츠">✔ '+filled.length+'</span>';
+    if(rec.phase==='휴지기'&&!slots.length) html+='<div class="restmark">휴지</div>';
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">＋</button>';
     cell.innerHTML=html;
     (function(rc){
@@ -642,10 +679,11 @@ function chanClass(ch){ return ch==='인스타그램'?'ig':ch==='유튜브'?'yt'
 function cardEl(d,s,e){
   var col=CAT_COLOR[s.category]||'var(--muted)';
   var title=e.title||s.seedTitle||'';
-  var ch=e.channel||'페이스북';
-  var bits=['<span class="chchip '+chanClass(ch)+'">'+esc(ch)+'</span>'];
-  if(e.link) bits.push('<span class="minic">🔗</span>');
+  var chs=(e.channels&&e.channels.length?e.channels:['페이스북']);
+  var bits=chs.map(function(c){ return '<span class="chchip '+chanClass(c)+'">'+esc(c)+'</span>'; });
+  var ln=linkCount(e); if(ln) bits.push('<span class="minic">🔗 '+ln+'</span>');
   if(e.images&&e.images.length) bits.push('<span class="minic">🖼 '+e.images.length+'</span>');
+  if(e.files&&e.files.length) bits.push('<span class="minic">📎 '+e.files.length+'</span>');
   if(hist(s.k).length) bits.push('<span class="minic">📝 '+hist(s.k).length+'</span>');
   var card=document.createElement('div'); card.className='card'; card.style.borderLeftColor=col;
   card.innerHTML=
@@ -716,27 +754,63 @@ function slotEl(rec,s){
   head.appendChild(rm);
   wrap.appendChild(head);
 
+  // 마지막 작업자 · IP
+  var le=document.createElement('div'); le.className='lastedit'; le.setAttribute('data-lastedit', s.k); le.textContent=lastEditText(s.k);
+  wrap.appendChild(le);
+
+  // 상태 (맨 위, 세그먼트)
+  var stWrap=document.createElement('div'); stWrap.className='fld';
+  stWrap.innerHTML='<label>상태</label>';
+  var seg=document.createElement('div'); seg.className='seg statusseg';
+  STAGES.forEach(function(st){
+    var btn=document.createElement('button'); btn.type='button'; btn.textContent=st[1];
+    function paint(){ var on=((e.status||'planned')===st[0]); btn.style.background=on?STCOL[st[0]]:''; btn.style.color=on?'#fff':''; btn.style.fontWeight=on?'700':''; }
+    paint();
+    btn.onclick=function(){ e.status=st[0]; seg.querySelectorAll('button').forEach(function(b,i){ var on=(STAGES[i][0]===e.status); b.style.background=on?STCOL[e.status]:''; b.style.color=on?'#fff':''; b.style.fontWeight=on?'700':''; }); renderAfterEdit(s.k,s,true); };
+    seg.appendChild(btn);
+  });
+  stWrap.appendChild(seg); wrap.appendChild(stWrap);
+
   // title
   wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 참가국 ① 일본 대표단', function(v){ e.title=v; renderAfterEdit(s.k,s); })));
-  // link (페이스북 우선)
-  var linkIn=inputEl('url', e.link||'', 'https://facebook.com/… (게시물 링크)', function(v){ e.link=v.trim(); updLinkPrev(); renderAfterEdit(s.k,s); });
-  var linkFld=fld('콘텐츠 링크 (페이스북 등)', linkIn);
-  var prev=document.createElement('div'); prev.className='linkprev';
-  function updLinkPrev(){ prev.innerHTML = e.link?('<a href="'+esc(e.link)+'" target="_blank" rel="noopener">'+esc(e.link)+' ↗</a>'):''; }
-  updLinkPrev(); linkFld.appendChild(prev);
-  wrap.appendChild(linkFld);
 
-  // status + channel row
-  var row=document.createElement('div'); row.className='fld';
-  row.innerHTML='<label>상태 · 채널</label>';
-  var r2=document.createElement('div'); r2.className='row2';
-  var sel=document.createElement('select');
-  ['planned','draft','ready'].forEach(function(st){var o=document.createElement('option');o.value=st;o.textContent=STATUS_LABEL[st];if((e.status||'planned')===st)o.selected=true;sel.appendChild(o);});
-  sel.onchange=function(){ e.status=sel.value; renderAfterEdit(s.k,s); };
-  var chsel=document.createElement('select');
-  CHANNELS.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;if((e.channel||'페이스북')===c)o.selected=true;chsel.appendChild(o);});
-  chsel.onchange=function(){ e.channel=chsel.value; renderAfterEdit(s.k,s); };
-  r2.appendChild(sel); r2.appendChild(chsel); row.appendChild(r2); wrap.appendChild(row);
+  // 채널 (복수 선택)
+  var chWrap=document.createElement('div'); chWrap.className='fld';
+  chWrap.innerHTML='<label>채널 (복수 선택 가능)</label>';
+  var chTog=document.createElement('div'); chTog.className='chtoggles';
+  CHANNELS.forEach(function(c){
+    var chip=document.createElement('button'); chip.type='button'; chip.className='chtog'+(e.channels.indexOf(c)>=0?' on':''); chip.textContent=c;
+    chip.onclick=function(){
+      var i=e.channels.indexOf(c);
+      if(i>=0){ if(e.channels.length>1) e.channels.splice(i,1); else { toast('채널은 최소 1개'); return; } }
+      else e.channels.push(c);
+      chip.classList.toggle('on', e.channels.indexOf(c)>=0);
+      renderLinks(); renderAfterEdit(s.k,s,true);
+    };
+    chTog.appendChild(chip);
+  });
+  chWrap.appendChild(chTog); wrap.appendChild(chWrap);
+
+  // 콘텐츠 링크 — 선택한 채널별로 "채널 / 링크" 자동 생성
+  var linkFld=document.createElement('div'); linkFld.className='fld';
+  linkFld.innerHTML='<label>콘텐츠 링크 (채널별)</label>';
+  var linksWrap=document.createElement('div'); linksWrap.className='linkswrap';
+  function renderLinks(){
+    linksWrap.innerHTML='';
+    if(!e.links) e.links={};
+    e.channels.forEach(function(c){
+      var rowL=document.createElement('div'); rowL.className='linkrow';
+      var lab=document.createElement('span'); lab.className='linklab '+chanClass(c); lab.textContent=c;
+      var inp=document.createElement('input'); inp.type='url'; inp.value=e.links[c]||''; inp.placeholder=channelPh(c);
+      var t=null; inp.oninput=function(){ if(t)clearTimeout(t); var v=inp.value; t=setTimeout(function(){ e.links[c]=v.trim(); renderLinkOpen(rowL,c); renderAfterEdit(s.k,s); },200); };
+      rowL.appendChild(lab); rowL.appendChild(inp);
+      renderLinkOpen(rowL,c);
+      linksWrap.appendChild(rowL);
+    });
+  }
+  function renderLinkOpen(rowL,c){ var ex=rowL.querySelector('.linkopen'); if(ex)ex.remove(); if(e.links[c]){ var a=document.createElement('a'); a.className='linkopen'; a.href=e.links[c]; a.target='_blank'; a.rel='noopener'; a.textContent='↗'; rowL.appendChild(a); } }
+  renderLinks();
+  linkFld.appendChild(linksWrap); wrap.appendChild(linkFld);
 
   // images (max 10) — 대부분 카드뉴스
   var imgFld=document.createElement('div'); imgFld.className='fld';
@@ -747,7 +821,7 @@ function slotEl(rec,s){
     var th=document.createElement('div'); th.className='th';
     th.innerHTML='<img src="'+esc(url)+'" alt=""><button class="del" title="삭제">×</button>';
     th.querySelector('img').onclick=function(){ openLightbox(url); };
-    th.querySelector('.del').onclick=function(ev){ ev.stopPropagation(); e.images.splice(idx,1); refreshModal(); renderAfterEdit(s.k,s); };
+    th.querySelector('.del').onclick=function(ev){ ev.stopPropagation(); e.images.splice(idx,1); refreshModal(); renderAfterEdit(s.k,s,true); };
     grid.appendChild(th);
   });
   if(cnt<MAX_IMG){
@@ -762,9 +836,27 @@ function slotEl(rec,s){
   imgFld.appendChild(hint);
   wrap.appendChild(imgFld);
 
-  // update history (Tiptap memo)
+  // 관련 첨부파일 (이미지 외 PDF·문서 등)
+  var fileFld=document.createElement('div'); fileFld.className='fld';
+  fileFld.innerHTML='<label>관련 첨부파일 ('+((e.files||[]).length)+')</label>';
+  var flist=document.createElement('div'); flist.className='filelist';
+  (e.files||[]).forEach(function(f,idx){
+    var row=document.createElement('div'); row.className='filerow';
+    row.innerHTML='<span class="fico">📎</span><a href="'+esc(f.url)+'" target="_blank" rel="noopener" download>'+esc(f.name||'파일')+'</a>';
+    var del=document.createElement('button'); del.className='filedel'; del.textContent='✕'; del.title='삭제';
+    del.onclick=function(){ e.files.splice(idx,1); refreshModal(); renderAfterEdit(s.k,s,true); };
+    row.appendChild(del); flist.appendChild(row);
+  });
+  fileFld.appendChild(flist);
+  var fbtn=document.createElement('label'); fbtn.className='btn ghost sm'; fbtn.style.marginTop='6px'; fbtn.textContent='＋ 파일 첨부 (PDF·문서 등, 최대 10MB)';
+  var fIn=document.createElement('input'); fIn.type='file'; fIn.multiple=true; fIn.style.display='none';
+  fIn.onchange=function(){ handleAttachments(fIn.files, e, fbtn, s.k, s); };
+  fbtn.appendChild(fIn); fileFld.appendChild(fbtn);
+  wrap.appendChild(fileFld);
+
+  // SNS용 텍스트 문구 (Tiptap)
   var hsec=document.createElement('div'); hsec.className='fld histsec';
-  hsec.innerHTML='<label>업데이트 기록 (메모 · 누가 언제 무엇을)</label>';
+  hsec.innerHTML='<label>SNS용 텍스트 문구 (작성자·시간·IP 기록)</label>';
   hsec.appendChild(buildHistoryList(s.k));
   hsec.appendChild(buildMemoComposer(s.k));
   wrap.appendChild(hsec);
@@ -776,7 +868,7 @@ function sanitizeHtml(h){ return (h||'').replace(/<\s*script/gi,'&lt;script').re
 function buildHistoryList(k){
   var box=document.createElement('div'); box.className='histlist';
   var entries=hist(k).slice().reverse();
-  if(!entries.length){ box.innerHTML='<div class="note" style="margin:4px 0">아직 업데이트 기록이 없습니다. 아래에서 첫 메모를 남겨보세요.</div>'; return box; }
+  if(!entries.length){ box.innerHTML='<div class="note" style="margin:4px 0">아직 등록된 SNS 문구가 없습니다. 아래에서 작성하세요.</div>'; return box; }
   entries.forEach(function(h){
     var item=document.createElement('div'); item.className='histitem';
     var meta=document.createElement('div'); meta.className='histmeta';
@@ -790,10 +882,10 @@ function buildMemoComposer(k){
   var box=document.createElement('div'); box.className='memo-composer';
   var tb=document.createElement('div'); tb.className='tt-toolbar';
   var ed=document.createElement('div'); ed.className='tt-editor';
-  var addBtn=document.createElement('button'); addBtn.type='button'; addBtn.className='btn sm solid addhist'; addBtn.textContent='＋ 업데이트 기록 추가'; addBtn.disabled=true;
+  var addBtn=document.createElement('button'); addBtn.type='button'; addBtn.className='btn sm solid addhist'; addBtn.textContent='＋ SNS 문구 저장'; addBtn.disabled=true;
   box.appendChild(tb); box.appendChild(ed); box.appendChild(addBtn);
   function fallback(){
-    ed.contentEditable='true'; ed.classList.add('fallback'); ed.setAttribute('data-ph','업데이트 메모를 입력하세요…');
+    ed.contentEditable='true'; ed.classList.add('fallback'); ed.setAttribute('data-ph','SNS 게시 문구를 입력하세요…');
     tb.innerHTML='<span class="note" style="margin:0">서식 도구를 불러오지 못했습니다 — 일반 텍스트로 기록됩니다.</span>';
     addBtn.disabled=false;
     addBtn.onclick=function(){ addHistoryNote(k, ed.innerHTML); ed.innerHTML=''; };
@@ -871,12 +963,32 @@ function handleFiles(files, edit, addBtn, k, s){
   if(list.length>remaining){ toast('최대 '+MAX_IMG+'장 (초과 '+(list.length-remaining)+'장 제외)'); list=list.slice(0,remaining); }
   addBtn.classList.add('busy');
   (function next(){
-    if(!list.length){ addBtn.classList.remove('busy'); refreshModal(); renderAfterEdit(k,s); return; }
+    if(!list.length){ addBtn.classList.remove('busy'); refreshModal(); renderAfterEdit(k,s,true); return; }
     var f=list.shift();
     downscale(f,1600,0.85).then(function(blob){ return uploadBlob(blob); })
       .then(function(url){ if(url && edit.images.length<MAX_IMG){ edit.images.push(url); } next(); })
       .catch(function(){ toast('이미지 업로드 실패'); next(); });
   })();
+}
+/* attachment upload (any file -> /api/file) */
+function handleAttachments(files, edit, btn, k, s){
+  if(!files||!files.length) return;
+  if(!edit.files) edit.files=[];
+  var list=Array.prototype.slice.call(files);
+  var room=20-edit.files.length;
+  if(room<=0){ toast('첨부는 최대 20개입니다'); return; }
+  if(list.length>room) list=list.slice(0,room);
+  btn.classList.add('busy'); var orig=btn.textContent; btn.firstChild&&(btn.firstChild.nodeValue='업로드 중…');
+  (function next(){
+    if(!list.length){ btn.classList.remove('busy'); refreshModal(); renderAfterEdit(k,s,true); return; }
+    var f=list.shift();
+    if(f.size>10*1024*1024){ toast(f.name+' : 10MB 초과로 제외'); next(); return; }
+    uploadAttachment(f).then(function(j){ if(j&&j.url){ edit.files.push({name:j.name||f.name, url:j.url, ct:j.ct||f.type}); } next(); }).catch(function(){ toast('업로드 실패: '+f.name); next(); });
+  })();
+}
+function uploadAttachment(file){
+  return fetch('/api/file',{method:'POST',headers:{'content-type':(file.type||'application/octet-stream'),'x-filename':encodeURIComponent(file.name)},body:file})
+    .then(function(r){return r.json();}).then(function(j){ return j&&j.url?j:null; });
 }
 function downscale(file,max,q){
   return new Promise(function(res,rej){
@@ -922,10 +1034,10 @@ function renderMarketing(){
 
 /* ===== render orchestration ===== */
 function renderAll(){ renderHeader(); renderCalendar(); renderBoard(); renderMarketing(); }
-function renderAfterEdit(k,s){
-  // refresh overview (calendar + board); save the affected card (per-card)
+function renderAfterEdit(k,s,now){
+  // refresh overview (calendar + board); save the affected card to server
   renderCalendar(); renderBoard();
-  if(k) saveCard(k,s);
+  if(k) saveCard(k,s,now);
 }
 function afterDelete(k){ renderCalendar(); renderBoard(); sendDelete(k); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -935,7 +1047,7 @@ function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.c
 function exportJSON(){
   var out={meta:hdr(),event_day:EVENT_DAY,generated:todayISO(),days:DAYS.map(function(d){
     return {date:d.date,dlabel:d.dlabel,weekday:d.weekday,phase:d.phase,items:daySlots(d).map(function(s){
-      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',link:e.link||'',channel:e.channel||'페이스북',images:e.images||[],status:e.status||'planned',history:hist(s.k)};
+      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',channels:e.channels||['페이스북'],links:e.links||{},images:e.images||[],files:e.files||[],status:e.status||'planned',snsText:hist(s.k)};
     })};
   }),marketing:state.marketing||[]};
   var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -960,6 +1072,7 @@ function init(){
   loadLocal();
   var au=localStorage.getItem(LS_AUTHOR); if(au) document.getElementById('author').value=au;
   renderAll();
+  setInterval(renderClock,1000);
   // try server (shared board) — overrides local if present
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
     if(j && j.slots && Object.keys(j.slots).length){ applyServer(j); saveLocal(); renderAll();
@@ -968,7 +1081,6 @@ function init(){
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 
   document.getElementById('author').addEventListener('input',function(){ localStorage.setItem(LS_AUTHOR,this.value.trim()); });
-  document.getElementById('save-now').onclick=saveAll;
   document.getElementById('reload').onclick=reloadServer;
   document.getElementById('export').onclick=exportJSON;
   // view tabs

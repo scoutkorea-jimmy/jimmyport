@@ -287,3 +287,15 @@ WOSM Region → 국가(NSO) → 단위대
 - **작성자 IP 기록**: `maskIp(clientIp)`를 히스토리 항목·레코드에 저장(공개 마스킹). 변경로그(`log`)에는 기존대로 기록.
 - **보관 고지 푸터**: 잼버리 종료(2026-08-09) 후 **3개월(~2026-11-09)** 보관 후 삭제 명시. **국문 주제 교체**: "평화를 잇다, 지구를 살리다, 미래를 개척하다". 카드뉴스 CTA(`/jamboree` 링크) 슬롯에 추가(본격 연동은 다음 단계).
 - 검증: node 구문 + 헤드리스 — Tiptap 18확장 로드·24버튼 툴바·ProseMirror 마운트·히스토리 추가/표시·per-card 저장 무에러·applyServer 복원(edit/history/extra/hidden/marketing)·푸터/슬로건, 콘솔 에러 0.
+
+### 16.5 v0.9.25 — 채널 복수·채널별 링크·첨부파일·SNS문구·라이브타이머·자동저장·캘린더 제목뷰
+- **채널 복수 선택**: `e.channel`(string)→`e.channels`(array). 모달에 토글칩(`.chtog`, 최소 1개). 카드/캘린더 칩 다중 표시. `normEdit`로 구버전 호환.
+- **콘텐츠 링크 복수 + 채널별 자동생성**: `e.link`→`e.links`(객체 `{채널:url}`). 선택한 채널마다 "채널 / 링크" 입력행 자동 생성(`renderLinks`), 채널 토글 시 즉시 재생성. 채널별 placeholder.
+- **SNS용 텍스트 문구**: 기존 '업데이트 기록(메모)' 라벨 → **"SNS용 텍스트 문구"**(Tiptap 그대로, history=문구 버전 기록). 빈상태/버튼/placeholder 문구 변경.
+- **관련 첨부파일**: 이미지 외 일반파일 업로드. 신규 `functions/api/file.js`(KV `file:<id>`, 최대 10MB, content-disposition 다운로드). 클라 `e.files=[{name,url,ct}]`, `handleAttachments`/`uploadAttachment`(X-Filename), 모달 첨부 목록+다운로드+삭제, 카드 📎 카운트.
+- **상태 모달 최상단**: status 세그먼트를 head 바로 아래로 이동(제목보다 위).
+- **마지막 작업자 IP 표시**: `state.meta[k]={author,ip,updatedAt}`(서버 레코드/응답에서). 모달 상단 `.lastedit` "마지막 작업: 이름 · IP · 시간". `applyServer`가 meta 복원, 저장 응답이 갱신(`applyMeta`/`updateLastEditUI`).
+- **모두 즉시 서버 저장**: 작성자 게이트 제거 → 모든 편집이 항상 서버 PUT(텍스트 500ms 디바운스, 선택/토글/삭제/이미지/첨부=즉시 `now=true`). 상단 '서버 저장' 버튼 제거(자동저장), '작성자' 라벨+'↻ 새로고침'만. author 없으면 서버가 '익명'+IP 기록.
+- **캘린더 = 제목 뷰**: 타입 태그(소식/이벤트/카테고리 pill) 제거 → 각 콘텐츠를 **제목**으로 표시(`.ctitle-cell`, 미입력은 faint=제목/시드/카테고리). **진행상태는 날짜 옆 작은 점**(`.sdot` 상태색, 슬롯별). 셀 클릭=openDay, 제목 클릭=openSlot, ＋=추가.
+- **라이브 카운트다운**: 개영식 = **2026-08-05 20:00**(KST). 헤더 시계가 `D-N HH:MM:SS`로 1초마다 갱신(`renderClock`+`setInterval`). 캘린더 D라벨(날짜기준)은 유지.
+- 검증: node 구문(3파일) + 헤드리스 — 시계 틱·채널 토글→링크행 증가·상태 최상단·첨부 UI·캘린더 제목/점(태그 0)·payload(channels/links/files)·콘솔 에러 0. 라이브 /api 스모크.

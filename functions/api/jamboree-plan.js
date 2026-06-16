@@ -18,12 +18,25 @@ const MKT = "jp:marketing";
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 function cleanEdit(e) {
   e = e && typeof e === "object" ? e : {};
+  let channels = Array.isArray(e.channels)
+    ? e.channels.slice(0, 8).map((c) => (c || "").toString().slice(0, 40)).filter(Boolean)
+    : (e.channel ? [String(e.channel).slice(0, 40)] : []);
+  if (!channels.length) channels = ["페이스북"];
+  const links = {};
+  const src = e.links && typeof e.links === "object" ? e.links : (e.link ? { [channels[0]]: e.link } : {});
+  Object.keys(src).slice(0, 12).forEach((k) => { links[k.slice(0, 40)] = (src[k] || "").toString().slice(0, 1000); });
+  const files = Array.isArray(e.files) ? e.files.slice(0, 20).map((f) => ({
+    name: (f && f.name || "file").toString().slice(0, 200),
+    url: (f && f.url || "").toString().slice(0, 600),
+    ct: (f && f.ct || "").toString().slice(0, 100),
+  })).filter((f) => f.url) : [];
   return {
     title: (e.title || "").toString().slice(0, 400),
-    link: (e.link || "").toString().slice(0, 1000),
-    channel: (e.channel || "페이스북").toString().slice(0, 40),
     status: ["planned", "draft", "ready"].indexOf(e.status) >= 0 ? e.status : "planned",
+    channels,
+    links,
     images: Array.isArray(e.images) ? e.images.slice(0, 10).map((u) => (u || "").toString().slice(0, 600)) : [],
+    files,
     category: (e.category || "").toString().slice(0, 40),
   };
 }
