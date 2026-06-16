@@ -14,6 +14,7 @@ import { json, clientIp, maskIp, appendLog } from "./_lib.js";
 const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
 const MKT = "jp:marketing";
+const TYPES = "jp:types";
 
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 function cleanEdit(e) {
@@ -32,6 +33,7 @@ function cleanEdit(e) {
   })).filter((f) => f.url) : [];
   return {
     title: (e.title || "").toString().slice(0, 400),
+    ctype: (e.ctype || "").toString().slice(0, 40),
     status: ["planned", "draft", "ready"].indexOf(e.status) >= 0 ? e.status : "planned",
     channels,
     links,
@@ -60,7 +62,11 @@ export async function onRequestGet({ env }) {
   const mraw = await env.SCOUT_KV.get(MKT);
   if (mraw) { try { marketing = JSON.parse(mraw).marketing; } catch {} }
 
-  return json({ slots, marketing });
+  let types = null;
+  const traw = await env.SCOUT_KV.get(TYPES);
+  if (traw) { try { types = JSON.parse(traw).types; } catch {} }
+
+  return json({ slots, marketing, types });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -77,11 +83,18 @@ export async function onRequestPut({ request, env }) {
     return json({ ok: true, updatedAt: now });
   }
 
+  // 콘텐츠 종류 목록 저장
+  if (Array.isArray(body.types)) {
+    const types = body.types.slice(0, 60).map((t) => (t || "").toString().slice(0, 40)).filter(Boolean);
+    await env.SCOUT_KV.put(TYPES, JSON.stringify({ types, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
   // 카드(슬롯) 저장
   const slotKey = (body.slotKey || "").toString().slice(0, 120);
   if (!slotKey) return json({ error: "slotKey required" }, 400);
 
-  let rec = { k: slotKey, edit: {}, history: [], deleted: false };
+  let rec = { k: slotKey, edit: {}, history: [], notes: [], deleted: false };
   const raw = await env.SCOUT_KV.get(SLOT(slotKey));
   if (raw) { try { rec = JSON.parse(raw); } catch {} }
 
@@ -91,6 +104,11 @@ export async function onRequestPut({ request, env }) {
     rec.history = Array.isArray(rec.history) ? rec.history : [];
     rec.history.push({ ts: now, author, ip, html: (body.addHistory.html || "").toString().slice(0, 30000) });
     rec.history = rec.history.slice(-200);
+  }
+  if (body.addNote && (body.addNote.text != null)) {
+    rec.notes = Array.isArray(rec.notes) ? rec.notes : [];
+    rec.notes.push({ ts: now, author, ip, text: (body.addNote.text || "").toString().slice(0, 2000) });
+    rec.notes = rec.notes.slice(-300);
   }
   rec.updatedAt = now; rec.author = author; rec.ip = ip;
   await env.SCOUT_KV.put(SLOT(slotKey), JSON.stringify(rec));

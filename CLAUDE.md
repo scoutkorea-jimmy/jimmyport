@@ -299,3 +299,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **캘린더 = 제목 뷰**: 타입 태그(소식/이벤트/카테고리 pill) 제거 → 각 콘텐츠를 **제목**으로 표시(`.ctitle-cell`, 미입력은 faint=제목/시드/카테고리). **진행상태는 날짜 옆 작은 점**(`.sdot` 상태색, 슬롯별). 셀 클릭=openDay, 제목 클릭=openSlot, ＋=추가.
 - **라이브 카운트다운**: 개영식 = **2026-08-05 20:00**(KST). 헤더 시계가 `D-N HH:MM:SS`로 1초마다 갱신(`renderClock`+`setInterval`). 캘린더 D라벨(날짜기준)은 유지.
 - 검증: node 구문(3파일) + 헤드리스 — 시계 틱·채널 토글→링크행 증가·상태 최상단·첨부 UI·캘린더 제목/점(태그 0)·payload(channels/links/files)·콘솔 에러 0. 라이브 /api 스모크.
+
+### 16.6 v0.9.26 — 데이터유실 방지(MERGE)·콘텐츠 종류 콤보·간단메모·휴지제거·국문 라벨
+- ⚠️ **데이터 유실 사고 & 수정**: per-card 전환 후 `applyServer`가 **로컬을 서버로 덮어쓰기**라, 서버에 카드가 하나라도 있으면(=내가 라이브에 돌린 스모크 PUT 포함) 로컬 전용 내용이 사라짐(D-50 분실 원인). → `applyServer`를 **MERGE**로 변경(서버 카드는 자기 키만 갱신, 로컬 전용 카드 보존; deleted=true만 제거). init도 항상 merge. **교훈: 운영 KV에 파괴적 스모크 PUT 금지** — 이후 헤드리스+GET만.
+- **콘텐츠 종류(ctype)**: 제목 앞 **입력형 드롭다운 콤보**(`buildTypeCombo`) — 기존 종류 선택 + 타이핑+Enter로 새 종류 추가 + 각 항목 ✕로 삭제. 전역 목록 `state.types`(서버 `jp:types`, `saveTypes`), 기본 `defaultTypes()`. **제목과 같은 줄**(`.titlerow`). 캘린더·카드에 `.ctchip`으로 제목 앞 표시.
+- **간단 메모(Enter 등록)**: SNS 문구 섹션 아래 입력칸 — Enter로 즉시 등록(`addNote`→서버 `addNote`, 슬롯 record `notes[]`에 {ts,author,ip,text}). 타임라인 표시.
+- **휴지 제거**: 캘린더 휴지기 빈 셀의 '휴지' 라벨 제거(그냥 비움). 빈 콘텐츠=회색(faint), 내용 있음=잉크색 유지(기존대로).
+- **국문 라벨**: 좌상단 `제16회 한국잼버리 기획조정본부 홍보부`(orgtag), 헤더 eyebrow `기획조정본부 홍보부`, 타이틀 `제16회 한국잼버리 · SNS 운영 캘린더`(영문 제거).
+- API: `cleanEdit`에 ctype, 슬롯 record에 notes[], GET `{slots,marketing,types}`, PUT `{types}`/`{addNote}`.
+- 검증: 헤드리스 — **MERGE로 로컬 D-50 보존**(서버 부분응답에도 안 사라짐) 확인 + 종류 콤보(메뉴/추가/삭제)·간단메모 Enter·상태 최상단·라벨·휴지0, 콘솔 에러 0.

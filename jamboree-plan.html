@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>제16회 한국잼버리 · 미디어부 SNS 운영 캘린더</title>
+<title>제16회 한국잼버리 · 기획조정본부 홍보부 SNS 운영 캘린더</title>
 <link rel="icon" type="image/png" href="jamboree/assets/logo.png">
 
 <!-- Tiptap (무료 확장 전부) — CDN ESM, 빌드 없음. 실패 시 plain textarea 폴백 -->
@@ -216,6 +216,26 @@ td.title .mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top
 .filedel{margin-left:auto;border:none;background:none;color:#B85C49;cursor:pointer;font-size:12px}
 .btn.busy{opacity:.6;pointer-events:none}
 .authlab{font-size:12px;color:var(--muted);font-weight:600}
+.orgtag{text-transform:none;letter-spacing:0;font-weight:700;color:var(--accent);font-size:12.5px}
+/* content type combobox + title row */
+.titlerow{display:flex;gap:8px;align-items:stretch}
+.titlerow .titleinp{flex:1}
+.typecombo{position:relative;flex:0 0 124px}
+.typeinput{width:100%;font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.typemenu{display:none;position:absolute;top:100%;left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.14);margin-top:3px;max-height:220px;overflow:auto;padding:3px}
+.typemenu.show{display:block}
+.typeopt{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:5px;cursor:pointer}
+.typeopt:hover{background:var(--accent-soft)}
+.typelab{flex:1;font-size:13px}
+.typedel{border:none;background:none;color:#B85C49;cursor:pointer;font-size:11px;opacity:.55}
+.typedel:hover{opacity:1}
+.ctchip{display:inline-block;font-size:10px;font-weight:700;padding:0 5px;border-radius:4px;background:var(--accent);color:#fff;vertical-align:middle}
+.cell .ctchip{font-size:9px;padding:0 3px;border-radius:3px}
+/* quick memo */
+.notelist{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.noteitem{font-size:12.5px;line-height:1.4;padding:4px 8px;background:#FAFBF9;border:1px solid var(--line);border-radius:6px}
+.noteitem .nmeta{color:var(--muted);font-size:11px;font-weight:600;margin-right:4px}
+.noteinput{width:100%;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
 /* sync bar */
 .syncbar{position:sticky;top:0;z-index:30;background:rgba(244,245,242,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:-32px -20px 0;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .syncbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;width:140px}
@@ -286,7 +306,7 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
 <div class="wrap">
 
   <div class="syncbar">
-    <span class="eyebrow" style="margin:0">Media Dept · SNS Ops</span>
+    <span class="eyebrow orgtag" style="margin:0">제16회 한국잼버리 기획조정본부 홍보부</span>
     <label class="authlab" for="author">작성자</label>
     <input id="author" placeholder="이름 입력 (기록용)" autocomplete="off">
     <button class="btn sm ghost" id="reload">↻ 새로고침</button>
@@ -296,7 +316,7 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
   <header class="top">
     <img class="emblem" src="jamboree/assets/logo.png" alt="제16회 한국잼버리 엠블럼" width="92" height="92">
     <div class="htext">
-      <p class="eyebrow">16th Korea Jamboree · Media Dept · SNS Ops</p>
+      <p class="eyebrow">기획조정본부 홍보부</p>
       <h1 id="m-title"></h1>
       <p class="sub" id="m-slogan"></p>
       <div class="metarow" id="m-meta"></div>
@@ -378,7 +398,7 @@ var RANGE_START = '2026-06-15';
 var RANGE_END   = '2026-08-09';
 var WD = ['일','월','화','수','목','금','토'];
 var HEADER_DEF = {
-  title:'제16회 한국잼버리 · 미디어부 SNS 운영 캘린더',
+  title:'제16회 한국잼버리 · SNS 운영 캘린더',
   slogan:'평화를 잇다, 지구를 살리다, 미래를 개척하다 (Peace and Planet, Ready for Future)',
   place:'강원특별자치도 고성군 토성면 잼버리로 244',
   period:'2026-08-05 ~ 2026-08-09'
@@ -444,7 +464,10 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}}; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null}; }
+function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼']; }
+function typeList(){ return (state.types&&state.types.length)?state.types:defaultTypes(); }
+function notesOf(k){ return state.notes[k]||[]; }
 var state = stateDefaults();
 function normEdit(e){
   e=Object.assign(EDEF(), e||{});
@@ -458,7 +481,7 @@ function adopt(s){ var st=Object.assign(stateDefaults(), s||{}); Object.keys(st.
 function loadLocal(){ try{var r=localStorage.getItem(LS); if(r) state=adopt(JSON.parse(r));}catch(e){} }
 function saveLocal(){ prune(); try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} }
 function key(date,type){return date+'#'+type;}
-function EDEF(){ return {title:'',status:'planned',channels:['페이스북'],links:{},images:[],files:[]}; }
+function EDEF(){ return {title:'',ctype:'',status:'planned',channels:['페이스북'],links:{},images:[],files:[]}; }
 function getEdit(k){ return state.edits[k] || (state.edits[k]=EDEF()); }   // editing (persists)
 function peek(k){ return state.edits[k] || EDEF(); }                       // read-only (no store)
 function hist(k){ return state.history[k] || []; }
@@ -485,7 +508,7 @@ function authorVal(){ return (document.getElementById('author').value||'').trim(
 function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
 function slotEditPayload(k,s){
   var e=peek(k);
-  return {title:e.title||'',status:e.status||'planned',channels:(e.channels&&e.channels.length?e.channels:['페이스북']),links:e.links||{},images:e.images||[],files:e.files||[],category:(s&&s.category)||''};
+  return {title:e.title||'',ctype:e.ctype||'',status:e.status||'planned',channels:(e.channels&&e.channels.length?e.channels:['페이스북']),links:e.links||{},images:e.images||[],files:e.files||[],category:(s&&s.category)||''};
 }
 function applyMeta(k,slot){ if(slot){ state.meta[k]={author:slot.author,ip:slot.ip,updatedAt:slot.updatedAt}; updateLastEditUI(k); } }
 function updateLastEditUI(k){ var els=document.querySelectorAll('[data-lastedit="'+k+'"]'); for(var i=0;i<els.length;i++) els[i].textContent=lastEditText(k); }
@@ -547,17 +570,37 @@ function saveAll(){
   }).then(function(){ setSt('전체 저장 완료',true); toast('서버에 전체 저장됨'); }).catch(function(){ setSt('전체 저장 일부 실패'); });
 }
 function applyServer(j){
-  state.edits={}; state.extra={}; state.hidden={}; state.history={}; state.meta={};
+  // MERGE(병합): 서버 카드는 자기 키만 갱신, 로컬 전용 카드는 보존 → 데이터 유실 방지
   var slots=j&&j.slots||{};
   Object.keys(slots).forEach(function(k){
     var r=slots[k]||{}; var isExtra=k.indexOf('#extra#')>=0;
     state.meta[k]={author:r.author,ip:r.ip,updatedAt:r.updatedAt};
-    if(r.deleted){ if(!isExtra) state.hidden[k]=true; return; }
+    if(r.deleted){
+      if(!isExtra){ state.hidden[k]=true; } else { var pp=k.split('#'),dd=pp[0],ii=pp[2]; if(state.extra[dd]) state.extra[dd]=state.extra[dd].filter(function(x){return x.id!==ii;}); }
+      delete state.edits[k]; delete state.history[k]; delete state.notes[k];
+      return;
+    }
     if(r.edit) state.edits[k]=normEdit(r.edit);
-    if(r.history&&r.history.length) state.history[k]=r.history;
+    if(r.history) state.history[k]=r.history;
+    if(r.notes) state.notes[k]=r.notes;
     if(isExtra){ var p=k.split('#'), date=p[0], id=p[2]; if(!state.extra[date]) state.extra[date]=[]; if(!state.extra[date].some(function(x){return x.id===id;})) state.extra[date].push({id:id,category:(r.edit&&r.edit.category)||'콘텐츠'}); }
   });
   if(j&&j.marketing) state.marketing=j.marketing;
+  if(j&&j.types) state.types=j.types;
+}
+function saveTypes(){
+  saveLocal();
+  fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+    body:JSON.stringify({types:typeList(), author:authorVal()})}).catch(function(){});
+}
+function addNote(k, text){
+  if(!text||!text.trim()) return;
+  setSt('메모 저장 중…');
+  fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+    body:JSON.stringify({slotKey:k, edit:slotEditPayload(k), addNote:{text:text}, author:authorVal()})})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(j&&j.slot){ state.notes[k]=j.slot.notes||[]; applyMeta(k,j.slot); saveLocal(); refreshModal(); setSt('메모 저장됨',true); } else setSt('저장 실패'); })
+    .catch(function(){ setSt('저장 실패 (네트워크)'); });
 }
 function reloadServer(){
   setSt('불러오는 중…');
@@ -606,12 +649,13 @@ function renderCalendar(){
     // 날짜 옆 작은 진행상태 점(슬롯별)
     var dots=slots.map(function(s){ var st=peek(s.k).status||'planned'; return '<span class="sdot" style="background:'+STCOL[st]+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
     var html='<div class="ctop"><span class="date">'+rec.label+(dots?(' <span class="sdots">'+dots+'</span>'):'')+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
-    // 각 콘텐츠를 '제목'으로 표시 (타입 태그 없음)
+    // 각 콘텐츠를 '종류 + 제목'으로 표시 (스케줄 타입 태그 없음)
     slots.forEach(function(s){
       var e=peek(s.k), t=e.title||s.seedTitle||s.category, faint=e.title?'':' faint';
-      html+='<div class="citem ctitle-cell'+faint+'" data-sk="'+s.k+'" title="'+esc(t)+'">'+esc(t)+'</div>';
+      var typ=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span>'):'';
+      html+='<div class="citem ctitle-cell'+faint+'" data-sk="'+s.k+'" title="'+esc((e.ctype?e.ctype+' · ':'')+t)+'">'+typ+esc(t)+'</div>';
     });
-    if(rec.phase==='휴지기'&&!slots.length) html+='<div class="restmark">휴지</div>';
+    // 휴지기 등 빈 날짜는 라벨 없이 비워 둠
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">＋</button>';
     cell.innerHTML=html;
     (function(rc){
@@ -690,7 +734,7 @@ function cardEl(d,s,e){
     '<div class="crow1"><span class="dlab">'+(d.dlabel||'—')+'</span><span>'+d.label+' '+d.weekday+'</span>'+
       '<span class="typebadge t-'+s.type+'" style="margin-left:auto">'+TYPE_LABEL[s.type]+'</span></div>'+
     '<div class="ccat" style="color:'+col+'">'+s.category+'</div>'+
-    '<div class="ctitle'+(title?'':' empty')+'">'+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
+    '<div class="ctitle'+(title?'':' empty')+'">'+(e.ctype?'<span class="ctchip">'+esc(e.ctype)+'</span> ':'')+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
     '<div class="cmeta">'+bits.join('')+'</div>';
   var del=document.createElement('button'); del.className='cdel'; del.textContent='✕'; del.title='삭제';
   del.onclick=function(ev){ ev.stopPropagation(); if(confirm('이 콘텐츠를 삭제할까요?')){ deleteSlot(d.date,s); afterDelete(s.k); } };
@@ -771,8 +815,15 @@ function slotEl(rec,s){
   });
   stWrap.appendChild(seg); wrap.appendChild(stWrap);
 
-  // title
-  wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 참가국 ① 일본 대표단', function(v){ e.title=v; renderAfterEdit(s.k,s); })));
+  // 콘텐츠 종류(추가/삭제 드롭다운) + 제목 (같은 줄)
+  var titleFld=document.createElement('div'); titleFld.className='fld';
+  titleFld.innerHTML='<label>콘텐츠 종류 · 제목</label>';
+  var trow=document.createElement('div'); trow.className='titlerow';
+  trow.appendChild(buildTypeCombo(e,s));
+  var titleInp=inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 참가국 ① 일본 대표단', function(v){ e.title=v; renderAfterEdit(s.k,s); });
+  titleInp.className='titleinp';
+  trow.appendChild(titleInp);
+  titleFld.appendChild(trow); wrap.appendChild(titleFld);
 
   // 채널 (복수 선택)
   var chWrap=document.createElement('div'); chWrap.className='fld';
@@ -860,11 +911,51 @@ function slotEl(rec,s){
   hsec.appendChild(buildHistoryList(s.k));
   hsec.appendChild(buildMemoComposer(s.k));
   wrap.appendChild(hsec);
+
+  // 간단 메모 (Enter로 바로 등록)
+  var nsec=document.createElement('div'); nsec.className='fld notesec';
+  nsec.innerHTML='<label>간단 메모 (Enter로 바로 등록)</label>';
+  var nlist=document.createElement('div'); nlist.className='notelist';
+  notesOf(s.k).slice().reverse().forEach(function(n){
+    var d=document.createElement('div'); d.className='noteitem';
+    d.innerHTML='<span class="nmeta">'+esc((n.author||'익명')+' · '+fmtDateTime(n.ts)+(n.ip?(' · '+n.ip):''))+'</span> '+esc(n.text);
+    nlist.appendChild(d);
+  });
+  var ninp=document.createElement('input'); ninp.type='text'; ninp.className='noteinput'; ninp.placeholder='메모 입력 후 Enter';
+  ninp.onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); var v=ninp.value.trim(); if(v){ addNote(s.k, v); ninp.value=''; } } };
+  nsec.appendChild(nlist); nsec.appendChild(ninp); wrap.appendChild(nsec);
   return wrap;
 }
 /* ===== Tiptap memo + history ===== */
 function fmtDateTime(s){ try{var d=new Date(s);return (''+d.getFullYear()).slice(2)+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
 function sanitizeHtml(h){ return (h||'').replace(/<\s*script/gi,'&lt;script').replace(/\son\w+\s*=/gi,' data-x='); }
+function buildTypeCombo(e, s){
+  var box=document.createElement('div'); box.className='typecombo';
+  var inp=document.createElement('input'); inp.className='typeinput'; inp.value=e.ctype||''; inp.placeholder='종류';
+  var menu=document.createElement('div'); menu.className='typemenu';
+  function commit(v){ v=(v||'').trim(); e.ctype=v; if(v && typeList().indexOf(v)<0){ if(!state.types) state.types=defaultTypes().slice(); state.types.push(v); saveTypes(); } renderAfterEdit(s.k,s,true); }
+  function renderMenu(){
+    menu.innerHTML='';
+    var list=typeList();
+    list.forEach(function(t){
+      var row=document.createElement('div'); row.className='typeopt';
+      var lab=document.createElement('span'); lab.className='typelab'; lab.textContent=t;
+      lab.onmousedown=function(ev){ ev.preventDefault(); inp.value=t; commit(t); close(); };
+      var del=document.createElement('button'); del.type='button'; del.className='typedel'; del.textContent='✕'; del.title='이 종류 삭제';
+      del.onmousedown=function(ev){ ev.preventDefault(); ev.stopPropagation(); state.types=list.filter(function(x){return x!==t;}); saveTypes(); renderMenu(); };
+      row.appendChild(lab); row.appendChild(del); menu.appendChild(row);
+    });
+    var hint=document.createElement('div'); hint.className='note'; hint.style.margin='4px 6px'; hint.textContent='입력 후 Enter로 새 종류 추가';
+    menu.appendChild(hint);
+  }
+  function open(){ renderMenu(); menu.classList.add('show'); }
+  function close(){ menu.classList.remove('show'); }
+  inp.onfocus=open;
+  inp.onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); commit(inp.value); close(); inp.blur(); } else if(ev.key==='Escape'){ close(); } };
+  inp.onblur=function(){ setTimeout(close,160); if((inp.value||'').trim()!==(e.ctype||'')) commit(inp.value); };
+  box.appendChild(inp); box.appendChild(menu);
+  return box;
+}
 function buildHistoryList(k){
   var box=document.createElement('div'); box.className='histlist';
   var entries=hist(k).slice().reverse();
@@ -1047,7 +1138,7 @@ function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.c
 function exportJSON(){
   var out={meta:hdr(),event_day:EVENT_DAY,generated:todayISO(),days:DAYS.map(function(d){
     return {date:d.date,dlabel:d.dlabel,weekday:d.weekday,phase:d.phase,items:daySlots(d).map(function(s){
-      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',channels:e.channels||['페이스북'],links:e.links||{},images:e.images||[],files:e.files||[],status:e.status||'planned',snsText:hist(s.k)};
+      var e=peek(s.k); return {type:s.type,category:s.category,ctype:e.ctype||'',title:e.title||s.seedTitle||'',channels:e.channels||['페이스북'],links:e.links||{},images:e.images||[],files:e.files||[],status:e.status||'planned',snsText:hist(s.k),notes:notesOf(s.k)};
     })};
   }),marketing:state.marketing||[]};
   var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -1073,11 +1164,10 @@ function init(){
   var au=localStorage.getItem(LS_AUTHOR); if(au) document.getElementById('author').value=au;
   renderAll();
   setInterval(renderClock,1000);
-  // try server (shared board) — overrides local if present
+  // try server (shared board) — MERGE into local (never wipes local-only content)
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
-    if(j && j.slots && Object.keys(j.slots).length){ applyServer(j); saveLocal(); renderAll();
-      setSt('서버 보드 불러옴',true); }
-    else setSt(au?'카드별 서버 자동 저장 켜짐':'로컬 편집 중 (작성자 입력 시 카드별 서버 저장)');
+    applyServer(j); saveLocal(); renderAll();
+    setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 
   document.getElementById('author').addEventListener('input',function(){ localStorage.setItem(LS_AUTHOR,this.value.trim()); });
