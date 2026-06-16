@@ -216,3 +216,8 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 15.10 v0.9.12
 - **D-피드 배경 로고 워터마크**: `DDaySquare`(feed)에 잼버리 매듭 로고(`logo-white` 업로드 우선)를 중앙 대형(1240px) 옅은 워터마크로 깔음(도형보다 뒤). 어두운 배경=흰색(opacity .09) / 밝은 배경=`invert`(opacity .07)로 자동 대비.
+
+### 15.11 v0.9.13
+- **새 에셋 `jamboree/assets/logo-asset.png`**(굵은 매듭 마크) — D-피드 배경 워터마크를 이 에셋으로 교체(기존 흐릿한 중앙 stamp → 좌측 풀블리드 앵커, base 1560px). 어두운=흰(.13)/밝은=invert(.1).
+- **워터마크 트윅**: `_tweaks.wmScale/wmDX/wmDY/wmOpacity` → CSS 변수 `--cc-wm-scale/dx/dy/opacity`(opacity는 `calc(base * var)`). 우측 '트윅 > D-피드 배경 매듭(에셋)' 슬라이더 4종.
+- **전체 자동 저장**: store(텍스트/도형/사진/트윅/덱)+brand 변경을 1.6s 디바운스로 작업 슬롯(`PUT /api/jamboree`)에 자동 저장. **토큰 1회 입력("작업 저장") 후 동작**(localStorage `jamboree:token`). 첫 마운트 emit 1회는 skip.

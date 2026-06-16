@@ -35,7 +35,7 @@ const TOKEN_KEY = 'jamboree:token';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
-const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0 };
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0, wmScale: 1, wmDX: 0, wmDY: 0, wmOpacity: 1 };
 const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
 const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
@@ -205,7 +205,11 @@ function App() {
     r.setProperty('--cc-logo-dx', (tweaks.logoDX || 0) + 'px');
     r.setProperty('--cc-logo-dy', (tweaks.logoDY || 0) + 'px');
     r.setProperty('--cc-content-scale', String(1 - (tweaks.pad || 0)));
-  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad]);
+    r.setProperty('--cc-wm-scale', String(tweaks.wmScale || 1));
+    r.setProperty('--cc-wm-dx', (tweaks.wmDX || 0) + 'px');
+    r.setProperty('--cc-wm-dy', (tweaks.wmDY || 0) + 'px');
+    r.setProperty('--cc-wm-opacity', String(tweaks.wmOpacity != null ? tweaks.wmOpacity : 1));
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad, tweaks.wmScale, tweaks.wmDX, tweaks.wmDY, tweaks.wmOpacity]);
 
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
   const deck = store.getProp('_deck', 'cards', []);
@@ -290,6 +294,33 @@ function App() {
       flash('불러옴 ✓');
     } catch (e) { flash('불러오기 실패'); } finally { setBusy(false); }
   }, []);
+
+  /* ── 자동 저장: 모든 변경(텍스트/도형/사진/트윅/덱/브랜드)을 디바운스로 작업 슬롯에 PUT ──
+   * 토큰이 있을 때만 동작(최초 1회 "작업 저장"으로 토큰 입력하면 이후 자동). */
+  const brandRef = useRef(brand);
+  useEffect(() => { brandRef.current = brand; }, [brand]);
+  const autosaveT = useRef(0);
+  const autosaveReady = useRef(false);   // 첫 emit(초기 마운트) 1회는 건너뜀
+  const doAutosave = useCallback(async () => {
+    let token = ''; try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (_) {}
+    if (!token) return;
+    try {
+      const state = Object.assign(window.CCStore.collect(), { brand: brandRef.current });
+      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ state }) });
+      if (res.status === 401) { try { localStorage.removeItem(TOKEN_KEY); } catch (_) {} return; }
+      if (res.ok) flash('자동 저장됨 ✓');
+    } catch (_) {}
+  }, []);
+  const scheduleAutosave = useCallback(() => {
+    window.clearTimeout(autosaveT.current);
+    autosaveT.current = window.setTimeout(doAutosave, 1600);
+  }, [doAutosave]);
+  useEffect(() => {
+    const unsub = window.CCStore.sub(() => { if (autosaveReady.current) scheduleAutosave(); });
+    autosaveReady.current = true;
+    return () => { if (unsub) unsub(); window.clearTimeout(autosaveT.current); };
+  }, [scheduleAutosave]);
+  useEffect(() => { if (autosaveReady.current) scheduleAutosave(); /* eslint-disable-next-line */ }, [brand]);
 
   /* ── 서버 저장 카드뉴스 목록 ── */
   const refreshList = useCallback(async () => {
@@ -613,6 +644,13 @@ function App() {
               <Slider label="숫자↔티저 간격" value={tweaks.gapAdj} min={-40} max={160} unit="px" onChange={(v) => setTweak('gapAdj', v)} />
               <Slider label="줄 간격 (D-↔숫자)" value={tweaks.lineAdj} min={-60} max={120} unit="px" onChange={(v) => setTweak('lineAdj', v)} />
               <Slider label="숫자 크기" value={tweaks.numScale} min={0.7} max={1.2} step={0.02} onChange={(v) => setTweak('numScale', v)} />
+            </details>
+            <details>
+              <summary style={{ ...fieldLabel, cursor: 'pointer', marginBottom: 8 }}>D-피드 배경 매듭(에셋)</summary>
+              <Slider label="매듭 크기" value={Math.round((tweaks.wmScale || 1) * 100) / 100} min={0.4} max={2.2} step={0.05} unit="×" onChange={(v) => setTweak('wmScale', v)} />
+              <Slider label="매듭 좌우 위치" value={tweaks.wmDX} min={-700} max={700} step={10} unit="px" onChange={(v) => setTweak('wmDX', v)} />
+              <Slider label="매듭 상하 위치" value={tweaks.wmDY} min={-700} max={700} step={10} unit="px" onChange={(v) => setTweak('wmDY', v)} />
+              <Slider label="매듭 농도" value={Math.round((tweaks.wmOpacity != null ? tweaks.wmOpacity : 1) * 100)} min={0} max={250} step={5} unit="%" onChange={(v) => setTweak('wmOpacity', v / 100)} />
             </details>
           </div>
 
