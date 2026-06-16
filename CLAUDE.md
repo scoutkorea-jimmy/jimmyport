@@ -231,6 +231,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **하단 덱 슬라이드(v0.9.17)**: 카드뉴스 구성을 좌측→하단 가로 슬라이드 바로 이동. 칩별 순서(◀▶)·✕삭제·클릭편집, "+ 현재 카드 담기".
 - **콘솔 정리(v0.9.17)**: jamboree.html에서 Babel in-browser advisory 경고만 console.warn 필터로 억제. (라이브 스윕 결과 에러·네트워크 실패 0, Babel 경고만 있었음)
 
+
+### 15.15 v0.9.18 — 작성자 이름 기반 저장 + 컬러 엠블럼 교체
+- **토큰 제거 → 작성자 이름**: `functions/api/jamboree.js` PUT/POST/DELETE에서 `isAdmin` 제거. POST/PUT body에 `author` 저장(index에 `author` 포함). PUT은 `id` 있으면 해당 항목 갱신, 없으면 작업 슬롯.
+- 프런트: `token`→`author`(localStorage `jamboree:author`). 불러온/저장한 항목 `currentId` 추적 → **자동 저장이 그 항목을 갱신**(작성자 이름 있을 때). 모달: 작성자 이름 입력 + "저장(덮어쓰기)"/"새 사본"/"+ 새 카드뉴스" + 목록(작성자·날짜 표시·현재 항목 강조).
+- **밝은 배경용 컬러 엠블럼 교체**: `jamboree/assets/logo.png` 공식 풀컬러 엠블럼(매듭+텍스트링+태극+스카우트)로 교체.
+
 ### 15.13 v0.9.15
 - **키커 문구 편집**: D-day `useDDeff`에 `ov.kicker` 오버라이드(비우면 자동 'COUNTDOWN · N일 전'/isDay 기본). 편집 패널 '키커 문구(상단)' 입력(ddScope, 자동 placeholder). 카드별 저장.
 - **텍스트 줄바꿈 지원**: `Editable` — 인라인 편집 시 Enter로 줄바꿈(커밋=blur/Escape), 저장은 `innerText`(줄바꿈 보존), 렌더 `white-space: pre-wrap`. 폼(`FieldInput`)은 def>14자 또는 값에 `\n` 있으면 textarea(줄바꿈 가능 안내). 티저 등 전체 텍스트 적용.

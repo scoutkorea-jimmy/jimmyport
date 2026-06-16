@@ -1,16 +1,17 @@
-/* 카드뉴스 제작기 상태 저장 (KV)
- *  - 작업 슬롯(자동): KEY="jamboree"  (GET/PUT) — 기존 호환, "서버 저장/불러오기"
+/* 카드뉴스 제작기 상태 저장 (KV) — 작성자 이름 기반(토큰 없음)
+ *  - 작업 슬롯(자동 초안): KEY="jamboree"  (GET/PUT)
  *  - 이름 있는 다중 저장(카드뉴스 목록):
- *      index:  KEY_INDEX="jamboree:index" = [{id,name,updatedAt}]
- *      item:   "jamboree:item:<id>"        = {id,name,state,updatedAt}
+ *      index:  KEY_INDEX="jamboree:index" = [{id,name,author,updatedAt}]
+ *      item:   "jamboree:item:<id>"        = {id,name,author,state,updatedAt}
  *  - GET  /api/jamboree            → 작업 슬롯 {state,updatedAt}
- *  - GET  /api/jamboree?list=1     → 목록 {items:[{id,name,updatedAt}]}
- *  - GET  /api/jamboree?id=<id>    → 개별 {id,name,state,updatedAt}
- *  - PUT  /api/jamboree            → 작업 슬롯 저장(관리자)
- *  - POST /api/jamboree            → 이름으로 새 저장(관리자) {name,state} → {id}
- *  - DELETE /api/jamboree?id=<id>  → 삭제(관리자)
+ *  - GET  /api/jamboree?list=1     → 목록 {items:[{id,name,author,updatedAt}]}
+ *  - GET  /api/jamboree?id=<id>    → 개별 {id,name,author,state,updatedAt}
+ *  - PUT  /api/jamboree            → 저장: body {state, author?, id?, name?}
+ *        id 있으면 해당 항목 갱신, 없으면 작업 슬롯 저장
+ *  - POST /api/jamboree            → 새 항목 {name, author, state} → {id}
+ *  - DELETE /api/jamboree?id=<id>  → 삭제
  *  state = { text, props, images, brand }  (Phase 1 editKeys 호환) */
-import { json, isAdmin, clientIp, appendLog } from "./_lib.js";
+import { json, clientIp, appendLog } from "./_lib.js";
 
 const KEY = "jamboree";
 const KEY_INDEX = "jamboree:index";
@@ -21,6 +22,7 @@ async function readIndex(env) {
   if (!raw) return [];
   try { const a = JSON.parse(raw); return Array.isArray(a) ? a : []; } catch { return []; }
 }
+function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -40,38 +42,53 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const state = body && typeof body.state === "object" && body.state ? body.state : null;
   if (!state) return json({ error: "state object required" }, 400);
+  const author = cleanName(body.author, "익명");
   const updatedAt = new Date().toISOString();
-  await env.SCOUT_KV.put(KEY, JSON.stringify({ state, updatedAt }));
-  const cnt = (o) => (o && typeof o === "object" ? Object.keys(o).length : 0);
-  const editCount = cnt(state.text) + cnt(state.props) + cnt(state.images) + cnt(state.editKeys);
-  await appendLog(env, { ts: updatedAt, action: "jamboree.save", count: editCount, ip: clientIp(request) });
+
+  if (body.id) {
+    // 기존 항목 갱신
+    const id = String(body.id);
+    const raw = await env.SCOUT_KV.get(ITEM(id));
+    if (!raw) return json({ error: "not found" }, 404);
+    let prev = {}; try { prev = JSON.parse(raw); } catch {}
+    const name = cleanName(body.name, prev.name || "카드뉴스");
+    await env.SCOUT_KV.put(ITEM(id), JSON.stringify({ id, name, author, state, updatedAt }));
+    const index = await readIndex(env);
+    const e = index.find((x) => x.id === id);
+    if (e) { e.name = name; e.author = author; e.updatedAt = updatedAt; }
+    await env.SCOUT_KV.put(KEY_INDEX, JSON.stringify(index));
+    await appendLog(env, { ts: updatedAt, action: "jamboree.update", count: 0, ip: clientIp(request) });
+    return json({ ok: true, id, updatedAt });
+  }
+
+  // 작업 슬롯(초안)
+  await env.SCOUT_KV.put(KEY, JSON.stringify({ state, author, updatedAt }));
+  await appendLog(env, { ts: updatedAt, action: "jamboree.draft", count: 0, ip: clientIp(request) });
   return json({ ok: true, updatedAt });
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const state = body && typeof body.state === "object" && body.state ? body.state : null;
   if (!state) return json({ error: "state object required" }, 400);
-  let name = (body.name || "").toString().trim().slice(0, 80) || "카드뉴스";
+  const name = cleanName(body.name, "카드뉴스");
+  const author = cleanName(body.author, "익명");
   const updatedAt = new Date().toISOString();
   const id = (crypto.randomUUID ? crypto.randomUUID() : "j" + Date.now() + Math.random().toString(36).slice(2, 8));
-  await env.SCOUT_KV.put(ITEM(id), JSON.stringify({ id, name, state, updatedAt }));
+  await env.SCOUT_KV.put(ITEM(id), JSON.stringify({ id, name, author, state, updatedAt }));
   const index = await readIndex(env);
-  index.unshift({ id, name, updatedAt });
+  index.unshift({ id, name, author, updatedAt });
   await env.SCOUT_KV.put(KEY_INDEX, JSON.stringify(index.slice(0, 200)));
   await appendLog(env, { ts: updatedAt, action: "jamboree.create", count: 0, ip: clientIp(request) });
-  return json({ ok: true, id, name, updatedAt });
+  return json({ ok: true, id, name, author, updatedAt });
 }
 
 export async function onRequestDelete({ request, env }) {
-  if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "id required" }, 400);
   await env.SCOUT_KV.delete(ITEM(id));

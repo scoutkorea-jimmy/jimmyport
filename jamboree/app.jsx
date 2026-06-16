@@ -31,7 +31,7 @@ const DEFAULT_BRAND = {
   place: '강원 세계잼버리수련장', org: '한국스카우트연맹', openLine: '2026. 8. 5 개영',
 };
 
-const TOKEN_KEY = 'jamboree:token';
+const AUTHOR_KEY = 'jamboree:author';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
@@ -187,8 +187,10 @@ function App() {
   const [savedItems, setSavedItems] = useState(null);   // null=미로딩, []=빈
   const [listMsg, setListMsg] = useState('');
   const [saveName, setSaveName] = useState('');
-  const [token, setTokenState] = useState(() => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (_) { return ''; } });
-  const setToken = useCallback((v) => { setTokenState(v); try { if (v) localStorage.setItem(TOKEN_KEY, v); else localStorage.removeItem(TOKEN_KEY); } catch (_) {} }, []);
+  const [currentId, setCurrentId] = useState(null);     // 불러온/저장한 항목 id (자동저장 대상)
+  const [currentName, setCurrentName] = useState('');
+  const [author, setAuthorState] = useState(() => { try { return localStorage.getItem(AUTHOR_KEY) || ''; } catch (_) { return ''; } });
+  const setAuthor = useCallback((v) => { setAuthorState(v); try { if (v) localStorage.setItem(AUTHOR_KEY, v); else localStorage.removeItem(AUTHOR_KEY); } catch (_) {} }, []);
 
   const family = famOf(familyKey);
   const cards = family.sec() || [];
@@ -268,7 +270,7 @@ function App() {
 
   const flash = (msg) => { setStatus(msg); window.clearTimeout(flash._t); flash._t = window.setTimeout(() => setStatus(''), 3500); };
 
-  /* ── 서버 저장/불러오기 (모달 통합, 토큰=상태) ── */
+  /* ── 서버 저장/불러오기 (작성자 이름 기반, 토큰 없음) ── */
   const refreshList = useCallback(async () => {
     try {
       const res = await fetch('/api/jamboree?list=1');
@@ -278,42 +280,39 @@ function App() {
   }, []);
   const openList = useCallback(() => { setListOpen(true); setListMsg(''); setSavedItems(null); refreshList(); }, [refreshList]);
 
+  // 현재 작업 저장: 불러온 항목이 있으면 그 항목 갱신, 없으면 새 항목 생성
   const saveWorking = useCallback(async () => {
-    if (!token) { setListMsg('관리자 토큰을 먼저 입력하세요'); return; }
+    if (!author.trim()) { setListMsg('작성자 이름을 먼저 입력하세요'); return; }
     setBusy(true); setListMsg('저장 중…');
     try {
       const state = Object.assign(window.CCStore.collect(), { brand });
-      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ state }) });
-      if (res.status === 401) { setListMsg('토큰이 올바르지 않습니다'); return; }
+      let res, data;
+      if (currentId) {
+        res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: currentId, name: currentName || saveName, author, state }) });
+      } else {
+        const name = (saveName || brand.brand || '카드뉴스').trim();
+        res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, author, state }) });
+        data = await res.json().catch(() => null);
+        if (res.ok && data && data.id) { setCurrentId(data.id); setCurrentName(name); }
+      }
       if (!res.ok) { setListMsg('저장 실패 (' + res.status + ')'); return; }
-      setListMsg('작업 저장됨 ✓ (자동 저장 활성화)'); flash('저장됨 ✓');
+      setListMsg('저장됨 ✓'); flash('저장됨 ✓'); refreshList();
     } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
-  }, [brand, token]);
+  }, [author, brand, currentId, currentName, saveName, refreshList]);
 
   const saveAsNew = useCallback(async () => {
-    if (!token) { setListMsg('관리자 토큰을 먼저 입력하세요'); return; }
+    if (!author.trim()) { setListMsg('작성자 이름을 먼저 입력하세요'); return; }
     const name = (saveName || brand.brand || '카드뉴스').trim();
     setBusy(true); setListMsg('저장 중…');
     try {
       const state = Object.assign(window.CCStore.collect(), { brand });
-      const res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json', 'X-Admin-Token': token }, body: JSON.stringify({ name, state }) });
-      if (res.status === 401) { setListMsg('토큰이 올바르지 않습니다'); return; }
+      const res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, author, state }) });
+      const data = await res.json().catch(() => null);
       if (!res.ok) { setListMsg('저장 실패 (' + res.status + ')'); return; }
+      if (data && data.id) { setCurrentId(data.id); setCurrentName(name); }
       setListMsg('"' + name + '" 저장됨 ✓'); setSaveName(''); refreshList();
     } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
-  }, [brand, token, saveName, refreshList]);
-
-  const loadWorking = useCallback(async () => {
-    setBusy(true); setListMsg('불러오는 중…');
-    try {
-      const res = await fetch('/api/jamboree');
-      const data = await res.json();
-      if (!data || !data.state) { setListMsg('저장된 작업이 없습니다'); return; }
-      window.CCStore.hydrate(data.state);
-      if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
-      setRemount((n) => n + 1); setListOpen(false); flash('불러옴 ✓');
-    } catch (e) { setListMsg('불러오기 실패'); } finally { setBusy(false); }
-  }, []);
+  }, [author, brand, saveName, refreshList]);
 
   const loadItem = useCallback(async (it) => {
     setBusy(true); setListMsg('불러오는 중…');
@@ -323,34 +322,40 @@ function App() {
       if (!data || !data.state) { setListMsg('불러오기 실패'); return; }
       window.CCStore.hydrate(data.state);
       if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
+      setCurrentId(it.id); setCurrentName(it.name || '');
+      if (it.author) setAuthor(it.author);
       setRemount((n) => n + 1); setListOpen(false); flash('불러옴 ✓');
     } catch (e) { setListMsg('불러오기 실패'); } finally { setBusy(false); }
-  }, []);
+  }, [setAuthor]);
 
   const deleteItem = useCallback(async (it) => {
-    if (!token) { setListMsg('관리자 토큰을 먼저 입력하세요'); return; }
     if (!window.confirm('"' + it.name + '" 삭제할까요?')) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE', headers: { 'X-Admin-Token': token } });
-      if (res.status === 401) { setListMsg('토큰이 올바르지 않습니다'); return; }
+      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE' });
       if (!res.ok) { setListMsg('삭제 실패'); return; }
+      if (currentId === it.id) { setCurrentId(null); setCurrentName(''); }
       setListMsg('삭제됨 ✓'); refreshList();
     } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
-  }, [token, refreshList]);
+  }, [currentId, refreshList]);
 
-  /* ── 자동 저장: 모든 변경을 디바운스로 작업 슬롯에 PUT (토큰 있을 때만) ── */
+  const newDoc = useCallback(() => { setCurrentId(null); setCurrentName(''); setListMsg('새 카드뉴스로 전환 — 저장 시 새 항목으로 생성됩니다'); }, []);
+
+  /* ── 자동 저장: 불러온/저장한 항목이 있으면 그 항목을 갱신(작성자 이름 필요) ── */
   const brandRef = useRef(brand);
   useEffect(() => { brandRef.current = brand; }, [brand]);
-  const tokenRef = useRef(token);
-  useEffect(() => { tokenRef.current = token; }, [token]);
+  const authorRef = useRef(author);
+  useEffect(() => { authorRef.current = author; }, [author]);
+  const curRef = useRef({ id: currentId, name: currentName });
+  useEffect(() => { curRef.current = { id: currentId, name: currentName }; }, [currentId, currentName]);
   const autosaveT = useRef(0);
   const autosaveReady = useRef(false);
   const doAutosave = useCallback(async () => {
-    const tk = tokenRef.current; if (!tk) return;
+    const a = (authorRef.current || '').trim(); const cur = curRef.current;
+    if (!a || !cur.id) return;   // 작성자 + 저장된 항목이 있을 때만 자동 갱신
     try {
       const state = Object.assign(window.CCStore.collect(), { brand: brandRef.current });
-      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json', 'X-Admin-Token': tk }, body: JSON.stringify({ state }) });
+      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: cur.id, name: cur.name, author: a, state }) });
       if (res.ok) flash('자동 저장됨 ✓');
     } catch (_) {}
   }, []);
@@ -709,19 +714,20 @@ function App() {
             </div>
 
             <div style={{ overflowY: 'auto' }}>
-              {/* 관리자 토큰 */}
+              {/* 작성자 이름 */}
               <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
-                <div style={{ ...fieldLabel, display: 'flex', justifyContent: 'space-between' }}><span>관리자 토큰</span><span style={{ color: token ? P.forest : '#c08a2a', fontWeight: 700 }}>{token ? '● 입력됨' : '○ 미입력'}</span></div>
-                <input type="password" value={token} placeholder="X-Admin-Token (저장·삭제에 필요)" onChange={(e) => setToken(e.target.value)} style={inputStyle} autoComplete="off" />
-                <p style={{ fontSize: 11.5, color: '#8b8492', margin: '6px 0 0', lineHeight: 1.5 }}>토큰 입력 후에는 모든 변경이 <b>자동 저장</b>됩니다. (불러오기·목록 보기는 토큰 불필요)</p>
+                <div style={{ ...fieldLabel, display: 'flex', justifyContent: 'space-between' }}><span>작성자 이름</span><span style={{ color: author.trim() ? P.forest : '#c08a2a', fontWeight: 700 }}>{author.trim() ? '● 입력됨' : '○ 미입력'}</span></div>
+                <input value={author} placeholder="예: 홍길동 / 강원연맹" onChange={(e) => setAuthor(e.target.value)} style={inputStyle} />
+                <p style={{ fontSize: 11.5, color: '#8b8492', margin: '6px 0 0', lineHeight: 1.5 }}>이름 입력 후 저장하면, 이후 변경은 그 카드뉴스에 <b>자동 저장</b>됩니다.</p>
               </div>
 
               {/* 저장 액션 */}
               <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
-                <button disabled={busy} onClick={saveWorking} style={{ width: '100%', border: 'none', background: P.purple, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>현재 작업 저장 (덮어쓰기)</button>
+                <div style={{ fontSize: 12.5, color: '#5a5364', marginBottom: 8 }}>현재 편집 중: <b>{currentName ? currentName : '새 카드뉴스 (미저장)'}</b></div>
+                <button disabled={busy} onClick={saveWorking} style={{ width: '100%', border: 'none', background: P.purple, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{currentId ? '저장 (덮어쓰기)' : '저장'}</button>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input value={saveName} placeholder="새 카드뉴스 이름" onChange={(e) => setSaveName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
-                  <button disabled={busy} onClick={saveAsNew} style={{ flex: '0 0 auto', border: '1.5px solid ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>새로 저장</button>
+                  <input value={saveName} placeholder="다른 이름으로 저장 (새 사본)" onChange={(e) => setSaveName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                  <button disabled={busy} onClick={saveAsNew} style={{ flex: '0 0 auto', border: '1.5px solid ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>새 사본</button>
                 </div>
                 {listMsg && <div style={{ fontSize: 12.5, color: /오류|실패|않|먼저/.test(listMsg) ? '#c0392b' : P.forest, fontWeight: 600, marginTop: 10 }}>{listMsg}</div>}
               </div>
@@ -730,15 +736,15 @@ function App() {
               <div style={{ padding: '12px 16px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px' }}>
                   <span style={fieldLabel}>저장된 카드뉴스</span>
-                  <button disabled={busy} onClick={loadWorking} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#5a5364', borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>최근 작업 불러오기</button>
+                  <button disabled={busy} onClick={newDoc} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#5a5364', borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ 새 카드뉴스</button>
                 </div>
                 {savedItems === null && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>불러오는 중…</div>}
-                {savedItems && savedItems.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>저장된 카드뉴스가 없습니다.<br />위 "새로 저장"으로 만들어 보세요.</div>}
+                {savedItems && savedItems.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#9a93a3', fontSize: 13 }}>저장된 카드뉴스가 없습니다.<br />이름 입력 후 "저장"으로 만들어 보세요.</div>}
                 {savedItems && savedItems.map((it) => (
-                  <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', borderRadius: 10, background: '#f7f4fa', marginBottom: 6 }}>
+                  <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', borderRadius: 10, background: it.id === currentId ? '#f0e8f9' : '#f7f4fa', border: it.id === currentId ? '1px solid ' + P.purple : '1px solid transparent', marginBottom: 6 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
-                      <div style={{ fontSize: 11.5, color: '#9a93a3', marginTop: 2 }}>{(it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
+                      <div style={{ fontSize: 11.5, color: '#9a93a3', marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
                     </div>
                     <button disabled={busy} onClick={() => loadItem(it)} style={{ border: 'none', background: P.purple, color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
                     <button disabled={busy} onClick={() => deleteItem(it)} style={{ border: '1px solid rgba(0,0,0,.14)', background: '#fff', color: '#b4304a', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
