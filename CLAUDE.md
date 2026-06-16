@@ -270,3 +270,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **외국 17개국 = D-21~D-5 정확히 17일** → `foreignTitle(dd)` seedTitle `참가국 ①~⑰`(1일 1개국, 국가명으로 수정 전제). `CIRCLED` 원문자 배열.
 - **피날레 = 그날 D-count 카드 드는 담당자(역할)**: D-4 국제 커미셔너 · D-3 야영장(캠프치프) · D-2 한국스카우트연맹 총재 · D-1 전체 운영요원 · D-DAY 개영식. (`finaleTitle` 교체)
 - `CAT_COLOR`/`CAT_TINT`/범례 갱신. 소식(월·수·금)·이벤트(7/6·7/26·8/5)는 유지. 검증: node 로직(한국19·외국17(참가국①~⑰)·피날레 역할5) + 헤드리스 렌더 콘솔 에러 0, 캘린더 단계색·피날레 역할 표기 확인.
+
+### 16.3 v0.9.23 — 탭/콘텐츠 단위 관리/이미지 10장/페이스북 채널/로고 장식
+- **상단 탭**(`.viewtabs`): 📅 캘린더 보기 / 📋 리스트 보기 — `setView(v)`가 `#calendar`/`#content` display 토글(localStorage `jamboree-plan:view`). 마케팅 캘린더는 항상 노출.
+- **캘린더 콘텐츠 단위 관리**: 셀 안의 D-count/소식/이벤트/추가 칩에 `data-sk`+`.citem` → 개별 클릭 시 `openSlot`(그 콘텐츠만). 셀 우하단 `.cadd`(＋) → `addContent(date)` 후 그 슬롯 모달. 셀 배경/날짜 클릭은 `openDay`(전체).
+- **추가/삭제**: `addContent(date)`(extra 슬롯 생성), `deleteSlot(date,s)`(extra=제거 / seed=`state.hidden[k]=true`). 카드 hover `✕`(`.cdel`)·모달 '삭제' 버튼(confirm). 리스트뷰 툴바 날짜선택+`＋ 콘텐츠 추가`. `daySlots`가 hidden 필터.
+- **이미지 최대 10장**(`MAX_IMG`): `handleFiles` 잔여 계산·초과 toast·캡 도달 시 add 버튼 숨김+`(n/10)` 라벨.
+- **채널(기본 페이스북)**: `EDEF.channel='페이스북'`, `CHANNELS`. 모달 상태·채널 셀렉트, 카드 `.chchip`(페북/인스타/유튜브 색). 링크 라벨/placeholder 페이스북 우선. export에 channel 포함.
+- **로고 장식**: 헤더에 `jamboree/assets/logo.png`(색 엠블럼)+favicon. 장소 = '강원특별자치도 고성군 토성면 잼버리로 244'(공식 엠블럼 Goseong 표기 반영).
+- 검증: 헤드리스 — 탭 전환·캘린더 칩 클릭→슬롯모달(채널 셀렉트)·셀＋추가·카드 채널칩/삭제·이미지 10/10 캡·리스트뷰 추가 모두 동작, 콘솔 에러 0.

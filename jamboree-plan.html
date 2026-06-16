@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>제16회 한국잼버리 · 미디어부 SNS 운영 캘린더</title>
+<link rel="icon" type="image/png" href="jamboree/assets/logo.png">
 <style>
 :root{
   --bg:#F4F5F2; --surface:#FFFFFF; --ink:#1C211D; --muted:#6A706A; --line:#E0E2DD;
@@ -20,7 +21,14 @@ body{margin:0;background:var(--bg);color:var(--ink);
 h1{font-size:26px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em}
 .sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-header.top{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+header.top{display:flex;gap:18px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:18px}
+.emblem{width:92px;height:92px;flex:0 0 auto;border-radius:50%;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:3px}
+.htext{min-width:0}
+/* view tabs */
+.viewtabs{display:flex;gap:6px;margin-bottom:8px}
+.vtab{font-size:14px;font-weight:600;padding:9px 18px;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:9px;cursor:pointer}
+.vtab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.adddate{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
 .metarow{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:13px;color:var(--muted)}
 .metarow b{color:var(--ink);font-weight:600}
 .clock{display:inline-flex;align-items:baseline;gap:8px;margin-top:10px;padding:6px 12px;background:var(--accent-soft);border-radius:6px}
@@ -106,6 +114,15 @@ td.title .mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top
 .card .seg{display:flex;margin-top:9px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .card .seg button{flex:1;font-size:10.5px;padding:4px 0;border:none;background:#fff;color:var(--muted);cursor:pointer;border-right:1px solid var(--line)}
 .card .seg button:last-child{border-right:none}
+.card{position:relative}
+.card .cdel{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;color:#B85C49;font-size:12px;line-height:1;cursor:pointer;padding:0;opacity:0;transition:opacity .12s}
+.card:hover .cdel{opacity:1}
+.chchip{font-size:10px;border-radius:4px;padding:1px 6px;background:#EAF0F6;color:#2E6FAE;font-weight:600;white-space:nowrap}
+.chchip.ig{background:#FCE9F3;color:#B4377E} .chchip.yt{background:#FBE6E6;color:#C0392B} .chchip.etc{background:#ECEFEC;color:#4B524B}
+/* calendar per-cell add */
+.cell .cadd{margin-top:auto;align-self:flex-end;width:18px;height:18px;border-radius:5px;border:1px dashed var(--line);background:#fff;color:var(--muted);font-size:13px;line-height:1;cursor:pointer;padding:0;opacity:0;transition:opacity .12s}
+.cell.clickable:hover .cadd{opacity:1}
+.cell .citem{cursor:pointer}
 /* sync bar */
 .syncbar{position:sticky;top:0;z-index:30;background:rgba(244,245,242,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:-32px -20px 0;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .syncbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;width:140px}
@@ -157,14 +174,17 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
   .wrap{padding:20px 12px 72px}
   .syncbar{margin:-20px -12px 0;padding:10px 12px}
   .progress .pbar{flex-basis:120px}
+  header.top{gap:12px} .emblem{width:60px;height:60px}
+  .vtab{flex:1;padding:9px 0;text-align:center;font-size:13px}
   .cal{gap:3px}
-  .cell{min-height:58px;padding:4px 4px;gap:3px}
+  .cell{min-height:62px;padding:4px 4px;gap:3px}
   .cell .date{font-size:10px} .cell .dd{font-size:8.5px}
-  .cell .tag{display:none} .cell .ttl{display:none}
+  .cell .tag{font-size:9px;padding:0 3px} .cell .ttl{display:none}
   .cell .pill{font-size:0;padding:2px;gap:0;border-radius:3px}
   .cell .pill .dot{width:6px;height:6px}
   .cell .pill.ev{width:9px;height:9px;padding:0;border-radius:50%;background:var(--c-intl);border:none}
   .cell .pill.has{font-size:8.5px;padding:1px 4px}
+  .cell .cadd{opacity:1} .card .cdel{opacity:1}
   .modal{max-width:100%}
 }
 </style>
@@ -181,15 +201,23 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
   </div>
 
   <header class="top">
-    <p class="eyebrow">16th Korea Jamboree · Media Dept · SNS Ops</p>
-    <h1 id="m-title"></h1>
-    <p class="sub" id="m-slogan"></p>
-    <div class="metarow" id="m-meta"></div>
-    <div class="clock"><span class="big" id="m-clock"></span><span class="sub" id="m-clocksub"></span></div>
+    <img class="emblem" src="jamboree/assets/logo.png" alt="제16회 한국잼버리 엠블럼" width="92" height="92">
+    <div class="htext">
+      <p class="eyebrow">16th Korea Jamboree · Media Dept · SNS Ops</p>
+      <h1 id="m-title"></h1>
+      <p class="sub" id="m-slogan"></p>
+      <div class="metarow" id="m-meta"></div>
+      <div class="clock"><span class="big" id="m-clock"></span><span class="sub" id="m-clocksub"></span></div>
+    </div>
   </header>
 
+  <div class="viewtabs" role="tablist">
+    <button class="vtab active" data-v="calendar" role="tab">📅 캘린더 보기</button>
+    <button class="vtab" data-v="list" role="tab">📋 리스트 보기</button>
+  </div>
+
   <section id="calendar">
-    <div class="sec-head"><h2>운영 캘린더 (일요일 시작)</h2><span class="sub">날짜를 클릭해 콘텐츠 편집</span></div>
+    <div class="sec-head"><h2>운영 캘린더 (일요일 시작)</h2><span class="sub">콘텐츠를 클릭해 편집 · 날짜의 ＋로 추가</span></div>
     <div class="legend">
       <span><span class="sw" style="background:var(--c-rest)"></span>휴지기</span>
       <span><span class="sw" style="background:var(--c-sub)"></span>한국 대표단 (D-40~22)</span>
@@ -203,7 +231,7 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
   </section>
 
   <section id="content">
-    <div class="sec-head"><h2>콘텐츠 작업 보드</h2><span class="sub" id="cnt-count"></span></div>
+    <div class="sec-head"><h2>콘텐츠 리스트 (상태별)</h2><span class="sub" id="cnt-count"></span></div>
     <div class="progress"><div class="pbar"><i id="pfill"></i></div><span id="ptext"></span></div>
     <div class="tools">
       <button class="filterbtn active" data-f="all">전체</button>
@@ -211,10 +239,12 @@ td.mk:empty::before{content:"입력…";color:#C2C6C0}
       <button class="filterbtn" data-f="sosik">소식</button>
       <button class="filterbtn" data-f="event">이벤트</button>
       <span class="spacer"></span>
-      <button class="btn sm" id="export">JSON 내보내기</button>
+      <input type="date" id="add-date" class="adddate" min="2026-06-15" max="2026-08-09">
+      <button class="btn sm solid" id="add-content">＋ 콘텐츠 추가</button>
+      <button class="btn sm" id="export">JSON</button>
     </div>
     <div class="board" id="board"></div>
-    <p class="note">카드를 클릭하면 <b>콘텐츠 제목 · 링크 · 업로드 이미지</b>를 편집할 수 있고, 카드 하단 <b>기획 · 작성중 · 완료</b>로 상태를 옮깁니다. 캘린더 날짜를 누르면 그날 전체 슬롯이 열립니다. 편집은 자동 로컬 저장되며, 작성자 이름을 입력하면 서버(공유)에 자동 저장됩니다.</p>
+    <p class="note">카드를 클릭하면 <b>제목 · 링크 · 채널 · 이미지(최대 10장)</b>를 편집하고, 카드 하단 <b>기획 · 작성중 · 완료</b>로 상태를 옮깁니다. 카드의 <b>✕</b>로 삭제, 위 날짜 선택 후 <b>＋ 콘텐츠 추가</b>로 새 콘텐츠를 만듭니다. 편집은 자동 로컬 저장되며, 작성자 이름 입력 시 서버(공유)에 자동 저장됩니다.</p>
   </section>
 
   <section id="marketing">
@@ -253,7 +283,7 @@ var WD = ['일','월','화','수','목','금','토'];
 var HEADER_DEF = {
   title:'제16회 한국잼버리 · 미디어부 SNS 운영 캘린더',
   slogan:'평화를 심다, 지구를 이끌다, 미래를 개척하다 (Peace and Planet, Ready for Future)',
-  place:'강원특별자치도 세계잼버리수련장',
+  place:'강원특별자치도 고성군 토성면 잼버리로 244',
   period:'2026-08-05 ~ 2026-08-09'
 };
 var CAT_COLOR = {'휴지기':'var(--c-rest)','한국 대표단':'var(--c-sub)','외국 대표단':'var(--c-intl)','피날레':'var(--c-fin)','행사 진행':'var(--c-during)','주요 소식':'var(--c-app)','이벤트':'var(--c-intl)','콘텐츠':'var(--accent)'};
@@ -315,14 +345,18 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 
 /* ===== overlay state ===== */
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
-var state = {edits:{}, extra:{}, marketing:null, header:null};
-function loadLocal(){ try{var r=localStorage.getItem(LS); if(r){var s=JSON.parse(r); state=Object.assign({edits:{},extra:{},marketing:null,header:null},s);}}catch(e){} }
+var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
+var MAX_IMG=10;
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}}; }
+var state = stateDefaults();
+function adopt(s){ return Object.assign(stateDefaults(), s||{}); }
+function loadLocal(){ try{var r=localStorage.getItem(LS); if(r) state=adopt(JSON.parse(r));}catch(e){} }
 function saveLocal(){ prune(); try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} }
 function key(date,type){return date+'#'+type;}
-function EDEF(){ return {title:'',link:'',images:[],status:'planned',memo:''}; }
+function EDEF(){ return {title:'',link:'',images:[],status:'planned',memo:'',channel:'페이스북'}; }
 function getEdit(k){ return state.edits[k] || (state.edits[k]=EDEF()); }   // editing (persists)
 function peek(k){ return state.edits[k] || EDEF(); }                       // read-only (no store)
-function isDefaultEdit(e){ return !e.title && !e.link && (!e.images||!e.images.length) && (!e.status||e.status==='planned') && !e.memo; }
+function isDefaultEdit(e){ return !e.title && !e.link && (!e.images||!e.images.length) && (!e.status||e.status==='planned') && !e.memo && (!e.channel||e.channel==='페이스북'); }
 function prune(){ Object.keys(state.edits).forEach(function(k){ if(isDefaultEdit(state.edits[k])) delete state.edits[k]; }); }
 function defaultMarketing(){
   return [
@@ -360,7 +394,7 @@ function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()
 function reloadServer(){
   setSt('불러오는 중…');
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
-    if(j&&j.state){ state=Object.assign({edits:{},extra:{},marketing:null,header:null},j.state);
+    if(j&&j.state){ state=adopt(j.state);
       saveLocal(); renderAll(); setSt('서버에서 불러옴'+(j.author?(' · '+j.author):''),true); toast('서버 데이터 불러옴'); }
     else setSt('서버에 저장된 보드 없음');
   }).catch(function(){ setSt('불러오기 실패'); });
@@ -394,40 +428,60 @@ function renderCalendar(){
     cell.setAttribute('data-date',rec.date);
     var tint = CAT_TINT[rec.phase]||'#fff';
     cell.style.background=tint;
+    var slots=daySlots(rec);
     var html='<div class="ctop"><span class="date">'+rec.label+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
-    var dc=rec.items.filter(function(i){return i.type==='dcount';})[0];
-    if(dc){
-      var col=CAT_COLOR[dc.category];
-      if(dc.category==='피날레'){
-        var t=peek(key(rec.date,'dcount')).title||dc.seedTitle;
-        html+='<span class="tag fin" style="background:rgba(192,73,47,.16);color:var(--c-fin)">'+esc(t)+'</span>';
-      } else html+='<span class="tag" style="background:#fff;color:'+col+';border:1px solid '+col+'33">'+dc.category+'</span>';
+    var dcSlot=slots.filter(function(s){return s.type==='dcount';})[0];
+    if(dcSlot){
+      var col=CAT_COLOR[dcSlot.category], de=peek(dcSlot.k), dlab=de.title||dcSlot.seedTitle||dcSlot.category;
+      if(dcSlot.category==='피날레')
+        html+='<span class="tag fin citem" data-sk="'+dcSlot.k+'" style="background:rgba(192,73,47,.16);color:var(--c-fin)">'+esc(dlab)+'</span>';
+      else
+        html+='<span class="tag citem" data-sk="'+dcSlot.k+'" style="background:#fff;color:'+col+';border:1px solid '+col+'33">'+esc(dlab)+'</span>';
     }
-    if(rec.phase==='휴지기') html+='<span class="tag" style="background:#fff;color:var(--c-rest);border:1px solid var(--line)">휴지</span>';
-    if(rec.items.some(function(i){return i.type==='sosik';})) html+='<span class="pill"><span class="dot" style="background:var(--c-app)"></span>소식</span>';
-    if(rec.items.some(function(i){return i.type==='event';})) html+='<span class="pill ev">이벤트</span>';
-    // content registered indicator + first title
-    var slots=daySlots(rec), filled=slots.filter(function(s){var e=peek(s.k);return e.title||e.link||(e.images&&e.images.length);});
-    if(filled.length){
-      html+='<span class="pill has">콘텐츠 '+filled.length+'</span>';
-      var ft=filled[0]; var e=peek(ft.k);
-      var label=e.title||(e.link?'링크':'이미지');
-      html+='<div class="ttl">'+esc(label)+'</div>';
-    }
+    if(rec.phase==='휴지기'&&!slots.length) html+='<span class="tag" style="background:#fff;color:var(--c-rest);border:1px solid var(--line)">휴지</span>';
+    var soSlot=slots.filter(function(s){return s.type==='sosik';})[0];
+    if(soSlot) html+='<span class="pill citem" data-sk="'+soSlot.k+'"><span class="dot" style="background:var(--c-app)"></span>소식</span>';
+    var evSlot=slots.filter(function(s){return s.type==='event';})[0];
+    if(evSlot){ var ee=peek(evSlot.k); html+='<span class="pill ev citem" data-sk="'+evSlot.k+'">'+esc((ee.title||'이벤트').slice(0,10))+'</span>'; }
+    slots.filter(function(s){return s.type==='extra';}).forEach(function(s){
+      var xe=peek(s.k); html+='<span class="pill has citem" data-sk="'+s.k+'">'+esc((xe.title||'콘텐츠').slice(0,8))+'</span>';
+    });
+    var filled=slots.filter(function(s){var e=peek(s.k);return e.title||e.link||(e.images&&e.images.length);});
+    if(filled.length) html+='<span class="pill has summary" title="등록된 콘텐츠">✔ '+filled.length+'</span>';
+    html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">＋</button>';
     cell.innerHTML=html;
-    (function(d){cell.addEventListener('click',function(){openDay(d);});})(rec.date);
+    (function(rc){
+      cell.querySelectorAll('.citem[data-sk]').forEach(function(el){
+        el.addEventListener('click',function(ev){ ev.stopPropagation(); var sl=findSlot(byDate[rc.date], el.getAttribute('data-sk')); if(sl) openSlot(rc.date, sl); });
+      });
+      var ab=cell.querySelector('.cadd');
+      if(ab) ab.addEventListener('click',function(ev){ ev.stopPropagation(); var k=addContent(rc.date); renderAfterEdit(); openSlot(rc.date, findSlot(byDate[rc.date],k)); });
+      cell.addEventListener('click',function(){ openDay(rc.date); });
+    })(rec);
     cal.appendChild(cell);
   }
 }
 
-/* ===== content table ===== */
+/* ===== content slots ===== */
 function daySlots(rec){
-  // returns [{type,category,seedTitle,k,extra?,eid?}] for a day (seed items + extra)
-  var arr=rec.items.map(function(it){return {type:it.type,category:it.category,seedTitle:it.seedTitle,k:key(rec.date,it.type)};});
+  // returns [{type,category,seedTitle,k,seed?,extra?,eid?}] for a day (seed items + extra), hidden filtered
+  var arr=rec.items.map(function(it){return {type:it.type,category:it.category,seedTitle:it.seedTitle,k:key(rec.date,it.type),seed:true};})
+    .filter(function(s){ return !state.hidden[s.k]; });
   (state.extra[rec.date]||[]).forEach(function(x){
     arr.push({type:'extra',category:x.category||'콘텐츠',seedTitle:'',k:rec.date+'#extra#'+x.id,extra:true,eid:x.id});
   });
   return arr;
+}
+function findSlot(rec,k){ var a=daySlots(rec); for(var i=0;i<a.length;i++) if(a[i].k===k) return a[i]; return null; }
+function deleteSlot(date, s){
+  if(s.extra){ state.extra[date]=(state.extra[date]||[]).filter(function(x){return x.id!==s.eid;}); }
+  else { state.hidden[s.k]=true; }   // seed slot → hide
+  delete state.edits[s.k];
+}
+function addContent(date){
+  if(!state.extra[date]) state.extra[date]=[];
+  var x={id:mkid(),category:'콘텐츠'}; state.extra[date].push(x);
+  return date+'#extra#'+x.id;
 }
 var curFilter='all';
 var STCOL={planned:'#8A8A82',draft:'#C8821C',ready:'#2F5D4A'};
@@ -457,11 +511,13 @@ function renderBoard(){
   document.getElementById('pfill').style.width=pct+'%';
   document.getElementById('ptext').textContent='완료 '+ready+'/'+total+' ('+pct+'%) · 진행 시작 '+started;
 }
+function chanClass(ch){ return ch==='인스타그램'?'ig':ch==='유튜브'?'yt':(ch==='페이스북'||!ch)?'':'etc'; }
 function cardEl(d,s,e){
   var col=CAT_COLOR[s.category]||'var(--muted)';
   var title=e.title||s.seedTitle||'';
-  var bits=[];
-  if(e.link) bits.push('<span class="minic">🔗 링크</span>');
+  var ch=e.channel||'페이스북';
+  var bits=['<span class="chchip '+chanClass(ch)+'">'+esc(ch)+'</span>'];
+  if(e.link) bits.push('<span class="minic">🔗</span>');
   if(e.images&&e.images.length) bits.push('<span class="minic">🖼 '+e.images.length+'</span>');
   if(e.memo) bits.push('<span class="minic">📝</span>');
   var card=document.createElement('div'); card.className='card'; card.style.borderLeftColor=col;
@@ -470,7 +526,10 @@ function cardEl(d,s,e){
       '<span class="typebadge t-'+s.type+'" style="margin-left:auto">'+TYPE_LABEL[s.type]+'</span></div>'+
     '<div class="ccat" style="color:'+col+'">'+s.category+'</div>'+
     '<div class="ctitle'+(title?'':' empty')+'">'+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
-    (bits.length?'<div class="cmeta">'+bits.join('')+'</div>':'');
+    '<div class="cmeta">'+bits.join('')+'</div>';
+  var del=document.createElement('button'); del.className='cdel'; del.textContent='✕'; del.title='삭제';
+  del.onclick=function(ev){ ev.stopPropagation(); if(confirm('이 콘텐츠를 삭제할까요?')){ deleteSlot(d.date,s); renderAfterEdit(); } };
+  card.appendChild(del);
   var seg=document.createElement('div'); seg.className='seg';
   STAGES.forEach(function(st){
     var btn=document.createElement('button'); btn.textContent=st[1];
@@ -517,42 +576,46 @@ function slotEl(rec,s){
   var head=document.createElement('div'); head.className='shead';
   head.innerHTML='<span class="chip" style="background:'+col+'1A;color:'+col+';font-size:11.5px;padding:1px 8px;border-radius:4px">'+s.category+'</span>'+
     '<span class="typebadge t-'+s.type+'">'+TYPE_LABEL[s.type]+'</span>';
-  if(s.extra){
-    var rm=document.createElement('button'); rm.className='rm'; rm.textContent='슬롯 삭제';
-    rm.onclick=function(){
-      state.extra[curView.date]=(state.extra[curView.date]||[]).filter(function(x){return x.id!==s.eid;});
-      delete state.edits[s.k];
-      if(curView.mode==='slot') closeDay(); else refreshModal();
-      renderAfterEdit();
-    };
-    head.appendChild(rm);
-  }
+  var rm=document.createElement('button'); rm.className='rm'; rm.textContent='삭제';
+  rm.onclick=function(){
+    if(!confirm('이 콘텐츠를 삭제할까요?')) return;
+    deleteSlot(curView.date, s);
+    if(curView.mode==='slot') closeDay(); else refreshModal();
+    renderAfterEdit();
+  };
+  head.appendChild(rm);
   wrap.appendChild(head);
 
   // title
-  wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 해외 대표단 소개 ①', function(v){ e.title=v; renderAfterEdit(true); })));
-  // link
-  var linkIn=inputEl('url', e.link||'', 'https://… (게시물·드라이브·노션 링크)', function(v){ e.link=v.trim(); updLinkPrev(); renderAfterEdit(true); });
-  var linkFld=fld('콘텐츠 링크', linkIn);
+  wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 참가국 ① 일본 대표단', function(v){ e.title=v; renderAfterEdit(true); })));
+  // link (페이스북 우선)
+  var linkIn=inputEl('url', e.link||'', 'https://facebook.com/… (게시물 링크)', function(v){ e.link=v.trim(); updLinkPrev(); renderAfterEdit(true); });
+  var linkFld=fld('콘텐츠 링크 (페이스북 등)', linkIn);
   var prev=document.createElement('div'); prev.className='linkprev';
   function updLinkPrev(){ prev.innerHTML = e.link?('<a href="'+esc(e.link)+'" target="_blank" rel="noopener">'+esc(e.link)+' ↗</a>'):''; }
   updLinkPrev(); linkFld.appendChild(prev);
   wrap.appendChild(linkFld);
 
-  // status + memo row
+  // status + channel row
   var row=document.createElement('div'); row.className='fld';
-  row.innerHTML='<label>상태 · 메모</label>';
+  row.innerHTML='<label>상태 · 채널</label>';
   var r2=document.createElement('div'); r2.className='row2';
   var sel=document.createElement('select');
   ['planned','draft','ready'].forEach(function(st){var o=document.createElement('option');o.value=st;o.textContent=STATUS_LABEL[st];if((e.status||'planned')===st)o.selected=true;sel.appendChild(o);});
   sel.onchange=function(){ e.status=sel.value; renderAfterEdit(); };
-  var memo=document.createElement('input'); memo.type='text'; memo.value=e.memo||''; memo.placeholder='메모 (담당자·비고)';
+  var chsel=document.createElement('select');
+  CHANNELS.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;if((e.channel||'페이스북')===c)o.selected=true;chsel.appendChild(o);});
+  chsel.onchange=function(){ e.channel=chsel.value; renderAfterEdit(); };
+  r2.appendChild(sel); r2.appendChild(chsel); row.appendChild(r2); wrap.appendChild(row);
+  // memo
+  var memo=document.createElement('input'); memo.type='text'; memo.value=e.memo||''; memo.placeholder='담당자·비고';
   memo.oninput=function(){ e.memo=memo.value; renderAfterEdit(true); };
-  r2.appendChild(sel); r2.appendChild(memo); row.appendChild(r2); wrap.appendChild(row);
+  wrap.appendChild(fld('메모', memo));
 
-  // images
+  // images (max 10)
   var imgFld=document.createElement('div'); imgFld.className='fld';
-  imgFld.innerHTML='<label>업로드 콘텐츠 이미지</label>';
+  var cnt=(e.images||[]).length;
+  imgFld.innerHTML='<label>업로드 콘텐츠 이미지 ('+cnt+'/'+MAX_IMG+')</label>';
   var grid=document.createElement('div'); grid.className='imgs';
   (e.images||[]).forEach(function(url,idx){
     var th=document.createElement('div'); th.className='th';
@@ -561,13 +624,15 @@ function slotEl(rec,s){
     th.querySelector('.del').onclick=function(ev){ ev.stopPropagation(); e.images.splice(idx,1); refreshModal(); renderAfterEdit(); };
     grid.appendChild(th);
   });
-  var add=document.createElement('label'); add.className='add'; add.textContent='+';
-  var fileIn=document.createElement('input'); fileIn.type='file'; fileIn.accept='image/*'; fileIn.multiple=true; fileIn.style.display='none';
-  fileIn.onchange=function(){ handleFiles(fileIn.files, e, add); };
-  add.appendChild(fileIn);
-  grid.appendChild(add); imgFld.appendChild(grid);
+  if(cnt<MAX_IMG){
+    var add=document.createElement('label'); add.className='add'; add.textContent='+';
+    var fileIn=document.createElement('input'); fileIn.type='file'; fileIn.accept='image/*'; fileIn.multiple=true; fileIn.style.display='none';
+    fileIn.onchange=function(){ handleFiles(fileIn.files, e, add); };
+    add.appendChild(fileIn); grid.appendChild(add);
+  }
+  imgFld.appendChild(grid);
   var hint=document.createElement('div'); hint.className='note'; hint.style.marginTop='6px';
-  hint.textContent='업로드 시 자동 축소(최대 1600px) 후 서버에 저장됩니다.';
+  hint.textContent='최대 '+MAX_IMG+'장 · 업로드 시 자동 축소(1600px) 후 서버 저장';
   imgFld.appendChild(hint);
   wrap.appendChild(imgFld);
   return wrap;
@@ -586,13 +651,17 @@ function inputEl(type,val,ph,oninput){
 /* image upload (downscale -> /api/image) */
 function handleFiles(files, edit, addBtn){
   if(!files||!files.length) return;
-  addBtn.classList.add('busy');
+  if(!edit.images) edit.images=[];
+  var remaining=MAX_IMG-edit.images.length;
+  if(remaining<=0){ toast('이미지는 최대 '+MAX_IMG+'장입니다'); return; }
   var list=Array.prototype.slice.call(files);
+  if(list.length>remaining){ toast('최대 '+MAX_IMG+'장 (초과 '+(list.length-remaining)+'장 제외)'); list=list.slice(0,remaining); }
+  addBtn.classList.add('busy');
   (function next(){
     if(!list.length){ addBtn.classList.remove('busy'); refreshModal(); renderAfterEdit(); return; }
     var f=list.shift();
     downscale(f,1600,0.85).then(function(blob){ return uploadBlob(blob); })
-      .then(function(url){ if(url){ if(!edit.images) edit.images=[]; edit.images.push(url); } next(); })
+      .then(function(url){ if(url && edit.images.length<MAX_IMG){ edit.images.push(url); } next(); })
       .catch(function(){ toast('이미지 업로드 실패'); next(); });
   })();
 }
@@ -652,7 +721,7 @@ function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.c
 function exportJSON(){
   var out={meta:hdr(),event_day:EVENT_DAY,generated:todayISO(),days:DAYS.map(function(d){
     return {date:d.date,dlabel:d.dlabel,weekday:d.weekday,phase:d.phase,items:daySlots(d).map(function(s){
-      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',link:e.link||'',images:e.images||[],status:e.status||'planned',memo:e.memo||''};
+      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',link:e.link||'',channel:e.channel||'페이스북',images:e.images||[],status:e.status||'planned',memo:e.memo||''};
     })};
   }),marketing:state.marketing||[]};
   var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
@@ -662,13 +731,24 @@ function exportJSON(){
 }
 
 /* ===== wire up ===== */
+/* ===== view tabs ===== */
+var curViewMode='calendar';
+function setView(v){
+  curViewMode=v;
+  document.getElementById('calendar').style.display = v==='calendar'?'':'none';
+  document.getElementById('content').style.display  = v==='list'?'':'none';
+  document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
+  try{localStorage.setItem('jamboree-plan:view',v);}catch(e){}
+  if(v==='list') renderBoard();
+}
+
 function init(){
   loadLocal();
   var au=localStorage.getItem(LS_AUTHOR); if(au) document.getElementById('author').value=au;
   renderAll();
   // try server (shared board) — overrides local if present
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
-    if(j&&j.state){ state=Object.assign({edits:{},extra:{},marketing:null,header:null},j.state); saveLocal(); renderAll();
+    if(j&&j.state){ state=adopt(j.state); saveLocal(); renderAll();
       setSt('서버 보드 불러옴'+(j.author?(' · '+j.author):''),true); }
     else setSt(au?'서버 자동 저장 켜짐':'로컬 편집 중 (작성자 입력 시 서버 저장)');
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
@@ -677,6 +757,17 @@ function init(){
   document.getElementById('save-now').onclick=doSync;
   document.getElementById('reload').onclick=reloadServer;
   document.getElementById('export').onclick=exportJSON;
+  // view tabs
+  document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+  var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
+  setView(savedView==='list'?'list':'calendar');
+  // add content (list view)
+  var ad=document.getElementById('add-date'); var td=todayISO();
+  ad.value=(td>='2026-06-15'&&td<='2026-08-09')?td:'2026-06-26';
+  document.getElementById('add-content').onclick=function(){
+    var d=ad.value; if(!d||!byDate[d]){ toast('범위 내 날짜를 선택하세요 (6/15~8/9)'); return; }
+    var k=addContent(d); renderAfterEdit(); openSlot(d, findSlot(byDate[d],k));
+  };
   document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); scheduleSync(); };
   document.getElementById('md-close').onclick=closeDay;
   document.getElementById('scrim').addEventListener('click',function(e){ if(e.target===this) closeDay(); });
