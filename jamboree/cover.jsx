@@ -13,12 +13,25 @@ function CoverThemed(props) {
   const catColor = cat && (ov.catColor || cat.color);
   const align = ov.align || 'left';   // 제목·부제 블록 정렬 오버라이드
   const ek = 'cover-' + id;
+  /* 도형 풍성하게 — 에이브로우/로고/제목블록/푸터를 피해 자동 채움(결정론적) */
+  const seed = id.split('').reduce((a, ch) => a + ch.charCodeAt(0), 7);
+  const lightBg = INKC !== '#fff';
+  const cols = [PAL.orange, PAL.river, PAL.pink, PAL.leaf, PAL.ocean, PAL.red, PAL.forest, PAL.purple].filter((c) => c !== BG);
+  const genScatter = scatter || window.richScatter({
+    cols, bleed: lightBg ? 'rgba(77,0,110,.10)' : 'rgba(255,255,255,.10)', seed,
+    count: 11, minH: 52, maxH: 168, bleeders: 3,
+    avoid: [
+      { x: 70, y: 78, w: 480, h: 96 },     // 에이브로우
+      { x: 786, y: 70, w: 224, h: 176 },   // 엠블럼
+      { x: 64, y: 508, w: 952, h: 572 }    // 제목+부제+스티치+카테고리+푸터
+    ]
+  });
   return (
     <Card bg={BG} color={INKC} pad={0}>
       <Placeholder tone={INKC === '#fff' ? 'dark' : 'light'} label="배경 사진 (교체)" slot={ek + '-bg'} slotLabel="배경 사진"
         style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
       <div style={{ position: 'absolute', inset: 0, background: BG, opacity: .78, pointerEvents: 'none' }} />
-      <ShapeScatter items={scatter} />
+      <ShapeScatter items={genScatter} />
       <div style={{ position: 'absolute', top: 100, left: 100, right: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Editable ekey={ek + '-eyebrow'} flabel="에이브로우" tag="div" className="hi" style={{ fontWeight: 500, fontSize: 27, letterSpacing: '.14em', color: eyebrowColor, textTransform: 'uppercase' }}>{eyebrow}</Editable>
         <Logo size={116} />
@@ -44,65 +57,31 @@ window.SEC_COVER = [
     id: 'main', label: '표지 · 메인 (퍼플)',
     node: <CoverThemed id="main" bg={PAL.purple} cat={{ label: '메인·공지', color: PAL.purple }} eyebrow="2026 · GOSEONG · GANGWON" eyebrowColor={PAL.river}
       t1="제16회" t2="한국잼버리" t2Color={PAL.leaf}
-      sub="강원에서 펼쳐지는 청소년 글로벌 축제" subColor={W92} stitchFill="rgba(255,255,255,.24)"
-      scatter={[
-        { n: '03', outline: true, fill: 'rgba(255,255,255,.09)', h: 620, top: -160, right: -180 },
-        { n: '02', fill: PAL.orange, h: 86, top: 300, right: 150 },
-        { n: '05', fill: PAL.river, h: 104, top: 410, right: 86 },
-        { n: '04', fill: PAL.pink, h: 56, top: 552, right: 188 },
-        { n: '06', fill: PAL.leaf, h: 118, top: 588, right: 100 }
-      ]} main />
+      sub="강원에서 펼쳐지는 청소년 글로벌 축제" subColor={W92} stitchFill="rgba(255,255,255,.24)" main />
   },
   {
     id: 'in', label: '표지 · 영내활동 (그린)',
     node: <CoverThemed id="in" bg={PAL.forest} cat={{ label: '영내활동', color: PAL.forest }} eyebrow="IN-CAMP · 영내활동" eyebrowColor={W88}
       t1="영내에서" t2="즐기는 모든 것"
-      sub="과정활동 · 전시 · 공연 · 국제교류" subColor={W92} stitchFill={WST}
-      scatter={[
-        { n: '06', fill: PAL.leaf, h: 150, top: 150, left: 64 },
-        { n: '02', fill: PAL.river, h: 74, top: 360, left: 120 },
-        { n: '04', fill: PAL.orange, h: 52, top: 470, left: 70 },
-        { n: '05', outline: true, fill: 'rgba(255,255,255,.12)', h: 520, bottom: -120, right: -120 }
-      ]} footEng="IN-CAMP" />
+      sub="과정활동 · 전시 · 공연 · 국제교류" subColor={W92} stitchFill={WST} footEng="IN-CAMP" />
   },
   {
     id: 'out', label: '표지 · 영외활동 (블루)',
     node: <CoverThemed id="out" bg={PAL.ocean} cat={{ label: '영외활동', color: PAL.ocean }} eyebrow="OUT-CAMP · 영외활동" eyebrowColor={W88}
       t1="영외에서" t2="만나는 강원"
-      sub="지역 탐방 · 생태교육 · 문화체험" subColor={W92} stitchFill={WST}
-      scatter={[
-        /* 좌상단 클러스터 — 부제 텍스트 라인 침범 금지 (title top ≈546 위에서 끝남) */
-        { n: '02', fill: PAL.leaf, h: 64, top: 160, left: 70 },
-        { n: '05', fill: PAL.river, h: 88, top: 256, left: 132, rot: 90 },
-        { n: '04', fill: PAL.orange, h: 56, top: 384, left: 72 },
-        { n: '06', fill: PAL.pink, h: 100, top: 420, left: 150 },
-        { n: '03', outline: true, fill: 'rgba(255,255,255,.12)', h: 460, top: -120, right: -120 }
-      ]} footEng="OUT-CAMP" />
+      sub="지역 탐방 · 생태교육 · 문화체험" subColor={W92} stitchFill={WST} footEng="OUT-CAMP" />
   },
   {
     id: 'meal', label: '표지 · 식사 (오렌지)',
     node: <CoverThemed id="meal" bg={PAL.orange} ink={PAL.midnight} cat={{ label: '식사', color: PAL.orange }} eyebrow="MEALS · 식사" eyebrowColor={PAL.midnight}
       t1="잼버리" t2="밥상"
-      sub="하루 세 끼, 든든하게" subColor="rgba(77,0,110,.82)" stitchFill="rgba(77,0,110,.22)"
-      scatter={[
-        { n: '04', fill: PAL.purple, h: 96, top: 130, left: 80 },
-        { n: '02', fill: PAL.red, h: 60, top: 150, right: 150 },
-        { n: '05', fill: PAL.forest, h: 80, bottom: 420, right: 330 }, /* 부제 라인 침범 방지: 우측 상단으로 */
-        { n: '06', fill: PAL.midnight, h: 110, bottom: 240, right: 130 }
-      ]} footEng="MEALS" />
+      sub="하루 세 끼, 든든하게" subColor="rgba(77,0,110,.82)" stitchFill="rgba(77,0,110,.22)" footEng="MEALS" />
   },
   {
     id: 'event', label: '표지 · 행사 (레드)',
     node: <CoverThemed id="event" bg={PAL.red} cat={{ label: '행사', color: PAL.red }} eyebrow="CEREMONY · 개영식 & 폐영식" eyebrowColor={W88}
       t1="개영식" t2="& 폐영식"
-      sub="3,000명이 한자리에" subColor={W92} stitchFill={WST}
-      scatter={[
-        { n: '05', outline: true, fill: 'rgba(255,255,255,.14)', h: 560, top: -130, left: -120, rot: 90 },
-        { n: '02', fill: PAL.pink, h: 70, top: 200, right: 200 },
-        { n: '04', fill: PAL.leaf, h: 54, top: 330, right: 120 },
-        { n: '06', fill: PAL.river, h: 120, top: 420, right: 220 },
-        { n: '02', fill: PAL.orange, h: 44, top: 300, right: 320 }
-      ]} footEng="CEREMONY" />
+      sub="3,000명이 한자리에" subColor={W92} stitchFill={WST} footEng="CEREMONY" />
   }
 ];
 })();

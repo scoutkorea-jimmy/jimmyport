@@ -2,54 +2,36 @@
  * Phase 2: D숫자(구조 필드, 진행바 자동 재계산) + 티저(인라인/폼) + 배경색 오버라이드(cc-prop:<ek>) */
 
 (function () { // module scope - Babel standalone runs scripts in shared global scope
-/* 도형 스캐터 — 우측 컬러 클러스터 + 코너 블리더 (숫자/카피 영역 회피)
- * fmt='feed'(1080×1350)는 하단·우측 빈 공간을 도형으로 더 적극적으로 채운다. */
+/* 도형 스캐터 — 포맷 실제 크기 기반으로 숫자/티저/로고/푸터 영역(avoid)을 피해
+ * 빈 공간(주로 우측·상하 코너)을 '풍성하게' 채운다. 결정론적(richScatter). */
+const DD_DIM = { feed: { w: 1080, h: 1350 }, story: { w: 1080, h: 1920 }, wide: { w: 1480, h: 1047 } };
+function ddAvoid(isDay, fmt) {
+  if (fmt === 'wide') return [
+    { x: 60, y: 44, w: 620, h: 124 },                                  // 키커
+    isDay ? { x: 940, y: 270, w: 420, h: 420 } : { x: 1320, y: 40, w: 170, h: 170 }, // 로고
+    { x: 60, y: 168, w: 920, h: 700 },                                 // 숫자+티저
+    { x: 0, y: 838, w: 1480, h: 210 }                                  // 진행바+푸터
+  ];
+  if (fmt === 'story') return [
+    { x: 280, y: 70, w: 520, h: isDay ? 360 : 300 },                   // 로고+키커(중앙)
+    { x: 130, y: 620, w: 820, h: 760 },                                // 숫자+티저(중앙)
+    { x: 0, y: 1620, w: 1080, h: 300 }                                 // 진행바+푸터
+  ];
+  /* feed (1080×1350) */
+  return [
+    { x: 56, y: 52, w: 640, h: 120 },                                  // 키커
+    isDay ? { x: 720, y: 270, w: 320, h: 320 } : { x: 836, y: 50, w: 190, h: 170 }, // 로고
+    { x: 48, y: 350, w: 660, h: 640 },                                 // 숫자+티저
+    { x: 0, y: 1110, w: 1080, h: 240 }                                 // 진행바+푸터
+  ];
+}
 function ddScatter(i, isDay, cols, bleed, fmt) {
-  if (isDay) return [
-    { n: '03', outline: true, fill: bleed, h: 320, top: -100, left: -100 },
-    { n: '02', fill: cols[0], h: 60, top: 132, right: 540 },
-    { n: '05', fill: cols[1], h: 78, top: 150, right: 360, rot: 90 },
-    { n: '04', fill: cols[2], h: 50, bottom: 300, right: 470 },
-    { n: '06', fill: cols[3], h: 92, bottom: 285, right: 360 }
-  ];
-  const L = [
-    [['02', 132, 248, 110], ['04', 76, 300, 300], ['05', 98, 444, 86], ['06', 132, 566, 250]],
-    [['05', 116, 240, 200], ['02', 134, 386, 86], ['04', 66, 524, 270], ['03', 90, 604, 124]],
-    [['06', 152, 250, 116], ['04', 72, 262, 304], ['02', 60, 432, 252], ['05', 100, 566, 96]],
-    [['03', 124, 250, 150], ['05', 84, 384, 86], ['06', 128, 504, 240], ['04', 58, 628, 120]],
-    [['04', 124, 248, 108], ['02', 72, 360, 286], ['05', 104, 472, 88], ['06', 110, 600, 230]]
-  ];
-  const arr = L[i % L.length].map((s, k) => ({ n: s[0], fill: cols[k % cols.length], h: s[1], top: s[2], right: s[3] }));
-  arr.push({ n: i % 2 ? '02' : '05', outline: true, fill: bleed, h: 560, bottom: -170, left: -150 });
-
-  if (fmt === 'feed') {
-    /* 1080×1350 — 숫자(좌)·티저(좌중) 영역 피해 우측 컬럼과 하단을 채움
-     * (티저 끝 ≈ y940, 진행바 y≈1148, 푸터 y>1204 → 우측 x>620 / 하단 코너 활용) */
-    const F = [
-      [
-        { n: '04', fill: cols[1], h: 84, top: 792, right: 150 },
-        { n: '02', fill: cols[3], h: 132, top: 900, right: 250 },
-        { n: '06', fill: cols[2], h: 60, top: 1000, right: 130 },
-        { n: '03', outline: true, fill: bleed, h: 300, top: 880, right: -110 }
-      ],
-      [
-        { n: '05', fill: cols[2], h: 116, top: 812, right: 250, rot: 90 },
-        { n: '06', fill: cols[0], h: 150, top: 940, right: 110 },
-        { n: '04', fill: cols[3], h: 56, top: 1040, right: 300 },
-        { n: '02', outline: true, fill: bleed, h: 280, top: 940, right: -90 }
-      ],
-      [
-        { n: '06', fill: cols[3], h: 138, top: 800, right: 130 },
-        { n: '02', fill: cols[1], h: 64, top: 980, right: 300 },
-        { n: '04', fill: cols[0], h: 92, top: 1020, right: 170 },
-        { n: '05', outline: true, fill: bleed, h: 320, top: 860, right: -130 }
-      ]
-    ];
-    F[i % F.length].forEach((s) => arr.push(s));
-    /* 좌하단 — 티저 아래 코너에 살짝 (티저 끝 y940 아래) */
-    arr.push({ n: i % 2 ? '04' : '06', fill: cols[(i + 2) % cols.length], h: 70, top: 1000, left: 86 });
-  }
-  return arr;
+  const d = DD_DIM[fmt] || DD_DIM.feed;
+  return window.richScatter({
+    w: d.w, h: d.h, cols, bleed, seed: (i + 1) * 7 + (isDay ? 99 : 0),
+    avoid: ddAvoid(isDay, fmt),
+    count: isDay ? 8 : 13, minH: 54, maxH: 168, bleeders: 3
+  });
 }
 
 /* 오버라이드(배경색·D숫자) 반영한 유효값 — 3비율 컴포넌트가 공유 */

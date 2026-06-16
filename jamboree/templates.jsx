@@ -22,6 +22,11 @@ function THead({ ek, kicker, title, cat, kc = PAL.ocean }) {
 function T_Intro({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
+      <ShapeScatter items={window.richScatter({
+        cols: [P.orange, P.river, P.pink, P.forest], bleed: 'rgba(98,37,153,.06)', seed: 11,
+        count: 4, minH: 42, maxH: 96, bleeders: 2,
+        avoid: [{ x: 70, y: 70, w: 940, h: 220 }, { x: 70, y: 290, w: 940, h: 560 }, { x: 70, y: 858, w: 940, h: 152 }]
+      })} />
       <THead ek={ek} kicker="TEXT · 소개형" title="영내에서는" cat={{ label: '영내활동', color: P.forest }} />
       <Editable ekey={ek + '-body'} tag="div" style={{ position: 'absolute', left: S, right: S, top: 304, fontSize: 40, fontWeight: 300, lineHeight: 1.66, color: INK, paddingLeft: 28, borderLeft: `8px solid ${P.forest}` }}>텐트를 치고, 밥을 짓고, 세계 친구들과 어울리는 곳. 영내에서는 캠프 생활의 모든 순간이 하나의 프로그램이 됩니다. 자고 먹고 노는 일상이 곧 모험이고, 20개국에서 모인 또래와 매일 밤 새로운 추억이 쌓여요.</Editable>
       <div style={{ position: 'absolute', left: S, right: S, bottom: S, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -40,6 +45,11 @@ function T_FAQ({ ek }) {
   ];
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
+      <ShapeScatter items={window.richScatter({
+        cols: [P.ocean, P.river, P.pink, P.orange], bleed: 'rgba(98,37,153,.06)', seed: 23,
+        count: 4, minH: 42, maxH: 96, bleeders: 2,
+        avoid: [{ x: 70, y: 70, w: 940, h: 220 }, { x: 70, y: 300, w: 940, h: 700 }]
+      })} />
       <THead ek={ek} kicker="TEXT · FAQ형" title="자주 묻는 질문" cat={{ label: '안내', color: P.ocean }} />
       <div style={{ position: 'absolute', left: S, right: S, top: 320, bottom: S, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         {qa.map((x, i) => (
@@ -57,6 +67,11 @@ function T_FAQ({ ek }) {
 function T_Quote({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
+      <ShapeScatter items={window.richScatter({
+        cols: [P.purple, P.river, P.pink, P.orange], bleed: 'rgba(98,37,153,.06)', seed: 37,
+        count: 5, minH: 44, maxH: 110, bleeders: 2,
+        avoid: [{ x: 70, y: 70, w: 940, h: 220 }, { x: 70, y: 300, w: 940, h: 540 }, { x: 70, y: 900, w: 640, h: 130 }]
+      })} />
       <THead ek={ek} kicker="TEXT · 인용/한마디형" title="비전" cat={{ label: '비전', color: P.purple }} />
       <div className="hi" style={{ position: 'absolute', left: S - 4, top: 320, fontSize: 190, lineHeight: .5, color: P.red, fontWeight: 700 }}>“</div>
       <Editable ekey={ek + '-q'} tag="div" style={{ position: 'absolute', left: S, right: S, top: 416, fontSize: 54, fontWeight: 300, lineHeight: 1.44, color: INK }}>청소년이 세계평화와 지구환경의 공존가치를 나누고, 지속가능한 미래를 실천하는 세계시민으로 성장합니다.</Editable>
@@ -128,6 +143,11 @@ function T_BigNumImage({ ek }) {
     <Card bg={PAL.red} color="#fff" pad={0}>
       <Placeholder tone="dark" label="배경 이미지" slot={ek + '-img'} slotLabel="배경 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .5 }} />
       <div style={{ position: 'absolute', inset: 0, background: P.red, opacity: .72, pointerEvents: 'none' }} />
+      <ShapeScatter items={window.richScatter({
+        cols: [P.pink, P.leaf, P.river, P.orange], bleed: 'rgba(255,255,255,.12)', seed: 83,
+        count: 9, minH: 50, maxH: 150, bleeders: 3,
+        avoid: [{ x: 60, y: 280, w: 780, h: 540 }, { x: 836, y: 70, w: 190, h: 130 }]
+      })} />
       <CategoryChip label="규모" color={'#fff'} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <Kicker c="#fff" style={{ marginBottom: 30 }}>IMAGE · 빅넘버형</Kicker>
@@ -142,13 +162,11 @@ function T_BigNumImage({ ek }) {
 function T_GraphicPoster({ ek }) {
   return (
     <Card bg={PAL.purple} color="#fff" pad={0}>
-      <ShapeScatter items={[
-        { n: '03', outline: true, fill: 'rgba(255,255,255,.1)', h: 640, top: -150, right: -170 },
-        { n: '02', fill: P.orange, h: 120, top: 150, right: 150 },
-        { n: '05', fill: P.river, h: 150, bottom: 250, right: 120 },
-        { n: '04', fill: P.pink, h: 80, bottom: 360, right: 320 },
-        { n: '06', fill: P.leaf, h: 170, bottom: 200, left: 120 }
-      ]} />
+      <ShapeScatter items={window.richScatter({
+        cols: [P.orange, P.river, P.pink, P.leaf, P.ocean, P.red], bleed: 'rgba(255,255,255,.1)', seed: 91,
+        count: 12, minH: 56, maxH: 180, bleeders: 3,
+        avoid: [{ x: 60, y: 320, w: 700, h: 520 }, { x: 800, y: 80, w: 220, h: 120 }]
+      })} />
       <CategoryChip label="슬로건" color={P.pink} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <Kicker c={P.river}>GRAPHIC · 포스터형</Kicker>
@@ -223,13 +241,11 @@ function T_VisualTimeline({ ek }) {
 function T_Outro({ ek }) {
   return (
     <Card bg={PAL.purple} color="#fff" pad={0}>
-      <ShapeScatter items={[
-        { n: '03', outline: true, fill: 'rgba(255,255,255,.1)', h: 560, top: -140, right: -150 },
-        { n: '06', fill: P.leaf, h: 120, top: 170, left: 110 },
-        { n: '02', fill: P.orange, h: 64, top: 320, left: 180 },
-        { n: '05', fill: P.river, h: 96, bottom: 320, right: 140 },
-        { n: '04', fill: P.pink, h: 52, bottom: 250, right: 260 }
-      ]} />
+      <ShapeScatter items={window.richScatter({
+        cols: [P.leaf, P.orange, P.river, P.pink, P.ocean, P.red], bleed: 'rgba(255,255,255,.1)', seed: 113,
+        count: 12, minH: 54, maxH: 176, bleeders: 3,
+        avoid: [{ x: 380, y: 70, w: 320, h: 220 }, { x: 90, y: 360, w: 900, h: 420 }, { x: 0, y: 940, w: 1080, h: 140 }]
+      })} />
       <Logo size={150} style={{ position: 'absolute', top: S, left: '50%', transform: 'translateX(-50%)' }} />
       <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <Editable ekey={ek + '-l1'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 110, lineHeight: 1.08, color: '#fff' }}>재밌겠지?</Editable>

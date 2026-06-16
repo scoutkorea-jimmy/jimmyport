@@ -66,6 +66,7 @@ const PAL = {
  * 제작기 셸이 카드별 폼을 자동 생성한다. (카드마다 스키마를 손으로 적지 않음) */
 window.CCRegisterFieldCtx = React.createContext(null);   // (ekey, label) → 텍스트 폼
 window.CCRegisterPhotoCtx = React.createContext(null);   // (slot, label) → 사진 업로드
+window.CCCardBgCtx = React.createContext(null);          // 현재 카드 배경색 → Logo가 흰/컬러 엠블럼 선택
 
 /* 스토어 구독 훅 — 폼/인라인 어느 쪽에서 바꿔도 카드가 즉시 갱신 */
 function useCCStore() {
@@ -87,18 +88,26 @@ function textOf(node) {
 /* Card shell — 1080×1080, clipped, brand body font */
 function Card({ bg, color = '#fff', pad = 88, children, style }) {
   return (
-    <div style={{
-      position: 'absolute', inset: 0, overflow: 'hidden', background: bg, color,
-      fontFamily: "var(--cc-main, 'Cafe24ProSlim'), 'Apple SD Gothic Neo', sans-serif",
-      letterSpacing: 'var(--cc-track, normal)',
-      padding: pad, boxSizing: 'border-box', ...style
-    }}>{children}</div>
+    <window.CCCardBgCtx.Provider value={bg}>
+      <div style={{
+        position: 'absolute', inset: 0, overflow: 'hidden', background: bg, color,
+        fontFamily: "var(--cc-main, 'Cafe24ProSlim'), 'Apple SD Gothic Neo', sans-serif",
+        letterSpacing: 'var(--cc-track, normal)',
+        padding: pad, boxSizing: 'border-box', ...style
+      }}>{children}</div>
+    </window.CCCardBgCtx.Provider>
   );
 }
 
+/* 엠블럼 — 어두운 배경에서는 흰색 버전, 밝은 배경에서는 컬러 버전을 자동 선택.
+ * (배경 밝기 판정은 store.idealInk: 흰 잉크 추천 = 어두운 배경) */
 function Logo({ size = 150, style }) {
   const store = useCCStore();
-  const src = store.getImage('logo') || 'jamboree/assets/logo.png';
+  const bg = React.useContext(window.CCCardBgCtx);
+  const onDark = store.idealInk(bg) === '#fff';
+  const src = onDark
+    ? (store.getImage('logo-white') || store.getImage('logo') || 'jamboree/assets/logo-white.png')
+    : (store.getImage('logo') || 'jamboree/assets/logo.png');
   return <img src={src} alt="제16회 한국잼버리 엠블럼" width={size} height={size} style={{ display: 'block', objectFit: 'contain', ...style }} />;
 }
 

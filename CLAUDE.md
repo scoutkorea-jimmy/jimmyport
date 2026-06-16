@@ -182,3 +182,8 @@ WOSM Region → 국가(NSO) → 단위대
 - **한 편 PNG(카드뉴스 결합)**: 덱 모듈을 세로로 이어붙인 **단일 PNG**(`jamboree_cardnews_full.png`). 오프스크린 네이티브 렌더 → html-to-image → canvas로 targetW(=덱 최대폭) 정규화·세로 누적. 툴바: ZIP / 한 편 PNG / 이 카드 PNG.
 - **D-피드 배경 강화**: `ddScatter`에 `fmt='feed'` 분기 — 우측 컬럼·하단(y780~1050) 도형 4종+좌하단 1종 추가(숫자/티저/푸터/진행바 회피). story/wide는 기존 유지.
 - 트윅 4종(ink·track·fz·margin)·정렬·D번호·덱 전부 `cc-prop:_tweaks/_deck`로 서버 저장 포함. 검증: 실상호작용(트윅 CSS var·덱 2장·한편 1080×2160 다운로드 OK) + 전수 감사 무겹침.
+
+### 15.4 Phase 5 (BUILT, v0.9.6) — 흰 엠블럼 자동 전환 + 도형 풍성하게
+- **흰색 엠블럼**: 어두운 배경=흰색, 밝은 배경=컬러 엠블럼 자동 선택. `Card`가 배경색을 `window.CCCardBgCtx`로 제공 → `Logo`가 `store.idealInk(bg)==='#fff'`면 흰색 사용. 기본 에셋 `jamboree/assets/logo-white.png`(흰)·`logo.png`(컬러). 업로드 슬롯 2개: `logo`(밝은용)·`logo-white`(어두운용), 우측 '엠블럼' 패널. 헤더 툴바 로고도 흰색(다크 헤더).
+- **도형 풍성하게**(WOSM 오브젝트 적극 활용): `richScatter`(shapes-comp.jsx) — 시드 결정론적(PNG 캡처 안정), `avoid`(텍스트/숫자/로고 바운딩박스)를 피해 빈 공간을 도형으로 가득 채움 + 코너 블리더. 적용: 표지5(공유 레이아웃 자동생성, 수기 scatter 제거)·D-day 3포맷 전부(`ddScatter`→포맷 실제 크기 기반 재작성, feed가 1080×1080 아닌 1080×1350임을 반영)·콘텐츠 09포스터/13엔딩/08빅넘버·소식C. 흰 텍스트 카드(01·02·03)는 가독성 위해 코너 액센트만(count 4~5). 이미지/그리드 카드(04~07,10~12)는 의도적으로 클린 유지.
+- 검증: 헤드리스 Chrome(내장 WebSocket+CDP) 전 패밀리 스크린샷 — 콘솔 에러 0, 어두운 배경 흰 엠블럼/밝은(핑크) 컬러 엠블럼 확인, 텍스트·로고 무겹침.

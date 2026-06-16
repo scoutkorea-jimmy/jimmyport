@@ -59,10 +59,11 @@ function NewsCard({ ek }) {
     <Card bg={NP.forest} color="#fff" pad={0}>
       <Placeholder tone="dark" label="소식 이미지" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
       <div style={{ position: 'absolute', inset: 0, background: NP.forest, opacity: .5, pointerEvents: 'none' }} />
-      <ShapeScatter items={[
-        { n: '02', fill: NP.leaf, h: 70, top: 150, left: 150 },
-        { n: '05', fill: NP.river, h: 88, top: 180, right: 160 }
-      ]} />
+      <ShapeScatter items={window.richScatter({
+        w: 1080, h: 1350, cols: [NP.leaf, NP.river, NP.orange, NP.pink], bleed: 'rgba(255,255,255,.1)', seed: 61,
+        count: 11, minH: 52, maxH: 158, bleeders: 3,
+        avoid: [{ x: 420, y: 80, w: 240, h: 150 }, { x: 70, y: 430, w: 940, h: 620 }]
+      })} />
       <Logo size={108} style={{ position: 'absolute', top: NS, left: '50%', transform: 'translateX(-50%)' }} />
       <div style={{ position: 'absolute', left: NS, right: NS, top: '50%', transform: 'translateY(-46%)', background: '#fff', borderRadius: 34, padding: '54px 52px', boxShadow: '0 20px 50px rgba(0,0,0,.28)', textAlign: 'center' }}>
         <span className="hi" style={{ display: 'inline-block', background: NP.forest, color: '#fff', borderRadius: 999, padding: '10px 24px', fontSize: 26, fontWeight: 700 }}>현장 소식</span>
