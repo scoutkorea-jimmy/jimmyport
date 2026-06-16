@@ -246,3 +246,14 @@ WOSM Region → 국가(NSO) → 단위대
 ### 15.13 v0.9.15
 - **키커 문구 편집**: D-day `useDDeff`에 `ov.kicker` 오버라이드(비우면 자동 'COUNTDOWN · N일 전'/isDay 기본). 편집 패널 '키커 문구(상단)' 입력(ddScope, 자동 placeholder). 카드별 저장.
 - **텍스트 줄바꿈 지원**: `Editable` — 인라인 편집 시 Enter로 줄바꿈(커밋=blur/Escape), 저장은 `innerText`(줄바꿈 보존), 렌더 `white-space: pre-wrap`. 폼(`FieldInput`)은 def>14자 또는 값에 `\n` 있으면 textarea(줄바꿈 가능 안내). 티저 등 전체 텍스트 적용.
+
+---
+
+## 16. /jamboree-plan — 미디어부 SNS 운영 캘린더 (BUILT, v0.9.20)
+- **정체**: 제16회 한국잼버리(2026.8.5–8.9) **미디어부 SNS 운영/콘텐츠 계획 보드**. clean-URL `jamboree-plan.html`→`/jamboree-plan`(`/jamboree`·`/manage`와 동일, 홈 링크 없음, noindex). **vanilla HTML/CSS/JS**(본 앱 규칙 준수, React 아님). 사용자가 준 깨진(mojibake) 참조 HTML을 정상 인코딩으로 재구축 + 4·5번 기능 추가.
+- **핵심 5요소**: ① SNS 운영 캘린더(일요일 시작) ② **D-Count 일정**(D-40 시작: 해외 대표단 D-40~24 → 서브캠프 이야기 D-23~17 → 신청자 D-16~5 → 피날레 D-4~D-day) ③ 콘텐츠 계획(주요 소식 월·수·금 + 이벤트 7/6·7/26·8/5) ④ **날짜/제목 클릭 → 콘텐츠 제목 + 링크(URL) + 업로드 이미지** 등록 ⑤ 스카우트 연간 마케팅 캘린더(편집형 표).
+- **스케줄은 규칙으로 결정론 생성**(`buildDays`): 기간 2026-06-15~08-09, EVENT_DAY=2026-08-05. `dday`로 phase/항목 자동. `today`/D-count는 실제 `new Date()` 기준(살아있는 카운트다운). 검증: node로 reference와 동일 확인(56일·소식 16일 월수금·이벤트 3·피날레 시드 일치) + 헤드리스 Chrome 렌더(콘솔 에러 0, 모달 동작).
+- **편집 오버레이 모델**(구조 미저장, 결정론 재생성 위): `state={edits:{"<date>#<type>":{title,link,images:[url],status,memo}}, extra:{<date>:[{id,...}]}, marketing:[...], header}`. `peek()`=읽기전용, `getEdit()`=편집(persist), `prune()`=기본값 제거 후 저장.
+- **저장**: 단일 공유 보드 `functions/api/jamboree-plan.js`(KV 키 `jamboree-plan`, 작성자 이름 기반·토큰 없음, GET/PUT). 프런트는 항상 localStorage 즉시저장 + 작성자 입력 시 1.5s 디바운스 서버 자동저장 + "서버 저장"/"불러오기" 버튼. 부팅 시 서버 보드 있으면 우선.
+- **이미지**: 기존 `/api/image`(POST 바이트→`{url}`) 재사용. 업로드 시 canvas 다운스케일(최대 1600px JPEG 0.85) 후 URL만 state에 저장(경량). 모달 썸네일 그리드 + 라이트박스 확대 + 삭제.
+- **마케팅 캘린더**: `defaultMarketing()` 시드 5행(세계 스카우트의 날 2/22, 새학기 모집 3월, 어린이날 5/5, 잼버리 개영 8/5, 가을 야영 10월) — contenteditable 표·행 추가/삭제, state.marketing에 저장.

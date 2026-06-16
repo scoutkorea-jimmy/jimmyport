@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>제16회 한국잼버리 · 미디어부 SNS 운영 캘린더</title>
+<style>
+:root{
+  --bg:#F4F5F2; --surface:#FFFFFF; --ink:#1C211D; --muted:#6A706A; --line:#E0E2DD;
+  --accent:#2F5D4A; --accent-soft:#E7EFEA;
+  --c-rest:#8A8A82; --c-intl:#2E6FAE; --c-sub:#2F8F6B; --c-app:#C8821C; --c-fin:#C0492F; --c-during:#9A9E98;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:Inter,Pretendard,system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 96px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 6px}
+h1{font-size:26px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+header.top{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+.metarow{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:13px;color:var(--muted)}
+.metarow b{color:var(--ink);font-weight:600}
+.clock{display:inline-flex;align-items:baseline;gap:8px;margin-top:10px;padding:6px 12px;background:var(--accent-soft);border-radius:6px}
+.clock .big{font-size:20px;font-weight:700;color:var(--accent);letter-spacing:.04em}
+section{margin-top:36px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.sec-head h2{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
+.legend{display:flex;flex-wrap:wrap;gap:10px 14px;font-size:12.5px;color:var(--muted);margin:0 0 14px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .h{text-align:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:4px 0}
+.cal .h.sun{color:var(--c-fin)} .cal .h.sat{color:var(--c-intl)}
+.cell{min-height:92px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 7px;display:flex;flex-direction:column;gap:4px;overflow:hidden;cursor:pointer;transition:box-shadow .12s,transform .12s}
+.cell.clickable:hover{box-shadow:0 2px 10px rgba(0,0,0,.10);transform:translateY(-1px)}
+.cell.empty{background:transparent;border:1px dashed transparent;cursor:default}
+.cell .ctop{display:flex;justify-content:space-between;align-items:baseline;gap:2px}
+.cell .date{font-size:12.5px;font-weight:600}
+.cell .dd{font-size:11px;color:var(--muted)}
+.cell.today{outline:2px solid var(--accent);outline-offset:-1px}
+.cell.today .date::after{content:" · 오늘";font-size:10px;color:var(--accent);font-weight:600}
+.cell.past{opacity:.55}
+.tag{font-size:11px;border-radius:4px;padding:1px 6px;width:fit-content;display:inline-flex;align-items:center;gap:4px;line-height:1.5}
+.tag.fin{font-weight:600}
+.pill{font-size:10.5px;border-radius:4px;padding:1px 6px;width:fit-content;border:1px solid var(--line);background:#fff;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.pill.ev{border-color:var(--c-intl);color:var(--c-intl)}
+.pill.has{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.cell .ttl{font-size:11px;color:var(--ink);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* table */
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filterbtn{font-size:13px;padding:5px 12px;border:1px solid var(--line);background:#fff;border-radius:20px;cursor:pointer;color:var(--muted)}
+.filterbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.spacer{flex:1}
+.btn{font-size:13px;padding:6px 14px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:6px;cursor:pointer;font-weight:600}
+.btn:hover{background:var(--accent-soft)}
+.btn.solid{background:var(--accent);color:#fff}
+.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn.sm{font-size:12px;padding:4px 10px}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:#FBFBF9}
+tr.crow{cursor:pointer}
+tr.crow:hover td{background:var(--accent-soft)}
+td.dd{font-family:ui-monospace,Menlo,monospace;color:var(--muted);white-space:nowrap}
+td.cat .chip{font-size:11.5px;padding:1px 8px;border-radius:4px;white-space:nowrap}
+td.title{min-width:200px;color:var(--ink)}
+td.title .empty{color:#B7BBB5}
+td.title .mini{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:2px}
+.minic{font-size:10.5px;color:var(--muted);display:inline-flex;align-items:center;gap:3px}
+.typebadge{font-size:11px;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.t-dcount{background:#EAF0F6;color:#2E6FAE}
+.t-sosik{background:#FBF2E3;color:#9A6310}
+.t-event{background:#F7E9E6;color:#A33A24}
+.t-extra{background:#ECEFEC;color:#4B524B}
+.statusbadge{font-size:11px;padding:1px 8px;border-radius:20px;white-space:nowrap;border:1px solid var(--line)}
+.s-planned{color:var(--muted)} .s-draft{color:#9A6310;border-color:#E7CE9B;background:#FCF6EA}
+.s-ready{color:var(--accent);border-color:#BcdCC9;background:var(--accent-soft)}
+.note{font-size:12.5px;color:var(--muted);margin-top:10px}
+.note code{background:#EEF0ED;padding:1px 5px;border-radius:4px;font-size:11.5px}
+/* sync bar */
+.syncbar{position:sticky;top:0;z-index:30;background:rgba(244,245,242,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:-32px -20px 0;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.syncbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;width:140px}
+.syncbar .st{font-size:12px;color:var(--muted);margin-left:auto}
+.syncbar .st b{color:var(--accent)}
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(20,24,21,.42);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow:auto}
+.scrim.show{display:flex}
+.modal{background:var(--surface);border-radius:12px;max-width:640px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;margin:auto 0}
+.modal .mhead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.modal .mhead .mt{font-size:16px;font-weight:650}
+.modal .mhead .ms{font-size:12.5px;color:var(--muted)}
+.modal .mhead .x{margin-left:auto;border:none;background:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:0 4px}
+.mbody{padding:8px 20px 20px;max-height:70vh;overflow:auto}
+.slot{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:14px}
+.slot .shead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.slot .shead .chip{font-size:11.5px;padding:1px 8px;border-radius:4px}
+.slot .shead .typebadge{margin-left:0}
+.slot .shead .rm{margin-left:auto;border:none;background:none;color:#B85C49;font-size:12px;cursor:pointer}
+.fld{margin-top:10px}
+.fld label{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-weight:600}
+.fld input[type=text],.fld input[type=url],.fld textarea,.fld select{width:100%;font:inherit;font-size:13.5px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+.fld textarea{min-height:54px;resize:vertical}
+.fld .row2{display:flex;gap:10px}
+.fld .row2>*{flex:1}
+.linkprev{font-size:12px;margin-top:5px}
+.linkprev a{color:var(--c-intl);word-break:break-all}
+.imgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.imgs .th{position:relative;width:78px;height:78px;border-radius:7px;overflow:hidden;border:1px solid var(--line);background:#f4f4f2;cursor:pointer}
+.imgs .th img{width:100%;height:100%;object-fit:cover;display:block}
+.imgs .th .del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(20,24,21,.66);color:#fff;font-size:12px;line-height:18px;cursor:pointer;padding:0}
+.imgs .add{width:78px;height:78px;border:1px dashed var(--line);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:24px;cursor:pointer;background:#fcfcfb}
+.imgs .add.busy{opacity:.5;pointer-events:none}
+.addslot{margin-top:14px}
+.lightbox{position:fixed;inset:0;background:rgba(10,12,10,.86);display:none;align-items:center;justify-content:center;z-index:80;padding:20px;cursor:zoom-out}
+.lightbox.show{display:flex}
+.lightbox img{max-width:96vw;max-height:92vh;border-radius:8px}
+/* marketing */
+td.mk[contenteditable]{outline:none;min-width:80px}
+td.mk[contenteditable]:focus{background:var(--accent-soft);border-radius:4px}
+td.mk:empty::before{content:"입력…";color:#C2C6C0}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:90}
+.toast.show{opacity:1}
+@media(max-width:680px){.cell{min-height:78px}.wrap{padding:20px 12px 72px}.syncbar{margin:-20px -12px 0;padding:10px 12px}.cell .ttl{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="syncbar">
+    <span class="eyebrow" style="margin:0">Media Dept · SNS Ops</span>
+    <input id="author" placeholder="작성자 이름" autocomplete="off">
+    <button class="btn sm solid" id="save-now">서버 저장</button>
+    <button class="btn sm ghost" id="reload">불러오기</button>
+    <span class="st" id="syncst">로컬 편집 중</span>
+  </div>
+
+  <header class="top">
+    <p class="eyebrow">16th Korea Jamboree · Media Dept · SNS Ops</p>
+    <h1 id="m-title"></h1>
+    <p class="sub" id="m-slogan"></p>
+    <div class="metarow" id="m-meta"></div>
+    <div class="clock"><span class="big" id="m-clock"></span><span class="sub" id="m-clocksub"></span></div>
+  </header>
+
+  <section id="calendar">
+    <div class="sec-head"><h2>운영 캘린더 (일요일 시작)</h2><span class="sub">날짜를 클릭해 콘텐츠 편집</span></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--c-rest)"></span>휴지기</span>
+      <span><span class="sw" style="background:var(--c-intl)"></span>해외 대표단</span>
+      <span><span class="sw" style="background:var(--c-sub)"></span>서브캠프 이야기</span>
+      <span><span class="sw" style="background:var(--c-app)"></span>신청자</span>
+      <span><span class="sw" style="background:var(--c-fin)"></span>피날레</span>
+      <span><span class="dot" style="background:var(--c-app)"></span>주요 소식(월·수·금)</span>
+      <span><span class="sw" style="background:#fff;border:1px solid var(--c-intl)"></span>이벤트</span>
+      <span><span class="pill has" style="padding:0 5px">콘텐츠</span> 자료 등록됨</span>
+    </div>
+    <div class="cal" id="cal"></div>
+  </section>
+
+  <section id="content">
+    <div class="sec-head"><h2>콘텐츠 관리 테이블</h2><span class="sub" id="cnt-count"></span></div>
+    <div class="tools">
+      <button class="filterbtn active" data-f="all">전체</button>
+      <button class="filterbtn" data-f="dcount">D-count</button>
+      <button class="filterbtn" data-f="sosik">소식</button>
+      <button class="filterbtn" data-f="event">이벤트</button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="export">JSON 내보내기</button>
+    </div>
+    <table id="tbl">
+      <thead><tr>
+        <th style="width:60px">날짜</th><th style="width:54px">D</th><th style="width:36px">요일</th>
+        <th style="width:120px">카테고리</th><th style="width:70px">유형</th>
+        <th>콘텐츠</th><th style="width:72px">상태</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <p class="note">행 또는 캘린더 날짜를 클릭하면 <b>콘텐츠 제목 · 링크 · 업로드 이미지</b>를 등록할 수 있습니다. 편집 내용은 자동으로 로컬 저장되며, 작성자 이름을 입력하면 서버(공유)에 자동 저장됩니다.</p>
+  </section>
+
+  <section id="marketing">
+    <div class="sec-head"><h2>스카우트 주요 마케팅 캘린더</h2><button class="btn sm" id="mk-add">+ 행 추가</button></div>
+    <table id="mktbl">
+      <thead><tr>
+        <th style="width:110px">날짜</th><th>행사 · 캠페인</th><th style="width:150px">채널</th><th>메모</th><th style="width:40px"></th>
+      </tr></thead>
+      <tbody id="mkbody"></tbody>
+    </table>
+    <p class="note">잼버리 외 연간 스카우트 마케팅 일정. 칸을 클릭해 직접 수정/추가하세요. (날짜는 <code>YYYY-MM-DD</code> 또는 <code>2026-03</code> 형식)</p>
+  </section>
+
+</div>
+
+<!-- day detail modal -->
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="mhead">
+      <div><div class="mt" id="md-title"></div><div class="ms" id="md-sub"></div></div>
+      <button class="x" id="md-close" aria-label="닫기">×</button>
+    </div>
+    <div class="mbody" id="md-body"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== config ===== */
+var EVENT_DAY = '2026-08-05';
+var RANGE_START = '2026-06-15';
+var RANGE_END   = '2026-08-09';
+var WD = ['일','월','화','수','목','금','토'];
+var HEADER_DEF = {
+  title:'제16회 한국잼버리 · 미디어부 SNS 운영 캘린더',
+  slogan:'평화를 심다, 지구를 이끌다, 미래를 개척하다 (Peace and Planet, Ready for Future)',
+  place:'강원특별자치도 세계잼버리수련장',
+  period:'2026-08-05 ~ 2026-08-09'
+};
+var CAT_COLOR = {'휴지기':'var(--c-rest)','해외 대표단':'var(--c-intl)','서브캠프 이야기':'var(--c-sub)','신청자':'var(--c-app)','피날레':'var(--c-fin)','행사 진행':'var(--c-during)','주요 소식':'var(--c-app)','이벤트':'var(--c-intl)','콘텐츠':'var(--accent)'};
+var CAT_TINT = {'휴지기':'rgba(138,138,130,.10)','해외 대표단':'rgba(46,111,174,.10)','서브캠프 이야기':'rgba(47,143,107,.12)','신청자':'rgba(200,130,28,.12)','피날레':'rgba(192,73,47,.12)','행사 진행':'rgba(154,158,152,.10)'};
+var TYPE_LABEL = {dcount:'D-count',sosik:'소식',event:'이벤트',extra:'추가'};
+var STATUS_LABEL = {planned:'기획',draft:'작성중',ready:'완료'};
+
+/* ===== date helpers ===== */
+function ymd(s){var p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function iso(dt){return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+function dayDiff(a,b){return Math.round((ymd(a)-ymd(b))/86400000);}
+function todayISO(){var n=new Date();return iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()));}
+
+function phaseOf(dd){
+  if(dd>=41) return '휴지기';
+  if(dd>=24) return '해외 대표단';
+  if(dd>=17) return '서브캠프 이야기';
+  if(dd>=5)  return '신청자';
+  if(dd>=0)  return '피날레';
+  return '행사 진행';
+}
+function finaleTitle(dd){
+  return ({4:'국제 커뮤니티',3:'야영장',2:'입영 준비',1:'개영 전야',0:'개영식'})[dd] || '';
+}
+var FIXED_EVENTS = {
+  '2026-07-06':'참여형·AI 콘텐츠 이벤트 접수 시작',
+  '2026-07-26':'이벤트 접수 마감',
+  '2026-08-05':'이벤트 결과/콘텐츠 공개'
+};
+
+/* base schedule built deterministically from rules */
+function buildDays(){
+  var out=[], cur=ymd(RANGE_START), end=ymd(RANGE_END), today=todayISO();
+  while(cur<=end){
+    var date=iso(cur), dd=dayDiff(EVENT_DAY,date), ph=phaseOf(dd), wd=cur.getDay();
+    var dlabel = dd>0?('D-'+dd):(dd===0?'D-DAY':'');
+    var items=[];
+    if(ph==='해외 대표단'||ph==='서브캠프 이야기'||ph==='신청자')
+      items.push({type:'dcount',category:ph,seedTitle:''});
+    if(ph==='피날레')
+      items.push({type:'dcount',category:'피날레',seedTitle:finaleTitle(dd)});
+    if(dd<=40 && dd>=5 && (wd===1||wd===3||wd===5))
+      items.push({type:'sosik',category:'주요 소식',seedTitle:''});
+    if(FIXED_EVENTS[date])
+      items.push({type:'event',category:'이벤트',seedTitle:FIXED_EVENTS[date]});
+    out.push({date:date,label:(cur.getMonth()+1)+'/'+cur.getDate(),dday:dd,dlabel:dlabel,
+      weekday:WD[wd],wd:wd,phase:ph,past:date<today,today:date===today,items:items});
+    cur.setDate(cur.getDate()+1);
+  }
+  return out;
+}
+var DAYS = buildDays();
+var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
+
+/* ===== overlay state ===== */
+var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
+var state = {edits:{}, extra:{}, marketing:null, header:null};
+function loadLocal(){ try{var r=localStorage.getItem(LS); if(r){var s=JSON.parse(r); state=Object.assign({edits:{},extra:{},marketing:null,header:null},s);}}catch(e){} }
+function saveLocal(){ prune(); try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} }
+function key(date,type){return date+'#'+type;}
+function EDEF(){ return {title:'',link:'',images:[],status:'planned',memo:''}; }
+function getEdit(k){ return state.edits[k] || (state.edits[k]=EDEF()); }   // editing (persists)
+function peek(k){ return state.edits[k] || EDEF(); }                       // read-only (no store)
+function isDefaultEdit(e){ return !e.title && !e.link && (!e.images||!e.images.length) && (!e.status||e.status==='planned') && !e.memo; }
+function prune(){ Object.keys(state.edits).forEach(function(k){ if(isDefaultEdit(state.edits[k])) delete state.edits[k]; }); }
+function defaultMarketing(){
+  return [
+    {id:mkid(),date:'2026-02-22',title:'세계 스카우트의 날 (Thinking Day)',channel:'인스타·페이스북',memo:'B-P 탄생 기념 · 글로벌 연대 메시지'},
+    {id:mkid(),date:'2026-03',   title:'새 학기 대원 모집 캠페인',channel:'인스타·블로그·유튜브',memo:'신학기 가입 유도'},
+    {id:mkid(),date:'2026-05-05',title:'어린이날 캠페인',channel:'전 채널',memo:'가족·체험 콘텐츠'},
+    {id:mkid(),date:'2026-08-05',title:'제16회 한국잼버리 개영',channel:'전 채널',memo:'본 행사 · 실시간 운영'},
+    {id:mkid(),date:'2026-10',   title:'가을 야영 시즌 / 창립기념',channel:'인스타·유튜브',memo:'활동 하이라이트'}
+  ];
+}
+var _mk=0; function mkid(){_mk++;return 'mk'+Date.now().toString(36)+_mk;}
+
+/* ===== sync ===== */
+var syncTimer=null, lastSavedAt=null;
+function setSt(msg,ok){var e=document.getElementById('syncst'); e.innerHTML = ok?('<b>'+msg+'</b>'):msg;}
+function scheduleSync(){
+  saveLocal();
+  var author=(document.getElementById('author').value||'').trim();
+  if(!author){ setSt('로컬 편집 중 (작성자 입력 시 서버 저장)'); return; }
+  setSt('저장 대기…');
+  if(syncTimer) clearTimeout(syncTimer);
+  syncTimer=setTimeout(doSync,1500);
+}
+function doSync(){
+  var author=(document.getElementById('author').value||'').trim();
+  if(!author){ setSt('로컬 편집 중'); return; }
+  prune(); setSt('저장 중…');
+  fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+    body:JSON.stringify({state:state,author:author})})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(j&&j.ok){ lastSavedAt=j.updatedAt; setSt('서버 저장됨 · '+fmtTime(j.updatedAt),true);} else setSt('저장 실패'); })
+    .catch(function(){ setSt('저장 실패 (네트워크)'); });
+}
+function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
+function reloadServer(){
+  setSt('불러오는 중…');
+  fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
+    if(j&&j.state){ state=Object.assign({edits:{},extra:{},marketing:null,header:null},j.state);
+      saveLocal(); renderAll(); setSt('서버에서 불러옴'+(j.author?(' · '+j.author):''),true); toast('서버 데이터 불러옴'); }
+    else setSt('서버에 저장된 보드 없음');
+  }).catch(function(){ setSt('불러오기 실패'); });
+}
+
+/* ===== meta / header ===== */
+function hdr(){ return Object.assign({},HEADER_DEF,state.header||{}); }
+function renderHeader(){
+  var h=hdr();
+  document.getElementById('m-title').textContent=h.title;
+  document.getElementById('m-slogan').textContent=h.slogan;
+  document.getElementById('m-meta').innerHTML =
+    '<span><b>회기</b> '+h.period+'</span><span><b>장소</b> '+h.place+'</span>';
+  var dd=dayDiff(EVENT_DAY,todayISO());
+  var cl=document.getElementById('m-clock');
+  cl.textContent = dd>0?('D-'+dd):(dd===0?'D-DAY':'행사 종료');
+  document.getElementById('m-clocksub').textContent='오늘 기준 · 개영식까지';
+}
+
+/* ===== calendar ===== */
+function renderCalendar(){
+  var cal=document.getElementById('cal'); cal.innerHTML='';
+  WD.forEach(function(h,i){var el=document.createElement('div');el.className='h'+(i===0?' sun':i===6?' sat':'');el.textContent=h;cal.appendChild(el);});
+  var first=ymd(DAYS[0].date); first.setDate(first.getDate()-first.getDay());
+  var last=ymd(DAYS[DAYS.length-1].date); last.setDate(last.getDate()+(6-last.getDay()));
+  for(var dt=new Date(first); dt<=last; dt.setDate(dt.getDate()+1)){
+    var rec=byDate[iso(dt)];
+    var cell=document.createElement('div');
+    if(!rec){cell.className='cell empty';cal.appendChild(cell);continue;}
+    cell.className='cell clickable'+(rec.today?' today':'')+(rec.past?' past':'');
+    cell.setAttribute('data-date',rec.date);
+    var tint = CAT_TINT[rec.phase]||'#fff';
+    cell.style.background=tint;
+    var html='<div class="ctop"><span class="date">'+rec.label+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
+    var dc=rec.items.filter(function(i){return i.type==='dcount';})[0];
+    if(dc){
+      var col=CAT_COLOR[dc.category];
+      if(dc.category==='피날레'){
+        var t=peek(key(rec.date,'dcount')).title||dc.seedTitle;
+        html+='<span class="tag fin" style="background:rgba(192,73,47,.16);color:var(--c-fin)">'+esc(t)+'</span>';
+      } else html+='<span class="tag" style="background:#fff;color:'+col+';border:1px solid '+col+'33">'+dc.category+'</span>';
+    }
+    if(rec.phase==='휴지기') html+='<span class="tag" style="background:#fff;color:var(--c-rest);border:1px solid var(--line)">휴지</span>';
+    if(rec.items.some(function(i){return i.type==='sosik';})) html+='<span class="pill"><span class="dot" style="background:var(--c-app)"></span>소식</span>';
+    if(rec.items.some(function(i){return i.type==='event';})) html+='<span class="pill ev">이벤트</span>';
+    // content registered indicator + first title
+    var slots=daySlots(rec), filled=slots.filter(function(s){var e=peek(s.k);return e.title||e.link||(e.images&&e.images.length);});
+    if(filled.length){
+      html+='<span class="pill has">콘텐츠 '+filled.length+'</span>';
+      var ft=filled[0]; var e=peek(ft.k);
+      var label=e.title||(e.link?'링크':'이미지');
+      html+='<div class="ttl">'+esc(label)+'</div>';
+    }
+    cell.innerHTML=html;
+    (function(d){cell.addEventListener('click',function(){openDay(d);});})(rec.date);
+    cal.appendChild(cell);
+  }
+}
+
+/* ===== content table ===== */
+function daySlots(rec){
+  // returns [{type,category,seedTitle,k,extra?,eid?}] for a day (seed items + extra)
+  var arr=rec.items.map(function(it){return {type:it.type,category:it.category,seedTitle:it.seedTitle,k:key(rec.date,it.type)};});
+  (state.extra[rec.date]||[]).forEach(function(x){
+    arr.push({type:'extra',category:x.category||'콘텐츠',seedTitle:'',k:rec.date+'#extra#'+x.id,extra:true,eid:x.id});
+  });
+  return arr;
+}
+function renderTable(){
+  var tbody=document.getElementById('tbody'); tbody.innerHTML='';
+  var rows=[];
+  DAYS.forEach(function(d){
+    daySlots(d).forEach(function(s){ rows.push({d:d,s:s}); });
+  });
+  document.getElementById('cnt-count').textContent=rows.length+'개 슬롯';
+  rows.forEach(function(r){
+    var d=r.d, s=r.s, e=peek(s.k);
+    var tr=document.createElement('tr'); tr.className='crow';
+    tr.setAttribute('data-type',s.type==='extra'?'all':s.type);
+    var col=CAT_COLOR[s.category]||'var(--muted)';
+    var title=e.title||s.seedTitle||'';
+    var mini='';
+    var bits=[];
+    if(e.link) bits.push('<span class="minic">🔗 링크</span>');
+    if(e.images&&e.images.length) bits.push('<span class="minic">🖼 '+e.images.length+'</span>');
+    if(bits.length) mini='<div class="mini">'+bits.join('')+'</div>';
+    var titleHtml = title?('<span>'+esc(title)+'</span>'):'<span class="empty">콘텐츠 입력…</span>';
+    var st=e.status||'planned';
+    tr.innerHTML=
+      '<td>'+d.label+'</td>'+
+      '<td class="dd">'+(d.dlabel||'')+'</td>'+
+      '<td>'+d.weekday+'</td>'+
+      '<td class="cat"><span class="chip" style="background:'+col+'1A;color:'+col+'">'+s.category+'</span></td>'+
+      '<td><span class="typebadge t-'+s.type+'">'+TYPE_LABEL[s.type]+'</span></td>'+
+      '<td class="title">'+titleHtml+mini+'</td>'+
+      '<td><span class="statusbadge s-'+st+'">'+STATUS_LABEL[st]+'</span></td>';
+    (function(date){tr.addEventListener('click',function(){openDay(date);});})(d.date);
+    tbody.appendChild(tr);
+  });
+  applyFilter();
+}
+var curFilter='all';
+function applyFilter(){
+  document.querySelectorAll('#tbody tr').forEach(function(tr){
+    tr.style.display=(curFilter==='all'||tr.dataset.type===curFilter)?'':'none';
+  });
+}
+
+/* ===== day modal ===== */
+var curDay=null;
+function openDay(date){
+  curDay=date; var rec=byDate[date]; if(!rec) return;
+  document.getElementById('md-title').textContent=rec.label+' ('+rec.weekday+') · '+(rec.dlabel||rec.phase);
+  document.getElementById('md-sub').textContent=rec.phase;
+  renderModalBody();
+  document.getElementById('scrim').classList.add('show');
+}
+function closeDay(){ document.getElementById('scrim').classList.remove('show'); curDay=null; }
+function renderModalBody(){
+  var rec=byDate[curDay]; var body=document.getElementById('md-body'); body.innerHTML='';
+  daySlots(rec).forEach(function(s){ body.appendChild(slotEl(rec,s)); });
+  // add slot button
+  var add=document.createElement('button'); add.className='btn ghost sm addslot'; add.textContent='+ 콘텐츠 슬롯 추가';
+  add.onclick=function(){
+    if(!state.extra[curDay]) state.extra[curDay]=[];
+    state.extra[curDay].push({id:mkid(),category:'콘텐츠'});
+    renderModalBody(); renderAfterEdit();
+  };
+  body.appendChild(add);
+}
+function slotEl(rec,s){
+  var e=getEdit(s.k);
+  var wrap=document.createElement('div'); wrap.className='slot';
+  var col=CAT_COLOR[s.category]||'var(--muted)';
+  var head=document.createElement('div'); head.className='shead';
+  head.innerHTML='<span class="chip" style="background:'+col+'1A;color:'+col+';font-size:11.5px;padding:1px 8px;border-radius:4px">'+s.category+'</span>'+
+    '<span class="typebadge t-'+s.type+'">'+TYPE_LABEL[s.type]+'</span>';
+  if(s.extra){
+    var rm=document.createElement('button'); rm.className='rm'; rm.textContent='슬롯 삭제';
+    rm.onclick=function(){
+      state.extra[curDay]=(state.extra[curDay]||[]).filter(function(x){return x.id!==s.eid;});
+      delete state.edits[s.k];
+      renderModalBody(); renderAfterEdit();
+    };
+    head.appendChild(rm);
+  }
+  wrap.appendChild(head);
+
+  // title
+  wrap.appendChild(fld('콘텐츠 제목', inputEl('text', e.title||s.seedTitle||'', s.seedTitle||'예: 해외 대표단 소개 ①', function(v){ e.title=v; renderAfterEdit(true); })));
+  // link
+  var linkIn=inputEl('url', e.link||'', 'https://… (게시물·드라이브·노션 링크)', function(v){ e.link=v.trim(); updLinkPrev(); renderAfterEdit(true); });
+  var linkFld=fld('콘텐츠 링크', linkIn);
+  var prev=document.createElement('div'); prev.className='linkprev';
+  function updLinkPrev(){ prev.innerHTML = e.link?('<a href="'+esc(e.link)+'" target="_blank" rel="noopener">'+esc(e.link)+' ↗</a>'):''; }
+  updLinkPrev(); linkFld.appendChild(prev);
+  wrap.appendChild(linkFld);
+
+  // status + memo row
+  var row=document.createElement('div'); row.className='fld';
+  row.innerHTML='<label>상태 · 메모</label>';
+  var r2=document.createElement('div'); r2.className='row2';
+  var sel=document.createElement('select');
+  ['planned','draft','ready'].forEach(function(st){var o=document.createElement('option');o.value=st;o.textContent=STATUS_LABEL[st];if((e.status||'planned')===st)o.selected=true;sel.appendChild(o);});
+  sel.onchange=function(){ e.status=sel.value; renderAfterEdit(); };
+  var memo=document.createElement('input'); memo.type='text'; memo.value=e.memo||''; memo.placeholder='메모 (담당자·비고)';
+  memo.oninput=function(){ e.memo=memo.value; renderAfterEdit(true); };
+  r2.appendChild(sel); r2.appendChild(memo); row.appendChild(r2); wrap.appendChild(row);
+
+  // images
+  var imgFld=document.createElement('div'); imgFld.className='fld';
+  imgFld.innerHTML='<label>업로드 콘텐츠 이미지</label>';
+  var grid=document.createElement('div'); grid.className='imgs';
+  (e.images||[]).forEach(function(url,idx){
+    var th=document.createElement('div'); th.className='th';
+    th.innerHTML='<img src="'+esc(url)+'" alt=""><button class="del" title="삭제">×</button>';
+    th.querySelector('img').onclick=function(){ openLightbox(url); };
+    th.querySelector('.del').onclick=function(ev){ ev.stopPropagation(); e.images.splice(idx,1); renderModalBody(); renderAfterEdit(); };
+    grid.appendChild(th);
+  });
+  var add=document.createElement('label'); add.className='add'; add.textContent='+';
+  var fileIn=document.createElement('input'); fileIn.type='file'; fileIn.accept='image/*'; fileIn.multiple=true; fileIn.style.display='none';
+  fileIn.onchange=function(){ handleFiles(fileIn.files, e, add); };
+  add.appendChild(fileIn);
+  grid.appendChild(add); imgFld.appendChild(grid);
+  var hint=document.createElement('div'); hint.className='note'; hint.style.marginTop='6px';
+  hint.textContent='업로드 시 자동 축소(최대 1600px) 후 서버에 저장됩니다.';
+  imgFld.appendChild(hint);
+  wrap.appendChild(imgFld);
+  return wrap;
+}
+function fld(label, inputNode){
+  var f=document.createElement('div'); f.className='fld';
+  var l=document.createElement('label'); l.textContent=label; f.appendChild(l); f.appendChild(inputNode); return f;
+}
+function inputEl(type,val,ph,oninput){
+  var i=document.createElement('input'); i.type=type; i.value=val; i.placeholder=ph||'';
+  var t=null;
+  i.oninput=function(){ if(t)clearTimeout(t); var v=i.value; t=setTimeout(function(){oninput(v);},150); };
+  return i;
+}
+
+/* image upload (downscale -> /api/image) */
+function handleFiles(files, edit, addBtn){
+  if(!files||!files.length) return;
+  addBtn.classList.add('busy');
+  var list=Array.prototype.slice.call(files);
+  (function next(){
+    if(!list.length){ addBtn.classList.remove('busy'); renderModalBody(); renderAfterEdit(); return; }
+    var f=list.shift();
+    downscale(f,1600,0.85).then(function(blob){ return uploadBlob(blob); })
+      .then(function(url){ if(url){ if(!edit.images) edit.images=[]; edit.images.push(url); } next(); })
+      .catch(function(){ toast('이미지 업로드 실패'); next(); });
+  })();
+}
+function downscale(file,max,q){
+  return new Promise(function(res,rej){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width,h=img.height,sc=Math.min(1,max/Math.max(w,h));
+      var cw=Math.round(w*sc),ch=Math.round(h*sc);
+      var c=document.createElement('canvas'); c.width=cw; c.height=ch;
+      c.getContext('2d').drawImage(img,0,0,cw,ch);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(b){ b?res(b):rej(); },'image/jpeg',q);
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); rej(); };
+    img.src=url;
+  });
+}
+function uploadBlob(blob){
+  return fetch('/api/image',{method:'POST',headers:{'content-type':'image/jpeg'},body:blob})
+    .then(function(r){return r.json();}).then(function(j){ return j&&j.url?j.url:null; });
+}
+
+function openLightbox(url){ document.getElementById('lb-img').src=url; document.getElementById('lightbox').classList.add('show'); }
+
+/* ===== marketing ===== */
+function renderMarketing(){
+  if(!state.marketing) state.marketing=defaultMarketing();
+  var tb=document.getElementById('mkbody'); tb.innerHTML='';
+  state.marketing.forEach(function(m){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="mk" contenteditable data-f="date">'+esc(m.date||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="channel">'+esc(m.channel||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
+      '<td><button class="rm" style="border:none;background:none;color:#B85C49;cursor:pointer;font-size:13px">✕</button></td>';
+    tr.querySelectorAll('td.mk').forEach(function(td){
+      td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); scheduleSync(); });
+    });
+    tr.querySelector('.rm').onclick=function(){ state.marketing=state.marketing.filter(function(x){return x!==m;}); renderMarketing(); scheduleSync(); };
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== render orchestration ===== */
+function renderAll(){ renderHeader(); renderCalendar(); renderTable(); renderMarketing(); }
+function renderAfterEdit(light){
+  // light=true: just persist+sync (don't rebuild modal); always refresh table+calendar
+  renderCalendar(); renderTable();
+  scheduleSync();
+}
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},1800);}
+
+/* ===== export ===== */
+function exportJSON(){
+  var out={meta:hdr(),event_day:EVENT_DAY,generated:todayISO(),days:DAYS.map(function(d){
+    return {date:d.date,dlabel:d.dlabel,weekday:d.weekday,phase:d.phase,items:daySlots(d).map(function(s){
+      var e=peek(s.k); return {type:s.type,category:s.category,title:e.title||s.seedTitle||'',link:e.link||'',images:e.images||[],status:e.status||'planned',memo:e.memo||''};
+    })};
+  }),marketing:state.marketing||[]};
+  var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='jamboree-sns-plan.json'; a.click();
+  if(navigator.clipboard) navigator.clipboard.writeText(JSON.stringify(out,null,2)).then(function(){toast('JSON 다운로드 + 클립보드 복사');}).catch(function(){toast('JSON 다운로드 완료');});
+  else toast('JSON 다운로드 완료');
+}
+
+/* ===== wire up ===== */
+function init(){
+  loadLocal();
+  var au=localStorage.getItem(LS_AUTHOR); if(au) document.getElementById('author').value=au;
+  renderAll();
+  // try server (shared board) — overrides local if present
+  fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
+    if(j&&j.state){ state=Object.assign({edits:{},extra:{},marketing:null,header:null},j.state); saveLocal(); renderAll();
+      setSt('서버 보드 불러옴'+(j.author?(' · '+j.author):''),true); }
+    else setSt(au?'서버 자동 저장 켜짐':'로컬 편집 중 (작성자 입력 시 서버 저장)');
+  }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
+
+  document.getElementById('author').addEventListener('input',function(){ localStorage.setItem(LS_AUTHOR,this.value.trim()); });
+  document.getElementById('save-now').onclick=doSync;
+  document.getElementById('reload').onclick=reloadServer;
+  document.getElementById('export').onclick=exportJSON;
+  document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); scheduleSync(); };
+  document.getElementById('md-close').onclick=closeDay;
+  document.getElementById('scrim').addEventListener('click',function(e){ if(e.target===this) closeDay(); });
+  document.getElementById('lightbox').addEventListener('click',function(){ this.classList.remove('show'); });
+  document.querySelectorAll('.filterbtn').forEach(function(b){
+    b.onclick=function(){ document.querySelectorAll('.filterbtn').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); curFilter=b.dataset.f; applyFilter(); };
+  });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(document.getElementById('lightbox').classList.contains('show')) document.getElementById('lightbox').classList.remove('show'); else closeDay(); } });
+}
+init();
+</script>
+<script src="version-watch.js"></script>
+</body>
+</html>
