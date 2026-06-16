@@ -35,7 +35,7 @@ const TOKEN_KEY = 'jamboree:token';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
-const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, margin: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1 };
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, margin: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0 };
 const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
 const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
@@ -198,7 +198,10 @@ function App() {
     r.setProperty('--cc-hi', (FONT_HI[tweaks.fontHi] || FONT_HI.aggravo).v);
     r.setProperty('--cc-fz', String(tweaks.fz || 1));
     r.setProperty('--cc-track', tweaks.track ? tweaks.track + 'em' : 'normal');
-  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track]);
+    r.setProperty('--cc-logo-scale', String(tweaks.logoScale || 1));
+    r.setProperty('--cc-logo-dx', (tweaks.logoDX || 0) + 'px');
+    r.setProperty('--cc-logo-dy', (tweaks.logoDY || 0) + 'px');
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY]);
   const mScale = tweaks.margin > 0 ? (family.w - 2 * tweaks.margin) / family.w : 1;
 
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
@@ -489,6 +492,20 @@ function App() {
               )}
               <span style={fieldLabel}>배경색</span>
               <Swatches value={store.getProp(coverScope || ddScope, 'bg', '')} onPick={(c) => store.setProp(coverScope || ddScope, 'bg', c)} clearable />
+              {familyKey === 'dday' && !ddIsDay && (() => {
+                const N = window.FEED_GFX_COUNT || 1;
+                const defIdx = ((cards.findIndex((c) => card && c.id === card.id) % N) + N) % N;
+                const cur = store.getProp(ddScope, 'gfx', '');
+                return (
+                  <label style={{ display: 'block', marginTop: 10 }}>
+                    <span style={fieldLabel}>오른쪽 그래픽 ({N}종)</span>
+                    <select value={cur === '' ? String(defIdx) : cur}
+                      onChange={(e) => store.setProp(ddScope, 'gfx', e.target.value === String(defIdx) ? '' : e.target.value)} style={inputStyle}>
+                      {(window.FEED_GFX_LABELS || []).map((l, i) => <option key={i} value={i}>{(i + 1) + ' · ' + l}</option>)}
+                    </select>
+                  </label>
+                );
+              })()}
               {coverScope && (
                 <div style={{ marginTop: 10 }}>
                   <span style={fieldLabel}>카테고리 색</span>
@@ -565,7 +582,10 @@ function App() {
               <div style={secLabel}>엠블럼</div>
               <PhotoRow slot="logo" label="컬러 엠블럼 — 밝은 배경용 (PNG 권장)" png />
               <PhotoRow slot="logo-white" label="흰색 엠블럼 — 어두운 배경용 (PNG 권장)" png />
-              <p style={{ fontSize: 12, color: '#8b8492', margin: '8px 0 0', lineHeight: 1.5 }}>카드 배경이 어두우면 흰색 엠블럼이 자동으로 사용됩니다.</p>
+              <p style={{ fontSize: 12, color: '#8b8492', margin: '8px 0 10px', lineHeight: 1.5 }}>카드 배경이 어두우면 흰색 엠블럼이 자동으로 사용됩니다.</p>
+              <Slider label="엠블럼 크기" value={Math.round(tweaks.logoScale * 100) / 100} min={0.6} max={1.6} step={0.02} unit="×" onChange={(v) => setTweak('logoScale', v)} />
+              <Slider label="엠블럼 좌우 위치" value={tweaks.logoDX} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDX', v)} />
+              <Slider label="엠블럼 상하 위치" value={tweaks.logoDY} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDY', v)} />
             </div>
           </div>
         </aside>

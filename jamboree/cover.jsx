@@ -55,7 +55,7 @@ const W92 = 'rgba(255,255,255,.92)', W88 = 'rgba(255,255,255,.88)', WST = 'rgba(
 window.SEC_COVER = [
   {
     id: 'main', label: '표지 · 메인 (퍼플)',
-    node: <CoverThemed id="main" bg={PAL.purple} cat={{ label: '메인·공지', color: PAL.purple }} eyebrow="2026 · GOSEONG · GANGWON" eyebrowColor={PAL.river}
+    node: <CoverThemed id="main" bg={PAL.purple} cat={{ label: '메인·공지', color: PAL.purple }} eyebrow="2026 · KOREA NATIONAL JAMBOREE" eyebrowColor={PAL.river}
       t1="제16회" t2="한국잼버리" t2Color={PAL.leaf}
       sub="강원에서 펼쳐지는 청소년 글로벌 축제" subColor={W92} stitchFill="rgba(255,255,255,.24)" main />
   },

@@ -199,3 +199,9 @@ WOSM Region → 국가(NSO) → 단위대
 - **가방(backpack) 모티프 추가**: 손잡이(반원 아웃라인)+몸통(02 다이아 45°회전=정사각)+뚜껑(07)+앞주머니(반원10).
 - **모닥불 색 배경 대비**: `MOTIF.campfire(cx,by,s,cols)` — cols 주면 불꽃을 대비색으로(빨강/주황 배경에서 빨강 불꽃이 묻히던 문제 해결). D-day 전 포맷·빅넘버(빨강)에 cols 전달.
 - ⚠️ **운영**: 별도 지시 없어도 변경 즉시 commit+push+deploy (사용자 재확인, §8).
+
+### 15.7 Phase 8 (BUILT, v0.9.9)
+- **D-피드 우측 그래픽 17종 베리에이션**: `FEED_GFX`(dday.jsx) — 캠프사이트/숲/산맥/밤캠프/장비/그룹캠프/호숫가/해+초원/큰소나무/산+가방/모닥불중심/텐트+새/언덕겹층/산+나무+구름/풀장비/미니멀/해+구름+나무. 우측 패널 "오른쪽 그래픽" select(`cc-prop:<feedScope>.gfx`, 기본=카드index%17). feed non-isDay만. `ddScatter(...,gfx)`.
+- **엠블럼 크기·위치 트윅**: `_tweaks.logoScale/logoDX/logoDY` → CSS 변수 `--cc-logo-scale/dx/dy`. `Logo`가 span(위치)+img(transform scale+translate)로 분리 적용 → 전 카드 엠블럼 일괄. 우측 '엠블럼' 섹션 슬라이더 3종.
+- **에이브로 기본**: 표지 메인 "2026 · KOREA NATIONAL JAMBOREE".
+- **D-DAY 당일 배경 흰색**(`#ffffff`, num=purple) — 밝은 배경이라 컬러 엠블럼 자동.

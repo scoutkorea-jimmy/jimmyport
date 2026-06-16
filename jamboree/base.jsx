@@ -108,7 +108,14 @@ function Logo({ size = 150, style }) {
   const src = onDark
     ? (store.getImage('logo-white') || store.getImage('logo') || 'jamboree/assets/logo-white.png')
     : (store.getImage('logo') || 'jamboree/assets/logo.png');
-  return <img src={src} alt="제16회 한국잼버리 엠블럼" width={size} height={size} style={{ display: 'block', objectFit: 'contain', ...style }} />;
+  // 바깥 span = 호출부 위치(절대배치/translateX 등), 안쪽 img = 전역 엠블럼 트윅(크기·위치)
+  return (
+    <span style={{ display: 'inline-block', lineHeight: 0, ...style }}>
+      <img src={src} alt="제16회 한국잼버리 엠블럼" width={size} height={size}
+        style={{ display: 'block', objectFit: 'contain', transformOrigin: 'center',
+          transform: 'translate(var(--cc-logo-dx,0px), var(--cc-logo-dy,0px)) scale(var(--cc-logo-scale,1))' }} />
+    </span>
+  );
 }
 
 function Pill({ children, bg, color, style }) {
