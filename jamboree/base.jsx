@@ -98,7 +98,7 @@ function Card({ bg, color = '#fff', pad = 88, children, style }) {
 
 function Logo({ size = 150, style }) {
   const store = useCCStore();
-  const src = store.getImage('logo') || 'jamboree/assets/logo.svg';
+  const src = store.getImage('logo') || 'jamboree/assets/logo.png';
   return <img src={src} alt="제16회 한국잼버리 엠블럼" width={size} height={size} style={{ display: 'block', objectFit: 'contain', ...style }} />;
 }
 

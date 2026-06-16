@@ -399,7 +399,7 @@ function App() {
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: '#f3eef0', fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", color: '#2b2630' }}>
       <header style={{ height: 60, flex: '0 0 auto', background: P.midnight, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={store.getImage('logo') || 'jamboree/assets/logo.svg'} width={32} height={32} alt="" style={{ display: 'block', objectFit: 'contain' }} />
+          <img src={store.getImage('logo') || 'jamboree/assets/logo.png'} width={32} height={32} alt="" style={{ display: 'block', objectFit: 'contain' }} />
           <div>
             <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-.01em' }}>한국잼버리 카드뉴스 제작기</div>
             <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
