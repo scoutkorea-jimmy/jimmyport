@@ -114,8 +114,13 @@ function Prog({ prog, fill, track, bottom }) {
 function DDaySquare({ c }) {
   const tw = React.useContext(window.DDayTweakCtx) || {}; const ns = tw.numScale || 1;
   const e = useDDeff(c);
+  const store = useCCStore();
+  const wmSrc = store.getImage('logo-white') || 'jamboree/assets/logo-white.png';
+  const wmDark = e.ink === '#fff';   // 어두운 배경=흰 워터마크 / 밝은 배경=어두운(invert) 워터마크
   return (
     <Card bg={e.bg} color={e.ink} pad={0}>
+      {/* 잼버리 로고 옅은 배경 워터마크 */}
+      <img src={wmSrc} alt="" aria-hidden="true" style={{ position: 'absolute', width: 1240, height: 1240, left: '50%', top: '47%', transform: 'translate(-50%,-50%)', objectFit: 'contain', opacity: wmDark ? 0.09 : 0.07, filter: wmDark ? 'none' : 'invert(1)', pointerEvents: 'none' }} />
       <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed, c.fmt, e.gfx)} />
       <div style={{ position: 'absolute', top: 70, left: 72, right: 72, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Kicker c={e.kickerColor}>{e.kickerText}</Kicker>{!c.isDay && <Logo size={100} />}

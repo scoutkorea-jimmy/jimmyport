@@ -213,3 +213,6 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 15.9 v0.9.11
 - **단색 화이트 엠블럼 교체**: `jamboree/assets/logo-white.png`를 새 단색(knot 마크) 버전으로 교체. 로고 크기 조절은 기존 '엠블럼 크기' 슬라이더(`logoScale`)로 이미 제공.
+
+### 15.10 v0.9.12
+- **D-피드 배경 로고 워터마크**: `DDaySquare`(feed)에 잼버리 매듭 로고(`logo-white` 업로드 우선)를 중앙 대형(1240px) 옅은 워터마크로 깔음(도형보다 뒤). 어두운 배경=흰색(opacity .09) / 밝은 배경=`invert`(opacity .07)로 자동 대비.
