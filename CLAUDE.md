@@ -226,6 +226,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **워터마크 회전 추가** + 컨트롤 위치 이동: `wmRot`(`--cc-wm-rot`, transform에 rotate 추가). 워터마크 크기/좌우/상하/**회전**/투명도 슬라이더를 접힌 트윅에서 **D-피드 "이 카드 편집" 패널 상단('배경 오브제')으로 이동**(발견성↑, familyKey==='dday'에 노출).
 - **D-숫자 1·2행 좌우 이동**: `_tweaks.dx1/dx2` → `NumStack`의 "D-"(1행)·숫자(2행) `translateX`. 편집 패널 'D-숫자 줄 위치' 슬라이더 2종.
 
+### 15.14 v0.9.16–0.9.17
+- **모달 통합 저장/불러오기(v0.9.16)**: window.prompt 제거 → 모달에 관리자 토큰 입력칸 + 현재 작업 저장(PUT)/새로 저장(POST)/최근 작업 불러오기/목록 불러오기·삭제 + 인라인 상태. 토큰=React state(localStorage). 툴바는 "💾 저장·불러오기" 단일 버튼.
+- **하단 덱 슬라이드(v0.9.17)**: 카드뉴스 구성을 좌측→하단 가로 슬라이드 바로 이동. 칩별 순서(◀▶)·✕삭제·클릭편집, "+ 현재 카드 담기".
+- **콘솔 정리(v0.9.17)**: jamboree.html에서 Babel in-browser advisory 경고만 console.warn 필터로 억제. (라이브 스윕 결과 에러·네트워크 실패 0, Babel 경고만 있었음)
+
 ### 15.13 v0.9.15
 - **키커 문구 편집**: D-day `useDDeff`에 `ov.kicker` 오버라이드(비우면 자동 'COUNTDOWN · N일 전'/isDay 기본). 편집 패널 '키커 문구(상단)' 입력(ddScope, 자동 placeholder). 카드별 저장.
 - **텍스트 줄바꿈 지원**: `Editable` — 인라인 편집 시 Enter로 줄바꿈(커밋=blur/Escape), 저장은 `innerText`(줄바꿈 보존), 렌더 `white-space: pre-wrap`. 폼(`FieldInput`)은 def>14자 또는 값에 `\n` 있으면 textarea(줄바꿈 가능 안내). 티저 등 전체 텍스트 적용.

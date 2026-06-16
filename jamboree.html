@@ -28,6 +28,17 @@
     #__boot { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: #9a93a3; font: 14px/1.4 'Pretendard', sans-serif; }
   </style>
 
+  <!-- 콘솔 정리: Babel in-browser 변환기 advisory 경고만 필터(개발용 도구라 인브라우저 컴파일 사용) -->
+  <script>
+    (function () {
+      var w = console.warn;
+      console.warn = function () {
+        var m = arguments[0];
+        if (typeof m === 'string' && m.indexOf('in-browser Babel transformer') >= 0) return;
+        return w.apply(console, arguments);
+      };
+    })();
+  </script>
   <!-- React + Babel + html-to-image (CDN) -->
   <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>

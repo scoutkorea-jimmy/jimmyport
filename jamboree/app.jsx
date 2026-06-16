@@ -507,27 +507,6 @@ function App() {
               <button key={c.id} onClick={() => setVariationId(c.id)} style={sideBtn(card && c.id === card.id)}>{c.label}</button>
             ))}
           </div>
-
-          {/* 카드뉴스 한 편 구성 (덱) */}
-          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,.08)' }}>
-            <div style={secLabel}>카드뉴스 구성 · {deck.length}장</div>
-            <p style={{ fontSize: 11.5, color: '#8b8492', margin: '0 0 8px', lineHeight: 1.5 }}>표지 → 본문 → 엔딩 순서로 담고, 상단 "카드뉴스 ZIP"으로 한 번에 내려받으세요.</p>
-            <button onClick={deckAdd} style={{ width: '100%', border: '1.5px dashed ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>+ 현재 카드 담기</button>
-            {deck.map((it, i) => {
-              const r = deckResolve(it);
-              return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 6px', borderRadius: 8, background: '#f7f4fa', marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: P.purple, width: 18, textAlign: 'right', flex: '0 0 auto' }}>{i + 1}</span>
-                  <button onClick={() => { setFamilyKey(it.f); setVariationId(it.id); }} title="이 카드 편집" style={{ flex: 1, minWidth: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12, color: '#2b2630', fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 0 }}>
-                    {r ? (famOf(it.f).label + ' · ' + r.card.label) : '(삭제된 카드)'}
-                  </button>
-                  <button onClick={() => deckMove(i, -1)} style={tinyBtn} title="위로">↑</button>
-                  <button onClick={() => deckMove(i, 1)} style={tinyBtn} title="아래로">↓</button>
-                  <button onClick={() => deckRemove(i)} style={{ ...tinyBtn, color: '#b04a4a' }} title="빼기">✕</button>
-                </div>
-              );
-            })}
-          </div>
         </aside>
 
         {/* 중앙: 프리뷰 */}
@@ -687,6 +666,38 @@ function App() {
             </div>
           </div>
         </aside>
+      </div>
+
+      {/* 하단: 카드뉴스 구성 (가로 슬라이드 — 담기/순서/삭제) */}
+      <div style={{ flex: '0 0 auto', background: '#fff', borderTop: '1px solid rgba(0,0,0,.1)', boxShadow: '0 -4px 16px rgba(40,30,50,.06)', padding: '10px 14px', display: 'flex', alignItems: 'stretch', gap: 12, minHeight: 86 }}>
+        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, width: 150 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: '#9a93a3' }}>카드뉴스 구성 · {deck.length}장</div>
+          <button onClick={deckAdd} style={{ border: '1.5px dashed ' + P.purple, background: '#faf7fc', color: P.purple, borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ 현재 카드 담기</button>
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+          {deck.length === 0 && <div style={{ color: '#b3acbd', fontSize: 12.5, alignSelf: 'center' }}>표지 → 본문 → 엔딩 순서로 카드를 담아 한 편을 구성하세요. 상단 ZIP / 한 편 PNG로 내보냅니다.</div>}
+          {deck.map((it, i) => {
+            const r = deckResolve(it);
+            const active = card && it.f === familyKey && it.id === card.id;
+            return (
+              <div key={i} style={{ flex: '0 0 auto', width: 158, border: '1px solid ' + (active ? P.purple : 'rgba(0,0,0,.12)'), borderRadius: 10, background: active ? '#f6f0fb' : '#fff', padding: '7px 8px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: P.purple, borderRadius: 5, padding: '1px 6px', flex: '0 0 auto' }}>{i + 1}</span>
+                  <button onClick={() => { setFamilyKey(it.f); setVariationId(it.id); }} title="이 카드 편집" style={{ flex: 1, minWidth: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 11.5, fontWeight: 600, color: '#2b2630', fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 0 }}>
+                    {r ? (famOf(it.f).label + ' · ' + r.card.label) : '(삭제된 카드)'}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button onClick={() => deckMove(i, -1)} disabled={i === 0} style={{ ...tinyBtn, opacity: i === 0 ? .3 : 1 }} title="앞으로">◀</button>
+                    <button onClick={() => deckMove(i, 1)} disabled={i === deck.length - 1} style={{ ...tinyBtn, opacity: i === deck.length - 1 ? .3 : 1 }} title="뒤로">▶</button>
+                  </div>
+                  <button onClick={() => deckRemove(i)} style={{ ...tinyBtn, color: '#b04a4a', fontWeight: 700 }} title="빼기">✕ 삭제</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {listOpen && (
