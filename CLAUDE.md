@@ -308,3 +308,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **국문 라벨**: 좌상단 `제16회 한국잼버리 기획조정본부 홍보부`(orgtag), 헤더 eyebrow `기획조정본부 홍보부`, 타이틀 `제16회 한국잼버리 · SNS 운영 캘린더`(영문 제거).
 - API: `cleanEdit`에 ctype, 슬롯 record에 notes[], GET `{slots,marketing,types}`, PUT `{types}`/`{addNote}`.
 - 검증: 헤드리스 — **MERGE로 로컬 D-50 보존**(서버 부분응답에도 안 사라짐) 확인 + 종류 콤보(메뉴/추가/삭제)·간단메모 Enter·상태 최상단·라벨·휴지0, 콘솔 에러 0.
+
+### 16.7 v0.9.27 — 구조 분리 + 통합 디자인 시스템 + 라인 아이콘 (UI 전면 개선 A)
+- **파일 구조 정리**: `jamboree-plan.html`(1200줄) → **105줄**. 인라인 CSS/JS를 `jamboree-plan/` 폴더로 분리: `styles.css`(재작성)·`app.js`(메인 로직)·`editor.js`(Tiptap CDN ESM 모듈). `jamboree/`(카드뉴스 React)와 병렬 구조.
+- **통합 디자인 시스템**(styles.css 신규): 토큰화(surface/ink/line/accent·status·channel 색, `--r-1/2/3`·`--pill`·`--sh-1/2/3`·`--ease`). 한 톤(green editorial)으로 버튼/칩/인풋/카드/모달/표 일관화. 산발 인라인 스타일·죽은 클래스(.tag/.pill/.ttl/구 테이블/.statusbadge 등) 제거.
+- **모든 박스 칩 = pill**(`--pill` 999px): chchip/ctchip/typebadge/채널토글/링크라벨/상태세그/필터/카운트 전부. **콘텐츠 종류 칩 ↔ 제목 간격**(`ctchip margin-right`).
+- **라인 아이콘**(이모지 제거): `ICON`+`icon()` 인라인 SVG(Feather/Lucide 스타일, stroke=currentColor). 동적(카드 meta·삭제·링크열기·이미지/첨부·툴바 형광/링크/정렬)·정적(`data-ic` 주입: 탭·새로고침·추가·닫기) 전부 교체.
+- **캘린더 = 콘텐츠 단위 오픈**: 셀 배경 클릭 openDay 제거 → 콘텐츠 칩 클릭만 `openSlot`(콘텐츠 단위). `+`는 추가.
+- **상단 작성자 입력 제거**(자동저장이라 불필요, IP는 서버가 기록). `authorVal()` 안전화(없으면 '익명'). 클락=솔리드 그린 pill, 범례=카드(단계 스와치+상태 점).
+- 검증: 헤드리스 file:// — CSS/app/아이콘(127 svg) 로드·pill 999px·작성자 입력 없음·**콘텐츠 단위 오픈**(셀배경 X, 칩 O)·콘솔 에러 0. (Tiptap은 file:// 모듈 CORS로 미로드 → https 동일출처에서 정상; 라이브 검증)
+- **다음(B)**: 모달 명시적 **저장 버튼** + 미저장 이탈 가드(저장/되돌리기/취소). 카드뉴스 본격 연동. 데이터 삭제 `/schedule`(2026-11-09).
