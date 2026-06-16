@@ -13,19 +13,19 @@ function CoverThemed(props) {
   const catColor = cat && (ov.catColor || cat.color);
   const align = ov.align || 'left';   // 제목·부제 블록 정렬 오버라이드
   const ek = 'cover-' + id;
-  /* 도형 풍성하게 — 에이브로우/로고/제목블록/푸터를 피해 자동 채움(결정론적) */
-  const seed = id.split('').reduce((a, ch) => a + ch.charCodeAt(0), 7);
-  const lightBg = INKC !== '#fff';
-  const cols = [PAL.orange, PAL.river, PAL.pink, PAL.leaf, PAL.ocean, PAL.red, PAL.forest, PAL.purple].filter((c) => c !== BG);
-  const genScatter = scatter || window.richScatter({
-    w: 1080, h: 1350, cols, bleed: lightBg ? 'rgba(77,0,110,.10)' : 'rgba(255,255,255,.10)', seed,
-    count: 13, minH: 54, maxH: 176, bleeders: 3,
-    avoid: [
-      { x: 70, y: 78, w: 480, h: 96 },     // 에이브로우
-      { x: 786, y: 70, w: 224, h: 176 },   // 엠블럼
-      { x: 64, y: 780, w: 952, h: 570 }    // 제목+부제+스티치+카테고리+푸터(하단 앵커)
-    ]
-  });
+  /* 도형 = 캠핑 풍경(하나의 사물을 이루도록). 에이브로우~제목 사이 가운데 빈 공간에 배치 */
+  const M = window.MOTIF;
+  const dark = INKC !== '#fff' ? PAL.midnight : PAL.midnight;
+  const palAll = [PAL.leaf, PAL.orange, PAL.river, PAL.ocean, PAL.pink, PAL.red, PAL.forest].filter((c) => c !== BG);
+  const k0 = palAll[0], k1 = palAll[1], k2 = palAll[2], k3 = palAll[3];
+  const genScatter = scatter || window.scene(
+    M.sun(880, 360, 1.1, k1),
+    M.mountain(560, 735, 1.4, PAL.forest === BG ? k2 : PAL.forest, k2),  // 뒤 배경(먼저)
+    M.tree(285, 735, 1.45, PAL.leaf === BG ? k0 : PAL.leaf),
+    M.tent(445, 735, 1.3, k1, dark),
+    M.campfire(640, 735, 1.2, [k1, k0, k3]),
+    M.backpack(820, 735, 1.05, k2, dark)
+  );
   return (
     <Card bg={BG} color={INKC} pad={0}>
       <Placeholder tone={INKC === '#fff' ? 'dark' : 'light'} label="배경 사진 (교체)" slot={ek + '-bg'} slotLabel="배경 사진"

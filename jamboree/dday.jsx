@@ -10,34 +10,34 @@ function ddScatter(i, isDay, cols, bleed, fmt) {
   if (fmt === 'story') {
     if (isDay) return sc(                                  // 1080×1920, 큰 로고 중앙 → 하단 띠에 캠프
       M.mountain(820, 1560, 1.4, c1, c2), M.tree(250, 1560, 1.4, c3),
-      M.tent(470, 1560, 1.2, c0, c2), M.campfire(660, 1560, 1.3), M.hills(940, 1560, 1.2, [c3, c1]),
+      M.tent(470, 1560, 1.2, c0, c2), M.campfire(660, 1560, 1.3, [c0, c1, c3]), M.hills(940, 1560, 1.2, [c3, c1]),
       M.sun(870, 470, 1.0, c0)
     );
     return sc(                                             // 상단 띠(로고 아래) + 하단 띠
       M.sun(560, 470, 1.0, c0), M.cloud(840, 470, 0.8, c2),
       M.tree(240, 660, 1.4, c3), M.tent(430, 660, 1.2, c0, c2), M.mountain(850, 660, 1.4, c1, c2),
-      M.campfire(360, 1560, 1.5), M.hills(720, 1560, 1.3, [c3, c1]), M.tree(910, 1560, 1.1, c3)
+      M.campfire(360, 1560, 1.5, [c0, c1, c3]), M.hills(720, 1560, 1.3, [c3, c1]), M.tree(910, 1560, 1.1, c3)
     );
   }
   if (fmt === 'wide') {
     if (isDay) return sc(                                  // 1480×1047, 큰 로고 우중앙 → 하단 캠프
-      M.tree(220, 880, 1.4, c3), M.tent(420, 880, 1.2, c0, c2), M.campfire(610, 880, 1.3),
+      M.tree(220, 880, 1.4, c3), M.tent(420, 880, 1.2, c0, c2), M.campfire(610, 880, 1.3, [c0, c1, c3]),
       M.hills(840, 880, 1.2, [c3, c1]), M.mountain(1080, 880, 1.3, c1, c2), M.sun(1330, 250, 1.0, c0)
     );
     return sc(                                             // 우측 컬럼 캠프 + 태양
       M.sun(1330, 300, 1.05, c0), M.cloud(1130, 270, 0.8, c2),
-      M.tree(1110, 700, 1.5, c3), M.tent(1310, 700, 1.3, c0, c2), M.campfire(1210, 870, 1.2),
+      M.tree(1110, 700, 1.5, c3), M.tent(1310, 700, 1.3, c0, c2), M.campfire(1210, 870, 1.2, [c0, c1, c3]),
       M.hills(1380, 870, 1.0, [c3, c1])
     );
   }
   /* feed (1080×1350) — 우측 컬럼 캠프 (숫자는 좌측) */
   if (isDay) return sc(                                    // 큰 로고 중앙 → 하단 캠프 띠
-    M.tree(190, 1060, 1.3, c3), M.tent(380, 1060, 1.15, c0, c2), M.campfire(560, 1060, 1.2),
+    M.tree(190, 1060, 1.3, c3), M.tent(380, 1060, 1.15, c0, c2), M.campfire(560, 1060, 1.2, [c0, c1, c3]),
     M.hills(780, 1060, 1.1, [c3, c1]), M.mountain(960, 1060, 1.2, c1, c2), M.sun(880, 250, 0.9, c0)
   );
   return sc(
     M.sun(975, 300, 1.05, c0), M.cloud(800, 320, 0.8, c2),
-    M.tree(840, 770, 1.4, c3), M.tent(995, 770, 1.15, c0, c2), M.campfire(905, 980, 1.25),
+    M.tree(840, 770, 1.4, c3), M.tent(995, 770, 1.15, c0, c2), M.campfire(905, 980, 1.25, [c0, c1, c3]),
     M.hills(900, 1080, 1.0, [c3, c1])
   );
 }

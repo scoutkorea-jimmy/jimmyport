@@ -131,11 +131,26 @@ const MOTIF = {
       { n: '09', fill: door, h: dh, left: cx - dw / 2, top: by - dh }
     ];
   },
-  /* 모닥불 — 장작(사다리꼴) X + 불꽃(삼각형) 3겹 */
-  campfire(cx, by, s) {
+  /* 모닥불 — 장작(사다리꼴) X + 불꽃(삼각형) 3겹. cols 주면 배경 대비 색 사용 */
+  campfire(cx, by, s, cols) {
+    const f = cols || [PAL.red, PAL.orange, PAL.leaf];
     const log = (rot, dx) => { const h = 22 * s, w = _W('07', h); return { n: '07', fill: PAL.midnight, h, left: cx + dx - w / 2, top: by - h, rot }; };
     const fl = (H, dx, col) => { const w = _W('09', H); return { n: '09', fill: col, h: H, left: cx + dx - w / 2, top: by - 16 * s - H }; };
-    return [log(16, -13 * s), log(-16, 13 * s), fl(80 * s, 0, PAL.red), fl(58 * s, -17 * s, PAL.orange), fl(40 * s, 14 * s, PAL.leaf)];
+    return [log(16, -13 * s), log(-16, 13 * s), fl(80 * s, 0, f[0]), fl(58 * s, -17 * s, f[1]), fl(40 * s, 14 * s, f[2] || f[0])];
+  },
+  /* 가방/배낭 — 손잡이(반원 아웃라인) + 몸통(정사각=다이아 45°회전) + 뚜껑(사다리꼴) + 앞주머니(반원) */
+  backpack(cx, by, s, c, c2) {
+    c = c || PAL.ocean; c2 = c2 || PAL.midnight;
+    const H = 132 * s;                                   // 몸통 다이아 박스 높이 → 시각 정사각 ~0.7H
+    const fh = 40 * s, fw = _W('07', fh) * 0.62;
+    const ph = 40 * s, pw = _W('10', ph);
+    const hh = 30 * s, hw = _W('10', hh);
+    return [
+      { n: '10', outline: true, fill: c2, h: hh, left: cx - hw / 2, top: by - H * 0.86 - hh }, // 손잡이
+      { n: '02', rot: 45, fill: c, h: H, left: cx - H / 2, top: by - H * 0.86 },               // 몸통(정사각)
+      { n: '07', fill: c2, h: fh, left: cx - fw / 2, top: by - H * 0.74 },                       // 뚜껑
+      { n: '10', fill: c2, h: ph, left: cx - pw / 2, top: by - ph }                             // 앞주머니(바닥)
+    ];
   },
   /* 태양/달 — 원 */
   sun(cx, cy, s, c) { c = c || PAL.orange; const h = 86 * s, w = _W('04', h); return [{ n: '04', fill: c, h, left: cx - w / 2, top: cy - h / 2 }]; },

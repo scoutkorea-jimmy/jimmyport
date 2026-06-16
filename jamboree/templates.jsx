@@ -140,7 +140,7 @@ function T_BigNumImage({ ek }) {
       <ShapeScatter items={window.scene(
         M.sun(960, 320, 1.0, P.leaf), M.cloud(800, 330, 0.75, P.pink),
         M.tree(850, 880, 1.35, P.leaf), M.tent(995, 880, 1.1, P.orange, P.midnight),
-        M.campfire(905, 1080, 1.15), M.hills(905, 1190, 0.95, [P.leaf, P.river])
+        M.campfire(905, 1080, 1.15, [P.orange, P.pink, P.leaf]), M.hills(905, 1190, 0.95, [P.leaf, P.river])
       )} />
       <CategoryChip label="규모" color={'#fff'} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
