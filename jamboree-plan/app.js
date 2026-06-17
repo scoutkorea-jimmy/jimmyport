@@ -288,6 +288,25 @@ function renderClock(){
 }
 
 /* ===== calendar ===== */
+/* 좁은 셀에서 잘리는 제목 → 호버 시 전체 제목 커스텀 툴팁 */
+function calTipEl(){ var t=document.getElementById('caltip'); if(!t){ t=document.createElement('div'); t.id='caltip'; t.className='caltip'; document.body.appendChild(t); } return t; }
+function hideCalTip(){ var t=document.getElementById('caltip'); if(t) t.classList.remove('show'); }
+function showCalTip(el, date){
+  var rec=byDate[date]; var k=el.getAttribute('data-sk'); var s=findSlot(rec,k); if(!s){ hideCalTip(); return; }
+  var e=peek(k);
+  var title=e.title||s.seedTitle||(s.category+' · 비어있음');
+  var ctype=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span> '):'';
+  var meta=[rec.label+'('+rec.weekday+')', rec.dlabel||rec.phase, s.category, STATUS_LABEL[e.status||'planned']];
+  var chs=(e.channels||[]); if(e.title && chs.length) meta.push(chs.join('·'));
+  var bits=[]; if(hasLink(e)) bits.push('링크 '+linkCount(e)); if(e.images&&e.images.length) bits.push('이미지 '+e.images.length); if(e.files&&e.files.length) bits.push('첨부 '+e.files.length); if(hist(k).length) bits.push('SNS문구 '+hist(k).length);
+  var tip=calTipEl();
+  tip.innerHTML='<div class="ctt">'+ctype+esc(title)+'</div><div class="ctm">'+esc(meta.filter(Boolean).join(' · '))+'</div>'+(bits.length?'<div class="ctm">'+esc(bits.join(' · '))+'</div>':'');
+  tip.classList.add('show');
+  var r=el.getBoundingClientRect(), tw=tip.offsetWidth, th=tip.offsetHeight;
+  var left=Math.max(8, Math.min(r.left, window.innerWidth-tw-8));
+  var top=r.top-th-8; if(top<8) top=r.bottom+8;
+  tip.style.left=left+'px'; tip.style.top=top+'px';
+}
 var searchQ='', searchTimer=null;
 function matchSearch(d,s,e){
   var q=(searchQ||'').trim().toLowerCase(); if(!q) return true;
@@ -298,6 +317,7 @@ function matchSearch(d,s,e){
   return hay.toLowerCase().indexOf(q)>=0;
 }
 function renderCalendar(){
+  hideCalTip();
   var cal=document.getElementById('cal'); cal.innerHTML='';
   WD.forEach(function(h,i){var el=document.createElement('div');el.className='h'+(i===0?' sun':i===6?' sat':'');el.textContent=h;cal.appendChild(el);});
   var first=ymd(DAYS[0].date); first.setDate(first.getDate()-first.getDay());
@@ -322,11 +342,11 @@ function renderCalendar(){
     vis.forEach(function(s){
       var e=peek(s.k), typ=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span>'):'';
       if(e.title){
-        html+='<div class="cline filled citem" data-sk="'+s.k+'" title="'+esc((e.ctype?e.ctype+' · ':'')+e.title)+'">'+typ+esc(e.title)+'</div>';
+        html+='<div class="cline filled citem" data-sk="'+s.k+'">'+typ+esc(e.title)+'</div>';
       } else if(s.seedTitle){
-        html+='<div class="cline seed citem" data-sk="'+s.k+'" title="'+esc(s.seedTitle)+'">'+esc(s.seedTitle)+'</div>';
+        html+='<div class="cline seed citem" data-sk="'+s.k+'">'+esc(s.seedTitle)+'</div>';
       } else {
-        minis+='<span class="cmini citem" data-sk="'+s.k+'" title="'+esc(s.category)+' · 비어있음, 클릭해 작성">'+TYPE_LABEL[s.type]+'</span>';
+        minis+='<span class="cmini citem" data-sk="'+s.k+'">'+TYPE_LABEL[s.type]+'</span>';
       }
     });
     if(minis) html+='<div class="cminis">'+minis+'</div>';
@@ -336,6 +356,8 @@ function renderCalendar(){
       // 콘텐츠는 콘텐츠 단위로 열림(일자 단위 X)
       cell.querySelectorAll('.citem[data-sk]').forEach(function(el){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); var sl=findSlot(byDate[rc.date], el.getAttribute('data-sk')); if(sl) openSlot(rc.date, sl); });
+        el.addEventListener('mouseenter',function(){ showCalTip(el, rc.date); });
+        el.addEventListener('mouseleave',hideCalTip);
       });
       // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
       cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){
