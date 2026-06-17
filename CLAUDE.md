@@ -362,3 +362,6 @@ WOSM Region → 국가(NSO) → 단위대
 - **진행률 = 콘텐츠 기준**(회의 제외) + 회의 건수 별도 표기("콘텐츠 완료 n/N · 회의 m건").
 - **회의 모달 = SNS 항목 숨김**(`.slot.mtg .sns-only{display:none}`): 채널·링크·해시태그·이미지·SNS문구 숨기고 상태·종류/제목·회의시간/주재자·첨부(회의자료)·메모만. ctype를 회의↔콘텐츠로 바꾸면 `commit`이 `refreshModal`로 즉시 레이아웃 전환.
 - 검증: 헤드리스 — 캘린더 회의/콘텐츠 라인 구분·모달 sns숨김+회의시간 라벨·구분토글(회의1/콘텐츠44)·진행률 문구, 콘솔 에러 0.
+
+### 16.16 v0.9.36 — /jamboree 파비콘 + OG 이미지
+- 카드뉴스 제작기(`jamboree.html`)에 **파비콘**(`jamboree/assets/logo.png`) + **OG/트위터 메타** 추가. **OG 이미지** `jamboree/assets/og.png`(1200×630) 신규 — 엠블럼+"제16회 한국잼버리 / 카드뉴스 제작기"+날짜/장소, 헤드리스 Chrome으로 HTML 템플릿 렌더 생성. og:image 절대URL(`https://jimmypark.net/jamboree/assets/og.png`).
