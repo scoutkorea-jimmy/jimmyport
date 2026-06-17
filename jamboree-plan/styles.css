@@ -470,6 +470,23 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .unassignwrap{display:block}
 .unassignwrap .pcard{width:100%}
 .unassign-head h2{color:var(--st-draft)}
+.pslot.conflict{background:var(--st-draft-bg)}
+.pslot .pconf{margin-left:auto;font-size:10px;font-weight:700;color:#fff;background:var(--danger);padding:1px 7px;border-radius:var(--pill);flex:0 0 auto}
+
+/* ---- 인원별 오프타임 ---- */
+.offwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-2);background:var(--surface);box-shadow:var(--sh-1)}
+.offtbl{border-collapse:collapse;width:100%;min-width:760px;font-size:12px}
+.offtbl th,.offtbl td{border:1px solid var(--line-2);padding:5px 6px;text-align:center;vertical-align:middle}
+.offtbl thead th{background:var(--surface-2);font-size:11px;font-weight:700;color:var(--ink-2);line-height:1.2}
+.offtbl thead th span{display:block;font-size:9.5px;color:var(--muted);font-weight:500}
+.offtbl .offname{text-align:left;font-weight:700;color:var(--ink);background:var(--surface-2);white-space:nowrap;position:sticky;left:0;z-index:1}
+.offcell{padding:4px}
+.offtog{font:inherit;font-size:10.5px;font-weight:600;padding:3px 6px;margin:1px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--pill);cursor:pointer;transition:var(--ease)}
+.offtog:hover{border-color:var(--danger);color:var(--danger)}
+.offtog.off{background:var(--danger);border-color:var(--danger);color:#fff}
+/* 오프타임 충돌(배정 모달) */
+.evkind.offdis{opacity:.5;border-style:dashed;color:var(--danger)}
+.evkind.offwarn{outline:2px solid var(--danger);outline-offset:-2px}
 .pslots{display:flex;flex-direction:column}
 .pslot{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--line-2);cursor:pointer;font-size:12.5px;transition:background .1s}
 .pslot:last-child{border-bottom:none}

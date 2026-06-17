@@ -91,7 +91,7 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null, timetable:null, roster:null, placement:null, ttcats:null}; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null, timetable:null, roster:null, placement:null, ttcats:null, offtimes:null}; }
 function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼']; }
 /* 운영 일정(일정 레이어) — 회의·공모전 등 단일/연속(여러 날). 콘텐츠와 분리. */
 var EVENT_KINDS=[['회의','#6B4FA0'],['공모전','#0F8A8A'],['행사','#C0492F'],['운영','#2E6FAE'],['기타','#7A6A57']];
@@ -123,6 +123,14 @@ function saveTtCats(){ debouncedPut('ttcatTimer', {ttcats: ttCats()}, '종류 �
 function addTtCat(name){ name=(name||'').trim(); if(!name) return false; var L=ttCats(); if(L.some(function(x){return x[0]===name;})){ toast('이미 있는 종류'); return false; } var used=L.map(function(x){return x[1];}); var col=TTCAT_PALETTE.filter(function(c){return used.indexOf(c)<0;})[0]||TTCAT_PALETTE[L.length%TTCAT_PALETTE.length]; L.push([name,col]); saveTtCats(); return true; }
 function deleteTtCat(name){ var L=ttCats(); if(L.length<=1){ toast('최소 1개 종류는 필요합니다'); return false; } if(!confirm('종류 "'+name+'"을(를) 삭제할까요?\n이 종류를 쓰던 일정은 기본색으로 표시됩니다.')) return false; state.ttcats=L.filter(function(x){return x[0]!==name;}); saveTtCats(); return true; }
 function setTtCatColor(name,color){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]===name){ L[i][1]=color; break; } saveTtCats(); }
+/* ----- 인원별 오프타임 (배정 불가 시간) ----- */
+var OFF_BLOCKS=[['am','오전','09–12',9,12],['pm','오후','14–17',14,17],['eve','저녁','19–22',19,22]];
+function offMap(){ if(!state.offtimes) state.offtimes={}; return state.offtimes; }
+function personOff(pid){ var m=offMap(); if(!m[pid]) m[pid]={}; return m[pid]; }
+function isOff(pid,date,bk){ var d=offMap()[pid]; return !!(d&&d[date]&&d[date][bk]); }
+function toggleOff(pid,date,bk){ var po=personOff(pid); if(!po[date]) po[date]={}; if(po[date][bk]) delete po[date][bk]; else po[date][bk]=true; if(!Object.keys(po[date]).length) delete po[date]; saveOfftimes(); }
+function offConflict(pid,date,sH,eH){ if(sH==null||eH==null) return null; for(var i=0;i<OFF_BLOCKS.length;i++){ var bk=OFF_BLOCKS[i]; if(isOff(pid,date,bk[0]) && sH<bk[4] && eH>bk[3]) return bk[1]; } return null; }
+function saveOfftimes(){ debouncedPut('offTimer', {offtimes: offMap()}, '오프타임 저장됨'); }
 function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-02',start:'10:00',end:'16:00',title:'사전 답사 · 영지 점검',place:'영지 전역',cat:'이동·기타',owner:'',memo:'촬영 동선 사전 점검'},
   {id:mkid(),day:'2026-08-03',start:'09:00',end:'18:00',title:'미디어센터 설치 · 장비 세팅',place:'미디어센터',cat:'홍보활동',owner:'',memo:'송출/촬영 장비 점검'},
@@ -329,6 +337,7 @@ function applyServer(j){
   if(j&&j.roster){ var r=j.roster.filter(function(x){ return x && ((x.name||'').trim()||(x.role||'').trim()||(x.duty||'').trim()||(x.contact||'').trim()||(x.channel||'').trim()); }); if(r.length) state.roster=r; }
   if(j&&j.placement) state.placement=j.placement;
   if(j&&Array.isArray(j.ttcats)&&j.ttcats.length) state.ttcats=j.ttcats;
+  if(j&&j.offtimes&&typeof j.offtimes==='object'&&!Array.isArray(j.offtimes)) state.offtimes=j.offtimes;
 }
 function saveTypes(){
   saveLocal();
@@ -1261,7 +1270,13 @@ function renderTTModal(){
   var b=document.getElementById('tt-body');
   var dayOpts=JAM_DAYS.map(function(d){var dd=ymd(d[0]);return '<option value="'+d[0]+'"'+(d[0]===ttDraft.day?' selected':'')+'>8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')'+(d[1]?(' '+esc(d[1])):'')+'</option>';}).join('');
   var people=rosterList();
-  var asgHtml=people.length?people.map(function(m){var on=ttDraft.assignees.indexOf(m.id)>=0;return '<button type="button" class="evkind asg" data-pid="'+esc(m.id)+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(personLabel(m))+'</button>';}).join(''):'<span class="hintmini">먼저 <b>인원·배치</b> 탭에서 인원을 추가하세요.</span>';
+  var asgHtml=people.length?people.map(function(m){
+    var on=ttDraft.assignees.indexOf(m.id)>=0;
+    var off=offConflict(m.id, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end));
+    var cls='evkind asg'+(off?(on?' offwarn':' offdis'):'');
+    var style=on?'background:var(--accent);border-color:var(--accent);color:#fff':'';
+    return '<button type="button" class="'+cls+'" data-pid="'+esc(m.id)+'"'+(style?(' style="'+style+'"'):'')+' title="'+(off?('오프타임('+off+') — 배정 불가'):'')+'">'+esc(personLabel(m))+(off?(' · 오프('+off+')'):'')+'</button>';
+  }).join(''):'<span class="hintmini">먼저 <b>인원·배치</b> 탭에서 인원을 추가하세요.</span>';
   b.innerHTML=
     '<div class="evfld"><label>종류 — 클릭해 선택 · 입력 후 Enter로 추가 · ✕로 삭제</label><div class="chipset" id="tt-catset">'+
       ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><input type="color" class="ccolor" data-c="'+esc(c[0])+'" value="'+esc(c[1])+'" title="색상 변경">'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
@@ -1277,7 +1292,10 @@ function renderTTModal(){
   b.querySelectorAll('#tt-catset .ccolor').forEach(function(cc){ cc.addEventListener('click',function(e){ e.stopPropagation(); }); cc.addEventListener('change',function(e){ e.stopPropagation(); setTtCatColor(cc.dataset.c, cc.value); renderTimetable(); renderTTModal(); }); });
   b.querySelectorAll('#tt-catset .cx').forEach(function(x){ x.addEventListener('click',function(e){ e.stopPropagation(); var nm=x.dataset.c; if(deleteTtCat(nm)){ if(ttDraft.cat===nm) ttDraft.cat=(ttCats()[0]||['프로그램'])[0]; renderTTModal(); } }); });
   var ci=b.querySelector('#tt-catinput'); if(ci) ci.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v && addTtCat(v)) ttDraft.cat=v; this.value=''; renderTTModal(); var ni=document.getElementById('tt-catinput'); if(ni) ni.focus(); } });
-  b.querySelectorAll('.evkind.asg').forEach(function(bt){ bt.onclick=function(){ var pid=bt.dataset.pid; var i=ttDraft.assignees.indexOf(pid); if(i>=0) ttDraft.assignees.splice(i,1); else ttDraft.assignees.push(pid); renderTTModal(); }; });
+  b.querySelectorAll('.evkind.asg').forEach(function(bt){ bt.onclick=function(){ var pid=bt.dataset.pid; var i=ttDraft.assignees.indexOf(pid);
+    if(i>=0){ ttDraft.assignees.splice(i,1); }
+    else { var off=offConflict(pid, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end)); if(off){ toast(personLabel(rosterById(pid))+' 님은 이 시간 오프('+off+')라 배정할 수 없습니다'); return; } ttDraft.assignees.push(pid); }
+    renderTTModal(); }; });
   b.querySelector('#tt-f-day').onchange=function(){ ttDraft.day=this.value; };
   b.querySelector('#tt-f-start').onchange=function(){ ttDraft.start=this.value; if(t2h(ttDraft.end)<=t2h(ttDraft.start)) ttDraft.end=h2hhmm(t2h(ttDraft.start)+TT_SNAP); renderTTModal(); };
   b.querySelector('#tt-f-end').onchange=function(){ ttDraft.end=this.value; };
@@ -1320,9 +1338,28 @@ function renderStaff(){
       rb.appendChild(tr);
     });
   }
+  renderOfftimes();
   renderDerivedPlacement();
 }
-function placeSlotHTML(t){ var dd=ymd(t.day); return '<div class="pslot" data-id="'+esc(t.id)+'"><span class="pdot" style="background:'+ttCatColor(t.cat)+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span></div>'; }
+function renderOfftimes(){
+  var box=document.getElementById('offtimes'); if(!box) return;
+  var people=rosterList();
+  if(!people.length){ box.innerHTML='<p class="empty-note">먼저 위 R&amp;R 표에 인원을 추가하세요.</p>'; return; }
+  var H='<div class="offwrap"><table class="offtbl"><thead><tr><th class="offname">인원</th>';
+  JAM_DAYS.forEach(function(d){ var dd=ymd(d[0]); H+='<th>8/'+dd.getDate()+'<span>'+WDS[dd.getDay()]+'</span></th>'; });
+  H+='</tr></thead><tbody>';
+  people.forEach(function(m){
+    H+='<tr><td class="offname">'+esc(personLabel(m))+'</td>';
+    JAM_DAYS.forEach(function(d){
+      H+='<td class="offcell">'+OFF_BLOCKS.map(function(bk){ var off=isOff(m.id,d[0],bk[0]); return '<button type="button" class="offtog'+(off?' off':'')+'" data-pid="'+esc(m.id)+'" data-d="'+d[0]+'" data-bk="'+bk[0]+'" title="'+bk[1]+' '+bk[2]+(off?' · 오프':'')+'">'+bk[1]+'</button>'; }).join('')+'</td>';
+    });
+    H+='</tr>';
+  });
+  H+='</tbody></table></div>';
+  box.innerHTML=H;
+  box.querySelectorAll('.offtog').forEach(function(bt){ bt.onclick=function(){ toggleOff(bt.dataset.pid, bt.dataset.d, bt.dataset.bk); renderOfftimes(); renderDerivedPlacement(); }; });
+}
+function placeSlotHTML(t, pid){ var dd=ymd(t.day); var off=pid?offConflict(pid,t.day,t2h(t.start),t2h(t.end)):null; return '<div class="pslot'+(off?' conflict':'')+'" data-id="'+esc(t.id)+'" title="'+(off?('오프타임('+off+')과 겹침'):'')+'"><span class="pdot" style="background:'+ttCatColor(t.cat)+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span>'+(off?'<span class="pconf">오프충돌</span>':'')+'</div>'; }
 function dayIdx(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return i; return 99; }
 function ttHours(t){ var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null||e<=s) return 0; return e-s; }
 function fmtDur(h){ if(!h) return '0분'; var mins=Math.round(h*60), hh=Math.floor(mins/60), mm=mins%60; return (hh?hh+'시간':'')+(hh&&mm?' ':'')+(mm?mm+'분':'')||'0분'; }
@@ -1339,7 +1376,7 @@ function renderDerivedPlacement(){
         var items=ttList().filter(function(t){ return (t.assignees||[]).indexOf(m.id)>=0; }).slice().sort(sortByDayTime);
         var tot=sumHours(items);
         H+='<div class="pcard"><div class="pcard-h"><span class="pname">'+esc(personLabel(m))+'</span>'+((m.name&&m.role)?'<span class="prole">'+esc(m.role)+'</span>':'')+'<span class="pcount">'+(items.length?(items.length+'건'):'배치 없음')+'</span>'+(items.length?('<span class="phours" title="총 투입시간">'+fmtDur(tot)+'</span>'):'')+'</div>';
-        if(items.length){ H+='<div class="pslots">'+items.map(placeSlotHTML).join('')+'</div>'; }
+        if(items.length){ H+='<div class="pslots">'+items.map(function(t){return placeSlotHTML(t,m.id);}).join('')+'</div>'; }
         else { H+='<div class="pempty">일정표에서 이 인원을 담당으로 지정하면 시간·장소가 자동으로 표시됩니다.</div>'; }
         H+='</div>';
       });

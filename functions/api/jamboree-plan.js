@@ -20,11 +20,27 @@ const TIMETABLE = "jp:timetable";
 const ROSTER = "jp:roster";
 const PLACEMENT = "jp:placement";
 const TTCATS = "jp:ttcats";
+const OFFTIMES = "jp:offtimes";
 
 function cleanTtCats(arr) {
   return arr.slice(0, 40).map((p) => Array.isArray(p)
     ? [(p[0] || "").toString().slice(0, 30), (p[1] || "#7A6A57").toString().slice(0, 9)]
     : null).filter((x) => x && x[0]);
+}
+function cleanOff(o) {
+  o = o && typeof o === "object" ? o : {};
+  const out = {};
+  Object.keys(o).slice(0, 200).forEach((pid) => {
+    const days = o[pid]; if (!days || typeof days !== "object") return;
+    const dd = {};
+    Object.keys(days).slice(0, 40).forEach((d) => {
+      const v = days[d]; if (!v || typeof v !== "object") return;
+      const blk = {}; ["am", "pm", "eve"].forEach((k) => { if (v[k]) blk[k] = true; });
+      if (Object.keys(blk).length) dd[d.toString().slice(0, 10)] = blk;
+    });
+    if (Object.keys(dd).length) out[pid.toString().slice(0, 40)] = dd;
+  });
+  return out;
 }
 
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
@@ -153,7 +169,11 @@ export async function onRequestGet({ env }) {
   const tcraw = await env.SCOUT_KV.get(TTCATS);
   if (tcraw) { try { ttcats = JSON.parse(tcraw).ttcats; } catch {} }
 
-  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats });
+  let offtimes = null;
+  const ofraw = await env.SCOUT_KV.get(OFFTIMES);
+  if (ofraw) { try { offtimes = JSON.parse(ofraw).offtimes; } catch {} }
+
+  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -209,6 +229,13 @@ export async function onRequestPut({ request, env }) {
   if (Array.isArray(body.ttcats)) {
     const ttcats = cleanTtCats(body.ttcats);
     await env.SCOUT_KV.put(TTCATS, JSON.stringify({ ttcats, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 인원별 오프타임(offtimes) 저장 — 객체(배열 아님)
+  if (body.offtimes && typeof body.offtimes === "object" && !Array.isArray(body.offtimes)) {
+    const offtimes = cleanOff(body.offtimes);
+    await env.SCOUT_KV.put(OFFTIMES, JSON.stringify({ offtimes, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

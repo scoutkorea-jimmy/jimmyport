@@ -424,3 +424,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **투입시간**: `ttHours`(end-start)·`sumHours`·`fmtDur`(N시간 M분). 사람 카드 헤더에 건수(`pcount`)+**총 투입시간(`phours` 그린 배지)**.
 - **'일과' 색**: 운영 KV의 `jp:ttcats`에 사용자가 추가한 '일과'(#A33A24) → 안전 read-modify-write PUT로 `#504E48` 변경(나머지 6종·전체 데이터 보존). 비파괴(스모크 아님·사용자 지시 변경).
 - 검증: 헤드리스 file://(period셀46+그라데이션·day셀84+그라데이션 / 색피커 present·변경 반영 / 미지정=별도섹션(derived엔 없음)·표시 / 사람카드 투입시간 '4시간' / 에러 0) + 스크린샷(일간 10분선·taller, 배치 투입시간 배지·미지정 앰버섹션).
+
+### 16.25 v0.9.45 — 인원별 오프타임(배정 불가 시간) + 충돌 차단
+- 사용자: 각 인원별 **오프타임**(오전 09–12·오후 14–17·저녁 19–22)을 지정 → 그 시간엔 일정 **배정 불가**.
+- **데이터**: `state.offtimes`={ rosterId:{ date:{am,pm,eve} } }, KV `jp:offtimes`(객체, `cleanOff`). `OFF_BLOCKS`(am/pm/eve + 09–12/14–17/19–22). 헬퍼 `isOff/toggleOff/offConflict(pid,date,sH,eH)`(시간 겹침)·`saveOfftimes`(debounce). applyServer 로드, stateDefaults `offtimes:null`.
+- **편집 UI**(인원·배치 탭, R&R 아래): `renderOfftimes` — 인원 × 8일 × 3블록 토글 테이블(`#offtimes`, sticky 인원열, 가로스크롤). 토글=빨강(off). 변경 시 파생 배치 갱신.
+- **배정 차단**: 시간 일정 모달의 담당 칩이 `offConflict` 검사 → 겹치면 `.offdis`(점선·빨강·'· 오프(오전)') + 클릭 시 toast로 차단(추가 안 됨). 이미 배정+오프면 `.offwarn`(빨강 아웃라인). 비오프 인원은 정상 배정.
+- **충돌 표시**: 현장 배치 슬롯도 `offConflict` 시 `.conflict`(앰버 배경)+'오프충돌' 배지(오프타임을 나중에 지정한 경우 가시화). `placeSlotHTML(t,pid)`.
+- **API**: GET 8→9키(`offtimes`), PUT `body.offtimes`(객체) 분기(`cleanOff`, 배열 분기들 뒤·slotKey 앞).
+- 검증: 헤드리스 file://(오프표 6행×24토글 / 8/5 오전 off 설정→isOff / 모달서 그 인원 칩 offdis·'오프(오전)'·클릭해도 배정 안 됨 / 비오프 인원 배정됨 / 에러 0) + 스크린샷(오프 매트릭스 빨강 토글).
