@@ -398,3 +398,10 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 16.21 v0.9.41 — 빈 roster 폴백(라이브 잔재 정리, 비파괴)
 - 라이브 KV에 과거 테스트 잔재(완전 공백 roster 1행)가 남아 기본 6역할 대신 빈 1명만 표시됨. **운영 KV 파괴적 쓰기 금지 규칙** 준수 위해 DELETE 대신 클라 방어: `applyServer`가 서버 roster에서 **모든 필드가 공백인 행을 제외**, 남은 게 없으면 기본 R&R(6역할) 사용. 실데이터(한 필드라도 채워짐)는 그대로 보존.
+
+### 16.22 v0.9.42 — 일정표 전체기간/일간 뷰 분리 + 동시간대 다중 일정 + 블록 삭제버튼
+- 사용자: (1) 동시간대 여러 프로그램 등록 가능하게(이미 lane 분할 지원하나 8일뷰에선 슬리버로 좁음) → **전체 기간뷰/일간뷰 분리**. (2) 각 일정에 **삭제버튼 + 삭제 전 확인**.
+- **뷰 모드**: `ttMode`('period'|'day', localStorage `jamboree-plan:ttmode`) + `ttDay`(선택일). `renderTTControls`가 세그(`#tt-modeseg` 전체기간/일간) + 일간일 때 날짜칩(`#tt-days` 8일) 렌더. `renderTimetable`이 `days`=전체(JAM_DAYS) 또는 [선택일]로 분기, 일간이면 `#tt-grid`에 `ttgrid-day` 클래스(단일 컬럼 풀폭 → 동시간대 일정이 lane으로 나란히 넓게).
+- **삭제버튼**: 각 `.ttg-ev`에 hover 시 우상단 ✕(`.ttg-del`) → `deleteTT(id)`가 `confirm('이 일정을 삭제할까요?\n제목·시간')` 후 삭제·저장·재렌더(+staff 갱신). 모달의 삭제 버튼(confirm)도 유지.
+- **CSS**: `.ttctrl/.seg/.ttdaytab`(뷰 토글·날짜칩) + `.ttgrid-day{min-width:0}`(일간 풀폭) + `.ttg-del`(블록 hover 삭제) + `.ttg-ev.big`(일간 여백). 동시간대 lane 분할은 기존 `ttLanes`(클러스터별) 그대로 — 일간뷰에서 풀폭 분배되어 가독.
+- 검증: 헤드리스 file://(period 8열·날짜칩 숨김 / day 1열·8칩·ttgrid-day·8/5 4건→8/6 3건 / 삭제 confirm 떠서 3→2 / 에러 0) + 스크린샷(일간 8/6 오후 4개 동시 프로그램 나란히, 전체기간 8일 정상).

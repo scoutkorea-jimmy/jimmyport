@@ -1110,29 +1110,51 @@ function ttLanes(evs){
   }
   return {lane:lane, ncol:ncol};
 }
+var ttMode=(function(){try{return localStorage.getItem('jamboree-plan:ttmode')||'period';}catch(e){return 'period';}})();
+var ttDay=(function(){try{return localStorage.getItem('jamboree-plan:ttday')||'2026-08-05';}catch(e){return '2026-08-05';}})();
+function jamDay(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return JAM_DAYS[i]; return null; }
+function renderTTControls(){
+  var seg=document.getElementById('tt-modeseg');
+  if(seg) seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.dataset.m===ttMode); });
+  var days=document.getElementById('tt-days'); if(!days) return;
+  days.style.display = ttMode==='day' ? '' : 'none';
+  if(ttMode!=='day'){ days.innerHTML=''; return; }
+  days.innerHTML='';
+  JAM_DAYS.forEach(function(d){ var dd=ymd(d[0]);
+    var b=document.createElement('button'); b.className='ttdaytab'+(d[0]===ttDay?' active':'');
+    b.innerHTML='<b>8/'+dd.getDate()+'</b><span>'+WDS[dd.getDay()]+(d[1]?(' '+esc(d[1])):'')+'</span>';
+    b.onclick=function(){ ttDay=d[0]; try{localStorage.setItem('jamboree-plan:ttday',ttDay);}catch(e){} renderTimetable(); };
+    days.appendChild(b);
+  });
+}
 function renderTimetable(){
+  renderTTControls();
   var box=document.getElementById('tt-grid'); if(!box) return;
+  var days = (ttMode==='day') ? [ jamDay(ttDay) || JAM_DAYS[3] ] : JAM_DAYS;
+  box.className = 'ttgrid' + (ttMode==='day' ? ' ttgrid-day' : '');
   var H='<div class="ttg-head"><div class="ttg-corner"></div>';
-  JAM_DAYS.forEach(function(d){ var dd=ymd(d[0]); var cls=dd.getDay()===0?'sun':dd.getDay()===6?'sat':''; var today=(d[0]===todayISO());
+  days.forEach(function(d){ var dd=ymd(d[0]); var cls=dd.getDay()===0?'sun':dd.getDay()===6?'sat':''; var today=(d[0]===todayISO());
     H+='<div class="ttg-dayhead '+cls+(today?' today':'')+'"><b>8/'+dd.getDate()+'</b><span>'+WDS[dd.getDay()]+(d[1]?(' · '+esc(d[1])):'')+'</span></div>'; });
   H+='</div><div class="ttg-body">';
   H+='<div class="ttg-hours">';
   for(var h=TT_HS;h<TT_HE;h++){ H+='<div class="ttg-hr" style="height:'+TT_HH+'px"><span>'+(h<10?'0':'')+h+':00</span></div>'; }
   H+='</div>';
-  JAM_DAYS.forEach(function(d){
+  days.forEach(function(d){
     H+='<div class="ttg-col" data-day="'+d[0]+'">';
     for(var hh=TT_HS;hh<TT_HE;hh++){ H+='<div class="ttg-cell" data-day="'+d[0]+'" data-h="'+hh+'" style="height:'+TT_HH+'px"></div>'; }
     var evs=ttList().filter(function(t){return t.day===d[0] && t2h(t.start)!=null;});
     var lay=ttLanes(evs);
+    var dayView=(ttMode==='day');
     evs.forEach(function(t){
       var s=t2h(t.start), e=t2h(t.end); if(e==null||e<=s) e=s+0.5;
       var top=(Math.max(s,TT_HS)-TT_HS)*TT_HH, bot=(Math.min(e,TT_HE)-TT_HS)*TT_HH, ht=Math.max(bot-top,24);
       var ln=lay.ncol[t.id]||1, li=lay.lane[t.id]||0, w=100/ln;
       var who=ttAssignees(t).map(personLabel);
       var tip=(t.start||'')+(t.end?('–'+t.end):'')+' '+(t.title||'')+(t.place?(' @ '+t.place):'')+(who.length?(' · 담당 '+who.join(', ')):'');
-      H+='<div class="ttg-ev" data-id="'+esc(t.id)+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+(ht-3)+'px;left:calc('+(li*w)+'% + 2px);width:calc('+w+'% - 4px);background:'+ttCatColor(t.cat)+'">'+
+      H+='<div class="ttg-ev'+(dayView?' big':'')+'" data-id="'+esc(t.id)+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+(ht-3)+'px;left:calc('+(li*w)+'% + 2px);width:calc('+w+'% - 4px);background:'+ttCatColor(t.cat)+'">'+
+        '<button class="ttg-del" data-id="'+esc(t.id)+'" title="이 일정 삭제" aria-label="일정 삭제">'+icon('x',12)+'</button>'+
         '<div class="ttg-evt">'+esc(t.title||'(제목 없음)')+'</div>'+
-        '<div class="ttg-evm">'+esc(t.start||'')+(t.place?(' · '+esc(t.place)):'')+'</div>'+
+        '<div class="ttg-evm">'+esc(t.start||'')+(t.end?('–'+esc(t.end)):'')+(t.place?(' · '+esc(t.place)):'')+'</div>'+
         (who.length?'<div class="ttg-evp">'+icon('users',10)+' '+esc(who.join(', '))+'</div>':'')+
       '</div>';
     });
@@ -1141,7 +1163,14 @@ function renderTimetable(){
   H+='</div>';
   box.innerHTML=H;
   box.querySelectorAll('.ttg-ev').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); openTT(el.dataset.id); }; });
+  box.querySelectorAll('.ttg-del').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); deleteTT(el.dataset.id); }; });
   box.querySelectorAll('.ttg-cell').forEach(function(el){ el.onclick=function(){ openTT(null, el.dataset.day, +el.dataset.h); }; });
+}
+function deleteTT(id){
+  var t=ttList().filter(function(x){return x.id===id;})[0]; if(!t) return;
+  if(!confirm('이 일정을 삭제할까요?\n\n'+(t.title||'(제목 없음)')+'  ·  '+(t.start||'')+(t.end?('–'+t.end):''))) return;
+  state.timetable=ttList().filter(function(x){return x.id!==id;});
+  saveTimetable(); renderTimetable(); if(curViewMode==='staff') renderStaff(); toast('일정 삭제됨');
 }
 /* ----- 시간 일정 편집 모달 ----- */
 var ttDraft=null;
@@ -1314,6 +1343,7 @@ function init(){
   };
   document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); saveMarketing(); };
   var ttAdd=document.getElementById('tt-add'); if(ttAdd) ttAdd.onclick=addTT;
+  var ttSeg=document.getElementById('tt-modeseg'); if(ttSeg) ttSeg.querySelectorAll('button').forEach(function(bt){ bt.onclick=function(){ ttMode=bt.dataset.m; try{localStorage.setItem('jamboree-plan:ttmode',ttMode);}catch(e){} renderTimetable(); }; });
   var rsAdd=document.getElementById('roster-add'); if(rsAdd) rsAdd.onclick=addRoster;
   // 시간 일정 편집 모달
   document.getElementById('tt-close').onclick=closeTT;
