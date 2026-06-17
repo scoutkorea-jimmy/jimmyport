@@ -162,6 +162,35 @@ function sendDelete(k){
     body:JSON.stringify({slotKey:k, deleted:true, author:authorVal()})})
     .then(function(r){return r.json();}).then(function(){ setSt('서버에서 삭제됨',true); }).catch(function(){ setSt('삭제 저장 실패'); });
 }
+function putSlot(payload){
+  return fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({author:authorVal()},payload))}).catch(function(){});
+}
+/* 드래그앤드랍: 콘텐츠(편집+히스토리+메모)를 다른 날짜로 이동 → 대상엔 새 슬롯, 원본은 비움/삭제 */
+function moveContent(srcKey, srcSlot, srcDate, targetDate){
+  if(!targetDate || targetDate===srcDate) return;
+  var src=peek(srcKey);
+  if(!(src.title||hasLink(src)||(src.images&&src.images.length)||(src.files&&src.files.length)||hist(srcKey).length||notesOf(srcKey).length)){ return; } // 빈 슬롯은 이동 안 함
+  var newKey=addContent(targetDate);
+  state.edits[newKey]=clone(src);
+  state.history[newKey]=(state.history[srcKey]||[]).slice();
+  state.notes[newKey]=(state.notes[srcKey]||[]).slice();
+  var nsl=findSlot(byDate[targetDate],newKey);
+  setSt('일정 이동 저장 중…');
+  putSlot({slotKey:newKey, edit:slotEditPayload(newKey,nsl), setHistory:state.history[newKey], setNotes:state.notes[newKey]})
+    .then(function(){ setSt('일정 이동됨',true); });
+  if(srcSlot.extra){
+    state.extra[srcDate]=(state.extra[srcDate]||[]).filter(function(x){return x.id!==srcSlot.eid;});
+    delete state.edits[srcKey]; delete state.history[srcKey]; delete state.notes[srcKey]; delete state.meta[srcKey];
+    sendDelete(srcKey);
+  } else {
+    delete state.edits[srcKey]; delete state.history[srcKey]; delete state.notes[srcKey];
+    putSlot({slotKey:srcKey, edit:slotEditPayload(srcKey,srcSlot), setHistory:[], setNotes:[]});
+  }
+  saveLocal(); renderCalendar(); renderBoard();
+  toast((byDate[targetDate].label)+' 로 이동했습니다');
+}
+var dragSrc=null;
+function clearDropTargets(){ document.querySelectorAll('.cell.dragover').forEach(function(c){c.classList.remove('dragover');}); }
 function addHistoryNote(k, html){
   if(!html || !html.replace(/<[^>]*>/g,'').trim()) { toast('내용을 입력하세요'); return; }
   setSt('SNS 문구 저장 중…');
@@ -309,6 +338,15 @@ function renderCalendar(){
       cell.querySelectorAll('.citem[data-sk]').forEach(function(el){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); var sl=findSlot(byDate[rc.date], el.getAttribute('data-sk')); if(sl) openSlot(rc.date, sl); });
       });
+      // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
+      cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){
+        el.setAttribute('draggable','true');
+        el.addEventListener('dragstart',function(ev){ ev.stopPropagation(); var k=el.getAttribute('data-sk'); dragSrc={key:k, slot:findSlot(byDate[rc.date],k), date:rc.date}; el.classList.add('dragging'); try{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',k);}catch(e){} });
+        el.addEventListener('dragend',function(){ el.classList.remove('dragging'); clearDropTargets(); dragSrc=null; });
+      });
+      cell.addEventListener('dragover',function(ev){ if(dragSrc && dragSrc.date!==rc.date){ ev.preventDefault(); try{ev.dataTransfer.dropEffect='move';}catch(e){} cell.classList.add('dragover'); } });
+      cell.addEventListener('dragleave',function(ev){ if(ev.target===cell) cell.classList.remove('dragover'); });
+      cell.addEventListener('drop',function(ev){ ev.preventDefault(); cell.classList.remove('dragover'); if(dragSrc && dragSrc.date!==rc.date){ moveContent(dragSrc.key, dragSrc.slot, dragSrc.date, rc.date); } dragSrc=null; });
       var ab=cell.querySelector('.cadd');
       if(ab) ab.addEventListener('click',function(ev){ ev.stopPropagation(); var k=addContent(rc.date); var sl=findSlot(byDate[rc.date],k); renderAfterEdit(k,sl); openSlot(rc.date, sl); });
     })(rec);

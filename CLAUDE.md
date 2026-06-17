@@ -333,3 +333,9 @@ WOSM Region → 국가(NSO) → 단위대
 - **필터 계층**(사용자: 구분자 너무 작아 위계 무너짐): 인라인 `.fgrp` → **그룹별 줄**(`.frow`+`.flabel` 굵은 라벨 좌측 정렬): 전체/유형/단계/채널/상태/종류.
 - 검증: 헤드리스 — 3티어(filled 2/seed 24/mini 34)·모달 날짜+D-21·검색 dim 55·필터 6라벨행, 콘솔 에러 0.
 - **다음**: 드래그앤드랍으로 일정(콘텐츠) 날짜 이동.
+
+### 16.10 v0.9.30 — 드래그앤드랍 일정(날짜) 이동
+- 캘린더에서 **실제 콘텐츠(`.cline.filled`)를 드래그**해 다른 날짜 셀에 드롭 → 그 날짜로 이동. (네이티브 HTML5 DnD: draggable + dragstart/dragover(preventDefault)/drop, `.dragover` 하이라이트, `.dragging` 반투명.)
+- `moveContent`: 대상 날짜에 **새 extra 슬롯** 생성 + 편집(제목/종류/채널/링크/이미지/첨부/상태)·**히스토리·메모까지 이전**. 원본=extra면 삭제, seed면 비움. 서버는 `putSlot`(대상 저장 + `setHistory`/`setNotes`)·`sendDelete`/원본 비우기로 동기화.
+- API: PUT에 `setHistory`/`setNotes`(배열 통째 설정) 추가 — 이동 시 로그 이전용.
+- 빈 슬롯/시드는 드래그 안 됨(이동할 내용 없음). 검증: 헤드리스 — draggable 1개·이동 후 원본 제목 ''·대상 extra에 제목/종류/히스토리 이전, 콘솔 에러 0.

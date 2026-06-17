@@ -110,6 +110,13 @@ export async function onRequestPut({ request, env }) {
     rec.notes.push({ ts: now, author, ip, text: (body.addNote.text || "").toString().slice(0, 2000) });
     rec.notes = rec.notes.slice(-300);
   }
+  // 일정 이동(드래그앤드랍)용: 히스토리/메모 배열 통째로 설정
+  if (Array.isArray(body.setHistory)) {
+    rec.history = body.setHistory.slice(-200).map((h) => ({ ts: (h && h.ts) || now, author: (h && h.author) || author, ip: (h && h.ip) || ip, html: ((h && h.html) || "").toString().slice(0, 30000) }));
+  }
+  if (Array.isArray(body.setNotes)) {
+    rec.notes = body.setNotes.slice(-300).map((n) => ({ ts: (n && n.ts) || now, author: (n && n.author) || author, ip: (n && n.ip) || ip, text: ((n && n.text) || "").toString().slice(0, 2000) }));
+  }
   rec.updatedAt = now; rec.author = author; rec.ip = ip;
   await env.SCOUT_KV.put(SLOT(slotKey), JSON.stringify(rec));
   await appendLog(env, { ts: now, action: "jp.slot", count: 0, ip: clientIp(request) });
