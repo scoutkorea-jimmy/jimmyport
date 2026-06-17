@@ -351,3 +351,6 @@ WOSM Region → 국가(NSO) → 단위대
 - **(A) 안정성**: 저장 실패→`pending` 등록 후 `online` 이벤트·15초 주기 **자동 재시도**(`flushPending`/`slotByKey`), 상태줄 '저장 대기 n건'. **이탈 경고**(`beforeunload`: pending/모달 dirty). **렌더 방어**(cardEl try/catch). **링크 https 자동 정규화**(`normUrl`). 오프라인/온라인 토스트.
 - **(B) SNS 기능**(콘텐츠별): 게시 예정 **시간**(time)·**담당자**(owner)·**해시태그**(tags)·**게시 완료**(posted/postedAt, 배지). **SNS 문구 복사**(히스토리별 평문+해시태그→클립보드, `htmlToText`/`copyText`). **글자 수**(Tiptap onUpdate, 인스타2200/X280 초과경고). 카드 메타·툴팁에 시간·담당자·게시됨.
 - API `cleanEdit`에 time/owner/tags/posted/postedAt. EDEF/slotEditPayload/export 반영. 검증: 헤드리스 — 필드·게시토글·복사·htmlToText·normUrl·pending, 콘솔 에러 0.
+
+### 16.14 v0.9.34 — 종류에 '회의' 추가(부서별 색 구분)
+- `defaultTypes`에 **회의 · 기획조정본부 / 회의 · 홍보부** 추가(콤보 creatable이라 타 부서도 입력 가능). `CTYPE_COLOR`/`ctypeColor`: 기획조정본부=보라(#6B4FA0)·홍보부=청록(#0F8A8A)·기타 회의=슬레이트·일반콘텐츠=accent. `ctchip(t)` 헬퍼로 캘린더/카드/툴팁 칩 배경색을 종류색으로. 종류 콤보 옵션에 색 점(`.tdot`). '종류' 필터로 부서 회의만 보기 가능. 추가는 ＋ 콘텐츠 추가 후 종류 선택.

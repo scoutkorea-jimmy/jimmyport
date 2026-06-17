@@ -96,7 +96,10 @@ var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
 function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null}; }
-function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼']; }
+function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼','회의 · 기획조정본부','회의 · 홍보부']; }
+var CTYPE_COLOR={'회의 · 기획조정본부':'#6B4FA0','회의 · 홍보부':'#0F8A8A'};
+function ctypeColor(t){ if(CTYPE_COLOR[t]) return CTYPE_COLOR[t]; if(/회의/.test(t||'')) return '#7A6A57'; return 'var(--accent)'; }
+function ctchip(t){ return t?('<span class="ctchip" style="background:'+ctypeColor(t)+'">'+esc(t)+'</span>'):''; }
 function typeList(){ return (state.types&&state.types.length)?state.types:defaultTypes(); }
 function notesOf(k){ return state.notes[k]||[]; }
 var state = stateDefaults();
@@ -306,7 +309,7 @@ function showCalTip(el, date){
   var rec=byDate[date]; var k=el.getAttribute('data-sk'); var s=findSlot(rec,k); if(!s){ hideCalTip(); return; }
   var e=peek(k);
   var title=e.title||s.seedTitle||(s.category+' · 비어있음');
-  var ctype=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span> '):'';
+  var ctype=e.ctype?(ctchip(e.ctype)+' '):'';
   var meta=[rec.label+'('+rec.weekday+')', rec.dlabel||rec.phase];
   if(e.time) meta.push(e.time);
   meta.push(s.category, STATUS_LABEL[e.status||'planned']);
@@ -356,7 +359,7 @@ function renderCalendar(){
     // 실제 콘텐츠(제목 있음)=카드처럼 부각 / 의미있는 시드(참가국·역할·이벤트)=옅게 / 빈 슬롯=작은 칩
     var minis='';
     vis.forEach(function(s){
-      var e=peek(s.k), typ=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span>'):'';
+      var e=peek(s.k), typ=ctchip(e.ctype);
       if(e.title){
         html+='<div class="cline filled citem" data-sk="'+s.k+'">'+typ+esc(e.title)+'</div>';
       } else if(s.seedTitle){
@@ -488,7 +491,7 @@ function cardEl(d,s,e){
     '<div class="crow1"><span class="dlab">'+(d.dlabel||'—')+'</span><span>'+d.label+' '+d.weekday+(e.time?(' · '+esc(e.time)):'')+'</span>'+
       '<span class="typebadge t-'+s.type+'" style="margin-left:auto">'+TYPE_LABEL[s.type]+'</span></div>'+
     '<div class="ccat" style="color:'+col+'">'+s.category+'</div>'+
-    '<div class="ctitle'+(title?'':' empty')+'">'+(e.ctype?'<span class="ctchip">'+esc(e.ctype)+'</span> ':'')+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
+    '<div class="ctitle'+(title?'':' empty')+'">'+(e.ctype?ctchip(e.ctype)+' ':'')+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
     '<div class="cmeta">'+bits.join('')+'</div>';
   var del=document.createElement('button'); del.className='cdel'; del.innerHTML=icon('trash',13); del.title='삭제';
   del.onclick=function(ev){ ev.stopPropagation(); if(confirm('이 콘텐츠를 삭제할까요?')){ deleteSlot(d.date,s); afterDelete(s.k); } };
@@ -730,7 +733,7 @@ function buildTypeCombo(e, s){
     var list=typeList();
     list.forEach(function(t){
       var row=document.createElement('div'); row.className='typeopt';
-      var lab=document.createElement('span'); lab.className='typelab'; lab.textContent=t;
+      var lab=document.createElement('span'); lab.className='typelab'; lab.innerHTML='<span class="tdot" style="background:'+ctypeColor(t)+'"></span>'+esc(t);
       lab.onmousedown=function(ev){ ev.preventDefault(); inp.value=t; commit(t); close(); };
       var del=document.createElement('button'); del.type='button'; del.className='typedel'; del.innerHTML=icon('x',13); del.title='이 종류 삭제';
       del.onmousedown=function(ev){ ev.preventDefault(); ev.stopPropagation(); state.types=list.filter(function(x){return x!==t;}); saveTypes(); renderMenu(); };
