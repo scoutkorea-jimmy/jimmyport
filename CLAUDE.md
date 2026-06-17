@@ -386,3 +386,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **뷰 전환**: `setView`가 calendar/list/timetable/staff 4개 토글 + 마케팅은 calendar/list에서만 노출. 탭 복원(localStorage). 아이콘 `users`·`mapPin` 추가.
 - **마크업/CSS**: `#timetable`(날짜탭·범례·`.ttrow` 행·시간 인풋 124px로 한국어 오전/오후 전체 표시) + `#staff`(`#rostertbl`·`#placetbl` — 기존 `table`/`td.mk` 스타일 상속). `.rm` 삭제버튼 스타일 추가.
 - 검증: `node --check` OK + 헤드리스 file://(4탭·일정표 5일탭·8/5 4행/8/6 3행·추가·R&R 6행/배치 5행·마케팅 숨김·추가 동작, 에러 0) + 스크린샷(일정표·인원배치 그린 톤 정상).
+
+### 16.20 v0.9.40 — 일정표 = 타임테이블 그리드(8/2~8/9) + 일정↔인원배치 연동
+- 사용자: (1) 일정표를 **타임테이블 형태**로, **8/2~8/9** 시간단위(세로=시간, 가로=날짜)로 한눈에 보게. (2) **일정에 사람을 Assign하면 인원·배치에 그 사람이 해당 시간 어디 있는지** 자동 표시.
+- **타임테이블 그리드**(리스트→그리드 전면 교체): `JAM_DAYS` 8일(8/2~8/9), `TT_HS=6/TT_HE=23/TT_HH=46`(06–22시 행). `renderTimetable`이 `.ttgrid`(헤더=날짜 8열 + 시간 거터, 본문=시간행×날짜열)로 렌더. 이벤트=절대배치 블록(top/height=시작·길이, 색=종류). 겹침은 `ttLanes`(클러스터별 lane 분할 → 나란히). 빈 셀 클릭=그 시각 새 일정, 블록 클릭=편집. `t2h` 시:분 파싱.
+- **시간 일정 편집 모달**(`#tt-scrim`, 리스트 인라인편집 폐기): 종류 칩·날짜 select·시작~종료·제목·장소·**담당 인원 칩(roster 기반 다중선택)**·메모. `openTT/closeTT/renderTTModal/commitTT/deleteTTCur`. 일정 item에 `assignees:[rosterId]` 추가(`owner` 제거). Escape/배경 닫기.
+- **인원·배치 = 일정표 기반 파생뷰**(수동 배치표 폐기): `renderDerivedPlacement`가 roster 사람마다 자신이 담당(assignees)인 일정들을 날짜·시간순으로 카드 표시(언제·어디서·무슨 일정 / "n건 배치" or "배치 없음") + "담당 미지정 일정" 카드. 배치 슬롯 클릭→해당 일정 모달. R&R 표는 유지(편집 시 파생뷰 갱신).
+- **API**: `cleanTT`에서 `owner`→`assignees`(배열, 최대 30). `jp:placement`(cleanPlace) 엔드포인트는 유지하되 UI 미사용(파생으로 대체).
+- **CSS**: `.ttwrap/.ttgrid/.ttg-*`(그리드·sticky 헤더·블록) + `.placewrap/.pcard/.pslot`(사람별 배치 카드). 구 `.ttdays/.ttrow/.tin` 등 제거. 모바일=그리드 가로스크롤(min-width 880).
+- 검증: `node --check`(app·API) OK + 헤드리스 file://(8일헤더·17시간행·18블록·8열 / 모달 7종류칩·6담당칩 / 담당지정→블록에 인원·파생뷰 'n건 배치'+미지정카드 / 빈셀클릭=새일정, 에러 0) + 스크린샷(그리드·모달·파생배치 정상).

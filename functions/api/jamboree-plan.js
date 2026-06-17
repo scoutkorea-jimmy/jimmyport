@@ -23,6 +23,9 @@ const PLACEMENT = "jp:placement";
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 function cleanTT(e) {
   e = e && typeof e === "object" ? e : {};
+  const assignees = Array.isArray(e.assignees)
+    ? e.assignees.slice(0, 30).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean)
+    : [];
   return {
     id: (e.id || "").toString().slice(0, 40),
     day: (e.day || "").toString().slice(0, 10),
@@ -31,7 +34,7 @@ function cleanTT(e) {
     title: (e.title || "").toString().slice(0, 200),
     place: (e.place || "").toString().slice(0, 120),
     cat: (e.cat || "").toString().slice(0, 20),
-    owner: (e.owner || "").toString().slice(0, 60),
+    assignees,
     memo: (e.memo || "").toString().slice(0, 500),
   };
 }
