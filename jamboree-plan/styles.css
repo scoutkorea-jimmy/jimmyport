@@ -86,9 +86,9 @@ section{margin-top:34px}
 .spacer{flex:1}
 
 /* ---- toolbar (filters + add) ---- */
-.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
-.filters .fgrp{font-size:10.5px;font-weight:700;color:var(--faint);letter-spacing:.02em;margin:0 2px 0 8px}
-.filters .fgrp:first-child{margin-left:0}
+.filters{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.frow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.flabel{flex:0 0 44px;font-size:11.5px;font-weight:700;color:var(--ink-2)}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
 .filterbtn{font-size:12.5px;font-weight:600;padding:5px 12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--pill);cursor:pointer;color:var(--muted);transition:var(--ease)}
 .filterbtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -137,10 +137,24 @@ section{margin-top:34px}
 .cell.past{opacity:.62}
 .cell .sdots{display:inline-flex;gap:3px}
 .sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
-.cell .ctitle-cell{font-size:11.5px;line-height:1.35;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  padding:2px 6px;background:var(--surface-3);border-radius:var(--r-1);cursor:pointer;transition:var(--ease)}
-.cell .ctitle-cell:hover{background:var(--accent-soft)}
-.cell .ctitle-cell.faint{color:var(--faint);background:transparent;padding-left:0}
+/* content tiers: filled(real) pops as card / seed faint / empty = mini chip */
+.cell .cline{font-size:11.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;border-radius:var(--r-1);transition:var(--ease)}
+.cell .cline.filled{color:var(--ink);font-weight:600;background:#fff;border:1px solid var(--line);box-shadow:var(--sh-1);padding:3px 7px}
+.cell .cline.filled:hover{border-color:var(--accent)}
+.cell .cline.seed{color:var(--faint);padding:1px}
+.cell .cline.seed:hover{color:var(--ink-2)}
+.cell .cminis{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-right:24px}
+.cell .cmini{font-size:9.5px;font-weight:700;color:var(--faint);background:transparent;border:1px dashed var(--line);border-radius:var(--pill);padding:1px 8px;cursor:pointer;transition:var(--ease)}
+.cell .cmini:hover{border-color:var(--accent);color:var(--accent)}
+.cell.dim{opacity:.26} .cell.dim:hover{opacity:.7}
+/* calendar search */
+.calsearch{position:relative;display:inline-flex;align-items:center}
+.calsearch>[data-ic]{position:absolute;left:11px;color:var(--muted);display:inline-flex;pointer-events:none}
+.calsearch input{font:inherit;font-size:13px;padding:7px 12px 7px 32px;border:1px solid var(--line);border-radius:var(--pill);background:var(--surface);width:250px;transition:var(--ease)}
+.calsearch input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+/* modal D-badge */
+.md-dbadge{flex:0 0 auto;font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:700;color:#fff;background:var(--accent);padding:5px 12px;border-radius:var(--pill)}
+.md-dbadge.dday{background:var(--c-fin)}
 .cell .cadd{position:absolute;bottom:7px;right:7px;width:20px;height:20px;border-radius:var(--pill);border:1px solid var(--line);
   background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:var(--ease)}
 .cell .cadd .ic{font-size:13px}
@@ -356,9 +370,11 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
   .cal{gap:4px}
   .cell{min-height:64px;padding:5px;gap:4px;border-radius:var(--r-1)}
   .cell .date{font-size:10.5px} .cell .dd{font-size:9px}
-  .cell .ctitle-cell{font-size:10px;padding:1px 5px}
+  .cell .cline{font-size:10px} .cell .cline.filled{padding:2px 5px}
   .cell .ctchip{font-size:8.5px;margin-right:4px}
+  .cell .cmini{font-size:8.5px;padding:1px 6px}
   .cell .cadd{opacity:1} .card .cdel{opacity:1}
+  .sec-head{flex-wrap:wrap} .calsearch{width:100%} .calsearch input{width:100%;flex:1}
   .modal{max-width:100%}
   .titlerow{flex-wrap:wrap} .typecombo{flex-basis:100%}
 }

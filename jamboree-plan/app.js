@@ -31,7 +31,8 @@ var ICON={
   highlighter:'<path d="m9 11-4 4v3h3l4-4"/><path d="m13 7 4 4"/><path d="M14 4l6 6-7 7-6-6z"/>',
   alignLeft:'<path d="M4 6h16M4 12h10M4 18h13"/>',
   alignCenter:'<path d="M4 6h16M7 12h10M5 18h14"/>',
-  alignRight:'<path d="M4 6h16M10 12h10M7 18h13"/>'
+  alignRight:'<path d="M4 6h16M10 12h10M7 18h13"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>'
 };
 function icon(name,size){ return '<svg class="ic" viewBox="0 0 24 24" width="'+(size||16)+'" height="'+(size||16)+'" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[name]||'')+'</svg>'; }
 
@@ -259,11 +260,21 @@ function renderClock(){
 }
 
 /* ===== calendar ===== */
+var searchQ='', searchTimer=null;
+function matchSearch(d,s,e){
+  var q=(searchQ||'').trim().toLowerCase(); if(!q) return true;
+  var hay=[e.title,s.seedTitle,e.ctype,s.category,d.label,d.dlabel,(e.channels||[]).join(' '),TYPE_LABEL[s.type]].join(' ');
+  var links=e.links||{}; Object.keys(links).forEach(function(c){ hay+=' '+(links[c]||''); });
+  hist(s.k).forEach(function(h){ hay+=' '+(h.html||'').replace(/<[^>]*>/g,' '); });
+  notesOf(s.k).forEach(function(n){ hay+=' '+(n.text||''); });
+  return hay.toLowerCase().indexOf(q)>=0;
+}
 function renderCalendar(){
   var cal=document.getElementById('cal'); cal.innerHTML='';
   WD.forEach(function(h,i){var el=document.createElement('div');el.className='h'+(i===0?' sun':i===6?' sat':'');el.textContent=h;cal.appendChild(el);});
   var first=ymd(DAYS[0].date); first.setDate(first.getDate()-first.getDay());
   var last=ymd(DAYS[DAYS.length-1].date); last.setDate(last.getDate()+(6-last.getDay()));
+  var q=(searchQ||'').trim();
   for(var dt=new Date(first); dt<=last; dt.setDate(dt.getDate()+1)){
     var rec=byDate[iso(dt)];
     var cell=document.createElement('div');
@@ -273,16 +284,24 @@ function renderCalendar(){
     var tint = CAT_TINT[rec.phase]||'#fff';
     cell.style.background=tint;
     var slots=daySlots(rec);
+    var vis = q ? slots.filter(function(s){ return matchSearch(rec,s,peek(s.k)); }) : slots;
+    if(q && !vis.length) cell.classList.add('dim');
     // 날짜 옆 작은 진행상태 점(슬롯별)
-    var dots=slots.map(function(s){ var st=peek(s.k).status||'planned'; return '<span class="sdot" style="background:'+STCOL[st]+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
+    var dots=vis.map(function(s){ var st=peek(s.k).status||'planned'; return '<span class="sdot" style="background:'+STCOL[st]+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
     var html='<div class="ctop"><span class="date">'+rec.label+(dots?(' <span class="sdots">'+dots+'</span>'):'')+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
-    // 각 콘텐츠를 '종류 + 제목'으로 표시 (스케줄 타입 태그 없음)
-    slots.forEach(function(s){
-      var e=peek(s.k), t=e.title||s.seedTitle||s.category, faint=e.title?'':' faint';
-      var typ=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span>'):'';
-      html+='<div class="citem ctitle-cell'+faint+'" data-sk="'+s.k+'" title="'+esc((e.ctype?e.ctype+' · ':'')+t)+'">'+typ+esc(t)+'</div>';
+    // 실제 콘텐츠(제목 있음)=카드처럼 부각 / 의미있는 시드(참가국·역할·이벤트)=옅게 / 빈 슬롯=작은 칩
+    var minis='';
+    vis.forEach(function(s){
+      var e=peek(s.k), typ=e.ctype?('<span class="ctchip">'+esc(e.ctype)+'</span>'):'';
+      if(e.title){
+        html+='<div class="cline filled citem" data-sk="'+s.k+'" title="'+esc((e.ctype?e.ctype+' · ':'')+e.title)+'">'+typ+esc(e.title)+'</div>';
+      } else if(s.seedTitle){
+        html+='<div class="cline seed citem" data-sk="'+s.k+'" title="'+esc(s.seedTitle)+'">'+esc(s.seedTitle)+'</div>';
+      } else {
+        minis+='<span class="cmini citem" data-sk="'+s.k+'" title="'+esc(s.category)+' · 비어있음, 클릭해 작성">'+TYPE_LABEL[s.type]+'</span>';
+      }
     });
-    // 휴지기 등 빈 날짜는 라벨 없이 비워 둠
+    if(minis) html+='<div class="cminis">'+minis+'</div>';
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
     cell.innerHTML=html;
     (function(rc){
@@ -332,19 +351,24 @@ function matchFilter(d,s,e){
 }
 function renderFilters(){
   var box=document.getElementById('filters'); if(!box) return; box.innerHTML='';
-  function grp(label){ var g=document.createElement('span'); g.className='fgrp'; g.textContent=label; box.appendChild(g); }
-  function btn(kind,v,label){
+  function btnEl(kind,v,label){
     var on=(curFilter.kind===kind && (kind==='all'||curFilter.v===v));
     var b=document.createElement('button'); b.className='filterbtn'+(on?' active':''); b.textContent=label;
     b.onclick=function(){ curFilter=(kind==='all')?{kind:'all'}:{kind:kind,v:v}; renderFilters(); renderBoard(); };
-    box.appendChild(b);
+    return b;
   }
-  btn('all',null,'전체');
-  grp('유형'); [['dcount','D-count'],['sosik','소식'],['event','이벤트'],['extra','추가']].forEach(function(t){ btn('type',t[0],t[1]); });
-  grp('단계'); ['한국 대표단','외국 대표단','피날레','휴지기'].forEach(function(p){ btn('phase',p,p); });
-  grp('채널'); CHANNELS.forEach(function(c){ btn('channel',c,c); });
-  grp('상태'); STAGES.forEach(function(st){ btn('status',st[0],st[1]); });
-  var tl=typeList(); if(tl.length){ grp('종류'); tl.forEach(function(t){ btn('ctype',t,t); }); }
+  function row(label, items){
+    var r=document.createElement('div'); r.className='frow';
+    var l=document.createElement('span'); l.className='flabel'; l.textContent=label; r.appendChild(l);
+    items.forEach(function(it){ r.appendChild(btnEl(it[0],it[1],it[2])); });
+    box.appendChild(r);
+  }
+  row('전체', [['all',null,'전체 보기']]);
+  row('유형', [['type','dcount','D-count'],['type','sosik','소식'],['type','event','이벤트'],['type','extra','추가']]);
+  row('단계', ['한국 대표단','외국 대표단','피날레','휴지기'].map(function(p){return ['phase',p,p];}));
+  row('채널', CHANNELS.map(function(c){return ['channel',c,c];}));
+  row('상태', STAGES.map(function(st){return ['status',st[0],st[1]];}));
+  var tl=typeList(); if(tl.length) row('종류', tl.map(function(t){return ['ctype',t,t];}));
 }
 function renderBoard(){
   var board=document.getElementById('board'); if(!board) return;
@@ -358,7 +382,7 @@ function renderBoard(){
     });
   });
   STAGES.forEach(function(def){
-    var items=cols[def[0]].filter(function(it){ return matchFilter(it.d, it.s, it.e); });
+    var items=cols[def[0]].filter(function(it){ return matchFilter(it.d, it.s, it.e) && matchSearch(it.d, it.s, it.e); });
     var col=document.createElement('div'); col.className='col';
     col.innerHTML='<div class="colh"><span class="pin" style="background:'+STCOL[def[0]]+'"></span>'+def[1]+'<span class="cnt">'+items.length+'</span></div>';
     var cards=document.createElement('div'); cards.className='cards';
@@ -412,9 +436,11 @@ function clone(o){ try{ return JSON.parse(JSON.stringify(o||{})); }catch(e){ ret
 function openSlot(date, slot){ if(!byDate[date]) return; curView={date:date, slot:slot, draft:clone(peek(slot.k)), dirty:false}; showModal(); }
 function openDay(date){ var rec=byDate[date]; if(!rec) return; var s=daySlots(rec)[0]; if(s) openSlot(date,s); }  // (deprecated) → 첫 콘텐츠
 function showModal(){
-  var rec=byDate[curView.date], s=curView.slot;
-  document.getElementById('md-title').textContent=rec.label+' ('+rec.weekday+') · '+(rec.dlabel||rec.phase);
-  document.getElementById('md-sub').textContent= s.category+' · '+TYPE_LABEL[s.type];
+  var rec=byDate[curView.date], s=curView.slot, p=rec.date.split('-');
+  document.getElementById('md-title').textContent=p[0]+'. '+(+p[1])+'. '+(+p[2])+'. ('+rec.weekday+')';
+  var dd=rec.dday, until = dd>0?('개영식까지 '+dd+'일'):(dd===0?'개영식 당일':'행사 기간');
+  document.getElementById('md-sub').textContent= s.category+' · '+TYPE_LABEL[s.type]+' · '+until;
+  var bdg=document.getElementById('md-dbadge'); if(bdg){ bdg.textContent=rec.dlabel||'행사중'; bdg.className='md-dbadge'+(rec.dlabel==='D-DAY'?' dday':''); }
   refreshModal(); updateDirtyUI();
   document.getElementById('scrim').classList.add('show');
 }
@@ -835,6 +861,8 @@ function init(){
 
   document.getElementById('reload').onclick=reloadServer;
   document.getElementById('export').onclick=exportJSON;
+  var cs=document.getElementById('cal-search');
+  if(cs) cs.addEventListener('input',function(){ var v=this.value; if(searchTimer)clearTimeout(searchTimer); searchTimer=setTimeout(function(){ searchQ=v; renderCalendar(); renderBoard(); },120); });
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}

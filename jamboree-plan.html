@@ -37,7 +37,10 @@
   </div>
 
   <section id="calendar">
-    <div class="sec-head"><h2>운영 캘린더 (일요일 시작)</h2><span class="sub">콘텐츠를 클릭해 편집 · 날짜의 + 로 추가</span></div>
+    <div class="sec-head">
+      <h2>운영 캘린더 (일요일 시작)</h2>
+      <div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="cal-search" type="search" placeholder="콘텐츠 검색 (제목·종류·채널·문구)"></div>
+    </div>
     <div class="legend">
       <span class="lgroup">
         <span class="li"><span class="sw" style="background:var(--c-rest)"></span>휴지기</span>
@@ -90,6 +93,7 @@
 <div class="scrim" id="scrim">
   <div class="modal" role="dialog" aria-modal="true">
     <div class="mhead">
+      <span class="md-dbadge" id="md-dbadge"></span>
       <div><div class="mt" id="md-title"></div><div class="ms" id="md-sub"></div></div>
       <button class="x" id="md-close" aria-label="닫기"><span data-ic="x" data-ic-size="17"></span></button>
     </div>
