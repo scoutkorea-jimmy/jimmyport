@@ -377,3 +377,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **앱**(`app.js`): `EVENT_KINDS`(회의#6B4FA0·공모전#0F8A8A·행사#C0492F·운영#2E6FAE·기타#7A6A57)·`eventColor`·`defaultEvents`(공모전 접수 07-06~26·결과공개 08-05·본행사 08-05~09)·`eventList`·`layoutEvents`(그리디 lane 배정). 기존 `buildDays`의 FIXED_EVENTS 제거, `defaultTypes`에서 '회의' 제거(일정으로 이관). `applyServer`가 `j.events` 로드, `saveEvents()` 디바운스 PUT(events). renderCalendar가 ctop 아래 `.bands`로 여러 날 띠 렌더(시작·일요일에 라벨, 양끝 라운드), 띠 클릭→`openEvent`. 모달 `openEvent/closeEvent/renderEventModal/commitEvent/deleteEventCur`(종류 칩·제목·기간 start~end·담당자·메모, 즉시 서버 저장). Escape/배경클릭 닫기.
 - **마크업**: `#ev-scrim` 일정 편집 모달, 캘린더 sec-head "일정 추가" 버튼 + 범례에 "운영 일정(띠)" 안내.
 - 검증: `node --check`(app.js·API) OK + 헤드리스 file:// 부팅(띠 27개·일정 추가 모달 5칩·띠 클릭 편집 열림, 콘솔 에러는 file:// CORS 한정).
+
+### 16.19 v0.9.39 — 잼버리 일자별 시간 일정표 + 홍보부 R&R/배치표
+- 사용자: (1) **잼버리 일자별 시간 단위 일정표**(8/5~8/9 시간별 행사), (2) **홍보부 인원 R&R + 현장 배치표**. → 상단 뷰탭에 "잼버리 일정표"·"인원·배치" 2개 추가.
+- **API**(`jamboree-plan.js`): KV 키 `jp:timetable`/`jp:roster`/`jp:placement` 추가. `cleanTT`(id/day/start/end/title/place/cat/owner/memo)·`cleanRoster`(id/name/role/duty/contact/channel)·`cleanPlace`(id/name/day/zone/time/task). GET이 6키(`slots,marketing,types,events,timetable,roster,placement`) 반환. PUT에 각 배열 분기(timetable 400·roster 100·placement 300).
+- **앱**(`app.js`): `JAM_DAYS`(5일·라벨)·`TT_CATS`(개·폐영식#C0492F/프로그램#2F5D4A/행사#6B4FA0/홍보활동#0F8A8A/식사#B07A1E/회의#2E6FAE/이동·기타#7A6A57)·`ttCatColor`. `defaultTimetable`(14개 시드, ★=홍보 핵심)·`defaultRoster`(6역할 R&R)·`defaultPlacement`(5배치). `state`에 `timetable/roster/placement` 추가, `applyServer` 로드. 저장: `debouncedPut` 헬퍼 + `saveTimetable`(ttTimer)·`saveRoster`(rosterTimer)·`savePlacement`(placeTimer) 독립 타이머.
+- **렌더**: `renderTimetable`(날짜탭 `ttDay` localStorage 기억 → 선택일 시간순 정렬, 행마다 time/종류 select(색칩)/제목/장소/담당/메모 인풋, 입력 시 자동저장, 종류 변경 시 좌측 보더 재색)·`renderStaff`(R&R 테이블 + 배치표 테이블, `td.mk` contenteditable blur 저장 — 마케팅 테이블 패턴 재사용). `addTT/addRoster/addPlacement`.
+- **뷰 전환**: `setView`가 calendar/list/timetable/staff 4개 토글 + 마케팅은 calendar/list에서만 노출. 탭 복원(localStorage). 아이콘 `users`·`mapPin` 추가.
+- **마크업/CSS**: `#timetable`(날짜탭·범례·`.ttrow` 행·시간 인풋 124px로 한국어 오전/오후 전체 표시) + `#staff`(`#rostertbl`·`#placetbl` — 기존 `table`/`td.mk` 스타일 상속). `.rm` 삭제버튼 스타일 추가.
+- 검증: `node --check` OK + 헤드리스 file://(4탭·일정표 5일탭·8/5 4행/8/6 3행·추가·R&R 6행/배치 5행·마케팅 숨김·추가 동작, 에러 0) + 스크린샷(일정표·인원배치 그린 톤 정상).

@@ -34,6 +34,8 @@
   <div class="viewtabs" role="tablist">
     <button class="vtab active" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더 보기</button>
     <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 리스트 보기</button>
+    <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
+    <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 인원 · 배치</button>
   </div>
 
   <section id="calendar">
@@ -86,6 +88,52 @@
       <tbody id="mkbody"></tbody>
     </table>
     <p class="note">잼버리 외 연간 스카우트 마케팅 일정. 칸을 클릭해 직접 수정/추가하세요. (날짜는 <code>YYYY-MM-DD</code> 또는 <code>2026-03</code> 형식)</p>
+  </section>
+
+  <section id="timetable" style="display:none">
+    <div class="sec-head">
+      <h2>잼버리 일자별 시간 일정표</h2>
+      <span class="sub">2026.8.5–8.9 · 강원 고성 — 행사 시간표 기준 홍보 운영</span>
+    </div>
+    <div class="ttdays" id="tt-days"></div>
+    <div class="ttlegend">
+      <span class="li"><span class="sw" style="background:#C0492F"></span>개·폐영식</span>
+      <span class="li"><span class="sw" style="background:#2F5D4A"></span>프로그램</span>
+      <span class="li"><span class="sw" style="background:#6B4FA0"></span>행사</span>
+      <span class="li"><span class="sw" style="background:#0F8A8A"></span>홍보활동</span>
+      <span class="li"><span class="sw" style="background:#B07A1E"></span>식사</span>
+      <span class="li"><span class="sw" style="background:#2E6FAE"></span>회의</span>
+      <span class="li"><span class="sw" style="background:#7A6A57"></span>이동·기타</span>
+    </div>
+    <div class="ttlist" id="tt-list"></div>
+    <div class="tools"><span class="spacer"></span><button class="btn sm solid" id="tt-add"><span data-ic="plus" data-ic-size="14"></span> 시간 일정 추가</button></div>
+    <p class="note">선택한 날짜의 행사 시간표입니다. 시간/종류/제목/장소/담당/메모를 직접 수정하면 서버에 자동 저장됩니다. ★ 표시는 홍보 핵심 시점.</p>
+  </section>
+
+  <section id="staff" style="display:none">
+    <div class="sec-head">
+      <h2>홍보부 인원 R&amp;R</h2>
+      <button class="btn sm" id="roster-add"><span data-ic="plus" data-ic-size="14"></span> 인원 추가</button>
+    </div>
+    <table id="rostertbl">
+      <thead><tr>
+        <th style="width:130px">역할</th><th style="width:110px">이름</th><th>담당 업무 (R&amp;R)</th><th style="width:160px">담당 채널</th><th style="width:130px">연락처</th><th style="width:40px"></th>
+      </tr></thead>
+      <tbody id="roster-body"></tbody>
+    </table>
+    <p class="note">홍보부 구성원의 역할과 책임(R&amp;R). 칸을 클릭해 직접 수정하세요. 변경은 서버에 자동 저장됩니다.</p>
+
+    <div class="sec-head" style="margin-top:26px">
+      <h2><span data-ic="mapPin" data-ic-size="17" style="vertical-align:-3px"></span> 현장 배치표</h2>
+      <button class="btn sm" id="place-add"><span data-ic="plus" data-ic-size="14"></span> 배치 추가</button>
+    </div>
+    <table id="placetbl">
+      <thead><tr>
+        <th style="width:110px">일자</th><th style="width:120px">시간대</th><th style="width:180px">배치 장소(구역)</th><th style="width:110px">담당자</th><th>임무</th><th style="width:40px"></th>
+      </tr></thead>
+      <tbody id="place-body"></tbody>
+    </table>
+    <p class="note">잼버리 현장(8/5–8/9) 일자·구역별 홍보부 배치. 누가 어디서 무엇을 촬영/운영하는지 관리합니다.</p>
   </section>
 
   <footer class="foot">

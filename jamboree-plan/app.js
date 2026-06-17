@@ -36,6 +36,8 @@ var ICON={
   copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   user:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+  users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1"/><path d="M17 14.2a6 6 0 0 1 4 5.8"/>',
+  mapPin:'<path d="M12 21s-6.5-5.5-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.5 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.4"/>',
   tag:'<path d="M3 11V4a1 1 0 0 1 1-1h7l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.2"/>'
 };
 function icon(name,size){ return '<svg class="ic" viewBox="0 0 24 24" width="'+(size||16)+'" height="'+(size||16)+'" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[name]||'')+'</svg>'; }
@@ -89,7 +91,7 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null}; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null, timetable:null, roster:null, placement:null}; }
 function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼']; }
 /* 운영 일정(일정 레이어) — 회의·공모전 등 단일/연속(여러 날). 콘텐츠와 분리. */
 var EVENT_KINDS=[['회의','#6B4FA0'],['공모전','#0F8A8A'],['행사','#C0492F'],['운영','#2E6FAE'],['기타','#7A6A57']];
@@ -107,6 +109,47 @@ function layoutEvents(){
   evs.forEach(function(x){ var li=0; while(laneEnd[li]!==undefined && laneEnd[li]>=x.s) li++; x.lane=li; laneEnd[li]=x.en; });
   return {items:evs, lanes:laneEnd.length};
 }
+
+/* ===== 잼버리 일자별 시간 일정표 (timetable) ===== */
+var JAM_DAYS=[['2026-08-05','D-DAY · 개영'],['2026-08-06','2일차'],['2026-08-07','3일차'],['2026-08-08','4일차'],['2026-08-09','폐영']];
+var TT_CATS=[['개·폐영식','#C0492F'],['프로그램','#2F5D4A'],['행사','#6B4FA0'],['홍보활동','#0F8A8A'],['식사','#B07A1E'],['회의','#2E6FAE'],['이동·기타','#7A6A57']];
+function ttCatColor(c){ for(var i=0;i<TT_CATS.length;i++) if(TT_CATS[i][0]===c) return TT_CATS[i][1]; return '#7A6A57'; }
+function defaultTimetable(){ return [
+  {id:mkid(),day:'2026-08-05',start:'09:00',end:'13:00',title:'참가자 입영 · 등록',place:'영지 전역 · 등록센터',cat:'행사',owner:'',memo:'입영 현장 스케치 촬영'},
+  {id:mkid(),day:'2026-08-05',start:'14:00',end:'17:00',title:'단위 야영장 설영',place:'서브캠프',cat:'프로그램',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-05',start:'18:00',end:'19:30',title:'개영 리허설 · 송출 점검',place:'메인 스타디움',cat:'홍보활동',owner:'',memo:'라이브 송출 테스트'},
+  {id:mkid(),day:'2026-08-05',start:'20:00',end:'21:30',title:'개영식',place:'메인 스타디움',cat:'개·폐영식',owner:'',memo:'★ 홍보 핵심 · 라이브 + 카드뉴스'},
+  {id:mkid(),day:'2026-08-06',start:'09:00',end:'12:00',title:'모듈 프로그램 (글로벌 디벨롭먼트 빌리지)',place:'GDV 존',cat:'프로그램',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-06',start:'14:00',end:'18:00',title:'도전활동 (어드벤처)',place:'어드벤처 존',cat:'프로그램',owner:'',memo:'릴스/숏폼 촬영'},
+  {id:mkid(),day:'2026-08-06',start:'19:00',end:'21:00',title:'문화교류의 밤',place:'문화광장',cat:'행사',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-07',start:'09:00',end:'17:00',title:'서브캠프 프로그램',place:'각 서브캠프',cat:'프로그램',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-07',start:'14:00',end:'16:00',title:'환경 · 평화 캠페인',place:'평화광장',cat:'홍보활동',owner:'',memo:'주제 메시지 콘텐츠'},
+  {id:mkid(),day:'2026-08-07',start:'20:00',end:'21:30',title:'글로벌 페스티벌',place:'메인 스테이지',cat:'행사',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-08',start:'09:00',end:'17:00',title:'지역사회 봉사 · 문화 탐방',place:'강원 일원',cat:'프로그램',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-08',start:'19:00',end:'21:00',title:'잼버리 어워드',place:'메인 스타디움',cat:'행사',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-09',start:'10:00',end:'12:00',title:'정리 · 철수',place:'영지 전역',cat:'이동·기타',owner:'',memo:''},
+  {id:mkid(),day:'2026-08-09',start:'19:00',end:'20:30',title:'폐영식',place:'메인 스타디움',cat:'개·폐영식',owner:'',memo:'★ 마무리 콘텐츠 · 하이라이트'}
+]; }
+function ttList(){ if(!state.timetable) state.timetable=defaultTimetable(); return state.timetable; }
+
+/* ===== 홍보부 인원 R&R + 배치표 ===== */
+function defaultRoster(){ return [
+  {id:mkid(),name:'',role:'홍보부장',duty:'홍보 전략 총괄 · 대외 협력 · 최종 승인',contact:'',channel:''},
+  {id:mkid(),name:'',role:'콘텐츠 기획',duty:'카드뉴스/영상 기획 · 운영 캘린더 관리 · 일정 조율',contact:'',channel:'페이스북'},
+  {id:mkid(),name:'',role:'디자인',duty:'카드뉴스 · 웹포스터 제작 (/jamboree 제작기)',contact:'',channel:'인스타그램'},
+  {id:mkid(),name:'',role:'영상 · 촬영',duty:'현장 촬영 · 편집 · 릴스/숏폼',contact:'',channel:'유튜브·인스타'},
+  {id:mkid(),name:'',role:'채널 운영',duty:'SNS 업로드 · 댓글/DM 응대 · 통계',contact:'',channel:'페이스북·인스타·유튜브'},
+  {id:mkid(),name:'',role:'사진 · 아카이브',duty:'현장 사진 · 자료 정리 · 보도자료 지원',contact:'',channel:'블로그'}
+]; }
+function rosterList(){ if(!state.roster) state.roster=defaultRoster(); return state.roster; }
+function defaultPlacement(){ return [
+  {id:mkid(),name:'',day:'8/5 개영',zone:'메인 스타디움',time:'18:00–22:00',task:'개영식 라이브 송출 · 현장 촬영'},
+  {id:mkid(),name:'',day:'8/5 개영',zone:'등록센터',time:'09:00–13:00',task:'입영 스케치 · 사진'},
+  {id:mkid(),name:'',day:'8/6',zone:'어드벤처 존',time:'14:00–18:00',task:'도전활동 릴스 촬영'},
+  {id:mkid(),name:'',day:'8/7',zone:'평화광장',time:'14:00–16:00',task:'캠페인 콘텐츠 · 인터뷰'},
+  {id:mkid(),name:'',day:'8/9 폐영',zone:'메인 스타디움',time:'18:00–21:00',task:'폐영식 · 하이라이트 영상'}
+]; }
+function placementList(){ if(!state.placement) state.placement=defaultPlacement(); return state.placement; }
 var CTYPE_COLOR={'회의 · 기획조정본부':'#6B4FA0','회의 · 홍보부':'#0F8A8A'};
 function ctypeColor(t){ if(CTYPE_COLOR[t]) return CTYPE_COLOR[t]; if(/회의/.test(t||'')) return '#7A6A57'; return 'var(--accent)'; }
 function ctchip(t){ return t?('<span class="ctchip" style="background:'+ctypeColor(t)+'">'+esc(t)+'</span>'):''; }
@@ -269,6 +312,9 @@ function applyServer(j){
   if(j&&j.marketing) state.marketing=j.marketing;
   if(j&&j.types) state.types=j.types;
   if(j&&j.events) state.events=j.events;
+  if(j&&j.timetable) state.timetable=j.timetable;
+  if(j&&j.roster) state.roster=j.roster;
+  if(j&&j.placement) state.placement=j.placement;
 }
 function saveTypes(){
   saveLocal();
@@ -287,6 +333,21 @@ function saveEvents(){
       .then(function(r){return r.json();}).then(function(){ setSt('일정 저장됨',true); }).catch(function(){ setSt('일정 저장 실패'); });
   }, 500);
 }
+var ttTimer=null, rosterTimer=null, placeTimer=null;
+function debouncedPut(timerName, body, okMsg){
+  saveLocal();
+  var t=window[timerName]; if(t) clearTimeout(t);
+  setSt('저장 대기…');
+  window[timerName]=setTimeout(function(){
+    setSt('저장 중…');
+    fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+      body:JSON.stringify(Object.assign({author:authorVal()}, body))})
+      .then(function(r){return r.json();}).then(function(){ setSt(okMsg||'저장됨',true); }).catch(function(){ setSt('저장 실패'); });
+  }, 500);
+}
+function saveTimetable(){ debouncedPut('ttTimer', {timetable: state.timetable||[]}, '일정표 저장됨'); }
+function saveRoster(){ debouncedPut('rosterTimer', {roster: state.roster||[]}, 'R&R 저장됨'); }
+function savePlacement(){ debouncedPut('placeTimer', {placement: state.placement||[]}, '배치표 저장됨'); }
 /* ===== 운영 일정 편집 모달 ===== */
 var evDraft=null;
 function openEvent(id){
@@ -1022,6 +1083,81 @@ function renderMarketing(){
   });
 }
 
+/* ===== 일자별 시간 일정표 렌더 ===== */
+var ttDay=(function(){try{return localStorage.getItem('jamboree-plan:ttday')||'2026-08-05';}catch(e){return '2026-08-05';}})();
+var WDS=['일','월','화','수','목','금','토'];
+function renderTTtabs(){
+  var box=document.getElementById('tt-days'); if(!box) return; box.innerHTML='';
+  JAM_DAYS.forEach(function(d){
+    var dd=ymd(d[0]);
+    var b=document.createElement('button'); b.className='ttdaytab'+(d[0]===ttDay?' active':'');
+    b.innerHTML='<b>8/'+dd.getDate()+'</b><span>('+WDS[dd.getDay()]+') '+esc(d[1])+'</span>';
+    b.onclick=function(){ ttDay=d[0]; try{localStorage.setItem('jamboree-plan:ttday',ttDay);}catch(e){} renderTimetable(); };
+    box.appendChild(b);
+  });
+}
+function renderTimetable(){
+  renderTTtabs();
+  var box=document.getElementById('tt-list'); if(!box) return; box.innerHTML='';
+  var items=ttList().filter(function(t){return t.day===ttDay;}).slice().sort(function(a,b){return (a.start||'')<(b.start||'')?-1:(a.start||'')>(b.start||'')?1:0;});
+  if(!items.length){ box.innerHTML='<p class="empty-note">이 날짜에 등록된 시간 일정이 없습니다. 아래 <b>＋ 시간 일정 추가</b>로 만드세요.</p>'; return; }
+  items.forEach(function(t){
+    var row=document.createElement('div'); row.className='ttrow'; row.style.borderLeftColor=ttCatColor(t.cat);
+    var opts=TT_CATS.map(function(c){return '<option'+(c[0]===t.cat?' selected':'')+'>'+esc(c[0])+'</option>';}).join('');
+    row.innerHTML=
+      '<div class="tttime"><input class="tin tm" data-f="start" type="time" value="'+esc(t.start)+'"><span class="tilde">~</span><input class="tin tm" data-f="end" type="time" value="'+esc(t.end)+'"></div>'+
+      '<div class="ttmain">'+
+        '<div class="ttl1"><select class="tcat" data-f="cat" style="border-color:'+ttCatColor(t.cat)+';color:'+ttCatColor(t.cat)+'">'+opts+'</select><input class="tin ttitle" data-f="title" value="'+esc(t.title)+'" placeholder="일정 제목"></div>'+
+        '<div class="ttl2"><input class="tin" data-f="place" value="'+esc(t.place)+'" placeholder="장소"><input class="tin" data-f="owner" value="'+esc(t.owner)+'" placeholder="담당(홍보)"></div>'+
+        '<input class="tin tmemo" data-f="memo" value="'+esc(t.memo)+'" placeholder="메모 · 촬영 포인트">'+
+      '</div>'+
+      '<button class="rm ttdel" title="삭제">'+icon('trash',14)+'</button>';
+    row.querySelectorAll('.tin').forEach(function(inp){ inp.addEventListener('input',function(){ t[inp.dataset.f]=inp.value; saveTimetable(); }); });
+    row.querySelector('.tcat').addEventListener('change',function(){ t.cat=this.value; saveTimetable(); renderTimetable(); });
+    row.querySelector('.ttdel').onclick=function(){ if(!confirm('이 시간 일정을 삭제할까요?'))return; state.timetable=ttList().filter(function(x){return x!==t;}); saveTimetable(); renderTimetable(); };
+    box.appendChild(row);
+  });
+}
+function addTT(){ ttList().push({id:mkid(),day:ttDay,start:'09:00',end:'10:00',title:'',place:'',cat:'프로그램',owner:'',memo:''}); saveTimetable(); renderTimetable(); }
+
+/* ===== 홍보부 인원 R&R + 배치표 렌더 ===== */
+function renderStaff(){
+  var rb=document.getElementById('roster-body');
+  if(rb){ rb.innerHTML='';
+    rosterList().forEach(function(m){
+      var tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td class="mk" contenteditable data-f="role">'+esc(m.role)+'</td>'+
+        '<td class="mk" contenteditable data-f="name">'+esc(m.name)+'</td>'+
+        '<td class="mk" contenteditable data-f="duty">'+esc(m.duty)+'</td>'+
+        '<td class="mk" contenteditable data-f="channel">'+esc(m.channel)+'</td>'+
+        '<td class="mk" contenteditable data-f="contact">'+esc(m.contact)+'</td>'+
+        '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
+      tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); }); });
+      tr.querySelector('.rm').onclick=function(){ state.roster=rosterList().filter(function(x){return x!==m;}); renderStaff(); saveRoster(); };
+      rb.appendChild(tr);
+    });
+  }
+  var pb=document.getElementById('place-body');
+  if(pb){ pb.innerHTML='';
+    placementList().forEach(function(m){
+      var tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td class="mk" contenteditable data-f="day">'+esc(m.day)+'</td>'+
+        '<td class="mk" contenteditable data-f="time">'+esc(m.time)+'</td>'+
+        '<td class="mk" contenteditable data-f="zone">'+esc(m.zone)+'</td>'+
+        '<td class="mk" contenteditable data-f="name">'+esc(m.name)+'</td>'+
+        '<td class="mk" contenteditable data-f="task">'+esc(m.task)+'</td>'+
+        '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
+      tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); savePlacement(); }); });
+      tr.querySelector('.rm').onclick=function(){ state.placement=placementList().filter(function(x){return x!==m;}); renderStaff(); savePlacement(); };
+      pb.appendChild(tr);
+    });
+  }
+}
+function addRoster(){ rosterList().push({id:mkid(),name:'',role:'',duty:'',contact:'',channel:''}); renderStaff(); saveRoster(); }
+function addPlacement(){ placementList().push({id:mkid(),name:'',day:'',zone:'',time:'',task:''}); renderStaff(); savePlacement(); }
+
 /* ===== render orchestration ===== */
 function renderAll(){ renderHeader(); renderCalendar(); renderFilters(); renderBoard(); renderMarketing(); }
 function renderAfterEdit(k,s,now){
@@ -1051,11 +1187,17 @@ function exportJSON(){
 var curViewMode='calendar';
 function setView(v){
   curViewMode=v;
-  document.getElementById('calendar').style.display = v==='calendar'?'':'none';
-  document.getElementById('content').style.display  = v==='list'?'':'none';
+  document.getElementById('calendar').style.display  = v==='calendar'?'':'none';
+  document.getElementById('content').style.display   = v==='list'?'':'none';
+  document.getElementById('timetable').style.display = v==='timetable'?'':'none';
+  document.getElementById('staff').style.display     = v==='staff'?'':'none';
+  // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
+  var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
   try{localStorage.setItem('jamboree-plan:view',v);}catch(e){}
   if(v==='list') renderBoard();
+  if(v==='timetable') renderTimetable();
+  if(v==='staff') renderStaff();
 }
 
 function init(){
@@ -1084,7 +1226,7 @@ function init(){
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
-  setView(savedView==='list'?'list':'calendar');
+  setView(['list','timetable','staff'].indexOf(savedView)>=0?savedView:'calendar');
   // add content (list view)
   var ad=document.getElementById('add-date'); var td=todayISO();
   ad.value=(td>='2026-06-15'&&td<='2026-08-09')?td:'2026-06-26';
@@ -1093,6 +1235,9 @@ function init(){
     var k=addContent(d); var sl=findSlot(byDate[d],k); renderAfterEdit(k,sl); openSlot(d, sl);
   };
   document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); saveMarketing(); };
+  var ttAdd=document.getElementById('tt-add'); if(ttAdd) ttAdd.onclick=addTT;
+  var rsAdd=document.getElementById('roster-add'); if(rsAdd) rsAdd.onclick=addRoster;
+  var plAdd=document.getElementById('place-add'); if(plAdd) plAdd.onclick=addPlacement;
   // modal: explicit save + unsaved-changes guard
   document.getElementById('md-close').onclick=tryClose;
   document.getElementById('md-cancel').onclick=tryClose;

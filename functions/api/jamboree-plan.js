@@ -16,8 +16,47 @@ const SLOT = (k) => PREFIX + k;
 const MKT = "jp:marketing";
 const TYPES = "jp:types";
 const EVENTS = "jp:events";
+const TIMETABLE = "jp:timetable";
+const ROSTER = "jp:roster";
+const PLACEMENT = "jp:placement";
 
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
+function cleanTT(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    day: (e.day || "").toString().slice(0, 10),
+    start: (e.start || "").toString().slice(0, 5),
+    end: (e.end || "").toString().slice(0, 5),
+    title: (e.title || "").toString().slice(0, 200),
+    place: (e.place || "").toString().slice(0, 120),
+    cat: (e.cat || "").toString().slice(0, 20),
+    owner: (e.owner || "").toString().slice(0, 60),
+    memo: (e.memo || "").toString().slice(0, 500),
+  };
+}
+function cleanRoster(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    name: (e.name || "").toString().slice(0, 60),
+    role: (e.role || "").toString().slice(0, 80),
+    duty: (e.duty || "").toString().slice(0, 400),
+    contact: (e.contact || "").toString().slice(0, 80),
+    channel: (e.channel || "").toString().slice(0, 160),
+  };
+}
+function cleanPlace(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    name: (e.name || "").toString().slice(0, 60),
+    day: (e.day || "").toString().slice(0, 40),
+    zone: (e.zone || "").toString().slice(0, 120),
+    time: (e.time || "").toString().slice(0, 40),
+    task: (e.task || "").toString().slice(0, 300),
+  };
+}
 function cleanEvent(e) {
   e = e && typeof e === "object" ? e : {};
   return {
@@ -88,7 +127,19 @@ export async function onRequestGet({ env }) {
   const eraw = await env.SCOUT_KV.get(EVENTS);
   if (eraw) { try { events = JSON.parse(eraw).events; } catch {} }
 
-  return json({ slots, marketing, types, events });
+  let timetable = null;
+  const ttraw = await env.SCOUT_KV.get(TIMETABLE);
+  if (ttraw) { try { timetable = JSON.parse(ttraw).timetable; } catch {} }
+
+  let roster = null;
+  const rraw = await env.SCOUT_KV.get(ROSTER);
+  if (rraw) { try { roster = JSON.parse(rraw).roster; } catch {} }
+
+  let placement = null;
+  const praw = await env.SCOUT_KV.get(PLACEMENT);
+  if (praw) { try { placement = JSON.parse(praw).placement; } catch {} }
+
+  return json({ slots, marketing, types, events, timetable, roster, placement });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -116,6 +167,27 @@ export async function onRequestPut({ request, env }) {
   if (Array.isArray(body.events)) {
     const events = body.events.slice(0, 300).map(cleanEvent).filter((e) => e.start);
     await env.SCOUT_KV.put(EVENTS, JSON.stringify({ events, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 일자별 시간 일정표(timetable) 저장
+  if (Array.isArray(body.timetable)) {
+    const timetable = body.timetable.slice(0, 400).map(cleanTT).filter((e) => e.day);
+    await env.SCOUT_KV.put(TIMETABLE, JSON.stringify({ timetable, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 홍보부 인원 R&R(roster) 저장
+  if (Array.isArray(body.roster)) {
+    const roster = body.roster.slice(0, 100).map(cleanRoster);
+    await env.SCOUT_KV.put(ROSTER, JSON.stringify({ roster, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 배치표(placement) 저장
+  if (Array.isArray(body.placement)) {
+    const placement = body.placement.slice(0, 300).map(cleanPlace);
+    await env.SCOUT_KV.put(PLACEMENT, JSON.stringify({ placement, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 
