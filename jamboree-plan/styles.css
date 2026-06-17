@@ -303,7 +303,9 @@ section{margin-top:34px}
 .histsec{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
 .histlist{display:flex;flex-direction:column;gap:9px;margin-bottom:11px;max-height:260px;overflow:auto}
 .histitem{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-1);padding:9px 11px;background:var(--surface-2)}
-.histmeta{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.histmeta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.histcopy{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;border-radius:var(--pill);padding:2px 9px;display:inline-flex;align-items:center;gap:4px}
+.histcopy:hover{border-color:var(--accent);color:var(--accent)}
 .histhtml{font-size:13px;line-height:1.55}
 .histhtml p{margin:.25em 0} .histhtml :is(h1,h2,h3){margin:.35em 0;line-height:1.25}
 .histhtml ul,.histhtml ol{margin:.25em 0;padding-left:1.4em}
@@ -329,7 +331,17 @@ section{margin-top:34px}
 .tt-editor table{border-collapse:collapse} .tt-editor td,.tt-editor th{border:1px solid var(--line);padding:2px 6px;min-width:36px}
 .tt-editor mark{background:#FFE9A8} .tt-editor a{color:var(--ch-fb)}
 .tt-editor pre{background:#11161c;color:#e6edf3;padding:9px;border-radius:var(--r-1);overflow:auto;font-size:12px}
-.addhist{margin:9px}
+.ttfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px}
+.ttcount{font-size:11px;color:var(--muted)} .ttcount.over{color:var(--c-fin);font-weight:700}
+.addhist{margin:0}
+/* SNS: posting time / owner / posted flag */
+.fld input[type=time]{width:100%;font:inherit;font-size:13.5px;padding:8px 11px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.fld input[type=time]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.posttoggle{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-size:12.5px;color:var(--muted);cursor:pointer;border:1px solid var(--line);border-radius:var(--pill);padding:7px 13px;background:var(--surface);transition:var(--ease)}
+.posttoggle.on{border-color:var(--st-ready);color:var(--st-ready);background:var(--st-ready-bg)}
+.posttoggle input{accent-color:var(--st-ready);margin:0}
+.poststat{font-size:11.5px;color:var(--muted)} .posttoggle.on .poststat{color:var(--st-ready)}
+.postbadge{font-size:10px;font-weight:700;color:#fff;background:var(--st-ready);padding:1px 8px;border-radius:var(--pill);white-space:nowrap}
 
 /* quick memo */
 .notelist{display:flex;flex-direction:column;gap:5px;margin-bottom:7px}

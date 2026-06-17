@@ -346,3 +346,8 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 16.12 v0.9.32 — 캘린더 호버 툴팁(전체 제목)
 - 좁은 셀에서 잘리는 제목 → **콘텐츠 호버 시 커스텀 툴팁**으로 전체 제목 + 메타(날짜·D시점·단계·상태·채널) + 첨부/이미지/링크/SNS문구 개수 표시. 느린 native `title` 제거(중복 방지). `showCalTip`/`hideCalTip`/`calTipEl`(position:fixed, 위쪽 우선·공간 없으면 아래). `.citem` mouseenter/leave, renderCalendar 시작 시 숨김. 검증: 헤드리스 — 호버 시 전체 제목 표시·떠남 시 숨김·native title 없음, 콘솔 에러 0.
+
+### 16.13 v0.9.33 — 안정성 강화 + SNS 운영 기능
+- **(A) 안정성**: 저장 실패→`pending` 등록 후 `online` 이벤트·15초 주기 **자동 재시도**(`flushPending`/`slotByKey`), 상태줄 '저장 대기 n건'. **이탈 경고**(`beforeunload`: pending/모달 dirty). **렌더 방어**(cardEl try/catch). **링크 https 자동 정규화**(`normUrl`). 오프라인/온라인 토스트.
+- **(B) SNS 기능**(콘텐츠별): 게시 예정 **시간**(time)·**담당자**(owner)·**해시태그**(tags)·**게시 완료**(posted/postedAt, 배지). **SNS 문구 복사**(히스토리별 평문+해시태그→클립보드, `htmlToText`/`copyText`). **글자 수**(Tiptap onUpdate, 인스타2200/X280 초과경고). 카드 메타·툴팁에 시간·담당자·게시됨.
+- API `cleanEdit`에 time/owner/tags/posted/postedAt. EDEF/slotEditPayload/export 반영. 검증: 헤드리스 — 필드·게시토글·복사·htmlToText·normUrl·pending, 콘솔 에러 0.
