@@ -75,8 +75,7 @@ function buildDays(){
       items.push({type:'dcount',category:ph,seedTitle:foreignTitle(dd)});
     if(ph==='피날레')
       items.push({type:'dcount',category:'피날레',seedTitle:finaleTitle(dd)});
-    if(dd<=40 && dd>=5 && (wd===1||wd===3||wd===5))
-      items.push({type:'sosik',category:'주요 소식',seedTitle:''});
+    // 소식 자동 생성 제거 — 소식 콘텐츠는 사용자가 직접 추가(＋)
     if(FIXED_EVENTS[date])
       items.push({type:'event',category:'이벤트',seedTitle:FIXED_EVENTS[date]});
     out.push({date:date,label:(cur.getMonth()+1)+'/'+cur.getDate(),dday:dd,dlabel:dlabel,
@@ -402,7 +401,7 @@ function renderFilters(){
     box.appendChild(r);
   }
   row('전체', [['all',null,'전체 보기']]);
-  row('유형', [['type','dcount','D-count'],['type','sosik','소식'],['type','event','이벤트'],['type','extra','추가']]);
+  row('유형', [['type','dcount','D-count'],['type','event','이벤트'],['type','extra','추가']]);
   row('단계', ['한국 대표단','외국 대표단','피날레','휴지기'].map(function(p){return ['phase',p,p];}));
   row('채널', CHANNELS.map(function(c){return ['channel',c,c];}));
   row('상태', STAGES.map(function(st){return ['status',st[0],st[1]];}));
