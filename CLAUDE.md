@@ -433,3 +433,7 @@ WOSM Region → 국가(NSO) → 단위대
 - **충돌 표시**: 현장 배치 슬롯도 `offConflict` 시 `.conflict`(앰버 배경)+'오프충돌' 배지(오프타임을 나중에 지정한 경우 가시화). `placeSlotHTML(t,pid)`.
 - **API**: GET 8→9키(`offtimes`), PUT `body.offtimes`(객체) 분기(`cleanOff`, 배열 분기들 뒤·slotKey 앞).
 - 검증: 헤드리스 file://(오프표 6행×24토글 / 8/5 오전 off 설정→isOff / 모달서 그 인원 칩 offdis·'오프(오전)'·클릭해도 배정 안 됨 / 비오프 인원 배정됨 / 에러 0) + 스크린샷(오프 매트릭스 빨강 토글).
+
+### 16.26 v0.9.46 — 오프타임 지정 가능 기간 = 8/3 오후부터
+- 사용자: 오프타임은 **8/3 오후부터** 지정 가능(8/2 전체·8/3 오전은 불가). `OFF_START_DATE='2026-08-03'`·`OFF_START_BLOCK=1`(pm). `offAllowed(date,blockIdx)`(8/3은 pm·eve만, 8/4~8/9 전부, 그 전 불가)·`offDays()`(8/3~). `renderOfftimes`가 `offDays()` 열 + 비허용 블록은 빗금 `.offtog.na`(클릭 불가). `offConflict`도 `offAllowed` 블록만 검사. (직전 임시안 '본 행사 8/5부터'에서 8/3 오후로 정정.)
+- 검증: 헤드리스 file://(열=8/3~8/9 7일·8/2 제외 / 8/3 오전=na·오후/저녁 클릭가능 / 토글버튼 120·na 6 / 에러 0).

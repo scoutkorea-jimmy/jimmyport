@@ -129,7 +129,7 @@ function offMap(){ if(!state.offtimes) state.offtimes={}; return state.offtimes;
 function personOff(pid){ var m=offMap(); if(!m[pid]) m[pid]={}; return m[pid]; }
 function isOff(pid,date,bk){ var d=offMap()[pid]; return !!(d&&d[date]&&d[date][bk]); }
 function toggleOff(pid,date,bk){ var po=personOff(pid); if(!po[date]) po[date]={}; if(po[date][bk]) delete po[date][bk]; else po[date][bk]=true; if(!Object.keys(po[date]).length) delete po[date]; saveOfftimes(); }
-function offConflict(pid,date,sH,eH){ if(sH==null||eH==null) return null; for(var i=0;i<OFF_BLOCKS.length;i++){ var bk=OFF_BLOCKS[i]; if(isOff(pid,date,bk[0]) && sH<bk[4] && eH>bk[3]) return bk[1]; } return null; }
+function offConflict(pid,date,sH,eH){ if(sH==null||eH==null) return null; for(var i=0;i<OFF_BLOCKS.length;i++){ if(!offAllowed(date,i)) continue; var bk=OFF_BLOCKS[i]; if(isOff(pid,date,bk[0]) && sH<bk[4] && eH>bk[3]) return bk[1]; } return null; }
 function saveOfftimes(){ debouncedPut('offTimer', {offtimes: offMap()}, '오프타임 저장됨'); }
 function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-02',start:'10:00',end:'16:00',title:'사전 답사 · 영지 점검',place:'영지 전역',cat:'이동·기타',owner:'',memo:'촬영 동선 사전 점검'},
@@ -1135,6 +1135,9 @@ function ttLanes(evs){
 var ttMode=(function(){try{return localStorage.getItem('jamboree-plan:ttmode')||'period';}catch(e){return 'period';}})();
 var ttDay=(function(){try{return localStorage.getItem('jamboree-plan:ttday')||'2026-08-05';}catch(e){return '2026-08-05';}})();
 function jamDay(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return JAM_DAYS[i]; return null; }
+var OFF_START_DATE='2026-08-03', OFF_START_BLOCK=1;   // 오프타임 지정 시작: 8/3 오후(pm)부터
+function offAllowed(date, blockIdx){ if(date<OFF_START_DATE) return false; if(date===OFF_START_DATE) return blockIdx>=OFF_START_BLOCK; return true; }
+function offDays(){ return JAM_DAYS.filter(function(d){ return d[0]>=OFF_START_DATE; }); }
 function renderTTControls(){
   var seg=document.getElementById('tt-modeseg');
   if(seg) seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b.dataset.m===ttMode); });
@@ -1345,13 +1348,17 @@ function renderOfftimes(){
   var box=document.getElementById('offtimes'); if(!box) return;
   var people=rosterList();
   if(!people.length){ box.innerHTML='<p class="empty-note">먼저 위 R&amp;R 표에 인원을 추가하세요.</p>'; return; }
+  var DAYS_E=offDays();
   var H='<div class="offwrap"><table class="offtbl"><thead><tr><th class="offname">인원</th>';
-  JAM_DAYS.forEach(function(d){ var dd=ymd(d[0]); H+='<th>8/'+dd.getDate()+'<span>'+WDS[dd.getDay()]+'</span></th>'; });
+  DAYS_E.forEach(function(d){ var dd=ymd(d[0]); H+='<th>8/'+dd.getDate()+'<span>'+WDS[dd.getDay()]+(d[1]?(' '+esc(d[1])):'')+'</span></th>'; });
   H+='</tr></thead><tbody>';
   people.forEach(function(m){
     H+='<tr><td class="offname">'+esc(personLabel(m))+'</td>';
-    JAM_DAYS.forEach(function(d){
-      H+='<td class="offcell">'+OFF_BLOCKS.map(function(bk){ var off=isOff(m.id,d[0],bk[0]); return '<button type="button" class="offtog'+(off?' off':'')+'" data-pid="'+esc(m.id)+'" data-d="'+d[0]+'" data-bk="'+bk[0]+'" title="'+bk[1]+' '+bk[2]+(off?' · 오프':'')+'">'+bk[1]+'</button>'; }).join('')+'</td>';
+    DAYS_E.forEach(function(d){
+      H+='<td class="offcell">'+OFF_BLOCKS.map(function(bk,i){
+        if(!offAllowed(d[0],i)) return '<span class="offtog na" title="이 시간은 오프 지정 불가">'+bk[1]+'</span>';
+        var off=isOff(m.id,d[0],bk[0]); return '<button type="button" class="offtog'+(off?' off':'')+'" data-pid="'+esc(m.id)+'" data-d="'+d[0]+'" data-bk="'+bk[0]+'" title="'+bk[1]+' '+bk[2]+(off?' · 오프':'')+'">'+bk[1]+'</button>';
+      }).join('')+'</td>';
     });
     H+='</tr>';
   });
