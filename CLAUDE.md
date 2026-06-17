@@ -365,3 +365,8 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 16.16 v0.9.36 — /jamboree 파비콘 + OG 이미지
 - 카드뉴스 제작기(`jamboree.html`)에 **파비콘**(`jamboree/assets/logo.png`) + **OG/트위터 메타** 추가. **OG 이미지** `jamboree/assets/og.png`(1200×630) 신규 — 엠블럼+"제16회 한국잼버리 / 카드뉴스 제작기"+날짜/장소, 헤드리스 Chrome으로 HTML 템플릿 렌더 생성. og:image 절대URL(`https://jimmypark.net/jamboree/assets/og.png`).
+
+### 16.17 v0.9.37 — /jamboree 제작기 셸을 캘린더 톤으로 통일
+- 사용자: 카드뉴스 제작기 전체 UI를 홍보부 캘린더 톤앤매너에 맞춤. **카드 결과물(PAL/SWATCHES) 색 불변** — 에디터 크롬만 그린 에디토리얼로.
+- `app.jsx`에 크롬 토큰 `UI`(bg/surface/ink/muted/line/accent #2F5D4A/accentInk #234636/soft/danger/shadow). 헤더=다크그린, 좌/우 패널·덱·모달 보더=line+소프트섀도우, 활성(패밀리 pill·사이드·Seg·슬라이더·덱·리스트)=accent green. inputStyle/fieldLabel/secLabel 토큰화. 회색텍스트(#5a5364/#9a93a3/#8b8492/#b3acbd)·보더(rgba(0,0,0,.08~.18))·danger 일괄 치환. 툴바 이모지(💾) 제거. 카드 스와치/INK는 WOSM 유지.
+- 검증: Babel standalone 컴파일 OK + 라이브 https 부팅(헤더 #234636·버튼49·콘솔 에러 0). file://은 Babel src fetch CORS로 부팅 불가 → 라이브 검증.
