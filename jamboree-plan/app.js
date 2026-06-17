@@ -122,6 +122,7 @@ function ttCatColor(c){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]==
 function saveTtCats(){ debouncedPut('ttcatTimer', {ttcats: ttCats()}, '종류 저장됨'); }
 function addTtCat(name){ name=(name||'').trim(); if(!name) return false; var L=ttCats(); if(L.some(function(x){return x[0]===name;})){ toast('이미 있는 종류'); return false; } var used=L.map(function(x){return x[1];}); var col=TTCAT_PALETTE.filter(function(c){return used.indexOf(c)<0;})[0]||TTCAT_PALETTE[L.length%TTCAT_PALETTE.length]; L.push([name,col]); saveTtCats(); return true; }
 function deleteTtCat(name){ var L=ttCats(); if(L.length<=1){ toast('최소 1개 종류는 필요합니다'); return false; } if(!confirm('종류 "'+name+'"을(를) 삭제할까요?\n이 종류를 쓰던 일정은 기본색으로 표시됩니다.')) return false; state.ttcats=L.filter(function(x){return x[0]!==name;}); saveTtCats(); return true; }
+function setTtCatColor(name,color){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]===name){ L[i][1]=color; break; } saveTtCats(); }
 function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-02',start:'10:00',end:'16:00',title:'사전 답사 · 영지 점검',place:'영지 전역',cat:'이동·기타',owner:'',memo:'촬영 동선 사전 점검'},
   {id:mkid(),day:'2026-08-03',start:'09:00',end:'18:00',title:'미디어센터 설치 · 장비 세팅',place:'미디어센터',cat:'홍보활동',owner:'',memo:'송출/촬영 장비 점검'},
@@ -884,7 +885,7 @@ function slotEl(rec,s,e){
     nlist.appendChild(d);
   });
   var ninp=document.createElement('input'); ninp.type='text'; ninp.className='noteinput'; ninp.placeholder='메모 입력 후 Enter';
-  ninp.onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); var v=ninp.value.trim(); if(v){ addNote(s.k, v); ninp.value=''; } } };
+  ninp.onkeydown=function(ev){ if(ev.key==='Enter'){ if(ev.isComposing||ev.keyCode===229) return; ev.preventDefault(); var v=ninp.value.trim(); if(v){ addNote(s.k, v); ninp.value=''; } } };
   nsec.appendChild(nlist); nsec.appendChild(ninp); wrap.appendChild(nsec);
   return wrap;
 }
@@ -916,7 +917,7 @@ function buildTypeCombo(e, s){
   function open(){ renderMenu(); menu.classList.add('show'); }
   function close(){ menu.classList.remove('show'); }
   inp.onfocus=open;
-  inp.onkeydown=function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); commit(inp.value); close(); inp.blur(); } else if(ev.key==='Escape'){ close(); } };
+  inp.onkeydown=function(ev){ if(ev.key==='Enter'){ if(ev.isComposing||ev.keyCode===229) return; ev.preventDefault(); commit(inp.value); close(); inp.blur(); } else if(ev.key==='Escape'){ close(); } };
   inp.onblur=function(){ setTimeout(close,160); if((inp.value||'').trim()!==(e.ctype||'')) commit(inp.value); };
   box.appendChild(inp); box.appendChild(menu);
   return box;
@@ -1098,7 +1099,9 @@ function renderMarketing(){
 
 /* ===== 일자별 시간 일정표 (타임테이블 그리드) ===== */
 var WDS=['일','월','화','수','목','금','토'];
-var TT_HS=6, TT_HE=23, TT_HH=46;   // 표시 시작/끝 시각, 시간당 픽셀
+var TT_HS=6, TT_HE=23;             // 표시 시작/끝 시각
+var TT_HH_PERIOD=46, TT_HH_DAY=84; // 시간당 픽셀(전체기간/일간)
+var TT_HH=46;                      // 현재 모드 픽셀(renderTimetable에서 설정)
 function t2h(s){ if(!s) return null; var p=String(s).split(':'); var h=+p[0], m=+(p[1]||0); if(isNaN(h)) return null; return h+(isNaN(m)?0:m)/60; }
 var TT_SNAP=0.25;   // 15분 단위
 function snap15(h){ return Math.round(h/TT_SNAP)*TT_SNAP; }
@@ -1143,6 +1146,7 @@ function renderTimetable(){
   var box=document.getElementById('tt-grid'); if(!box) return;
   var days = (ttMode==='day') ? [ jamDay(ttDay) || JAM_DAYS[3] ] : JAM_DAYS;
   box.className = 'ttgrid' + (ttMode==='day' ? ' ttgrid-day' : '');
+  TT_HH = (ttMode==='day') ? TT_HH_DAY : TT_HH_PERIOD;
   var H='<div class="ttg-head"><div class="ttg-corner"></div>';
   days.forEach(function(d){ var dd=ymd(d[0]); var cls=dd.getDay()===0?'sun':dd.getDay()===6?'sat':''; var today=(d[0]===todayISO());
     H+='<div class="ttg-dayhead '+cls+(today?' today':'')+'"><b>8/'+dd.getDate()+'</b><span>'+WDS[dd.getDay()]+(d[1]?(' · '+esc(d[1])):'')+'</span></div>'; });
@@ -1260,7 +1264,7 @@ function renderTTModal(){
   var asgHtml=people.length?people.map(function(m){var on=ttDraft.assignees.indexOf(m.id)>=0;return '<button type="button" class="evkind asg" data-pid="'+esc(m.id)+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(personLabel(m))+'</button>';}).join(''):'<span class="hintmini">먼저 <b>인원·배치</b> 탭에서 인원을 추가하세요.</span>';
   b.innerHTML=
     '<div class="evfld"><label>종류 — 클릭해 선택 · 입력 후 Enter로 추가 · ✕로 삭제</label><div class="chipset" id="tt-catset">'+
-      ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><span class="cdot" style="background:'+c[1]+'"></span>'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
+      ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><input type="color" class="ccolor" data-c="'+esc(c[0])+'" value="'+esc(c[1])+'" title="색상 변경">'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
       '<input type="text" class="cinput" id="tt-catinput" placeholder="+ 종류 입력">'+
     '</div></div>'+
     '<div class="evfld"><label>날짜</label><select id="tt-f-day" class="evinput">'+dayOpts+'</select></div>'+
@@ -1269,9 +1273,10 @@ function renderTTModal(){
     '<div class="evfld"><label>장소</label><input id="tt-f-place" type="text" class="evinput" value="'+esc(ttDraft.place)+'" placeholder="예: 메인 스타디움"></div>'+
     '<div class="evfld"><label>담당 인원 (배치) — 지정하면 인원·배치에 자동 반영</label><div class="evkinds" id="tt-asg">'+asgHtml+'</div></div>'+
     '<div class="evfld"><label>메모 · 촬영 포인트</label><textarea id="tt-f-memo" class="evinput" rows="2">'+esc(ttDraft.memo)+'</textarea></div>';
-  b.querySelectorAll('#tt-catset .csel').forEach(function(ch){ ch.addEventListener('click',function(e){ if(e.target.closest('.cx')) return; ttDraft.cat=ch.dataset.c; renderTTModal(); }); });
+  b.querySelectorAll('#tt-catset .csel').forEach(function(ch){ ch.addEventListener('click',function(e){ if(e.target.closest('.cx')||e.target.closest('.ccolor')) return; ttDraft.cat=ch.dataset.c; renderTTModal(); }); });
+  b.querySelectorAll('#tt-catset .ccolor').forEach(function(cc){ cc.addEventListener('click',function(e){ e.stopPropagation(); }); cc.addEventListener('change',function(e){ e.stopPropagation(); setTtCatColor(cc.dataset.c, cc.value); renderTimetable(); renderTTModal(); }); });
   b.querySelectorAll('#tt-catset .cx').forEach(function(x){ x.addEventListener('click',function(e){ e.stopPropagation(); var nm=x.dataset.c; if(deleteTtCat(nm)){ if(ttDraft.cat===nm) ttDraft.cat=(ttCats()[0]||['프로그램'])[0]; renderTTModal(); } }); });
-  var ci=b.querySelector('#tt-catinput'); if(ci) ci.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=this.value.trim(); if(v && addTtCat(v)) ttDraft.cat=v; this.value=''; renderTTModal(); var ni=document.getElementById('tt-catinput'); if(ni) ni.focus(); } });
+  var ci=b.querySelector('#tt-catinput'); if(ci) ci.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v && addTtCat(v)) ttDraft.cat=v; this.value=''; renderTTModal(); var ni=document.getElementById('tt-catinput'); if(ni) ni.focus(); } });
   b.querySelectorAll('.evkind.asg').forEach(function(bt){ bt.onclick=function(){ var pid=bt.dataset.pid; var i=ttDraft.assignees.indexOf(pid); if(i>=0) ttDraft.assignees.splice(i,1); else ttDraft.assignees.push(pid); renderTTModal(); }; });
   b.querySelector('#tt-f-day').onchange=function(){ ttDraft.day=this.value; };
   b.querySelector('#tt-f-start').onchange=function(){ ttDraft.start=this.value; if(t2h(ttDraft.end)<=t2h(ttDraft.start)) ttDraft.end=h2hhmm(t2h(ttDraft.start)+TT_SNAP); renderTTModal(); };
@@ -1319,23 +1324,41 @@ function renderStaff(){
 }
 function placeSlotHTML(t){ var dd=ymd(t.day); return '<div class="pslot" data-id="'+esc(t.id)+'"><span class="pdot" style="background:'+ttCatColor(t.cat)+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span></div>'; }
 function dayIdx(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return i; return 99; }
+function ttHours(t){ var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null||e<=s) return 0; return e-s; }
+function fmtDur(h){ if(!h) return '0분'; var mins=Math.round(h*60), hh=Math.floor(mins/60), mm=mins%60; return (hh?hh+'시간':'')+(hh&&mm?' ':'')+(mm?mm+'분':'')||'0분'; }
+function sumHours(items){ return items.reduce(function(a,t){return a+ttHours(t);},0); }
 function sortByDayTime(a,b){ var da=dayIdx(a.day), db=dayIdx(b.day); if(da!==db) return da-db; return (a.start||'')<(b.start||'')?-1:(a.start||'')>(b.start||'')?1:0; }
 function renderDerivedPlacement(){
-  var box=document.getElementById('place-derived'); if(!box) return;
+  var box=document.getElementById('place-derived');
   var people=rosterList();
-  if(!people.length){ box.innerHTML='<p class="empty-note">먼저 위 R&amp;R 표에 인원을 추가하고, <b>잼버리 일정표</b>에서 일정에 담당으로 지정하세요.</p>'; return; }
-  var H='';
-  people.forEach(function(m){
-    var items=ttList().filter(function(t){ return (t.assignees||[]).indexOf(m.id)>=0; }).slice().sort(sortByDayTime);
-    H+='<div class="pcard"><div class="pcard-h"><span class="pname">'+esc(personLabel(m))+'</span>'+((m.name&&m.role)?'<span class="prole">'+esc(m.role)+'</span>':'')+'<span class="pcount">'+(items.length?(items.length+'건 배치'):'배치 없음')+'</span></div>';
-    if(items.length){ H+='<div class="pslots">'+items.map(placeSlotHTML).join('')+'</div>'; }
-    else { H+='<div class="pempty">일정표에서 이 인원을 담당으로 지정하면 시간·장소가 자동으로 표시됩니다.</div>'; }
-    H+='</div>';
-  });
+  if(box){
+    if(!people.length){ box.innerHTML='<p class="empty-note">먼저 위 R&amp;R 표에 인원을 추가하고, <b>잼버리 일정표</b>에서 일정에 담당으로 지정하세요.</p>'; }
+    else {
+      var H='';
+      people.forEach(function(m){
+        var items=ttList().filter(function(t){ return (t.assignees||[]).indexOf(m.id)>=0; }).slice().sort(sortByDayTime);
+        var tot=sumHours(items);
+        H+='<div class="pcard"><div class="pcard-h"><span class="pname">'+esc(personLabel(m))+'</span>'+((m.name&&m.role)?'<span class="prole">'+esc(m.role)+'</span>':'')+'<span class="pcount">'+(items.length?(items.length+'건'):'배치 없음')+'</span>'+(items.length?('<span class="phours" title="총 투입시간">'+fmtDur(tot)+'</span>'):'')+'</div>';
+        if(items.length){ H+='<div class="pslots">'+items.map(placeSlotHTML).join('')+'</div>'; }
+        else { H+='<div class="pempty">일정표에서 이 인원을 담당으로 지정하면 시간·장소가 자동으로 표시됩니다.</div>'; }
+        H+='</div>';
+      });
+      box.innerHTML=H;
+      box.querySelectorAll('.pslot[data-id]').forEach(function(el){ el.onclick=function(){ openTT(el.dataset.id); }; });
+    }
+  }
+  // 담당자 미지정 일정 — 현장 배치와 별도 구분 섹션
   var un=ttList().filter(function(t){ return !(t.assignees&&t.assignees.length); }).slice().sort(sortByDayTime);
-  if(un.length){ H+='<div class="pcard pcard-un"><div class="pcard-h"><span class="pname">담당 미지정 일정</span><span class="pcount">'+un.length+'건</span></div><div class="pslots">'+un.map(placeSlotHTML).join('')+'</div></div>'; }
-  box.innerHTML=H;
-  box.querySelectorAll('.pslot[data-id]').forEach(function(el){ el.onclick=function(){ openTT(el.dataset.id); }; });
+  var ubox=document.getElementById('place-unassigned'), uhead=document.getElementById('unassigned-head');
+  if(ubox){
+    if(un.length){
+      if(uhead) uhead.style.display=''; ubox.style.display='';
+      ubox.innerHTML='<div class="pcard pcard-un"><div class="pcard-h"><span class="pname">담당자 미지정</span><span class="pcount warn">'+un.length+'건 · 배정 필요</span></div><div class="pslots">'+un.map(placeSlotHTML).join('')+'</div></div>';
+      ubox.querySelectorAll('.pslot[data-id]').forEach(function(el){ el.onclick=function(){ openTT(el.dataset.id); }; });
+    } else {
+      if(uhead) uhead.style.display='none'; ubox.style.display='none'; ubox.innerHTML='';
+    }
+  }
 }
 function addRoster(){ rosterList().push({id:mkid(),name:'',role:'',duty:'',contact:'',channel:''}); renderStaff(); saveRoster(); }
 

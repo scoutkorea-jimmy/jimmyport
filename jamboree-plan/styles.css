@@ -416,8 +416,11 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .ttg-hr{position:relative;border-bottom:1px solid var(--line-2)}
 .ttg-hr span{position:absolute;top:2px;right:7px;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 .ttg-col{flex:1;min-width:100px;position:relative;border-left:1px solid var(--line)}
-.ttg-cell{border-bottom:1px solid var(--line-2);cursor:pointer;transition:background .1s}
-.ttg-cell:hover{background:var(--accent-soft-2)}
+.ttg-cell{border-bottom:1px solid var(--line);cursor:pointer;transition:background-color .1s}
+.ttg-cell:hover{background-color:var(--accent-soft-2)}
+/* 보조선 — 전체기간: 30분(행46→23px) / 일간: 10분(행84→14px) */
+.ttgrid:not(.ttgrid-day) .ttg-cell{background-image:repeating-linear-gradient(to bottom,rgba(60,69,63,.07) 0,rgba(60,69,63,.07) 1px,transparent 1px,transparent 23px)}
+.ttgrid-day .ttg-cell{background-image:repeating-linear-gradient(to bottom,rgba(60,69,63,.06) 0,rgba(60,69,63,.06) 1px,transparent 1px,transparent 14px)}
 .ttg-ev{position:absolute;border-radius:6px;color:#fff;padding:3px 6px;overflow:hidden;cursor:grab;box-shadow:0 1px 3px rgba(22,32,26,.22);z-index:1;transition:filter .1s;touch-action:none}
 .ttg-ev:hover{filter:brightness(1.07);z-index:5}
 .ttg-ev.big{padding:5px 8px}
@@ -442,6 +445,11 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .csel:hover{border-color:var(--accent)}
 .csel .cdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 .csel.on .cdot{background:rgba(255,255,255,.85)!important}
+.csel .ccolor{width:15px;height:15px;padding:0;border:none;border-radius:50%;background:none;cursor:pointer;flex:0 0 auto;overflow:hidden}
+.csel .ccolor::-webkit-color-swatch-wrapper{padding:0}
+.csel .ccolor::-webkit-color-swatch{border:1px solid rgba(0,0,0,.25);border-radius:50%}
+.csel .ccolor::-moz-color-swatch{border:1px solid rgba(0,0,0,.25);border-radius:50%}
+.csel.on .ccolor::-webkit-color-swatch{border-color:rgba(255,255,255,.7)}
 .csel .cx{display:inline-flex;align-items:center;justify-content:center;padding:0;margin-left:1px;border:none;background:none;color:inherit;opacity:.45;cursor:pointer;border-radius:50%}
 .csel .cx:hover{opacity:1}
 .cinput{font:inherit;font-size:12.5px;padding:5px 11px;border:1px dashed var(--line);border-radius:var(--pill);background:var(--surface-2);color:var(--ink);min-width:96px;flex:1}
@@ -450,11 +458,18 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 /* ---- 인원 배치 (일정표 기반, 사람별) ---- */
 .placewrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);box-shadow:var(--sh-1);overflow:hidden}
-.pcard-un{border-style:dashed}
+.pcard-un{border-style:dashed;border-color:var(--st-draft)}
+.pcard-un .pcard-h{background:var(--st-draft-bg)}
 .pcard-h{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line);background:var(--surface-2)}
 .pcard-h .pname{font-size:14px;font-weight:700;color:var(--ink)}
 .pcard-h .prole{font-size:11px;color:var(--muted)}
 .pcard-h .pcount{margin-left:auto;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 9px;border-radius:var(--pill)}
+.pcard-h .pcount.warn{color:#fff;background:var(--st-draft)}
+.pcard-h .phours{font-size:11px;font-weight:700;color:#fff;background:var(--accent);padding:2px 9px;border-radius:var(--pill)}
+/* 담당자 미지정 — 현장 배치와 구분 */
+.unassignwrap{display:block}
+.unassignwrap .pcard{width:100%}
+.unassign-head h2{color:var(--st-draft)}
 .pslots{display:flex;flex-direction:column}
 .pslot{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--line-2);cursor:pointer;font-size:12.5px;transition:background .1s}
 .pslot:last-child{border-bottom:none}

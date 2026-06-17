@@ -414,3 +414,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **레이아웃**: "시간 일정 추가" 버튼을 `.ttctrl`(세그·날짜칩 줄) 우측으로 이동, 하단 `.tools` 제거.
 - CSS: `.ttg-rz`(핸들)·`.ttg-ev{cursor:grab;touch-action:none}`·`.tt-dragging`·`.dropday` + `.chipset/.csel/.cdot/.cx/.cinput`(입력칩) + `.seg/.ttdaytab`.
 - 검증: 헤드리스 file://(범례7·추가버튼 상단·하단tools없음 / 모달 시간=select 96개·12h표기0 / 종류칩 추가7→8(신규선택)·삭제→7 / **드래그 09:00–13:00→10:00–14:00**(길이유지)·**리사이즈 종료 14:00→15:00** 둘다 15분 스냅 / 에러 0) + 모달 스크린샷(입력칩·24h select 정상).
+
+### 16.24 v0.9.44 — 미지정 일정 별도섹션 + 투입시간 + 보조선 + 종류 색변경 + IME 더블입력 수정
+- 사용자 요청 6건 일괄: (1) **담당자 미지정 일정**을 현장 배치와 **별도 섹션**으로 분리. (2) 한글 IME에서 Enter 시 마지막 글자 더블 입력 버그. (3) 종류 **색상 변경**. (4) '일과' 라벨 색 `#504E48`. (5) 보조선(캘린더 30분·일간 10분) + 일간 행간 확대. (6) 현장 배치에 **사람별 투입시간 합계**.
+- **미지정 분리**: `renderDerivedPlacement`가 사람 카드는 `#place-derived`, 미지정은 별도 `#place-unassigned`(+`#unassigned-head`, 없으면 숨김)로. 앰버 톤(`.pcard-un` dashed `--st-draft`, `.pcount.warn`).
+- **IME 더블 수정**: Enter 핸들러 3곳(`tt-catinput`·간단메모 `ninp`·인라인편집 `inp`)에 `if(e.isComposing||e.keyCode===229) return;` 가드 — 조합 중 Enter는 무시(확정만).
+- **종류 색변경**: 종류 칩의 점을 `<input type=color class=ccolor>`로 → change 시 `setTtCatColor`+저장+재렌더(그리드·범례 즉시 반영). 칩 클릭(선택)과 분리(stopPropagation).
+- **보조선/행간**: `TT_HH` 동적(`TT_HH_PERIOD=46`/`TT_HH_DAY=84`, renderTimetable에서 모드별 설정 → 드래그·리사이즈·셀높이 동기). 셀 `background-image: repeating-linear-gradient` — 전체기간 23px(30분)·일간 14px(10분). 일간 행 84px로 확대.
+- **투입시간**: `ttHours`(end-start)·`sumHours`·`fmtDur`(N시간 M분). 사람 카드 헤더에 건수(`pcount`)+**총 투입시간(`phours` 그린 배지)**.
+- **'일과' 색**: 운영 KV의 `jp:ttcats`에 사용자가 추가한 '일과'(#A33A24) → 안전 read-modify-write PUT로 `#504E48` 변경(나머지 6종·전체 데이터 보존). 비파괴(스모크 아님·사용자 지시 변경).
+- 검증: 헤드리스 file://(period셀46+그라데이션·day셀84+그라데이션 / 색피커 present·변경 반영 / 미지정=별도섹션(derived엔 없음)·표시 / 사람카드 투입시간 '4시간' / 에러 0) + 스크린샷(일간 10분선·taller, 배치 투입시간 배지·미지정 앰버섹션).
