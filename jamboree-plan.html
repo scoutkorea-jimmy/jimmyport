@@ -95,25 +95,18 @@
       <h2>잼버리 일자별 시간 일정표</h2>
       <span class="sub">8/2–8/9 · 강원 고성 — 시간(세로) × 날짜(가로) 한눈에 보기</span>
     </div>
-    <div class="ttlegend">
-      <span class="li"><span class="sw" style="background:#C0492F"></span>개·폐영식</span>
-      <span class="li"><span class="sw" style="background:#2F5D4A"></span>프로그램</span>
-      <span class="li"><span class="sw" style="background:#6B4FA0"></span>행사</span>
-      <span class="li"><span class="sw" style="background:#0F8A8A"></span>홍보활동</span>
-      <span class="li"><span class="sw" style="background:#B07A1E"></span>식사</span>
-      <span class="li"><span class="sw" style="background:#2E6FAE"></span>회의</span>
-      <span class="li"><span class="sw" style="background:#7A6A57"></span>이동·기타</span>
-    </div>
+    <div class="ttlegend" id="tt-legend"></div>
     <div class="ttctrl">
       <div class="seg" id="tt-modeseg">
         <button type="button" data-m="period" class="active">전체 기간</button>
         <button type="button" data-m="day">일간</button>
       </div>
       <div class="ttdays" id="tt-days" style="display:none"></div>
+      <span class="spacer"></span>
+      <button class="btn sm solid" id="tt-add"><span data-ic="plus" data-ic-size="14"></span> 시간 일정 추가</button>
     </div>
     <div class="ttwrap"><div class="ttgrid" id="tt-grid"></div></div>
-    <div class="tools"><span class="spacer"></span><button class="btn sm solid" id="tt-add"><span data-ic="plus" data-ic-size="14"></span> 시간 일정 추가</button></div>
-    <p class="note">빈 칸을 클릭하면 그 시간에 일정을 추가하고, 일정 블록을 클릭하면 편집합니다. 일정에 <b>담당 인원</b>을 지정하면 <b>인원·배치</b> 탭에 그 사람이 언제·어디 있는지 자동 표시됩니다. 변경은 서버에 자동 저장됩니다.</p>
+    <p class="note">빈 칸을 클릭하면 그 시간에 일정을 추가하고, 블록을 클릭하면 편집합니다. 블록을 <b>드래그하면 이동</b>(전체 기간뷰에서는 다른 날짜로도), <b>위·아래 가장자리를 끌면 시간 길이</b>가 늘거나 줄어듭니다(모두 15분 단위). 담당 인원을 지정하면 <b>인원·배치</b>에 자동 반영되고, 변경은 서버에 자동 저장됩니다.</p>
   </section>
 
   <section id="staff" style="display:none">

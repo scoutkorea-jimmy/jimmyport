@@ -19,6 +19,13 @@ const EVENTS = "jp:events";
 const TIMETABLE = "jp:timetable";
 const ROSTER = "jp:roster";
 const PLACEMENT = "jp:placement";
+const TTCATS = "jp:ttcats";
+
+function cleanTtCats(arr) {
+  return arr.slice(0, 40).map((p) => Array.isArray(p)
+    ? [(p[0] || "").toString().slice(0, 30), (p[1] || "#7A6A57").toString().slice(0, 9)]
+    : null).filter((x) => x && x[0]);
+}
 
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 function cleanTT(e) {
@@ -142,7 +149,11 @@ export async function onRequestGet({ env }) {
   const praw = await env.SCOUT_KV.get(PLACEMENT);
   if (praw) { try { placement = JSON.parse(praw).placement; } catch {} }
 
-  return json({ slots, marketing, types, events, timetable, roster, placement });
+  let ttcats = null;
+  const tcraw = await env.SCOUT_KV.get(TTCATS);
+  if (tcraw) { try { ttcats = JSON.parse(tcraw).ttcats; } catch {} }
+
+  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -191,6 +202,13 @@ export async function onRequestPut({ request, env }) {
   if (Array.isArray(body.placement)) {
     const placement = body.placement.slice(0, 300).map(cleanPlace);
     await env.SCOUT_KV.put(PLACEMENT, JSON.stringify({ placement, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 일정 종류(ttcats) 저장
+  if (Array.isArray(body.ttcats)) {
+    const ttcats = cleanTtCats(body.ttcats);
+    await env.SCOUT_KV.put(TTCATS, JSON.stringify({ ttcats, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

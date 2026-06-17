@@ -405,3 +405,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **삭제버튼**: 각 `.ttg-ev`에 hover 시 우상단 ✕(`.ttg-del`) → `deleteTT(id)`가 `confirm('이 일정을 삭제할까요?\n제목·시간')` 후 삭제·저장·재렌더(+staff 갱신). 모달의 삭제 버튼(confirm)도 유지.
 - **CSS**: `.ttctrl/.seg/.ttdaytab`(뷰 토글·날짜칩) + `.ttgrid-day{min-width:0}`(일간 풀폭) + `.ttg-del`(블록 hover 삭제) + `.ttg-ev.big`(일간 여백). 동시간대 lane 분할은 기존 `ttLanes`(클러스터별) 그대로 — 일간뷰에서 풀폭 분배되어 가독.
 - 검증: 헤드리스 file://(period 8열·날짜칩 숨김 / day 1열·8칩·ttgrid-day·8/5 4건→8/6 3건 / 삭제 confirm 떠서 3→2 / 에러 0) + 스크린샷(일간 8/6 오후 4개 동시 프로그램 나란히, 전체기간 8일 정상).
+
+### 16.23 v0.9.43 — 일정표 인터랙션(15분 스냅·드래그 이동·리사이즈) + 24시간제 + 종류 입력칩 + 추가버튼 상단
+- 사용자 요청 5건: (1) **15분 단위** 시간 등록, (2) **드래그앤드랍 이동**, (3) **상/하단 끌어 길이(시간) 조절**, (4) 좌측 축은 24h인데 모달은 12h(오전/오후)라 헷갈림 → **모두 24시간제**, (5) "시간 일정 추가" 버튼을 하단→**전체기간/일간과 같은 상단 줄**, (6) 일정 종류를 **입력형 칩 시스템**으로 편히 추가/삭제.
+- **인터랙션**(pointer 이벤트): `TT_SNAP=0.25`(15분)·`snap15`·`h2hhmm`. `.ttg-ev`에 상/하단 리사이즈 핸들(`.ttg-rz.top/.bot`). `ttPointerDown/Move/Up`: move=블록 드래그(세로=시간, period뷰는 가로로 다른 날짜 컬럼=`ttColAt`+`.dropday` 하이라이트), resize-top/bottom=시작/종료 시각 조절(최소 15분). 드래그 중 라벨 실시간 갱신, drop 시 `t.start/end`(+이동 시 `t.day`) 갱신·저장·재렌더. 이동 3px 미만은 클릭=편집. 빈 셀 클릭도 클릭 위치 Y로 15분 스냅 시작시각.
+- **24시간제**: 모달 시간 입력을 native `type=time`(로케일 12h) → **15분 단위 24h `<select>`**(`timeOptions`, 00:00~23:45 96개). 종료≤시작이면 자동 +15분(폼·commit 양쪽 가드).
+- **종류 입력칩**(`state.ttcats`, KV `jp:ttcats`): `TT_CATS` 고정배열 폐기 → `ttCats()`/`ttCatColor`가 `state.ttcats`(기본 `defaultTtCats` 7종) 참조. 모달 종류 = `.chipset`(칩 클릭=선택, ✕=삭제 confirm, `.cinput` 입력+Enter=추가, 색은 `TTCAT_PALETTE`에서 미사용색 자동배정). 범례(`#tt-legend`)도 `ttCats()`로 동적 렌더. `saveTtCats` 디바운스 PUT. API GET 7→8키(`ttcats`), PUT `body.ttcats` 분기(`cleanTtCats`).
+- **레이아웃**: "시간 일정 추가" 버튼을 `.ttctrl`(세그·날짜칩 줄) 우측으로 이동, 하단 `.tools` 제거.
+- CSS: `.ttg-rz`(핸들)·`.ttg-ev{cursor:grab;touch-action:none}`·`.tt-dragging`·`.dropday` + `.chipset/.csel/.cdot/.cx/.cinput`(입력칩) + `.seg/.ttdaytab`.
+- 검증: 헤드리스 file://(범례7·추가버튼 상단·하단tools없음 / 모달 시간=select 96개·12h표기0 / 종류칩 추가7→8(신규선택)·삭제→7 / **드래그 09:00–13:00→10:00–14:00**(길이유지)·**리사이즈 종료 14:00→15:00** 둘다 15분 스냅 / 에러 0) + 모달 스크린샷(입력칩·24h select 정상).
