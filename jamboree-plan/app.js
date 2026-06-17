@@ -320,7 +320,7 @@ function applyServer(j){
   if(j&&j.types) state.types=j.types;
   if(j&&j.events) state.events=j.events;
   if(j&&j.timetable) state.timetable=j.timetable;
-  if(j&&j.roster) state.roster=j.roster;
+  if(j&&j.roster){ var r=j.roster.filter(function(x){ return x && ((x.name||'').trim()||(x.role||'').trim()||(x.duty||'').trim()||(x.contact||'').trim()||(x.channel||'').trim()); }); if(r.length) state.roster=r; }
   if(j&&j.placement) state.placement=j.placement;
 }
 function saveTypes(){

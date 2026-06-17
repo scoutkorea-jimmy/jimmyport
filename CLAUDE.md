@@ -395,3 +395,6 @@ WOSM Region → 국가(NSO) → 단위대
 - **API**: `cleanTT`에서 `owner`→`assignees`(배열, 최대 30). `jp:placement`(cleanPlace) 엔드포인트는 유지하되 UI 미사용(파생으로 대체).
 - **CSS**: `.ttwrap/.ttgrid/.ttg-*`(그리드·sticky 헤더·블록) + `.placewrap/.pcard/.pslot`(사람별 배치 카드). 구 `.ttdays/.ttrow/.tin` 등 제거. 모바일=그리드 가로스크롤(min-width 880).
 - 검증: `node --check`(app·API) OK + 헤드리스 file://(8일헤더·17시간행·18블록·8열 / 모달 7종류칩·6담당칩 / 담당지정→블록에 인원·파생뷰 'n건 배치'+미지정카드 / 빈셀클릭=새일정, 에러 0) + 스크린샷(그리드·모달·파생배치 정상).
+
+### 16.21 v0.9.41 — 빈 roster 폴백(라이브 잔재 정리, 비파괴)
+- 라이브 KV에 과거 테스트 잔재(완전 공백 roster 1행)가 남아 기본 6역할 대신 빈 1명만 표시됨. **운영 KV 파괴적 쓰기 금지 규칙** 준수 위해 DELETE 대신 클라 방어: `applyServer`가 서버 roster에서 **모든 필드가 공백인 행을 제외**, 남은 게 없으면 기본 R&R(6역할) 사용. 실데이터(한 필드라도 채워짐)는 그대로 보존.
