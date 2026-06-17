@@ -60,11 +60,7 @@ function finaleTitle(dd){
 // 외국 대표단 17개국 = D-21~D-5 (1일 1개국 슬롯; 제목은 국가명으로 수정)
 var CIRCLED=['','①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰'];
 function foreignTitle(dd){ var n=22-dd; return '참가국 '+(CIRCLED[n]||('#'+n)); }
-var FIXED_EVENTS = {
-  '2026-07-06':'참여형·AI 콘텐츠 이벤트 접수 시작',
-  '2026-07-26':'이벤트 접수 마감',
-  '2026-08-05':'이벤트 결과/콘텐츠 공개'
-};
+/* (이벤트 접수/공개는 '일정 레이어'로 이동 — defaultEvents) */
 
 /* base schedule built deterministically from rules */
 function buildDays(){
@@ -79,9 +75,7 @@ function buildDays(){
       items.push({type:'dcount',category:ph,seedTitle:foreignTitle(dd)});
     if(ph==='피날레')
       items.push({type:'dcount',category:'피날레',seedTitle:finaleTitle(dd)});
-    // 소식 자동 생성 제거 — 소식 콘텐츠는 사용자가 직접 추가(＋)
-    if(FIXED_EVENTS[date])
-      items.push({type:'event',category:'이벤트',seedTitle:FIXED_EVENTS[date]});
+    // 소식·이벤트 자동 생성 제거 — 소식=사용자 추가, 이벤트=일정 레이어
     out.push({date:date,label:(cur.getMonth()+1)+'/'+cur.getDate(),dday:dd,dlabel:dlabel,
       weekday:WD[wd],wd:wd,phase:ph,past:date<today,today:date===today,items:items});
     cur.setDate(cur.getDate()+1);
@@ -95,8 +89,24 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null}; }
-function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼','회의 · 기획조정본부','회의 · 홍보부']; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null}; }
+function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼']; }
+/* 운영 일정(일정 레이어) — 회의·공모전 등 단일/연속(여러 날). 콘텐츠와 분리. */
+var EVENT_KINDS=[['회의','#6B4FA0'],['공모전','#0F8A8A'],['행사','#C0492F'],['운영','#2E6FAE'],['기타','#7A6A57']];
+function eventColor(kind){ for(var i=0;i<EVENT_KINDS.length;i++) if(EVENT_KINDS[i][0]===kind) return EVENT_KINDS[i][1]; return '#7A6A57'; }
+function defaultEvents(){ return [
+  {id:mkid(),title:'참여형·AI 콘텐츠 이벤트 접수',kind:'공모전',start:'2026-07-06',end:'2026-07-26',owner:'',memo:'D-30~D-10 접수 기간'},
+  {id:mkid(),title:'이벤트 결과 발표 · 콘텐츠 공개',kind:'행사',start:'2026-08-05',end:'2026-08-05',owner:'',memo:'개영일 공개'},
+  {id:mkid(),title:'제16회 한국잼버리',kind:'행사',start:'2026-08-05',end:'2026-08-09',owner:'',memo:'본 행사 기간'}
+]; }
+function eventList(){ if(!state.events) state.events=defaultEvents(); return state.events; }
+function layoutEvents(){
+  var evs=eventList().filter(function(e){return e.start;}).map(function(e){return {e:e, s:e.start, en:e.end||e.start};}).filter(function(x){return x.en>=x.s;});
+  evs.sort(function(a,b){return a.s<b.s?-1:a.s>b.s?1:(a.en<b.en?1:-1);});
+  var laneEnd=[];
+  evs.forEach(function(x){ var li=0; while(laneEnd[li]!==undefined && laneEnd[li]>=x.s) li++; x.lane=li; laneEnd[li]=x.en; });
+  return {items:evs, lanes:laneEnd.length};
+}
 var CTYPE_COLOR={'회의 · 기획조정본부':'#6B4FA0','회의 · 홍보부':'#0F8A8A'};
 function ctypeColor(t){ if(CTYPE_COLOR[t]) return CTYPE_COLOR[t]; if(/회의/.test(t||'')) return '#7A6A57'; return 'var(--accent)'; }
 function ctchip(t){ return t?('<span class="ctchip" style="background:'+ctypeColor(t)+'">'+esc(t)+'</span>'):''; }
@@ -258,11 +268,69 @@ function applyServer(j){
   });
   if(j&&j.marketing) state.marketing=j.marketing;
   if(j&&j.types) state.types=j.types;
+  if(j&&j.events) state.events=j.events;
 }
 function saveTypes(){
   saveLocal();
   fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
     body:JSON.stringify({types:typeList(), author:authorVal()})}).catch(function(){});
+}
+var evTimer=null;
+function saveEvents(){
+  saveLocal();
+  if(evTimer) clearTimeout(evTimer);
+  setSt('일정 저장 대기…');
+  evTimer=setTimeout(function(){
+    setSt('일정 저장 중…');
+    fetch('/api/jamboree-plan',{method:'PUT',headers:{'content-type':'application/json'},
+      body:JSON.stringify({events:state.events||[], author:authorVal()})})
+      .then(function(r){return r.json();}).then(function(){ setSt('일정 저장됨',true); }).catch(function(){ setSt('일정 저장 실패'); });
+  }, 500);
+}
+/* ===== 운영 일정 편집 모달 ===== */
+var evDraft=null;
+function openEvent(id){
+  var ex=id?eventList().filter(function(e){return e.id===id;})[0]:null;
+  evDraft = ex ? clone(ex) : {id:mkid(), title:'', kind:'회의', start:todayISO(), end:'', owner:'', memo:'', _new:true};
+  if(evDraft.start<'2026-06-15'||evDraft.start>'2026-08-09') evDraft.start='2026-07-06';
+  if(!evDraft.end) evDraft.end=evDraft.start;
+  renderEventModal();
+  document.getElementById('ev-scrim').classList.add('show');
+}
+function closeEvent(){ document.getElementById('ev-scrim').classList.remove('show'); evDraft=null; }
+function renderEventModal(){
+  document.getElementById('ev-title').textContent = evDraft._new?'새 일정':'일정 편집';
+  document.getElementById('ev-del').style.display = evDraft._new?'none':'inline-flex';
+  var b=document.getElementById('ev-body');
+  b.innerHTML=
+    '<div class="evfld"><label>종류</label><div class="evkinds">'+
+      EVENT_KINDS.map(function(kc){var on=evDraft.kind===kc[0]; return '<button type="button" class="evkind" data-k="'+kc[0]+'" style="'+(on?('background:'+kc[1]+';border-color:'+kc[1]+';color:#fff'):'')+'">'+kc[0]+'</button>';}).join('')+
+    '</div></div>'+
+    '<div class="evfld"><label>제목</label><input id="ev-f-title" type="text" class="evinput" value="'+esc(evDraft.title)+'" placeholder="예: 공모전 접수 / 주간 홍보부 회의"></div>'+
+    '<div class="evfld"><label>기간 (시작 ~ 종료)</label><div class="evrow"><input id="ev-f-start" type="date" class="evinput" min="2026-06-15" max="2026-08-09" value="'+esc(evDraft.start)+'"><span class="evtilde">~</span><input id="ev-f-end" type="date" class="evinput" min="2026-06-15" max="2026-08-09" value="'+esc(evDraft.end)+'"></div></div>'+
+    '<div class="evfld"><label>담당자</label><input id="ev-f-owner" type="text" class="evinput" value="'+esc(evDraft.owner)+'" placeholder="담당자"></div>'+
+    '<div class="evfld"><label>메모</label><textarea id="ev-f-memo" class="evinput" rows="2">'+esc(evDraft.memo)+'</textarea></div>';
+  b.querySelectorAll('.evkind').forEach(function(bt){ bt.onclick=function(){ evDraft.kind=bt.getAttribute('data-k'); renderEventModal(); }; });
+  b.querySelector('#ev-f-title').oninput=function(){ evDraft.title=this.value; };
+  b.querySelector('#ev-f-start').oninput=function(){ evDraft.start=this.value; var en=b.querySelector('#ev-f-end'); if(evDraft.end&&evDraft.end<this.value){ evDraft.end=this.value; en.value=this.value; } en.min=this.value; };
+  b.querySelector('#ev-f-end').oninput=function(){ evDraft.end=this.value; };
+  b.querySelector('#ev-f-owner').oninput=function(){ evDraft.owner=this.value; };
+  b.querySelector('#ev-f-memo').oninput=function(){ evDraft.memo=this.value; };
+}
+function commitEvent(){
+  if(!evDraft) return;
+  if(!(evDraft.title||'').trim()){ toast('일정 제목을 입력하세요'); return; }
+  if(!evDraft.end||evDraft.end<evDraft.start) evDraft.end=evDraft.start;
+  var arr=eventList();
+  var clean={id:evDraft.id, title:evDraft.title.trim(), kind:evDraft.kind, start:evDraft.start, end:evDraft.end, owner:(evDraft.owner||'').trim(), memo:evDraft.memo||''};
+  var idx=-1; for(var i=0;i<arr.length;i++) if(arr[i].id===clean.id){ idx=i; break; }
+  if(idx>=0) arr[idx]=clean; else arr.push(clean);
+  saveEvents(); renderCalendar(); closeEvent(); toast('일정 저장됨');
+}
+function deleteEventCur(){
+  if(!evDraft) return; if(!confirm('이 일정을 삭제할까요?')) return;
+  state.events=eventList().filter(function(e){return e.id!==evDraft.id;});
+  saveEvents(); renderCalendar(); closeEvent(); toast('일정 삭제됨');
 }
 function addNote(k, text){
   if(!text||!text.trim()) return;
@@ -343,6 +411,7 @@ function renderCalendar(){
   var first=ymd(DAYS[0].date); first.setDate(first.getDate()-first.getDay());
   var last=ymd(DAYS[DAYS.length-1].date); last.setDate(last.getDate()+(6-last.getDay()));
   var q=(searchQ||'').trim();
+  var elay=layoutEvents();
   for(var dt=new Date(first); dt<=last; dt.setDate(dt.getDate()+1)){
     var rec=byDate[iso(dt)];
     var cell=document.createElement('div');
@@ -357,6 +426,17 @@ function renderCalendar(){
     // 날짜 옆 작은 진행상태 점(슬롯별)
     var dots=vis.map(function(s){ var st=peek(s.k).status||'planned'; return '<span class="sdot" style="background:'+STCOL[st]+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
     var html='<div class="ctop"><span class="date">'+rec.label+(dots?(' <span class="sdots">'+dots+'</span>'):'')+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
+    // 운영 일정(여러 날 연속) 띠 — 콘텐츠와 분리된 일정 레이어
+    if(elay.lanes){
+      var bands='';
+      for(var li=0; li<elay.lanes; li++){
+        var be=null; for(var bi=0;bi<elay.items.length;bi++){ var x=elay.items[bi]; if(x.lane===li && x.s<=rec.date && x.en>=rec.date){ be=x; break; } }
+        if(be){ var isS=be.s===rec.date, isE=be.en===rec.date, wkS=(dt.getDay()===0);
+          bands+='<div class="eband citem-ev" data-ev="'+be.e.id+'" title="'+esc(be.e.title+' · '+be.s+'~'+be.en)+'" style="background:'+eventColor(be.e.kind)+';'+(isS?'border-top-left-radius:6px;border-bottom-left-radius:6px;':'')+(isE?'border-top-right-radius:6px;border-bottom-right-radius:6px;':'')+'">'+((isS||wkS)?esc(be.e.title):'')+'</div>';
+        } else bands+='<div class="eband ph"></div>';
+      }
+      html+='<div class="bands">'+bands+'</div>';
+    }
     // 실제 콘텐츠(제목 있음)=카드처럼 부각 / 의미있는 시드(참가국·역할·이벤트)=옅게 / 빈 슬롯=작은 칩
     var minis='';
     vis.forEach(function(s){
@@ -379,6 +459,9 @@ function renderCalendar(){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); var sl=findSlot(byDate[rc.date], el.getAttribute('data-sk')); if(sl) openSlot(rc.date, sl); });
         el.addEventListener('mouseenter',function(){ showCalTip(el, rc.date); });
         el.addEventListener('mouseleave',hideCalTip);
+      });
+      cell.querySelectorAll('.eband[data-ev]').forEach(function(el){
+        el.addEventListener('click',function(ev){ ev.stopPropagation(); openEvent(el.getAttribute('data-ev')); });
       });
       // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
       cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){
@@ -991,6 +1074,13 @@ function init(){
   document.getElementById('export').onclick=exportJSON;
   var cs=document.getElementById('cal-search');
   if(cs) cs.addEventListener('input',function(){ var v=this.value; if(searchTimer)clearTimeout(searchTimer); searchTimer=setTimeout(function(){ searchQ=v; renderCalendar(); renderBoard(); },120); });
+  // 운영 일정(events) 모달
+  var ae=document.getElementById('add-event'); if(ae) ae.onclick=function(){ openEvent(null); };
+  document.getElementById('ev-close').onclick=closeEvent;
+  document.getElementById('ev-cancel').onclick=closeEvent;
+  document.getElementById('ev-save').onclick=commitEvent;
+  document.getElementById('ev-del').onclick=deleteEventCur;
+  document.getElementById('ev-scrim').addEventListener('click',function(e){ if(e.target===this) closeEvent(); });
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
@@ -1015,6 +1105,7 @@ function init(){
   document.addEventListener('keydown',function(e){
     if(e.key!=='Escape') return;
     if(document.getElementById('lightbox').classList.contains('show')){ document.getElementById('lightbox').classList.remove('show'); return; }
+    if(document.getElementById('ev-scrim').classList.contains('show')){ closeEvent(); return; }
     if(document.getElementById('md-guard').classList.contains('show')){ hideGuard(); return; }
     if(curView) tryClose();
   });

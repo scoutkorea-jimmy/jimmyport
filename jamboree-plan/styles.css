@@ -150,6 +150,20 @@ section{margin-top:34px}
 .cell .cline.meeting{border-left-width:4px;border-left-style:solid}
 .card.meetingcard{background:var(--surface-2)}
 .slot.mtg .sns-only{display:none}
+/* 운영 일정 띠(bands) — 콘텐츠와 분리된 일정 레이어 */
+.cell .bands{display:flex;flex-direction:column;gap:2px;margin:3px -9px 2px}
+.cell .eband{height:16px;font-size:9.5px;font-weight:700;color:#fff;line-height:16px;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cell .eband.ph{background:transparent!important;cursor:default}
+.cell .eband:not(.ph):hover{filter:brightness(1.08)}
+/* 일정 편집 모달 폼 */
+.evfld{margin-top:13px}
+.evfld>label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.evinput{width:100%;font:inherit;font-size:13.5px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink);box-sizing:border-box}
+.evinput:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.evrow{display:flex;align-items:center;gap:8px} .evrow .evinput{flex:1}
+.evtilde{color:var(--muted);font-weight:700}
+.evkinds{display:flex;flex-wrap:wrap;gap:6px}
+.evkind{font-size:12px;font-weight:600;padding:6px 13px;border:1px solid var(--line);background:#fff;border-radius:var(--pill);cursor:pointer;color:var(--muted)}
 .cell .cline.filled[draggable]{cursor:grab}
 .cell .cline.filled.dragging{opacity:.4}
 .cell.dragover{border-color:var(--accent)!important;box-shadow:0 0 0 2px var(--accent),var(--sh-2);transform:translateY(-1px)}

@@ -15,8 +15,21 @@ const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
 const MKT = "jp:marketing";
 const TYPES = "jp:types";
+const EVENTS = "jp:events";
 
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
+function cleanEvent(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    title: (e.title || "").toString().slice(0, 200),
+    kind: (e.kind || "기타").toString().slice(0, 20),
+    start: (e.start || "").toString().slice(0, 10),
+    end: (e.end || e.start || "").toString().slice(0, 10),
+    owner: (e.owner || "").toString().slice(0, 60),
+    memo: (e.memo || "").toString().slice(0, 1000),
+  };
+}
 function cleanEdit(e) {
   e = e && typeof e === "object" ? e : {};
   let channels = Array.isArray(e.channels)
@@ -71,7 +84,11 @@ export async function onRequestGet({ env }) {
   const traw = await env.SCOUT_KV.get(TYPES);
   if (traw) { try { types = JSON.parse(traw).types; } catch {} }
 
-  return json({ slots, marketing, types });
+  let events = null;
+  const eraw = await env.SCOUT_KV.get(EVENTS);
+  if (eraw) { try { events = JSON.parse(eraw).events; } catch {} }
+
+  return json({ slots, marketing, types, events });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -92,6 +109,13 @@ export async function onRequestPut({ request, env }) {
   if (Array.isArray(body.types)) {
     const types = body.types.slice(0, 60).map((t) => (t || "").toString().slice(0, 40)).filter(Boolean);
     await env.SCOUT_KV.put(TYPES, JSON.stringify({ types, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 운영 일정(events) 저장
+  if (Array.isArray(body.events)) {
+    const events = body.events.slice(0, 300).map(cleanEvent).filter((e) => e.start);
+    await env.SCOUT_KV.put(EVENTS, JSON.stringify({ events, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

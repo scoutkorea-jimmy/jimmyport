@@ -370,3 +370,10 @@ WOSM Region → 국가(NSO) → 단위대
 - 사용자: 카드뉴스 제작기 전체 UI를 홍보부 캘린더 톤앤매너에 맞춤. **카드 결과물(PAL/SWATCHES) 색 불변** — 에디터 크롬만 그린 에디토리얼로.
 - `app.jsx`에 크롬 토큰 `UI`(bg/surface/ink/muted/line/accent #2F5D4A/accentInk #234636/soft/danger/shadow). 헤더=다크그린, 좌/우 패널·덱·모달 보더=line+소프트섀도우, 활성(패밀리 pill·사이드·Seg·슬라이더·덱·리스트)=accent green. inputStyle/fieldLabel/secLabel 토큰화. 회색텍스트(#5a5364/#9a93a3/#8b8492/#b3acbd)·보더(rgba(0,0,0,.08~.18))·danger 일괄 치환. 툴바 이모지(💾) 제거. 카드 스와치/INK는 WOSM 유지.
 - 검증: Babel standalone 컴파일 OK + 라이브 https 부팅(헤더 #234636·버튼49·콘솔 에러 0). file://은 Babel src fetch CORS로 부팅 불가 → 라이브 검증.
+
+### 16.18 v0.9.38 — 별도 '일정' 레이어(회의·장기 연속 일정)
+- 사용자: 카드뉴스(콘텐츠) 일정과 **운영 일정**(회의 / 공모전 같은 여러 날 연속 일정)을 구분. 별도 캘린더가 아니라 **같은 캘린더에 띠(band)로** 표시(AskUserQuestion: "별도 '일정' 레이어" 선택).
+- **API**(`functions/api/jamboree-plan.js`): KV 키 `jp:events` 추가. `cleanEvent(e)`=`{id,title,kind,start,end,owner,memo}`. GET이 `{slots,marketing,types,events}` 반환. PUT에 `if(Array.isArray(body.events))` 분기(최대 300, start 필수). 콘텐츠 슬롯과 완전 분리 저장.
+- **앱**(`app.js`): `EVENT_KINDS`(회의#6B4FA0·공모전#0F8A8A·행사#C0492F·운영#2E6FAE·기타#7A6A57)·`eventColor`·`defaultEvents`(공모전 접수 07-06~26·결과공개 08-05·본행사 08-05~09)·`eventList`·`layoutEvents`(그리디 lane 배정). 기존 `buildDays`의 FIXED_EVENTS 제거, `defaultTypes`에서 '회의' 제거(일정으로 이관). `applyServer`가 `j.events` 로드, `saveEvents()` 디바운스 PUT(events). renderCalendar가 ctop 아래 `.bands`로 여러 날 띠 렌더(시작·일요일에 라벨, 양끝 라운드), 띠 클릭→`openEvent`. 모달 `openEvent/closeEvent/renderEventModal/commitEvent/deleteEventCur`(종류 칩·제목·기간 start~end·담당자·메모, 즉시 서버 저장). Escape/배경클릭 닫기.
+- **마크업**: `#ev-scrim` 일정 편집 모달, 캘린더 sec-head "일정 추가" 버튼 + 범례에 "운영 일정(띠)" 안내.
+- 검증: `node --check`(app.js·API) OK + 헤드리스 file:// 부팅(띠 27개·일정 추가 모달 5칩·띠 클릭 편집 열림, 콘솔 에러는 file:// CORS 한정).

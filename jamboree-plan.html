@@ -39,7 +39,10 @@
   <section id="calendar">
     <div class="sec-head">
       <h2>운영 캘린더 (일요일 시작)</h2>
-      <div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="cal-search" type="search" placeholder="콘텐츠 검색 (제목·종류·채널·문구)"></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="cal-search" type="search" placeholder="콘텐츠·일정 검색"></div>
+        <button class="btn sm" id="add-event"><span data-ic="plus" data-ic-size="14"></span> 일정 추가</button>
+      </div>
     </div>
     <div class="legend">
       <span class="lgroup">
@@ -54,6 +57,8 @@
         <span class="li"><span class="dot" style="background:var(--st-draft)"></span>작성중</span>
         <span class="li"><span class="dot" style="background:var(--st-ready)"></span>완료</span>
       </span>
+      <span class="lsep"></span>
+      <span class="lgroup"><span class="li"><span class="sw" style="background:#6B4FA0;border-radius:3px"></span>운영 일정(띠) — 회의·공모전 등 클릭 편집</span></span>
     </div>
     <div class="cal" id="cal"></div>
   </section>
@@ -114,6 +119,23 @@
           <button class="btn ghost" id="g-cancel">취소 (계속 편집)</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 운영 일정 편집 모달 -->
+<div class="scrim" id="ev-scrim">
+  <div class="modal" style="max-width:460px" role="dialog" aria-modal="true">
+    <div class="mhead">
+      <div class="mt" id="ev-title">일정</div>
+      <button class="x" id="ev-close" aria-label="닫기"><span data-ic="x" data-ic-size="17"></span></button>
+    </div>
+    <div class="mbody" id="ev-body"></div>
+    <div class="mfoot">
+      <button class="btn ghost sm" id="ev-del">삭제</button>
+      <span class="spacer"></span>
+      <button class="btn ghost sm" id="ev-cancel">닫기</button>
+      <button class="btn solid" id="ev-save">저장</button>
     </div>
   </div>
 </div>
