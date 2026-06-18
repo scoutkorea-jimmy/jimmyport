@@ -437,3 +437,12 @@ WOSM Region → 국가(NSO) → 단위대
 ### 16.26 v0.9.46 — 오프타임 지정 가능 기간 = 8/3 오후부터
 - 사용자: 오프타임은 **8/3 오후부터** 지정 가능(8/2 전체·8/3 오전은 불가). `OFF_START_DATE='2026-08-03'`·`OFF_START_BLOCK=1`(pm). `offAllowed(date,blockIdx)`(8/3은 pm·eve만, 8/4~8/9 전부, 그 전 불가)·`offDays()`(8/3~). `renderOfftimes`가 `offDays()` 열 + 비허용 블록은 빗금 `.offtog.na`(클릭 불가). `offConflict`도 `offAllowed` 블록만 검사. (직전 임시안 '본 행사 8/5부터'에서 8/3 오후로 정정.)
 - 검증: 헤드리스 file://(열=8/3~8/9 7일·8/2 제외 / 8/3 오전=na·오후/저녁 클릭가능 / 토글버튼 120·na 6 / 에러 0).
+
+### 16.27 v0.9.47 — 취재 연락처 탭(담당자 주소록) + 일정표 연동
+- 사용자: 취재(섭외) 시 연락처를 찾기 쉽게 — (1) **취재 연락처 탭** 신설로 담당자 연락처를 한눈에 정리, (2) 잼버리 일정표의 시간 일정에 **배치 인원뿐 아니라 관련 담당자 연락처도** 연결, (3) 그 연락처를 별도 탭에서 한눈에. → 전역 주소록 + 일정 링크(roster/assignees 패턴과 동일) 하이브리드 채택.
+- **데이터**: `state.contacts` 전역 주소록 = `[{id,name,org,role,phone,email,memo}]`, KV 키 `jp:contacts`(`cleanContact`). 시간 일정 item에 `contacts:[contactId]` 추가. `defaultContacts` 3행 시드(소속/직책 힌트, 이름 공백). `applyServer` 로드(배열 비어있지 않을 때만), `stateDefaults` `contacts:null`.
+- **API**(`functions/api/jamboree-plan.js`): GET 9→10키(`contacts`), PUT `Array.isArray(body.contacts)` 분기(`cleanContact`, 최대 300). `cleanTT`에 `contacts` 배열(최대 30) 추가.
+- **시간 일정 모달**: 담당 인원(배치) 아래에 **관련 취재 연락처** 섹션(`#tt-con`) — 전역 연락처를 칩으로 다중선택(`.evkind.con`, 선택=accent) + `+ 담당자 이름` 입력(`#tt-con-input`, Enter로 새 연락처 즉시 생성·연결, IME 가드). `openTT`/`commitTT`에 `contacts` 처리.
+- **취재 연락처 탭**(`#contacts`, viewtabs에 `phone` 아이콘 탭 추가): contenteditable 주소록 표(이름·소속·직책·전화·이메일·메모 — roster 표 패턴, `.tblscroll` 가로스크롤) + 연락처 추가 + 검색(`con-search`: 이름/소속/직책/전화/이메일/메모/연결일정 대상) + 읽기전용 **연결된 일정** 칼럼(`.conlink` 칩, 클릭 시 `openTT`로 해당 일정 열림). 삭제 시 연결 일정에서 자동 unlink(`saveTimetable` 동기화). `renderContacts`/`contactSchedules`/`matchContact`. `setView`에 'contacts' + saved-view 복원.
+- **연동 표시**: 시간 일정 블록은 일간뷰에서 연락처 라인(`.ttg-evp.con`, phone 아이콘) + 호버 툴팁에 `연락처 이름 전화`. 저장은 `debouncedPut('contactTimer',...)`.
+- 검증: `node --check`(app·API) OK + 헤드리스 puppeteer file://(탭+아이콘·기본3행·추가4행 / TT모달 연락처섹션·칩4·입력칸·Enter추가→칩5 신규선택 / 저장→블록 con라인·연결일정칩 1 / 검색 1행 / **콘솔 에러 0**) + 스크린샷(취재 연락처 탭·TT모달 그린 톤 정상).

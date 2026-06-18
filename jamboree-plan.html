@@ -36,6 +36,7 @@
     <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 리스트 보기</button>
     <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
     <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 인원 · 배치</button>
+    <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 취재 연락처</button>
   </div>
 
   <section id="calendar">
@@ -141,6 +142,25 @@
       <span class="sub">아직 담당이 배정되지 않은 일정 — 클릭해 담당 인원을 지정하세요</span>
     </div>
     <div class="unassignwrap" id="place-unassigned" style="display:none"></div>
+  </section>
+
+  <section id="contacts" style="display:none">
+    <div class="sec-head">
+      <h2><span data-ic="phone" data-ic-size="17" style="vertical-align:-3px"></span> 취재 연락처</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="con-search" type="search" placeholder="이름 · 소속 · 직책 · 일정 검색"></div>
+        <button class="btn sm" id="con-add"><span data-ic="plus" data-ic-size="14"></span> 연락처 추가</button>
+      </div>
+    </div>
+    <div class="tblscroll">
+      <table id="contbl">
+        <thead><tr>
+          <th style="width:104px">이름</th><th style="width:120px">소속 · 부서</th><th style="width:120px">직책 · 담당</th><th style="width:128px">전화</th><th style="width:150px">이메일</th><th>메모</th><th style="width:200px">연결된 일정</th><th style="width:38px"></th>
+        </tr></thead>
+        <tbody id="con-body"></tbody>
+      </table>
+    </div>
+    <p class="note">취재 · 섭외 시 연락할 담당자 연락처를 한곳에 정리합니다. 칸을 클릭해 직접 수정하세요. <b>잼버리 일정표</b>의 시간 일정에서 담당자 연락처를 연결하면 여기에 함께 모이고, <b>연결된 일정</b>을 클릭하면 해당 일정이 바로 열립니다. 변경은 서버에 자동 저장됩니다.</p>
   </section>
 
   <footer class="foot">

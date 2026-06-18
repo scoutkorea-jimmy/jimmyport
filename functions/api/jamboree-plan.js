@@ -21,6 +21,20 @@ const ROSTER = "jp:roster";
 const PLACEMENT = "jp:placement";
 const TTCATS = "jp:ttcats";
 const OFFTIMES = "jp:offtimes";
+const CONTACTS = "jp:contacts";
+
+function cleanContact(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    name: (e.name || "").toString().slice(0, 60),
+    org: (e.org || "").toString().slice(0, 80),
+    role: (e.role || "").toString().slice(0, 80),
+    phone: (e.phone || "").toString().slice(0, 40),
+    email: (e.email || "").toString().slice(0, 120),
+    memo: (e.memo || "").toString().slice(0, 400),
+  };
+}
 
 function cleanTtCats(arr) {
   return arr.slice(0, 40).map((p) => Array.isArray(p)
@@ -49,6 +63,9 @@ function cleanTT(e) {
   const assignees = Array.isArray(e.assignees)
     ? e.assignees.slice(0, 30).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean)
     : [];
+  const contacts = Array.isArray(e.contacts)
+    ? e.contacts.slice(0, 30).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean)
+    : [];
   return {
     id: (e.id || "").toString().slice(0, 40),
     day: (e.day || "").toString().slice(0, 10),
@@ -58,6 +75,7 @@ function cleanTT(e) {
     place: (e.place || "").toString().slice(0, 120),
     cat: (e.cat || "").toString().slice(0, 20),
     assignees,
+    contacts,
     memo: (e.memo || "").toString().slice(0, 500),
   };
 }
@@ -173,7 +191,11 @@ export async function onRequestGet({ env }) {
   const ofraw = await env.SCOUT_KV.get(OFFTIMES);
   if (ofraw) { try { offtimes = JSON.parse(ofraw).offtimes; } catch {} }
 
-  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes });
+  let contacts = null;
+  const craw = await env.SCOUT_KV.get(CONTACTS);
+  if (craw) { try { contacts = JSON.parse(craw).contacts; } catch {} }
+
+  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -229,6 +251,13 @@ export async function onRequestPut({ request, env }) {
   if (Array.isArray(body.ttcats)) {
     const ttcats = cleanTtCats(body.ttcats);
     await env.SCOUT_KV.put(TTCATS, JSON.stringify({ ttcats, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 취재 연락처(contacts) 저장
+  if (Array.isArray(body.contacts)) {
+    const contacts = body.contacts.slice(0, 300).map(cleanContact);
+    await env.SCOUT_KV.put(CONTACTS, JSON.stringify({ contacts, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 
