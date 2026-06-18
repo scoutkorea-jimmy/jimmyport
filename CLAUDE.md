@@ -247,6 +247,16 @@ WOSM Region → 국가(NSO) → 단위대
 - **키커 문구 편집**: D-day `useDDeff`에 `ov.kicker` 오버라이드(비우면 자동 'COUNTDOWN · N일 전'/isDay 기본). 편집 패널 '키커 문구(상단)' 입력(ddScope, 자동 placeholder). 카드별 저장.
 - **텍스트 줄바꿈 지원**: `Editable` — 인라인 편집 시 Enter로 줄바꿈(커밋=blur/Escape), 저장은 `innerText`(줄바꿈 보존), 렌더 `white-space: pre-wrap`. 폼(`FieldInput`)은 def>14자 또는 값에 `\n` 있으면 textarea(줄바꿈 가능 안내). 티저 등 전체 텍스트 적용.
 
+### 15.17 v0.9.49 — 엠블럼 선택 + 가운데 오브제 10종 + 자동 푸터 + 5단계 절차형
+- 사용자 4건(AskUserQuestion으로 디테일 확정): (1) **엠블럼을 저장된 것 중 선택** + 그 엠블럼을 **D-피드 워터마크에도** 반영, (2) 콘텐츠에 **표지 기준 자동 푸터(페이지번호+제목)**, (3) **가운데 오브제(캠프 풍경) 10종 선택**을 오브제 들어가는 모든 카드에, (4) **5단계 절차/방법형** 본문 타입 신설.
+- **공유 컨텍스트**(`base.jsx`): `CCRegisterSceneCtx`(장면 폼 자동등록)·`CCFooterCtx`(자동 푸터 `{title,color,ink,page,total}`, null=끔) 추가.
+- **장면 라이브러리**(`shapes-comp.jsx`): `SCENES` 10종(야영장·숲·산맥·바다·노을·밤 캠프·액티비티·장비·그룹 캠프·모닥불·산+호수·미니멀 자연) = MOTIF 조합 `build(x,y,s,c)`. `SceneScatter({scope,cx,by,s,cols,fallback})` — `cc-prop:<scope>.scene` 없으면 fallback(기존 디자인), 있으면 SCENES[idx]를 카드 앵커에 렌더. `CCRegisterSceneCtx`로 우측 패널에 자기 등록. `window.SCENE_LABELS`.
+- **적용**(scatter 카드 fallback 보존): 표지 5(cx540·by800·s1.15)·콘텐츠 01소개/03인용/08빅넘버/09포스터/13엔딩·소식C. D-피드는 기존 17종 FEED_GFX 유지. 우측 패널 "가운데 오브제(캠프 풍경)" select(기본+10).
+- **자동 푸터**(`lib.jsx` `AutoFooter`): 덱의 첫 표지 배경색 띠(64px) 좌=행사명(brand.brand)·우=`page/total`(덱 순서). 트윅 `footer`(기본 ON, 우측 패널 켜기/끄기 `Seg`). **표지·D-카운트 제외**, 본문 템플릿+소식(NewsFull/Card)에 `<AutoFooter/>` 장착(엔딩·NewsBand는 자체 바라 제외). 프리뷰/ZIP/한편/썸네일 모두 `CCFooterCtx.Provider`(export는 `footerCtxFor(i+1,deck.length)`). 색=`store.idealInk`.
+- **엠블럼 선택**(`app.jsx` `EmblemPresetRow`): 저장 에셋 3종(logo.png 공식컬러·logo-white.png 흰매듭·logo-asset.png 굵은매듭)을 슬롯(logo/logo-white)별 썸네일로 선택→`store.setImage(slot, 경로)`(+기본 클리어). 업로드 병행. **D-피드 워터마크**(`dday.jsx` DDaySquare)가 선택 엠블럼 사용(어두운=logo-white·밝은=logo, 없으면 logo-asset 기본; 커스텀은 invert 안 함).
+- **5단계 절차형**(`templates.jsx` `T_Steps`, '13 · 절차/방법형(5단계)', 엔딩=14로): 번호 배지(원04)+제목+설명 5행 + STEP n + AutoFooter. SEC_TEMPLATES 13→14종.
+- 검증: 로컬 http서버+헤드리스 Chrome(파일 CORS 우회) — 6패밀리 렌더·14콘텐츠·장면 select(기본+10)·엠블럼 프리셋 6·푸터 토글·**콘솔 에러 0** + 스크린샷(표지 야영장 장면·소개형 푸터 2/3·5단계·D-피드 워터마크가 선택 엠블럼 반영). ⚠️ app.jsx에 이전 세션의 깨진 문자열 잔재(`/오류|실패|.../.test(listMsg)…`가 일부 상태문구·색 표현에 박힘)가 남아있음 — 부팅/기능엔 무해(상태 메시지 텍스트만 지저분), 별도 정리 권장.
+
 ---
 
 ## 16. /jamboree-plan — 미디어부 SNS 운영 캘린더 (BUILT, v0.9.20)

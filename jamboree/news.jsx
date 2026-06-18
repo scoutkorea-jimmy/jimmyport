@@ -30,6 +30,7 @@ function NewsFull({ ek }) {
         <Editable ekey={ek + '-h'} tag="div" className="hi" style={{ marginTop: 16, fontWeight: 700, fontSize: 84, lineHeight: 1.12, color: '#fff', textWrap: 'balance' }}>참가 신청, 이렇게 진행돼요</Editable>
         <Editable ekey={ek + '-s'} tag="div" style={{ marginTop: 18, fontSize: 34, fontWeight: 300, lineHeight: 1.5, color: 'rgba(255,255,255,.9)' }}>자세한 일정과 방법은 공식 채널에서 확인하세요.</Editable>
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -59,11 +60,11 @@ function NewsCard({ ek }) {
     <Card bg={NP.forest} color="#fff" pad={0}>
       <Placeholder tone="dark" label="소식 이미지" slot={ek + '-img'} slotLabel="소식 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
       <div style={{ position: 'absolute', inset: 0, background: NP.forest, opacity: .5, pointerEvents: 'none' }} />
-      <ShapeScatter items={window.scene(
+      <SceneScatter scope="scene-news-card" cx={540} by={1226} s={1.0} cols={[NP.leaf, NP.orange, NP.river, NP.forest]} fallback={window.scene(
         window.MOTIF.sun(170, 300, 0.9, NP.leaf), window.MOTIF.cloud(900, 300, 0.78, NP.river),
-        window.MOTIF.tree(180, 1296, 1.05, NP.leaf), window.MOTIF.tent(355, 1296, 0.9, NP.orange, NP.midnight),
-        window.MOTIF.campfire(545, 1296, 1.05), window.MOTIF.hills(800, 1296, 0.95, [NP.leaf, NP.river]),
-        window.MOTIF.mountain(985, 1296, 1.0, NP.river, NP.leaf)
+        window.MOTIF.tree(180, 1226, 1.05, NP.leaf), window.MOTIF.tent(355, 1226, 0.9, NP.orange, NP.midnight),
+        window.MOTIF.campfire(545, 1226, 1.05), window.MOTIF.hills(800, 1226, 0.95, [NP.leaf, NP.river]),
+        window.MOTIF.mountain(985, 1226, 1.0, NP.river, NP.leaf)
       )} />
       <Logo size={108} style={{ position: 'absolute', top: NS, left: '50%', transform: 'translateX(-50%)' }} />
       <div style={{ position: 'absolute', left: NS, right: NS, top: '50%', transform: 'translateY(-46%)', background: '#fff', borderRadius: 34, padding: '54px 52px', boxShadow: '0 20px 50px rgba(0,0,0,.28)', textAlign: 'center' }}>
@@ -71,6 +72,7 @@ function NewsCard({ ek }) {
         <Editable ekey={ek + '-h'} tag="div" className="hi" style={{ marginTop: 22, fontWeight: 700, fontSize: 76, lineHeight: 1.14, color: INK, textWrap: 'balance' }}>영내 설영, 무사히 마쳤습니다</Editable>
         <Editable ekey={ek + '-s'} tag="div" style={{ marginTop: 18, fontSize: 33, fontWeight: 300, lineHeight: 1.5, color: DMUTE }}>20개국 대원들이 강원에 모였어요.</Editable>
       </div>
+      <AutoFooter />
     </Card>
   );
 }

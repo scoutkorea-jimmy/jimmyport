@@ -66,7 +66,9 @@ const PAL = {
  * 제작기 셸이 카드별 폼을 자동 생성한다. (카드마다 스키마를 손으로 적지 않음) */
 window.CCRegisterFieldCtx = React.createContext(null);   // (ekey, label) → 텍스트 폼
 window.CCRegisterPhotoCtx = React.createContext(null);   // (slot, label) → 사진 업로드
+window.CCRegisterSceneCtx = React.createContext(null);   // (scope) → 가운데 오브제(장면) 선택 폼
 window.CCCardBgCtx = React.createContext(null);          // 현재 카드 배경색 → Logo가 흰/컬러 엠블럼 선택
+window.CCFooterCtx = React.createContext(null);          // 콘텐츠 자동 푸터 {title,color,ink,page,total} (null=끔)
 
 /* 스토어 구독 훅 — 폼/인라인 어느 쪽에서 바꿔도 카드가 즉시 갱신 */
 function useCCStore() {

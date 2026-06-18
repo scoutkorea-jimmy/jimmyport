@@ -31,7 +31,7 @@ function CoverThemed(props) {
       <Placeholder tone={INKC === '#fff' ? 'dark' : 'light'} label="배경 사진 (교체)" slot={ek + '-bg'} slotLabel="배경 사진"
         style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .55 }} />
       <div style={{ position: 'absolute', inset: 0, background: BG, opacity: .78, pointerEvents: 'none' }} />
-      <ShapeScatter items={genScatter} />
+      <SceneScatter scope={'scene-cover-' + id} cx={540} by={800} s={1.15} cols={[k0, k1, k2, k3]} fallback={genScatter} />
       <div style={{ position: 'absolute', top: 100, left: 100, right: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Editable ekey={ek + '-eyebrow'} flabel="에이브로우" tag="div" className="hi" style={{ fontWeight: 500, fontSize: 27, letterSpacing: '.14em', color: eyebrowColor, textTransform: 'uppercase' }}>{eyebrow}</Editable>
         <Logo size={116} />

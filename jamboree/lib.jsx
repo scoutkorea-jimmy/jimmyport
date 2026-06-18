@@ -111,5 +111,19 @@ function TopicIntro({ ek = 'intro', kicker, title, body, kc = PAL.ocean, tab, ph
   );
 }
 
-Object.assign(window, { DMUTE, INK, Kicker, CategoryChip, Editable, EdgeStitch, FooterBand, TopicList, TopicIntro });
+/* 콘텐츠 자동 푸터 — 덱의 표지 기준 제목·색, 우측에 페이지번호. CCFooterCtx=null이면 숨김.
+ * 표지·D-피드(자체 푸터/레이아웃)에는 미장착, 본문/소식 카드에만 장착한다. */
+function AutoFooter() {
+  const f = React.useContext(window.CCFooterCtx);
+  if (!f) return null;
+  return (
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, background: f.color, color: f.ink,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 64px', boxSizing: 'border-box' }}>
+      <span style={{ fontSize: 25, fontWeight: 500, letterSpacing: '.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '78%' }}>{f.title}</span>
+      {f.page ? <span className="hi" style={{ fontSize: 25, fontWeight: 700, fontVariantNumeric: 'tabular-nums', opacity: .96 }}>{f.page} / {f.total}</span> : null}
+    </div>
+  );
+}
+
+Object.assign(window, { DMUTE, INK, Kicker, CategoryChip, Editable, EdgeStitch, FooterBand, TopicList, TopicIntro, AutoFooter });
 })();

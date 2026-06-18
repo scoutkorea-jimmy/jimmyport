@@ -116,13 +116,18 @@ function Prog({ prog, fill, track, bottom }) {
 /* 정사각 1080×1080 */
 function DDaySquare({ c }) {
   const tw = React.useContext(window.DDayTweakCtx) || {}; const ns = tw.numScale || 1;
+  const store = useCCStore();
   const e = useDDeff(c);
   const wmDark = e.ink === '#fff';   // 어두운 배경=흰 매듭 / 밝은 배경=어두운(invert) 매듭
+  // 선택한 엠블럼을 배경 워터마크에도 반영(없으면 기본 매듭 에셋). 커스텀 엠블럼은 invert 안 함.
+  const wmCustom = wmDark ? store.getImage('logo-white') : store.getImage('logo');
+  const wmSrc = wmCustom || 'jamboree/assets/logo-asset.png';
+  const wmFilter = (!wmCustom && !wmDark) ? 'invert(1)' : 'none';
   return (
     <Card bg={e.bg} color={e.ink} pad={0}>
-      {/* 잼버리 매듭(에셋) 배경 워터마크 — 크기/위치/농도 트윅(--cc-wm-*) */}
+      {/* 잼버리 매듭(엠블럼) 배경 워터마크 — 크기/위치/농도 트윅(--cc-wm-*) */}
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <img src="jamboree/assets/logo-asset.png" alt="" style={{ position: 'absolute', width: 1560, height: 1560, left: -480, top: 110, objectFit: 'contain', opacity: 'calc(' + (wmDark ? 0.13 : 0.1) + ' * var(--cc-wm-opacity, 1))', filter: wmDark ? 'none' : 'invert(1)', transform: 'translate(var(--cc-wm-dx,0px), var(--cc-wm-dy,0px)) rotate(var(--cc-wm-rot,0deg)) scale(var(--cc-wm-scale,1))', transformOrigin: 'center center' }} />
+        <img src={wmSrc} alt="" style={{ position: 'absolute', width: 1560, height: 1560, left: -480, top: 110, objectFit: 'contain', opacity: 'calc(' + (wmDark ? 0.13 : 0.1) + ' * var(--cc-wm-opacity, 1))', filter: wmFilter, transform: 'translate(var(--cc-wm-dx,0px), var(--cc-wm-dy,0px)) rotate(var(--cc-wm-rot,0deg)) scale(var(--cc-wm-scale,1))', transformOrigin: 'center center' }} />
       </div>
       <ShapeScatter items={ddScatter(c.i, c.isDay, c.cols, e.bleed, c.fmt, e.gfx)} />
       <div style={{ position: 'absolute', top: 70, left: 72, right: 72, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

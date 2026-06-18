@@ -40,7 +40,12 @@ const AUTHOR_KEY = 'jamboree:author';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
-const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0, wmScale: 1, wmDX: 0, wmDY: 0, wmRot: 0, wmOpacity: 1, dx1: 0, dx2: 0 };
+const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0, wmScale: 1, wmDX: 0, wmDY: 0, wmRot: 0, wmOpacity: 1, dx1: 0, dx2: 0, footer: 1 };
+const EMBLEM_PRESETS = [
+  { src: 'jamboree/assets/logo.png', label: '공식 컬러' },
+  { src: 'jamboree/assets/logo-white.png', label: '흰색 매듭' },
+  { src: 'jamboree/assets/logo-asset.png', label: '굵은 매듭' },
+];
 const FONT_MAIN = { cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, system: { l: '시스템', v: 'system-ui' } };
 const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: { l: '프리텐다드', v: "'Pretendard'" }, cafe24: { l: '카페24 슬림', v: "'Cafe24ProSlim'" } };
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
@@ -151,6 +156,27 @@ function PhotoRow({ slot, label, png }) {
   );
 }
 
+/* 저장된 엠블럼 갤러리 — 클릭 시 해당 슬롯을 그 엠블럼(에셋 경로)으로 지정 */
+function EmblemPresetRow({ slot }) {
+  const store = useCCStore();
+  const cur = store.getImage(slot);
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      {EMBLEM_PRESETS.map((p) => {
+        const on = cur === p.src;
+        return (
+          <button key={p.src} type="button" title={p.label} onClick={() => store.setImage(slot, p.src)}
+            style={{ width: 46, height: 46, borderRadius: 8, background: '#fff', cursor: 'pointer', padding: 4, border: on ? '2px solid '+UI.accent : '1px solid '+UI.line }}>
+            <img src={p.src} alt={p.label} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+          </button>
+        );
+      })}
+      <button type="button" onClick={() => store.setImage(slot, null)} title="기본 엠블럼"
+        style={{ height: 46, padding: '0 12px', borderRadius: 8, border: cur ? '1px solid '+UI.line : '2px solid '+UI.accent, background: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: cur ? UI.muted : UI.accent, fontFamily: 'inherit' }}>기본</button>
+    </div>
+  );
+}
+
 function FieldInput({ field }) {
   const store = useCCStore();
   const v = store.getText(field.ekey);
@@ -237,8 +263,28 @@ function App() {
     return c ? { fam: f, card: c } : null;
   };
 
+  /* ── 콘텐츠 자동 푸터: 덱의 표지 기준 제목·색 + 페이지번호 ── */
+  const footerOn = String(tweaks.footer == null ? 1 : tweaks.footer) !== '0';
+  const deckCoverColor = () => {
+    for (let i = 0; i < deck.length; i++) {
+      const it = deck[i];
+      if (it.f === 'cover') {
+        const r = deckResolve(it);
+        if (r) { const ov = store.getProp('cover-' + it.id, 'bg', ''); return ov || (r.card.node && r.card.node.props && r.card.node.props.bg) || P.midnight; }
+      }
+    }
+    return null;
+  };
+  const footerCtxFor = (page, total) => {
+    if (!footerOn) return null;
+    const color = deckCoverColor() || P.midnight;
+    return { title: (brand.brand || '제16회 한국잼버리'), color, ink: store.idealInk(color), page: page || '', total: total || '' };
+  };
+  const myDeckIdx = deck.findIndex((it) => card && it.f === familyKey && it.id === card.id);
+  const previewFooter = footerCtxFor(myDeckIdx >= 0 ? myDeckIdx + 1 : '', deck.length);
+
   /* ── 카드별 폼 자동등록 ── */
-  const reg = useRef({ field: new Map(), photo: new Map() });
+  const reg = useRef({ field: new Map(), photo: new Map(), scene: new Map() });
   const [, bump] = useReducer((x) => x + 1, 0);
   const registerField = useCallback((ekey, label, def) => {
     const k = cardKey + ' ' + ekey;
@@ -250,8 +296,14 @@ function App() {
     if (reg.current.photo.has(k)) return;
     reg.current.photo.set(k, { cardKey, slot, label }); bump();
   }, [cardKey]);
+  const registerScene = useCallback((scope) => {
+    const k = cardKey + ' ' + scope;
+    if (reg.current.scene.has(k)) return;
+    reg.current.scene.set(k, { cardKey, scope }); bump();
+  }, [cardKey]);
   const fields = Array.from(reg.current.field.values()).filter((f) => f.cardKey === cardKey);
   const photos = Array.from(reg.current.photo.values()).filter((p) => p.cardKey === cardKey);
+  const scenes = Array.from(reg.current.scene.values()).filter((s) => s.cardKey === cardKey);
 
   const coverScope = familyKey === 'cover' && card ? 'cover-' + card.id : null;
   const ddScope = DD_FMT[familyKey] && card ? DD_FMT[familyKey] + '-' + card.id : null;
@@ -421,7 +473,9 @@ function App() {
           root.render(
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
-                {r.card.node}
+                <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>
+                  {r.card.node}
+                </window.CCFooterCtx.Provider>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
           );
@@ -459,7 +513,9 @@ function App() {
           root.render(
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
-                {r.card.node}
+                <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>
+                  {r.card.node}
+                </window.CCFooterCtx.Provider>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
           );
@@ -531,21 +587,25 @@ function App() {
         <main ref={stageRef} style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 28 }}>
           <window.CCRegisterFieldCtx.Provider value={registerField}>
             <window.CCRegisterPhotoCtx.Provider value={registerPhoto}>
-              <window.DDayTweakCtx.Provider value={tweaks}>
-                <window.GContentCtx.Provider value={brand}>
-                  <div key={remount + ':' + cardKey} style={{ width: family.w * scale, height: family.h * scale, position: 'relative', flex: '0 0 auto' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: family.w * scale, height: family.h * scale }}>
-                      <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
-                        <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', inset: 0 }}>
-                            {card ? card.node : null}
+              <window.CCRegisterSceneCtx.Provider value={registerScene}>
+                <window.DDayTweakCtx.Provider value={tweaks}>
+                  <window.GContentCtx.Provider value={brand}>
+                    <window.CCFooterCtx.Provider value={previewFooter}>
+                      <div key={remount + ':' + cardKey} style={{ width: family.w * scale, height: family.h * scale, position: 'relative', flex: '0 0 auto' }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: family.w * scale, height: family.h * scale }}>
+                          <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
+                            <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
+                              <div style={{ position: 'absolute', inset: 0 }}>
+                                {card ? card.node : null}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </window.GContentCtx.Provider>
-              </window.DDayTweakCtx.Provider>
+                    </window.CCFooterCtx.Provider>
+                  </window.GContentCtx.Provider>
+                </window.DDayTweakCtx.Provider>
+              </window.CCRegisterSceneCtx.Provider>
             </window.CCRegisterPhotoCtx.Provider>
           </window.CCRegisterFieldCtx.Provider>
           <div style={pillHint}>텍스트 <b>더블클릭</b> 또는 오른쪽 패널에서 편집</div>
@@ -618,6 +678,18 @@ function App() {
             </div>
           )}
 
+          {scenes.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block' }}>
+                <span style={fieldLabel}>가운데 오브제 (캠프 풍경)</span>
+                <select value={store.getProp(scenes[0].scope, 'scene', '')} onChange={(e) => store.setProp(scenes[0].scope, 'scene', e.target.value)} style={inputStyle}>
+                  <option value="">기본 (현재 디자인)</option>
+                  {(window.SCENE_LABELS || []).map((l, i) => <option key={i} value={i}>{(i + 1) + ' · ' + l}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+
           {fields.length > 0 && (
             <div style={{ marginBottom: 14 }}>
               <span style={fieldLabel}>텍스트</span>
@@ -631,6 +703,13 @@ function App() {
               {photos.map((p) => <PhotoRow key={p.slot} slot={p.slot} label={p.label} />)}
             </div>
           )}
+
+          {/* 본문 자동 푸터 (페이지번호 + 제목) — 전 카드 공통 */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid '+UI.line }}>
+            <div style={secLabel}>본문 자동 푸터 (페이지·제목)</div>
+            <Seg value={footerOn ? 'on' : 'off'} options={[['on', '켜기'], ['off', '끄기']]} onPick={(v) => setTweak('footer', v === 'on' ? 1 : 0)} />
+            <p style={{ fontSize: 12, color: UI.muted, margin: '8px 0 0', lineHeight: 1.5 }}>본문·소식 카드 하단에 <b>표지색 띠</b>로 행사명 + 페이지번호를 표시합니다. 표지·D-피드는 제외. 번호는 아래 <b>카드뉴스 구성(덱)</b> 순서로 매겨집니다.</p>
+          </div>
 
           {/* 트윅 — 전 카드 공통 */}
           <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid '+UI.line }}>
@@ -675,8 +754,13 @@ function App() {
             <button onClick={() => setBrand(DEFAULT_BRAND)} style={{ marginTop: 2, border: '1px solid '+UI.line, background: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: UI.muted }}>기본값으로</button>
             <div style={{ marginTop: 16 }}>
               <div style={secLabel}>엠블럼</div>
-              <PhotoRow slot="logo" label="컬러 엠블럼 — 밝은 배경용 (PNG 권장)" png />
-              <PhotoRow slot="logo-white" label="흰색 엠블럼 — 어두운 배경용 (PNG 권장)" png />
+              <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>저장된 엠블럼에서 고르거나 직접 업로드하세요. 선택한 엠블럼은 <b>D-피드 배경 워터마크</b>에도 반영됩니다.</p>
+              <span style={fieldLabel}>컬러 엠블럼 — 밝은 배경용</span>
+              <EmblemPresetRow slot="logo" />
+              <PhotoRow slot="logo" label="직접 업로드 (PNG 권장)" png />
+              <span style={{ ...fieldLabel, marginTop: 10 }}>흰색 엠블럼 — 어두운 배경용</span>
+              <EmblemPresetRow slot="logo-white" />
+              <PhotoRow slot="logo-white" label="직접 업로드 (PNG 권장)" png />
               <p style={{ fontSize: 12, color: UI.muted, margin: '8px 0 10px', lineHeight: 1.5 }}>카드 배경이 어두우면 흰색 엠블럼이 자동으로 사용됩니다.</p>
               <Slider label="엠블럼 크기" value={Math.round(tweaks.logoScale * 100) / 100} min={0.6} max={1.6} step={0.02} unit="×" onChange={(v) => setTweak('logoScale', v)} />
               <Slider label="엠블럼 좌우 위치" value={tweaks.logoDX} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDX', v)} />
@@ -706,7 +790,9 @@ function App() {
                   {r ? (
                     <div style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, transform: `scale(${tS})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
                       <window.DDayTweakCtx.Provider value={tweaks}>
-                        <window.GContentCtx.Provider value={brand}>{r.card.node}</window.GContentCtx.Provider>
+                        <window.GContentCtx.Provider value={brand}>
+                          <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>{r.card.node}</window.CCFooterCtx.Provider>
+                        </window.GContentCtx.Provider>
                       </window.DDayTweakCtx.Provider>
                     </div>
                   ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, color: UI.danger }}>삭제된 카드</div>}

@@ -170,5 +170,71 @@ const MOTIF = {
 /* 여러 모티프를 한 배열로 합치는 헬퍼 */
 function scene() { return Array.prototype.concat.apply([], Array.prototype.slice.call(arguments)); }
 
-Object.assign(window, { Shape, ShapeBadge, Stitch, ShapeScatter, richScatter, MOTIF, scene });
+/* ── 가운데 오브제 '장면' 베리에이션 (캠프 풍경 10종) ───────────────────
+ * 각 build(x, y, s, c) → items[]. x=가로중심, y=바닥선(baseline), s=스케일,
+ * c=[c0,c1,c2,c3] 대비색. 카드마다 (x,y,s)만 다르게 주면 같은 장면을 재사용.
+ * 스카우트 잼버리 도형(나무·텐트·모닥불·산·언덕·태양·구름·가방)으로 형상화. */
+const _bird2 = (cx, cy, h, c) => ({ n: '06', fill: c, h, left: cx - h * 0.25, top: cy - h / 2, rot: -90 });
+const _star2 = (cx, cy, h, c) => ({ n: '02', fill: c, h, left: cx - h / 2, top: cy - h / 2 });
+const SCENES = [
+  { label: '야영장', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 250 * s, y - 470 * s, 0.95 * s, c[0]), MOTIF.cloud(x + 90 * s, y - 470 * s, 0.7 * s, c[2]),
+    MOTIF.tree(x - 220 * s, y, 1.3 * s, c[3]), MOTIF.tent(x - 35 * s, y, 1.2 * s, c[1], PAL.midnight),
+    MOTIF.campfire(x + 150 * s, y, 1.1 * s, [c[0], c[1], c[3]]), MOTIF.hills(x + 270 * s, y, 1.0 * s, [c[3], c[1]])) },
+  { label: '숲', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 260 * s, y - 470 * s, 0.85 * s, c[0]),
+    MOTIF.tree(x - 230 * s, y, 1.1 * s, c[3]), MOTIF.tree(x - 60 * s, y, 1.6 * s, c[1]),
+    MOTIF.tree(x + 130 * s, y, 1.3 * s, c[3]), MOTIF.tree(x + 290 * s, y, 0.95 * s, c[1]),
+    MOTIF.hills(x, y, 1.2 * s, [c[3], c[1]])) },
+  { label: '산맥', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 270 * s, y - 470 * s, 0.85 * s, c[0]),
+    MOTIF.mountain(x - 110 * s, y, 2.0 * s, c[1], c[2]), MOTIF.mountain(x + 150 * s, y, 1.5 * s, c[2], c[1]),
+    MOTIF.tree(x - 250 * s, y, 1.0 * s, c[3]), MOTIF.hills(x, y, 1.1 * s, [c[3], c[1]])) },
+  { label: '바다·노을', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 30 * s, y - 360 * s, 1.7 * s, c[0]),
+    _bird2(x - 220 * s, y - 430 * s, 44 * s, c[2]), _bird2(x - 120 * s, y - 470 * s, 38 * s, c[2]),
+    MOTIF.hills(x - 180 * s, y, 1.3 * s, [c[3], c[1]]), MOTIF.hills(x + 60 * s, y, 1.5 * s, [c[1], c[3]]),
+    MOTIF.hills(x + 280 * s, y, 1.2 * s, [c[3], c[1]])) },
+  { label: '밤 캠프', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 250 * s, y - 480 * s, 0.7 * s, c[2]),
+    _star2(x - 230 * s, y - 430 * s, 26 * s, c[0]), _star2(x - 90 * s, y - 480 * s, 18 * s, c[1]), _star2(x + 70 * s, y - 440 * s, 22 * s, c[3]),
+    MOTIF.tent(x - 120 * s, y, 1.4 * s, c[1], PAL.midnight), MOTIF.campfire(x + 90 * s, y, 1.5 * s, [c[0], c[1], c[3]]),
+    MOTIF.tree(x + 270 * s, y, 1.1 * s, c[3])) },
+  { label: '액티비티·장비', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 270 * s, y - 470 * s, 0.8 * s, c[0]),
+    MOTIF.tree(x - 250 * s, y, 1.0 * s, c[3]), MOTIF.backpack(x - 70 * s, y, 1.45 * s, c[2], c[1]),
+    MOTIF.tent(x + 130 * s, y, 1.15 * s, c[0], PAL.midnight), MOTIF.campfire(x + 300 * s, y, 1.0 * s, [c[0], c[1], c[3]])) },
+  { label: '그룹 캠프', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 260 * s, y - 470 * s, 0.85 * s, c[0]),
+    MOTIF.tent(x - 230 * s, y, 1.05 * s, c[1], PAL.midnight), MOTIF.tent(x - 40 * s, y, 1.3 * s, c[0], PAL.midnight),
+    MOTIF.tent(x + 170 * s, y, 1.0 * s, c[1], PAL.midnight), MOTIF.campfire(x + 60 * s, y, 1.1 * s, [c[0], c[1], c[3]]),
+    MOTIF.hills(x + 280 * s, y, 1.0 * s, [c[3], c[1]])) },
+  { label: '모닥불', build: (x, y, s, c) => scene(
+    MOTIF.tree(x - 240 * s, y, 1.0 * s, c[3]), MOTIF.tree(x + 250 * s, y, 1.0 * s, c[1]),
+    MOTIF.campfire(x, y, 2.2 * s, [c[0], c[1], c[3]]), MOTIF.hills(x, y, 1.1 * s, [c[3], c[1]])) },
+  { label: '산+호수', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 250 * s, y - 470 * s, 0.85 * s, c[0]), MOTIF.cloud(x + 70 * s, y - 470 * s, 0.7 * s, c[2]),
+    MOTIF.mountain(x - 70 * s, y, 1.8 * s, c[1], c[2]), MOTIF.tree(x - 250 * s, y, 1.0 * s, c[3]),
+    MOTIF.hills(x + 150 * s, y, 1.3 * s, [c[3], c[1]]), MOTIF.hills(x + 290 * s, y, 1.1 * s, [c[1], c[3]])) },
+  { label: '미니멀 자연', build: (x, y, s, c) => scene(
+    MOTIF.sun(x + 40 * s, y - 360 * s, 1.4 * s, c[0]),
+    MOTIF.mountain(x, y, 1.6 * s, c[1], c[2]), MOTIF.hills(x, y, 1.05 * s, [c[3], c[1]])) },
+];
+const SCENE_LABELS = SCENES.map((s) => s.label);
+
+/* 카드 가운데 오브제(장면) — 선택값(cc-prop:<scope>.scene)에 따라 SCENES, 없으면 fallback.
+ * 우측 패널에 자기 자신(scope)을 등록해 '가운데 오브제' 드롭다운을 자동 생성한다. */
+function SceneScatter({ scope, cx, by, s = 1, cols, fallback }) {
+  const store = window.useCCStore();
+  const register = React.useContext(window.CCRegisterSceneCtx);
+  React.useEffect(() => { if (scope && register) register(scope); }, [scope]); // eslint-disable-line
+  const sel = scope ? store.getProp(scope, 'scene', '') : '';
+  if (sel === '' || sel == null) return <ShapeScatter items={fallback || []} />;
+  const idx = (((parseInt(sel, 10) || 0) % SCENES.length) + SCENES.length) % SCENES.length;
+  const c = cols && cols.length ? cols : [PAL.orange, PAL.river, PAL.pink, PAL.leaf];
+  return <ShapeScatter items={SCENES[idx].build(cx, by, s, [c[0], c[1] || c[0], c[2] || c[0], c[3] || c[1] || c[0]])} />;
+}
+window.SCENE_LABELS = SCENE_LABELS;
+
+Object.assign(window, { Shape, ShapeBadge, Stitch, ShapeScatter, richScatter, MOTIF, scene, SCENES, SceneScatter });
 })();

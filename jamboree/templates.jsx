@@ -23,7 +23,7 @@ function THead({ ek, kicker, title, cat, kc = PAL.ocean }) {
 function T_Intro({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
-      <ShapeScatter items={window.scene(
+      <SceneScatter scope="scene-tpl-intro" cx={862} by={1066} s={0.82} cols={[P.forest, P.orange, P.river, P.leaf]} fallback={window.scene(
         M.tree(800, 1030, 0.8, P.forest), M.tent(925, 1030, 0.68, P.orange, P.midnight),
         M.hills(890, 1074, 0.66, [P.leaf, P.river])
       )} />
@@ -32,6 +32,7 @@ function T_Intro({ ek }) {
       <div style={{ position: 'absolute', left: S, right: S, bottom: S, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {['과정활동', '전시·공연', '국제교류', '반집회'].map((p, i) => <span key={i} className="hi" style={{ background: '#f3eef7', color: INK, borderRadius: 999, padding: '12px 24px', fontSize: 28, fontWeight: 500 }}>{p}</span>)}
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -54,6 +55,7 @@ function T_FAQ({ ek }) {
           </div>
         ))}
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -62,7 +64,7 @@ function T_FAQ({ ek }) {
 function T_Quote({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
-      <ShapeScatter items={window.scene(
+      <SceneScatter scope="scene-tpl-quote" cx={880} by={1248} s={0.78} cols={[P.forest, P.orange, P.river, P.leaf]} fallback={window.scene(
         M.tree(815, 1212, 0.85, P.forest), M.tent(945, 1212, 0.72, P.orange, P.midnight),
         M.hills(900, 1258, 0.7, [P.leaf, P.river])
       )} />
@@ -70,6 +72,7 @@ function T_Quote({ ek }) {
       <div className="hi" style={{ position: 'absolute', left: S - 4, top: 320, fontSize: 190, lineHeight: .5, color: P.red, fontWeight: 700 }}>“</div>
       <Editable ekey={ek + '-q'} tag="div" style={{ position: 'absolute', left: S, right: S, top: 416, fontSize: 54, fontWeight: 300, lineHeight: 1.44, color: INK }}>청소년이 세계평화와 지구환경의 공존가치를 나누고, 지속가능한 미래를 실천하는 세계시민으로 성장합니다.</Editable>
       <div style={{ position: 'absolute', left: S, bottom: S, fontSize: 30, fontWeight: 300, color: P.ocean }}>— 제16회 한국잼버리 비전</div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -87,6 +90,7 @@ function T_FullImage({ ek }) {
         <Kicker c={P.river}>IMAGE · 풀이미지형</Kicker>
         <Editable ekey={ek + '-t'} tag="div" className="hi" style={{ marginTop: 12, fontWeight: 700, fontSize: 106, lineHeight: 1.0, color: '#fff' }}>강원의 여름,<br /><span style={{ color: P.leaf }}>지금 시작</span></Editable>
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -99,6 +103,7 @@ function T_ImageCaption({ ek }) {
       <CategoryChip label="영외활동" color={P.ocean} top={S + 22} right={S + 22} />
       <Editable ekey={ek + '-cap'} tag="div" className="hi" style={{ position: 'absolute', left: S, right: S, top: 712, fontSize: 62, fontWeight: 700, color: INK, lineHeight: 1.14 }}>강원의 명소를 발로 누비는 영외활동</Editable>
       <div style={{ position: 'absolute', left: S, bottom: S, fontSize: 30, fontWeight: 300, color: DMUTE }}>OUT-CAMP · 지역 탐방</div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -114,6 +119,7 @@ function T_SplitImage({ ek }) {
         <Editable ekey={ek + '-t'} tag="div" className="hi" style={{ marginTop: 12, fontWeight: 700, fontSize: 76, color: INK, lineHeight: 1.04 }}>잼버리<br />밥상</Editable>
         <Editable ekey={ek + '-b'} tag="div" style={{ marginTop: 20, fontSize: 33, fontWeight: 300, lineHeight: 1.55, color: INK }}>하루 세 끼, 든든하게. 안전하고 다양한 식단.</Editable>
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -127,6 +133,7 @@ function T_Gallery({ ek }) {
       <div style={{ position: 'absolute', left: S, right: S, top: 300, bottom: S, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 20 }}>
         {labels.map((l, i) => <Placeholder key={i} tone="light" label={l} slot={ek + '-img' + i} slotLabel={l} radius={16} />)}
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -137,7 +144,7 @@ function T_BigNumImage({ ek }) {
     <Card bg={PAL.red} color="#fff" pad={0}>
       <Placeholder tone="dark" label="배경 이미지" slot={ek + '-img'} slotLabel="배경 이미지" style={{ position: 'absolute', inset: 0, borderRadius: 0, borderWidth: 0, opacity: .5 }} />
       <div style={{ position: 'absolute', inset: 0, background: P.red, opacity: .72, pointerEvents: 'none' }} />
-      <ShapeScatter items={window.scene(
+      <SceneScatter scope="scene-tpl-bignum" cx={905} by={1150} s={1.1} cols={[P.leaf, P.orange, P.pink, P.river]} fallback={window.scene(
         M.sun(960, 320, 1.0, P.leaf), M.cloud(800, 330, 0.75, P.pink),
         M.tree(850, 880, 1.35, P.leaf), M.tent(995, 880, 1.1, P.orange, P.midnight),
         M.campfire(905, 1080, 1.15, [P.orange, P.pink, P.leaf]), M.hills(905, 1190, 0.95, [P.leaf, P.river])
@@ -148,6 +155,7 @@ function T_BigNumImage({ ek }) {
         <Editable ekey={ek + '-n'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 230, lineHeight: 1, color: '#fff', letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>3,000</Editable>
         <Editable ekey={ek + '-s'} tag="div" style={{ fontSize: 46, fontWeight: 300, color: '#fff', marginTop: 26 }}>20개국이 함께하는 글로벌 캠프</Editable>
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -156,7 +164,7 @@ function T_BigNumImage({ ek }) {
 function T_GraphicPoster({ ek }) {
   return (
     <Card bg={PAL.purple} color="#fff" pad={0}>
-      <ShapeScatter items={window.scene(
+      <SceneScatter scope="scene-tpl-poster" cx={905} by={1150} s={1.2} cols={[P.orange, P.river, P.leaf, P.pink]} fallback={window.scene(
         M.sun(965, 320, 1.05, P.orange), M.cloud(795, 340, 0.8, P.river),
         M.tree(845, 880, 1.5, P.leaf), M.tent(1000, 880, 1.2, P.orange, P.midnight),
         M.campfire(910, 1090, 1.25), M.hills(905, 1200, 1.0, [P.leaf, P.forest])
@@ -166,6 +174,7 @@ function T_GraphicPoster({ ek }) {
         <Kicker c={P.river}>GRAPHIC · 포스터형</Kicker>
         <Editable ekey={ek + '-t'} tag="div" className="hi" style={{ marginTop: 14, fontWeight: 700, fontSize: 132, lineHeight: 1.02, color: '#fff' }}>평화를<br /><span style={{ color: P.leaf }}>잇다</span></Editable>
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -185,6 +194,7 @@ function T_ImageGrid({ ek }) {
           </div>
         ))}
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -206,6 +216,7 @@ function T_IconGrid({ ek }) {
           </div>
         ))}
       </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -227,6 +238,7 @@ function T_VisualTimeline({ ek }) {
         ))}
       </div>
       <div style={{ position: 'absolute', left: S, right: S, top: 520 + 230 + 30, height: 4, background: '#62259918' }} />
+      <AutoFooter />
     </Card>
   );
 }
@@ -235,7 +247,7 @@ function T_VisualTimeline({ ek }) {
 function T_Outro({ ek }) {
   return (
     <Card bg={PAL.purple} color="#fff" pad={0}>
-      <ShapeScatter items={window.scene(
+      <SceneScatter scope="scene-tpl-outro" cx={540} by={1150} s={1.05} cols={[P.leaf, P.orange, P.river, P.forest]} fallback={window.scene(
         M.sun(180, 300, 0.9, P.orange), M.cloud(900, 300, 0.75, P.river),
         M.tree(150, 1120, 1.15, P.leaf), M.tent(330, 1120, 0.95, P.orange, P.midnight),
         M.mountain(930, 1120, 1.2, P.forest, P.river), M.hills(770, 1120, 0.95, [P.leaf, P.forest]),
@@ -248,6 +260,36 @@ function T_Outro({ ek }) {
         <Editable ekey={ek + '-l3'} tag="div" style={{ marginTop: 34, fontSize: 40, fontWeight: 300, color: 'rgba(255,255,255,.92)' }}>궁금한 건 언제든 물어봐!</Editable>
       </div>
       <FooterBand bg={PAL.white} color={PAL.midnight} brandFoot />
+    </Card>
+  );
+}
+
+/* 14 절차/방법형 — 5단계 안내 (번호 배지 + 제목 + 설명) */
+function T_Steps({ ek }) {
+  const cols = [P.purple, P.ocean, P.forest, P.red, P.orange];
+  const steps = [
+    { t: '공식 채널 확인', s: '홈페이지·SNS에서 일정과 모집 공고를 확인해요' },
+    { t: '참가 신청서 작성', s: '대원 정보와 참가 구분을 입력해요' },
+    { t: '참가비 납부', s: '안내된 기한 안에 결제를 완료해요' },
+    { t: '필수 서류 제출', s: '건강기록부 등 서류를 제출해요' },
+    { t: '확정 · 준비물 안내', s: '배정 결과와 준비물 안내를 받으면 끝!' }
+  ];
+  return (
+    <Card bg={PAL.white} color={INK} pad={0}>
+      <THead ek={ek} kicker="GUIDE · 절차 안내" title="참가 신청 5단계" cat={{ label: '안내', color: P.ocean }} />
+      <div style={{ position: 'absolute', left: S, right: S, top: 318, bottom: S + 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        {steps.map((x, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+            <ShapeBadge n="04" fill={cols[i % cols.length]} glyph={String(i + 1)} glyphColor="#fff" size={92} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Editable ekey={ek + '-t' + i} tag="div" className="hi" style={{ fontSize: 44, fontWeight: 700, color: INK, lineHeight: 1.04 }}>{x.t}</Editable>
+              <Editable ekey={ek + '-s' + i} tag="div" style={{ fontSize: 28, color: DMUTE, fontWeight: 300, marginTop: 3 }}>{x.s}</Editable>
+            </div>
+            <span className="hi" style={{ flex: '0 0 auto', fontSize: 23, fontWeight: 700, color: cols[i % cols.length], opacity: .55 }}>{'STEP ' + (i + 1)}</span>
+          </div>
+        ))}
+      </div>
+      <AutoFooter />
     </Card>
   );
 }
@@ -265,6 +307,7 @@ window.SEC_TEMPLATES = [
   { id: 'imggrid', label: '10 · 이미지 그리드형', node: <T_ImageGrid ek="tpl-imggrid" /> },
   { id: 'icongrid', label: '11 · 아이콘 그리드형', node: <T_IconGrid ek="tpl-icongrid" /> },
   { id: 'vtimeline', label: '12 · 비주얼 타임라인형', node: <T_VisualTimeline ek="tpl-vtimeline" /> },
-  { id: 'outro', label: '13 · 엔딩형', node: <T_Outro ek="tpl-outro" /> }
+  { id: 'steps', label: '13 · 절차/방법형 (5단계)', node: <T_Steps ek="tpl-steps" /> },
+  { id: 'outro', label: '14 · 엔딩형', node: <T_Outro ek="tpl-outro" /> }
 ];
 })();
