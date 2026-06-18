@@ -512,6 +512,32 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .conlinks .conlink .pdot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
 .faintmini{font-size:11px;color:var(--faint)}
 
+/* 시간 일정 모달 — 취재 연락처 드롭다운 픽커 (최대 3명) */
+#tt-con{display:flex;flex-direction:column;gap:7px}
+.conrow{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface-2)}
+.conrow .condot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--accent)}
+.conrow .conname{font-size:13px;font-weight:700;color:var(--ink);flex:0 0 auto}
+.conrow .conrole{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:var(--pill);padding:1px 9px;flex:0 0 auto}
+.conrow .conphone{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.conrow .conphone.none{color:var(--faint)}
+.conrow .conrm{margin-left:auto;border:none;background:none;color:var(--danger);cursor:pointer;display:inline-flex;padding:3px;border-radius:var(--r-1);flex:0 0 auto}
+.conrow .conrm:hover{background:var(--surface-3)}
+.conpick{position:relative}
+.conpick-input{width:100%;font:inherit;font-size:13px;padding:9px 11px;border:1px dashed var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.conpick-input:focus{outline:none;border-style:solid;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.conpick-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-1);box-shadow:var(--sh-2);max-height:240px;overflow:auto;padding:4px}
+.conpick-menu.show{display:block}
+.conpick-opt{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--r-1);cursor:pointer}
+.conpick-opt:hover{background:var(--accent-soft)}
+.conpick-opt .co-name{font-size:13px;font-weight:700;color:var(--ink);flex:0 0 auto}
+.conpick-opt .co-role{font-size:11px;font-weight:600;color:var(--accent);background:var(--surface-3);border-radius:var(--pill);padding:1px 8px;flex:0 0 auto}
+.conpick-opt .co-phone{font-size:11.5px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.conpick-add{display:flex;align-items:center;gap:6px;padding:7px 9px;border-radius:var(--r-1);cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600;border-top:1px solid var(--line-2);margin-top:2px}
+.conpick-add:hover{background:var(--accent-soft)}
+.conpick-add .ic{font-size:14px}
+.conpick-empty{padding:8px 9px;font-size:12px;color:var(--faint)}
+
 /* ---- footer ---- */
 .foot{margin-top:42px;border-top:1px solid var(--line);padding-top:18px;font-size:12px;color:var(--muted);line-height:1.7}
 .foot b{color:var(--ink-2)}

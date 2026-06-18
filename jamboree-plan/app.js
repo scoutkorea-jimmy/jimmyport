@@ -1298,13 +1298,19 @@ function renderTTModal(){
     var style=on?'background:var(--accent);border-color:var(--accent);color:#fff':'';
     return '<button type="button" class="'+cls+'" data-pid="'+esc(m.id)+'"'+(style?(' style="'+style+'"'):'')+' title="'+(off?('오프타임('+off+') — 배정 불가'):'')+'">'+esc(personLabel(m))+(off?(' · 오프('+off+')'):'')+'</button>';
   }).join(''):'<span class="hintmini">먼저 <b>인원·배치</b> 탭에서 인원을 추가하세요.</span>';
-  var conHtml=contactList().map(function(c){
-    var on=(ttDraft.contacts||[]).indexOf(c.id)>=0;
-    var sub=contactSub(c), line=contactPhoneLine(c);
-    var tip=[contactLabel(c),sub,line].filter(Boolean).join(' · ');
-    var style=on?'background:var(--accent);border-color:var(--accent);color:#fff':'';
-    return '<button type="button" class="evkind con" data-cid="'+esc(c.id)+'"'+(style?(' style="'+style+'"'):'')+' title="'+esc(tip)+'">'+esc(contactLabel(c))+(sub?(' · '+esc(sub)):'')+'</button>';
+  var conSel=(ttDraft.contacts||[]);
+  var conRows=conSel.map(function(cid,idx){
+    var c=contactById(cid);
+    var nm=c?contactLabel(c):'(삭제된 연락처)';
+    return '<div class="conrow"><span class="condot"></span><span class="conname">'+esc(nm)+'</span>'+
+      (c&&c.role?'<span class="conrole">'+esc(c.role)+'</span>':'')+
+      (c&&c.phone?'<span class="conphone mono">'+esc(c.phone)+'</span>':'<span class="conphone none">전화 미입력</span>')+
+      '<button type="button" class="conrm" data-idx="'+idx+'" title="연결 해제" aria-label="해제">'+icon('x',13)+'</button></div>';
   }).join('');
+  var conPicker = conSel.length<3
+    ? '<div class="conpick"><input type="text" class="conpick-input" id="tt-conpick-input" placeholder="이름 또는 직함으로 검색 · 선택" autocomplete="off"><div class="conpick-menu" id="tt-conpick-menu"></div></div>'
+    : '<div class="hintmini">연락처는 최대 3명까지 연결할 수 있습니다.</div>';
+  var conSection = conRows + conPicker;
   b.innerHTML=
     '<div class="evfld"><label>종류 — 클릭해 선택 · 입력 후 Enter로 추가 · ✕로 삭제</label><div class="chipset" id="tt-catset">'+
       ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><input type="color" class="ccolor" data-c="'+esc(c[0])+'" value="'+esc(c[1])+'" title="색상 변경">'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
@@ -1315,7 +1321,7 @@ function renderTTModal(){
     '<div class="evfld"><label>제목</label><input id="tt-f-title" type="text" class="evinput" value="'+esc(ttDraft.title)+'" placeholder="예: 개영식 / 모듈 프로그램"></div>'+
     '<div class="evfld"><label>장소</label><input id="tt-f-place" type="text" class="evinput" value="'+esc(ttDraft.place)+'" placeholder="예: 메인 스타디움"></div>'+
     '<div class="evfld"><label>담당 인원 (배치) — 지정하면 인원·배치에 자동 반영</label><div class="evkinds" id="tt-asg">'+asgHtml+'</div></div>'+
-    '<div class="evfld"><label>관련 취재 연락처 — 클릭해 연결 · 이름 입력 후 Enter로 추가 (상세는 취재 연락처 탭에서)</label><div class="evkinds" id="tt-con">'+conHtml+'<input type="text" class="cinput" id="tt-con-input" placeholder="+ 담당자 이름"></div></div>'+
+    '<div class="evfld"><label>관련 취재 연락처 (최대 3명) — 이름을 선택하면 직함·전화가 자동으로 표시됩니다 (동명이인은 직함으로 검색)</label><div id="tt-con">'+conSection+'</div></div>'+
     '<div class="evfld"><label>메모 · 촬영 포인트</label><textarea id="tt-f-memo" class="evinput" rows="2">'+esc(ttDraft.memo)+'</textarea></div>';
   b.querySelectorAll('#tt-catset .csel').forEach(function(ch){ ch.addEventListener('click',function(e){ if(e.target.closest('.cx')||e.target.closest('.ccolor')) return; ttDraft.cat=ch.dataset.c; renderTTModal(); }); });
   b.querySelectorAll('#tt-catset .ccolor').forEach(function(cc){ cc.addEventListener('click',function(e){ e.stopPropagation(); }); cc.addEventListener('change',function(e){ e.stopPropagation(); setTtCatColor(cc.dataset.c, cc.value); renderTimetable(); renderTTModal(); }); });
@@ -1325,8 +1331,34 @@ function renderTTModal(){
     if(i>=0){ ttDraft.assignees.splice(i,1); }
     else { var off=offConflict(pid, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end)); if(off){ toast(personLabel(rosterById(pid))+' 님은 이 시간 오프('+off+')라 배정할 수 없습니다'); return; } ttDraft.assignees.push(pid); }
     renderTTModal(); }; });
-  b.querySelectorAll('#tt-con .evkind.con').forEach(function(bt){ bt.onclick=function(){ if(!ttDraft.contacts) ttDraft.contacts=[]; var cid=bt.dataset.cid; var i=ttDraft.contacts.indexOf(cid); if(i>=0) ttDraft.contacts.splice(i,1); else ttDraft.contacts.push(cid); renderTTModal(); }; });
-  var conIn=b.querySelector('#tt-con-input'); if(conIn) conIn.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v){ var nc={id:mkid(),name:v,org:'',role:'',phone:'',email:'',memo:''}; contactList().push(nc); saveContacts(); if(!ttDraft.contacts) ttDraft.contacts=[]; ttDraft.contacts.push(nc.id); } this.value=''; renderTTModal(); var ni=document.getElementById('tt-con-input'); if(ni) ni.focus(); } });
+  b.querySelectorAll('#tt-con .conrm').forEach(function(bt){ bt.onclick=function(){ var i=+bt.dataset.idx; if(ttDraft.contacts && i>=0 && i<ttDraft.contacts.length){ ttDraft.contacts.splice(i,1); renderTTModal(); } }; });
+  var pin=b.querySelector('#tt-conpick-input'), pmenu=b.querySelector('#tt-conpick-menu');
+  if(pin && pmenu){
+    var addLinkedContact=function(cid){ if(!ttDraft.contacts) ttDraft.contacts=[]; if(ttDraft.contacts.length>=3){ toast('연락처는 최대 3명까지'); return; } if(ttDraft.contacts.indexOf(cid)<0) ttDraft.contacts.push(cid); renderTTModal(); };
+    var createAndLink=function(nm){ nm=(nm||'').trim(); if(!nm) return; var nc={id:mkid(),name:nm,org:'',role:'',phone:'',email:'',memo:''}; contactList().push(nc); saveContacts(); addLinkedContact(nc.id); };
+    var renderMenu=function(){
+      var q=(pin.value||'').trim().toLowerCase();
+      var sel=ttDraft.contacts||[];
+      var opts=contactList().filter(function(c){ return sel.indexOf(c.id)<0; }).filter(function(c){
+        if(!q) return true; return [c.name,c.role,c.org,c.phone].join(' ').toLowerCase().indexOf(q)>=0;
+      });
+      var html=opts.map(function(c){
+        return '<div class="conpick-opt" data-cid="'+esc(c.id)+'"><span class="co-name">'+esc(contactLabel(c))+'</span>'+
+          (c.role?'<span class="co-role">'+esc(c.role)+'</span>':'')+
+          (c.phone?'<span class="co-phone mono">'+esc(c.phone)+'</span>':'')+'</div>';
+      }).join('');
+      var typed=(pin.value||'').trim();
+      if(!opts.length && !typed) html='<div class="conpick-empty">등록된 연락처가 없습니다. 이름을 입력해 추가하세요.</div>';
+      if(typed) html+='<div class="conpick-add" data-new="'+esc(typed)+'">'+icon('plus',13)+' ‘'+esc(typed)+'’ 새 연락처로 추가</div>';
+      pmenu.innerHTML=html;
+      pmenu.querySelectorAll('.conpick-opt').forEach(function(o){ o.onmousedown=function(ev){ ev.preventDefault(); addLinkedContact(o.dataset.cid); }; });
+      var addEl=pmenu.querySelector('.conpick-add'); if(addEl) addEl.onmousedown=function(ev){ ev.preventDefault(); createAndLink(addEl.dataset.new); };
+    };
+    pin.onfocus=function(){ pmenu.classList.add('show'); renderMenu(); };
+    pin.oninput=renderMenu;
+    pin.onkeydown=function(ev){ if(ev.key==='Enter'){ if(ev.isComposing||ev.keyCode===229) return; ev.preventDefault(); var first=pmenu.querySelector('.conpick-opt'); if(first) addLinkedContact(first.dataset.cid); else createAndLink(pin.value); } else if(ev.key==='Escape'){ pmenu.classList.remove('show'); } };
+    pin.onblur=function(){ setTimeout(function(){ if(pmenu) pmenu.classList.remove('show'); },180); };
+  }
   b.querySelector('#tt-f-day').onchange=function(){ ttDraft.day=this.value; };
   b.querySelector('#tt-f-start').onchange=function(){ ttDraft.start=this.value; if(t2h(ttDraft.end)<=t2h(ttDraft.start)) ttDraft.end=h2hhmm(t2h(ttDraft.start)+TT_SNAP); renderTTModal(); };
   b.querySelector('#tt-f-end').onchange=function(){ ttDraft.end=this.value; };
