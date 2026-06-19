@@ -257,6 +257,15 @@ WOSM Region → 국가(NSO) → 단위대
 - **5단계 절차형**(`templates.jsx` `T_Steps`, '13 · 절차/방법형(5단계)', 엔딩=14로): 번호 배지(원04)+제목+설명 5행 + STEP n + AutoFooter. SEC_TEMPLATES 13→14종.
 - 검증: 로컬 http서버+헤드리스 Chrome(파일 CORS 우회) — 6패밀리 렌더·14콘텐츠·장면 select(기본+10)·엠블럼 프리셋 6·푸터 토글·**콘솔 에러 0** + 스크린샷(표지 야영장 장면·소개형 푸터 2/3·5단계·D-피드 워터마크가 선택 엠블럼 반영). ⚠️ app.jsx에 이전 세션의 깨진 문자열 잔재(`/오류|실패|.../.test(listMsg)…`가 일부 상태문구·색 표현에 박힘)가 남아있음 — 부팅/기능엔 무해(상태 메시지 텍스트만 지저분), 별도 정리 권장.
 
+### 15.18 v0.9.50 — UI 안정성 정리(P0) + 저장 기본 로컬 + 비번 서버 백업
+- 사용자 평가 요청("카드뉴스 생성기 UI 안정성·그래픽 에디터 UX")에 따른 **P0 정리** + 저장 모델 변경.
+- **깨진 문자열 11곳 전부 정리**(app.jsx): §15.17이 남긴 `/오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent` 잔재가 박혀 있던 상태/토스트/`confirm()`(특히 '새로 만들기' 다이얼로그)·모달 상태색 표현을 정상 한국어/정상 표현식으로 교체.
+- **에러 경계 신설**(`class ErrorBoundary`): 카드 하나가 렌더 중 throw해도 앱 전체가 흰 화면으로 죽지 않게 — 프리뷰(`key=pv:<cardKey>`, 폴백 안내)·덱 썸네일(`key=th:<i>`, 폴백 null) 각각 격리.
+- **저장 기본 = 로컬(브라우저 localStorage)**: 명명된 카드뉴스를 `jamboree:projects`(인덱스)+`jamboree:project:<id>`(state)로 저장. `lsSaveProject/lsLoadProject/lsDeleteProject/lsProjects` 헬퍼. 저장/불러오기/삭제/목록/자동저장(`doAutosave`)이 전부 로컬. 쿼터 초과 시 ok:false → 안내. 작성자 이름은 **선택**(게이트 제거).
+- **서버 백업 = 선택 + 비밀번호 `scout1922`**: 모달 하단 '서버 백업' 섹션, 비번 입력 잠금 해제(localStorage `jamboree:server-ok`) 후에만 `/api/jamboree`(POST/GET/DELETE) 노출. 기본 흐름은 서버 미호출. 서버본 불러오기는 `currentId=null`(로컬 자동저장과 분리).
+- 검증: 로컬 http + 헤드리스 Chrome(CDN Babel 컴파일) — 부팅·헤더·저장모달(로컬 목록 라벨·작성자 선택·서버 섹션·비번 scout1922 잠금해제→'서버에 저장' 노출)·**콘솔/페이지 에러 0**(404는 정적서버 /VERSION 한정).
+- ⏳ 미적용(권장 후속): Undo/Redo, 줌, 모바일 에디터 레이아웃, 미저장 작업 이탈 가드.
+
 ---
 
 ## 16. /jamboree-plan — 미디어부 SNS 운영 캘린더 (BUILT, v0.9.20)
@@ -462,3 +471,10 @@ WOSM Region → 국가(NSO) → 단위대
 - **TT모달 픽커**(`#tt-con` 재작성): 선택된 연락처는 행(`.conrow` = ●이름·직함pill·전화·✕해제)으로 표시, 그 아래 검색 입력(`#tt-conpick-input`) + 드롭다운 메뉴(`#tt-conpick-menu`). 옵션(`.conpick-opt`)은 이름/직함/전화 표시, **이름·직함·소속·전화 어디로든 필터**(→ 동명이인 직함 검색). 선택 시 `addLinkedContact`(중복·3명 초과 차단), 해제는 인덱스 splice. 3명 도달 시 픽커 숨김+'최대 3명' 안내, 해제 시 재등장. 검색어가 매칭 없거나 입력 중이면 `‘<입력>’ 새 연락처로 추가`(`.conpick-add`)로 즉석 생성·연결(IME 가드). (기존 `.evkind.con` 칩·`#tt-con-input` 제거)
 - 직함=`role`. 취재 연락처 탭 표 헤더 `직책·담당`→**`직함`**으로 통일. 블록/툴팁 연락처 표시(`.ttg-evp.con`)는 유지.
 - 검증: `node --check` OK + 헤드리스 puppeteer file://(동명이인 김민수×2 시드 / 옵션3·각 이름·직함·전화 / 직함 '야영장' 검색→1건 / 선택→행에 직함·전화 자동 / 3명 도달 픽커 숨김·해제 후 재등장 / 저장→블록 con라인 / **콘솔 에러 0**) + 스크린샷(드롭다운 열림·선택행 정상).
+
+### 16.29 v0.9.50 — 비밀번호 게이트 + 대시보드 탭(첫 탭) + 현장 날씨 모듈
+- 사용자 3건: (1) 첫 진입 **비밀번호**(하드코딩 `scout1922`), (2) 맨 앞 **대시보드 탭** 신설, (3) 상단 **날씨 모듈**(강원 고성 토성면 잼버리로 244, 3일치 + 오늘 시간별 미래중심).
+- **비밀번호 게이트**: `#pw-gate` 풀스크린 오버레이(`html.pw-ok`로 숨김). `<head>` 인라인 스크립트가 `localStorage['jamboree-plan:unlocked']==='1'`이면 즉시 통과(재방문 무플래시), 아니면 게이트 표시. `wirePwGate()`가 입력/Enter 처리 — `scout1922` 일치 시 unlocked 저장 후 통과, 불일치 시 에러. 오버레이가 불투명이라 콘텐츠 미노출.
+- **대시보드 탭**(viewtabs 맨 앞 `data-v="dashboard"`, ICON `grid` 추가): 기본 뷰=dashboard(saved-view 목록에 포함). `setView`/`renderAll`이 dashboard 분기. `renderDashboard()` = 통계 6카드(개영 D-카운트·콘텐츠 진행 ready/total·운영 일정·시간 일정·인원·연락처·진행률 바) + 2패널(다가오는 콘텐츠/운영 일정, 클릭 시 `openSlot`/`openEvent`). 집계는 `daySlots`/`peek`/`isMeeting`/`eventList`/`rosterList`/`ttList`/`contactList` 재사용.
+- **날씨 모듈**(`#wx`, **Open-Meteo** 무키 client fetch, `WX_LAT=38.286/WX_LON=128.520` Asia/Seoul): 현재(아이콘·온도·체감·습도) + **오늘/내일/모레 3일**(최고/최저·강수확률) + **시간별 12개**(지금부터, 미래 중심, 1시간 단위·강수%). WMO코드→이모지/한글 매핑(`WMO`/`wxInfo`). 30분 메모리 캐시, 실패 시 '다시 시도'. CDN/API 키 없음(본 규칙 준수).
+- 검증: 로컬 http + 헤드리스 Chrome — 게이트 표시·오답 에러·`scout1922` 통과·대시보드 활성(통계 6·패널 2)·**날씨 라이브**(3일·시간별 12·현재온도)·탭 전환·**콘솔/페이지 에러 0**(404는 정적서버 /api·/VERSION 한정).

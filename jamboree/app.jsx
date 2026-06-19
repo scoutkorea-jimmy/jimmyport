@@ -54,6 +54,36 @@ const inputStyle = { width: '100%', boxSizing: 'border-box', border: '1px solid 
 const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 600, color: UI.muted, marginBottom: 4 };
 const secLabel = { fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: UI.muted, margin: '4px 0 8px' };
 
+/* ── 로컬 저장소: 명명된 카드뉴스를 브라우저(localStorage)에 저장. 기본 로컬, 서버 미사용 ──
+   인덱스(jamboree:projects) = [{id,name,author,updatedAt}], 항목(jamboree:project:<id>) = {state}.
+   이미지(dataURL)까지 통째로 보관하므로 브라우저 저장 공간(쿼터)을 넘으면 ok:false. */
+const LS_PROJECTS = 'jamboree:projects';
+const LS_PROJECT = 'jamboree:project:';
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function lsProjects() { try { const a = JSON.parse(localStorage.getItem(LS_PROJECTS) || '[]'); return Array.isArray(a) ? a : []; } catch (_) { return []; } }
+function lsSetProjects(a) { try { localStorage.setItem(LS_PROJECTS, JSON.stringify(a)); } catch (_) {} }
+function lsSaveProject(id, name, author, state) {
+  const pid = id || newId();
+  try { localStorage.setItem(LS_PROJECT + pid, JSON.stringify({ state })); }
+  catch (e) { return { ok: false }; }   // 쿼터 초과 등
+  const a = lsProjects();
+  const entry = { id: pid, name: name || '카드뉴스', author: author || '', updatedAt: new Date().toISOString() };
+  const i = a.findIndex((x) => x.id === pid);
+  if (i >= 0) a[i] = entry; else a.unshift(entry);
+  lsSetProjects(a);
+  return { ok: true, id: pid };
+}
+function lsLoadProject(id) { try { const o = JSON.parse(localStorage.getItem(LS_PROJECT + id) || 'null'); return o && o.state ? o.state : null; } catch (_) { return null; } }
+function lsDeleteProject(id) { try { localStorage.removeItem(LS_PROJECT + id); } catch (_) {} lsSetProjects(lsProjects().filter((x) => x.id !== id)); }
+
+/* ── 에러 경계: 카드 하나가 그리다 throw해도 앱 전체가 흰 화면으로 죽지 않게 ── */
+class ErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: false }; }
+  static getDerivedStateFromError() { return { err: true }; }
+  componentDidCatch(err, info) { try { console.error('[jamboree] card render error', err, info); } catch (_) {} }
+  render() { return this.state.err ? (this.props.fallback != null ? this.props.fallback : null) : this.props.children; }
+}
+
 function Swatches({ value, onPick, colors = SWATCHES, clearable }) {
   const v = (value || '').toLowerCase();
   return (
@@ -225,6 +255,17 @@ function App() {
   const [author, setAuthorState] = useState(() => { try { return localStorage.getItem(AUTHOR_KEY) || ''; } catch (_) { return ''; } });
   const setAuthor = useCallback((v) => { setAuthorState(v); try { if (v) localStorage.setItem(AUTHOR_KEY, v); else localStorage.removeItem(AUTHOR_KEY); } catch (_) {} }, []);
 
+  /* ── 서버 백업(선택): 비밀번호 scout1922 입력 시 활성. 기본 저장은 로컬(브라우저) ── */
+  const SERVER_PW = 'scout1922';
+  const [serverOpen, setServerOpen] = useState(() => { try { return localStorage.getItem('jamboree:server-ok') === '1'; } catch (_) { return false; } });
+  const [serverPw, setServerPw] = useState('');
+  const [serverItems, setServerItems] = useState(null);
+  const [serverMsg, setServerMsg] = useState('');
+  const serverRefresh = useCallback(async () => {
+    try { const r = await fetch('/api/jamboree?list=1'); const d = await r.json(); setServerItems(Array.isArray(d.items) ? d.items : []); }
+    catch (_) { setServerItems([]); setServerMsg('서버 목록을 불러오지 못했어요'); }
+  }, []);
+
   const family = famOf(familyKey);
   const cards = family.sec() || [];
   const card = cards.find((c) => c.id === variationId) || cards[0];
@@ -330,80 +371,93 @@ function App() {
   const flash = (msg) => { setStatus(msg); window.clearTimeout(flash._t); flash._t = window.setTimeout(() => setStatus(''), 3500); };
 
   /* ── 서버 저장/불러오기 (작성자 이름 기반, 토큰 없음) ── */
-  const refreshList = useCallback(async () => {
-    try {
-      const res = await fetch('/api/jamboree?list=1');
-      const data = await res.json();
-      setSavedItems(Array.isArray(data.items) ? data.items : []);
-    } catch (e) { setSavedItems([]); setListMsg('목록 불러오기 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); }
+  const refreshList = useCallback(() => {
+    const a = lsProjects().slice().sort((x, y) => (y.updatedAt || '').localeCompare(x.updatedAt || ''));
+    setSavedItems(a);
   }, []);
-  const openList = useCallback(() => { setListOpen(true); setListMsg(''); setSavedItems(null); refreshList(); }, [refreshList]);
+  const openList = useCallback(() => {
+    setListOpen(true); setListMsg(''); setServerMsg(''); setSavedItems(null); refreshList();
+    if (serverOpen) { setServerItems(null); serverRefresh(); }
+  }, [refreshList, serverOpen, serverRefresh]);
 
-  // 현재 작업 저장: 불러온 항목이 있으면 그 항목 갱신, 없으면 새 항목 생성
-  const saveWorking = useCallback(async () => {
-    if (!author.trim()) { setListMsg('작성자 이름을 먼저 입력하세요'); return; }
-    setBusy(true); setListMsg('저장 중…');
-    try {
-      const state = Object.assign(window.CCStore.collect(), { brand });
-      let res, data;
-      if (currentId) {
-        res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: currentId, name: currentName || saveName, author, state }) });
-      } else {
-        const name = (saveName || brand.brand || '카드뉴스').trim();
-        res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, author, state }) });
-        data = await res.json().catch(() => null);
-        if (res.ok && data && data.id) { setCurrentId(data.id); setCurrentName(name); }
-      }
-      if (!res.ok) { setListMsg('저장 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent (' + res.status + ')'); return; }
-      setListMsg('저장됨 ✓'); flash('저장됨 ✓'); refreshList();
-    } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
+  // 현재 작업 저장(로컬): 불러온 항목이 있으면 그 항목 갱신, 없으면 새 항목 생성
+  const saveWorking = useCallback(() => {
+    const state = Object.assign(window.CCStore.collect(), { brand });
+    const name = (currentName || saveName || brand.brand || '카드뉴스').trim();
+    const r = lsSaveProject(currentId, name, author, state);
+    if (!r.ok) { setListMsg('저장 실패 — 브라우저 저장 공간이 부족할 수 있어요(사진을 줄여보세요)'); return; }
+    if (!currentId) { setCurrentId(r.id); setCurrentName(name); }
+    setListMsg('저장됨 ✓'); flash('저장됨 ✓'); refreshList();
   }, [author, brand, currentId, currentName, saveName, refreshList]);
 
-  const saveAsNew = useCallback(async () => {
-    if (!author.trim()) { setListMsg('작성자 이름을 먼저 입력하세요'); return; }
+  const saveAsNew = useCallback(() => {
     const name = (saveName || brand.brand || '카드뉴스').trim();
-    setBusy(true); setListMsg('저장 중…');
-    try {
-      const state = Object.assign(window.CCStore.collect(), { brand });
-      const res = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, author, state }) });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) { setListMsg('저장 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent (' + res.status + ')'); return; }
-      if (data && data.id) { setCurrentId(data.id); setCurrentName(name); }
-      setListMsg('"' + name + '" 저장됨 ✓'); setSaveName(''); refreshList();
-    } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
+    const state = Object.assign(window.CCStore.collect(), { brand });
+    const r = lsSaveProject(null, name, author, state);
+    if (!r.ok) { setListMsg('저장 실패 — 브라우저 저장 공간이 부족할 수 있어요'); return; }
+    setCurrentId(r.id); setCurrentName(name);
+    setListMsg('"' + name + '" 저장됨 ✓'); setSaveName(''); flash('저장됨 ✓'); refreshList();
   }, [author, brand, saveName, refreshList]);
 
-  const loadItem = useCallback(async (it) => {
-    setBusy(true); setListMsg('불러오는 중…');
-    try {
-      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id));
-      const data = await res.json();
-      if (!data || !data.state) { setListMsg('불러오기 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); return; }
-      window.CCStore.hydrate(data.state);
-      if (data.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, data.state.brand));
-      setCurrentId(it.id); setCurrentName(it.name || '');
-      if (it.author) setAuthor(it.author);
-      setRemount((n) => n + 1); setListOpen(false); flash('불러옴 ✓');
-    } catch (e) { setListMsg('불러오기 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); } finally { setBusy(false); }
+  const loadItem = useCallback((it) => {
+    const state = lsLoadProject(it.id);
+    if (!state) { setListMsg('불러오기 실패 — 항목을 찾을 수 없어요'); return; }
+    window.CCStore.hydrate(state);
+    if (state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, state.brand));
+    setCurrentId(it.id); setCurrentName(it.name || '');
+    if (it.author) setAuthor(it.author);
+    setRemount((n) => n + 1); setListOpen(false); flash('불러옴 ✓');
   }, [setAuthor]);
 
-  const deleteItem = useCallback(async (it) => {
+  const deleteItem = useCallback((it) => {
     if (!window.confirm('"' + it.name + '" 삭제할까요?')) return;
-    setBusy(true);
-    try {
-      const res = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE' });
-      if (!res.ok) { setListMsg('삭제 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); return; }
-      if (currentId === it.id) { setCurrentId(null); setCurrentName(''); }
-      setSavedItems((prev) => Array.isArray(prev) ? prev.filter((x) => x.id !== it.id) : prev);  // 즉시 반영(KV 지연 보완)
-      setListMsg('삭제됨 ✓');
-    } catch (e) { setListMsg('네트워크 오류'); } finally { setBusy(false); }
-  }, [currentId, refreshList]);
+    lsDeleteProject(it.id);
+    if (currentId === it.id) { setCurrentId(null); setCurrentName(''); }
+    setSavedItems((prev) => Array.isArray(prev) ? prev.filter((x) => x.id !== it.id) : prev);
+    setListMsg('삭제됨 ✓');
+  }, [currentId]);
 
   const newProject = useCallback(() => {
-    if (!window.confirm('새 카드뉴스를 시작할까요? 저장하지 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent은 현재 편집 내용은 사라집니다.')) return;
+    if (!window.confirm('새 카드뉴스를 시작할까요? 저장하지 않은 현재 편집 내용은 사라집니다.')) return;
     window.CCStore.clearAll();
     setBrand(DEFAULT_BRAND); setCurrentId(null); setCurrentName(''); setSaveName('');
     setRemount((n) => n + 1); setListMsg('새 카드뉴스 시작됨'); flash('새 카드뉴스 ✓');
+  }, []);
+
+  /* ── 서버 백업 액션 (비밀번호 scout1922 잠금 해제 후) ── */
+  const unlockServer = useCallback(() => {
+    if (serverPw !== SERVER_PW) { setServerMsg('비밀번호가 올바르지 않습니다'); return; }
+    setServerOpen(true); setServerMsg(''); try { localStorage.setItem('jamboree:server-ok', '1'); } catch (_) {}
+    setServerItems(null); serverRefresh();
+  }, [serverPw, serverRefresh]);
+  const serverSave = useCallback(async () => {
+    setServerMsg('서버 저장 중…');
+    try {
+      const state = Object.assign(window.CCStore.collect(), { brand });
+      const name = (currentName || saveName || brand.brand || '카드뉴스').trim();
+      const r = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, author: author || '익명', state }) });
+      if (!r.ok) { setServerMsg('서버 저장 실패 (' + r.status + ')'); return; }
+      setServerMsg('서버에 저장됨 ✓'); flash('서버 저장 ✓'); serverRefresh();
+    } catch (_) { setServerMsg('네트워크 오류'); }
+  }, [brand, currentName, saveName, author, serverRefresh]);
+  const serverLoad = useCallback(async (it) => {
+    setServerMsg('불러오는 중…');
+    try {
+      const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id)); const d = await r.json();
+      if (!d || !d.state) { setServerMsg('불러오기 실패'); return; }
+      window.CCStore.hydrate(d.state);
+      if (d.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, d.state.brand));
+      setCurrentId(null); setCurrentName(it.name || '');   // 서버본은 로컬 자동저장 대상 아님
+      setRemount((n) => n + 1); setListOpen(false); flash('서버에서 불러옴 ✓');
+    } catch (_) { setServerMsg('네트워크 오류'); }
+  }, []);
+  const serverDelete = useCallback(async (it) => {
+    if (!window.confirm('서버에서 "' + it.name + '" 삭제할까요?')) return;
+    try {
+      const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE' });
+      if (!r.ok) { setServerMsg('삭제 실패'); return; }
+      setServerItems((p) => Array.isArray(p) ? p.filter((x) => x.id !== it.id) : p);
+    } catch (_) { setServerMsg('네트워크 오류'); }
   }, []);
 
   /* ── 자동 저장: 불러온/저장한 항목이 있으면 그 항목을 갱신(작성자 이름 필요) ── */
@@ -415,14 +469,12 @@ function App() {
   useEffect(() => { curRef.current = { id: currentId, name: currentName }; }, [currentId, currentName]);
   const autosaveT = useRef(0);
   const autosaveReady = useRef(false);
-  const doAutosave = useCallback(async () => {
-    const a = (authorRef.current || '').trim(); const cur = curRef.current;
-    if (!a || !cur.id) return;   // 작성자 + 저장된 항목이 있을 때만 자동 갱신
-    try {
-      const state = Object.assign(window.CCStore.collect(), { brand: brandRef.current });
-      const res = await fetch('/api/jamboree', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: cur.id, name: cur.name, author: a, state }) });
-      if (res.ok) flash('자동 저장됨 ✓');
-    } catch (_) {}
+  const doAutosave = useCallback(() => {
+    const cur = curRef.current;
+    if (!cur.id) return;   // 저장된 로컬 항목이 있을 때만 자동 갱신
+    const state = Object.assign(window.CCStore.collect(), { brand: brandRef.current });
+    const r = lsSaveProject(cur.id, cur.name, authorRef.current, state);
+    if (r.ok) flash('자동 저장됨 ✓'); else flash('자동 저장 실패 (저장 공간 부족)');
   }, []);
   const scheduleAutosave = useCallback(() => {
     window.clearTimeout(autosaveT.current);
@@ -445,7 +497,7 @@ function App() {
       a.download = `jamboree_${family.key}_${card ? card.id : 'card'}.png`;
       a.href = dataUrl; a.click();
       flash('다운로드 ✓');
-    } catch (e) { console.error(e); flash('PNG /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); } finally { setBusy(false); }
+    } catch (e) { console.error(e); flash('PNG 생성 실패'); } finally { setBusy(false); }
   }, [family, card]);
 
   /* ── 카드뉴스 ZIP: 덱 순서대로 오프스크린 네이티브 렌더 → JSZip ── */
@@ -493,7 +545,7 @@ function App() {
       a.href = URL.createObjectURL(blob); a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
       flash('ZIP 완료 ✓');
-    } catch (e) { console.error(e); flash('ZIP /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); } finally { setBusy(false); }
+    } catch (e) { console.error(e); flash('ZIP 생성 실패'); } finally { setBusy(false); }
   }, [deck, brand, tweaks]);
 
   /* ── 한 편 PNG: 덱 모듈을 세로로 이어붙인 단일 이미지 (카드뉴스 한 편) ── */
@@ -539,7 +591,7 @@ function App() {
       a.href = URL.createObjectURL(blob); a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
       flash('한 편 완성 ✓');
-    } catch (e) { console.error(e); flash('한 편 /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent'); } finally { setBusy(false); }
+    } catch (e) { console.error(e); flash('한 편 PNG 생성 실패'); } finally { setBusy(false); }
   }, [deck, brand, tweaks]);
 
   const sideBtn = (active) => ({
@@ -596,7 +648,9 @@ function App() {
                           <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: family.w, height: family.h }}>
                             <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
                               <div style={{ position: 'absolute', inset: 0 }}>
-                                {card ? card.node : null}
+                                <ErrorBoundary key={'pv:' + cardKey} fallback={<div style={cardErr}>이 카드를 그리는 중 문제가 발생했어요.<br />다른 카드를 고르거나 새로고침 해주세요.</div>}>
+                                  {card ? card.node : null}
+                                </ErrorBoundary>
                               </div>
                             </div>
                           </div>
@@ -791,7 +845,7 @@ function App() {
                     <div style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, transform: `scale(${tS})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
                       <window.DDayTweakCtx.Provider value={tweaks}>
                         <window.GContentCtx.Provider value={brand}>
-                          <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>{r.card.node}</window.CCFooterCtx.Provider>
+                          <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}><ErrorBoundary key={'th:' + i} fallback={null}>{r.card.node}</ErrorBoundary></window.CCFooterCtx.Provider>
                         </window.GContentCtx.Provider>
                       </window.DDayTweakCtx.Provider>
                     </div>
@@ -821,9 +875,9 @@ function App() {
             <div style={{ overflowY: 'auto' }}>
               {/* 작성자 이름 */}
               <div style={{ padding: '14px 20px', borderBottom: '1px solid '+UI.line }}>
-                <div style={{ ...fieldLabel, display: 'flex', justifyContent: 'space-between' }}><span>작성자 이름</span><span style={{ color: author.trim() ? UI.accent : '#C8821C', fontWeight: 700 }}>{author.trim() ? '● 입력됨' : '○ 미입력'}</span></div>
+                <div style={{ ...fieldLabel }}>작성자 이름 (선택)</div>
                 <input value={author} placeholder="예: 홍길동 / 강원연맹" onChange={(e) => setAuthor(e.target.value)} style={inputStyle} />
-                <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>이름 입력 후 저장하면, 이후 변경은 그 카드뉴스에 <b>자동 저장</b>됩니다.</p>
+                <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>저장은 <b>이 브라우저(로컬)</b>에 보관됩니다. 한 번 저장한 뒤의 변경은 그 카드뉴스에 <b>자동 저장</b>돼요. (기기 간 동기화는 안 됨 — 공유하려면 아래 서버 백업)</p>
               </div>
 
               {/* 저장 액션 */}
@@ -834,13 +888,13 @@ function App() {
                   <input value={saveName} placeholder="다른 이름으로 저장 (새 사본)" onChange={(e) => setSaveName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
                   <button disabled={busy} onClick={saveAsNew} style={{ flex: '0 0 auto', border: '1.5px solid ' + UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>새 사본</button>
                 </div>
-                {listMsg && <div style={{ fontSize: 12.5, color: /오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent|/오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent|/오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent|/오류|실패|않|먼저/.test(listMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 10 }}>{listMsg}</div>}
+                {listMsg && <div style={{ fontSize: 12.5, color: /실패|오류|부족|없/.test(listMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 10 }}>{listMsg}</div>}
               </div>
 
               {/* 목록 */}
               <div style={{ padding: '12px 16px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px' }}>
-                  <span style={fieldLabel}>저장된 카드뉴스</span>
+                  <span style={fieldLabel}>저장된 카드뉴스 (이 브라우저)</span>
                   <button disabled={busy} onClick={newProject} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.muted, borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ 새로 만들기</button>
                 </div>
                 {savedItems === null && <div style={{ padding: 20, textAlign: 'center', color: UI.faint, fontSize: 13 }}>불러오는 중…</div>}
@@ -856,6 +910,38 @@ function App() {
                   </div>
                 ))}
               </div>
+
+              {/* 서버 백업 (선택 · 비밀번호 scout1922) */}
+              <div style={{ padding: '14px 20px', borderTop: '1px solid '+UI.line, background: UI.surface2 }}>
+                <div style={{ ...secLabel, marginBottom: 8 }}>서버 백업 (선택 · 비밀번호 필요)</div>
+                {!serverOpen ? (
+                  <div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input type="password" value={serverPw} placeholder="비밀번호" onChange={(e) => setServerPw(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') unlockServer(); }} style={{ ...inputStyle, flex: 1 }} />
+                      <button onClick={unlockServer} style={{ flex: '0 0 auto', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>잠금 해제</button>
+                    </div>
+                    <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. 다른 기기와 공유하려면 비밀번호로 서버 백업을 켜세요.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <button onClick={serverSave} style={{ width: '100%', border: 'none', background: UI.accentInk, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>현재 카드뉴스를 서버에 저장</button>
+                    {serverItems === null && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 13 }}>불러오는 중…</div>}
+                    {serverItems && serverItems.length === 0 && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 12.5 }}>서버에 저장된 카드뉴스가 없습니다.</div>}
+                    {serverItems && serverItems.map((it) => (
+                      <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10, background: '#fff', border: '1px solid '+UI.line, marginBottom: 6 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+                          <div style={{ fontSize: 11, color: UI.faint, marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
+                        </div>
+                        <button onClick={() => serverLoad(it)} style={{ border: 'none', background: UI.accent, color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
+                        <button onClick={() => serverDelete(it)} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.danger, borderRadius: 8, padding: '7px 10px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {serverMsg && <div style={{ fontSize: 12.5, color: /실패|오류|올바르/.test(serverMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 8 }}>{serverMsg}</div>}
+              </div>
             </div>
           </div>
         </div>
@@ -868,6 +954,11 @@ const pillHint = {
   position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
   background: 'rgba(43,38,48,.86)', color: '#fff', borderRadius: 999, padding: '7px 16px',
   fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none',
+};
+const cardErr = {
+  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  textAlign: 'center', padding: 48, background: '#fff', color: '#B5503C', fontSize: 30, lineHeight: 1.5,
+  fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif",
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);

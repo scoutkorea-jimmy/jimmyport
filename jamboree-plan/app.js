@@ -39,7 +39,8 @@ var ICON={
   users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1"/><path d="M17 14.2a6 6 0 0 1 4 5.8"/>',
   mapPin:'<path d="M12 21s-6.5-5.5-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.5 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.4"/>',
   tag:'<path d="M3 11V4a1 1 0 0 1 1-1h7l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
-  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>'
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  grid:'<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>'
 };
 function icon(name,size){ return '<svg class="ic" viewBox="0 0 24 24" width="'+(size||16)+'" height="'+(size||16)+'" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[name]||'')+'</svg>'; }
 
@@ -1514,7 +1515,7 @@ function renderContacts(){
 }
 
 /* ===== render orchestration ===== */
-function renderAll(){ renderHeader(); renderCalendar(); renderFilters(); renderBoard(); renderMarketing(); }
+function renderAll(){ renderHeader(); renderCalendar(); renderFilters(); renderBoard(); renderMarketing(); if(curViewMode==='dashboard') renderDashboard(); }
 function renderAfterEdit(k,s,now){
   // refresh overview (calendar + board); save the affected card to server
   renderCalendar(); renderBoard();
@@ -1537,11 +1538,139 @@ function exportJSON(){
   else toast('JSON 다운로드 완료');
 }
 
+/* ===== password gate (scout1922) ===== */
+var PW='scout1922';
+function wirePwGate(){
+  var gate=document.getElementById('pw-gate'); if(!gate) return;
+  var unlocked=false; try{ unlocked=localStorage.getItem('jamboree-plan:unlocked')==='1'; }catch(e){}
+  if(unlocked){ document.documentElement.classList.add('pw-ok'); return; }
+  var inp=document.getElementById('pw-input'), go=document.getElementById('pw-go'), err=document.getElementById('pw-err');
+  function tryPw(){
+    if((inp&&inp.value||'')===PW){ try{localStorage.setItem('jamboree-plan:unlocked','1');}catch(e){} document.documentElement.classList.add('pw-ok'); }
+    else { if(err) err.textContent='비밀번호가 올바르지 않습니다.'; if(inp){ inp.value=''; inp.focus(); } }
+  }
+  if(go) go.onclick=tryPw;
+  if(inp) inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); tryPw(); } });
+  setTimeout(function(){ if(inp) inp.focus(); },60);
+}
+
+/* ===== weather (Open-Meteo · 강원 고성 토성면 잼버리로 244 인근) ===== */
+var WX_LAT=38.286, WX_LON=128.520;
+var wxData=null, wxLoadedAt=0, wxLoading=false;
+var WMO={0:['☀️','맑음'],1:['🌤️','대체로 맑음'],2:['⛅','구름 조금'],3:['☁️','흐림'],
+  45:['🌫️','안개'],48:['🌫️','상고대 안개'],51:['🌦️','약한 이슬비'],53:['🌦️','이슬비'],55:['🌦️','강한 이슬비'],
+  56:['🌧️','어는 이슬비'],57:['🌧️','어는 이슬비'],61:['🌧️','약한 비'],63:['🌧️','비'],65:['🌧️','강한 비'],
+  66:['🌧️','어는 비'],67:['🌧️','어는 비'],71:['🌨️','약한 눈'],73:['🌨️','눈'],75:['❄️','강한 눈'],77:['🌨️','싸락눈'],
+  80:['🌦️','소나기'],81:['🌦️','소나기'],82:['⛈️','강한 소나기'],85:['🌨️','소낙눈'],86:['🌨️','강한 소낙눈'],
+  95:['⛈️','뇌우'],96:['⛈️','우박 동반 뇌우'],99:['⛈️','강한 뇌우']};
+function wxInfo(c){ return WMO[c]||['🌡️','—']; }
+function wxDayLabel(i){ return i===0?'오늘':i===1?'내일':i===2?'모레':''; }
+function loadWeather(force){
+  if(!force && wxData && (Date.now()-wxLoadedAt < 1800000)){ renderWeather(); return; }
+  if(wxLoading) return;
+  wxLoading=true; renderWeather();
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+WX_LAT+'&longitude='+WX_LON+
+    '&timezone=Asia%2FSeoul&current=temperature_2m,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m'+
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'+
+    '&hourly=temperature_2m,weather_code,precipitation_probability&forecast_days=3';
+  fetch(url).then(function(r){return r.json();}).then(function(j){ wxData=j; wxLoadedAt=Date.now(); wxLoading=false; renderWeather(); })
+  .catch(function(){ wxLoading=false; var el=document.getElementById('wx'); if(el){ el.innerHTML='<div class="wxerr">날씨를 불러오지 못했어요. <button class="btn sm" id="wx-retry">다시 시도</button></div>'; var b=document.getElementById('wx-retry'); if(b) b.onclick=function(){ loadWeather(true); }; } });
+}
+function renderWeather(){
+  var el=document.getElementById('wx'); if(!el) return;
+  if(!wxData){ el.innerHTML='<div class="wxload">'+(wxLoading?'날씨 불러오는 중…':'날씨 준비 중…')+'</div>'; return; }
+  var d=wxData.daily||{}, cur=wxData.current||{};
+  var ci=wxInfo(cur.weather_code);
+  var html='<div class="wxhead">'+
+    '<div class="wxnow"><span class="wxnow-ic">'+ci[0]+'</span><div><div class="wxnow-t">'+(cur.temperature_2m!=null?Math.round(cur.temperature_2m)+'°':'—')+'</div>'+
+      '<div class="wxnow-s">'+ci[1]+(cur.apparent_temperature!=null?(' · 체감 '+Math.round(cur.apparent_temperature)+'°'):'')+(cur.relative_humidity_2m!=null?(' · 습도 '+Math.round(cur.relative_humidity_2m)+'%'):'')+'</div></div></div>'+
+    '<div class="wxloc">강원 고성 · 잼버리로 244<br><span>실시간 기상 · Open-Meteo</span></div></div>';
+  var times=d.time||[];
+  html+='<div class="wxdays">';
+  for(var i=0;i<times.length && i<3;i++){
+    var wi=wxInfo((d.weather_code||[])[i]);
+    var pop=(d.precipitation_probability_max||[])[i];
+    html+='<div class="wxday'+(i===0?' today':'')+'">'+
+      '<div class="wxd-lab">'+wxDayLabel(i)+'</div><div class="wxd-ic">'+wi[0]+'</div><div class="wxd-desc">'+wi[1]+'</div>'+
+      '<div class="wxd-temp"><b>'+Math.round((d.temperature_2m_max||[])[i])+'°</b> <span>'+Math.round((d.temperature_2m_min||[])[i])+'°</span></div>'+
+      '<div class="wxd-pop">💧 '+(pop!=null?pop:0)+'%</div></div>';
+  }
+  html+='</div>';
+  var H=wxData.hourly||{}, ht=H.time||[], nowMs=Date.now(), startIdx=0;
+  for(var j=0;j<ht.length;j++){ if(new Date(ht[j]).getTime() >= nowMs-1800000){ startIdx=j; break; } }
+  var hours='';
+  for(var k=startIdx;k<ht.length && k<startIdx+12;k++){
+    var hi=wxInfo((H.weather_code||[])[k]); var hh=new Date(ht[k]).getHours();
+    var pp=(H.precipitation_probability||[])[k];
+    hours+='<div class="wxh'+(k===startIdx?' now':'')+'"><div class="wxh-t">'+(k===startIdx?'지금':(hh+'시'))+'</div>'+
+      '<div class="wxh-ic">'+hi[0]+'</div><div class="wxh-deg">'+Math.round((H.temperature_2m||[])[k])+'°</div>'+
+      '<div class="wxh-pop">'+(pp!=null?pp:0)+'%</div></div>';
+  }
+  html+='<div class="wxhours-wrap"><div class="wxhours-lab">시간별 예보 · 지금부터</div><div class="wxhours">'+hours+'</div></div>';
+  el.innerHTML=html;
+}
+
+/* ===== dashboard ===== */
+function renderDashboard(){
+  loadWeather();
+  var box=document.getElementById('dash-stats'); if(!box) return;
+  var total=0, planned=0, draft=0, ready=0, meetings=0, today=todayISO(), upcoming=[];
+  DAYS.forEach(function(d){
+    daySlots(d).forEach(function(s){
+      var e=peek(s.k), st=e.status||'planned';
+      if(isMeeting(e)){ meetings++; }
+      else { total++; if(st==='ready')ready++; else if(st==='draft')draft++; else planned++; }
+      if(e.title && d.date>=today){ upcoming.push({d:d,s:s,e:e}); }
+    });
+  });
+  upcoming.sort(function(a,b){ return a.d.date<b.d.date?-1:a.d.date>b.d.date?1:0; });
+  var pct= total? Math.round(ready/total*100):0;
+  var evs=eventList().filter(function(ev){ return ev.title && (ev.end||ev.start||'')>=today; }).sort(function(a,b){ return (a.start||'')<(b.start||'')?-1:1; });
+  var rosterN=rosterList().filter(function(r){ return (r.name||'').trim()||(r.role||'').trim(); }).length;
+  var ttN=ttList().length;
+  var conN=contactList().filter(function(c){ return (c.name||'').trim(); }).length;
+  var dd=dayDiff(EVENT_DAY, today);
+  function statCard(label, big, sub, color){
+    return '<div class="statcard"><div class="sc-lab">'+label+'</div><div class="sc-big" style="color:'+(color||'var(--ink)')+'">'+big+'</div><div class="sc-sub">'+(sub||'')+'</div></div>';
+  }
+  var html='<div class="dashgrid">';
+  html+=statCard('개영까지', dd>0?('D-'+dd):(dd===0?'D-DAY':('D+'+(-dd))), '2026-08-05 개영', 'var(--c-fin)');
+  html+=statCard('콘텐츠 진행', ready+' / '+total, '완료 '+pct+'% · 작성중 '+draft+' · 기획 '+planned, 'var(--st-ready)');
+  html+=statCard('운영 일정', evs.length+'건', '다가오는 회의 · 공모전 · 행사', 'var(--c-intl)');
+  html+=statCard('시간 일정', ttN+'건', '잼버리 일정표 (8/2~8/9)', 'var(--accent)');
+  html+=statCard('인원 · 연락처', rosterN+' · '+conN, 'R&R 인원 · 취재 연락처', 'var(--ink-2)');
+  html+=statCard('진행률', pct+'%', '<div class="sc-bar"><i style="width:'+pct+'%"></i></div>', 'var(--st-ready)');
+  html+='</div>';
+  html+='<div class="dashcols">';
+  html+='<div class="dashpanel"><div class="dp-h">다가오는 콘텐츠</div>';
+  if(!upcoming.length){ html+='<div class="dp-empty">예정된(제목 입력된) 콘텐츠가 없습니다.</div>'; }
+  else { html+='<div class="dp-list">'; upcoming.slice(0,8).forEach(function(it){
+    html+='<button class="dp-item" data-date="'+it.d.date+'" data-sk="'+esc(it.s.k)+'">'+
+      '<span class="dp-d">'+it.d.label+' '+it.d.weekday+'</span>'+
+      '<span class="dp-t">'+(it.e.ctype?ctchip(it.e.ctype)+' ':'')+esc(it.e.title)+'</span>'+
+      '<span class="dp-st" style="background:'+STCOL[it.e.status||'planned']+'">'+STATUS_LABEL[it.e.status||'planned']+'</span></button>';
+  }); html+='</div>'; }
+  html+='</div>';
+  html+='<div class="dashpanel"><div class="dp-h">다가오는 운영 일정</div>';
+  if(!evs.length){ html+='<div class="dp-empty">예정된 운영 일정이 없습니다.</div>'; }
+  else { html+='<div class="dp-list">'; evs.slice(0,8).forEach(function(ev){
+    var ek=(eventColor?eventColor(ev.kind):'#7A6A57');
+    html+='<button class="dp-item" data-eid="'+esc(ev.id)+'">'+
+      '<span class="dp-d">'+(ev.start||'').slice(5)+(ev.end&&ev.end!==ev.start?('~'+ev.end.slice(5)):'')+'</span>'+
+      '<span class="dp-t"><span class="dp-kind" style="background:'+ek+'">'+esc(ev.kind||'')+'</span> '+esc(ev.title)+'</span></button>';
+  }); html+='</div>'; }
+  html+='</div></div>';
+  box.innerHTML=html;
+  box.querySelectorAll('.dp-item[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
+  box.querySelectorAll('.dp-item[data-eid]').forEach(function(b){ b.onclick=function(){ openEvent(b.getAttribute('data-eid')); }; });
+}
+
 /* ===== wire up ===== */
 /* ===== view tabs ===== */
 var curViewMode='calendar';
 function setView(v){
   curViewMode=v;
+  var db=document.getElementById('dashboard'); if(db) db.style.display = v==='dashboard'?'':'none';
   document.getElementById('calendar').style.display  = v==='calendar'?'':'none';
   document.getElementById('content').style.display   = v==='list'?'':'none';
   document.getElementById('timetable').style.display = v==='timetable'?'':'none';
@@ -1551,6 +1680,7 @@ function setView(v){
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
   try{localStorage.setItem('jamboree-plan:view',v);}catch(e){}
+  if(v==='dashboard') renderDashboard();
   if(v==='list') renderBoard();
   if(v==='timetable') renderTimetable();
   if(v==='staff') renderStaff();
@@ -1558,6 +1688,7 @@ function setView(v){
 }
 
 function init(){
+  wirePwGate();
   loadLocal();
   // 정적 라인 아이콘 주입
   document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=icon(el.getAttribute('data-ic'), +(el.getAttribute('data-ic-size')||16)); });
@@ -1583,7 +1714,7 @@ function init(){
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
-  setView(['list','timetable','staff','contacts'].indexOf(savedView)>=0?savedView:'calendar');
+  setView(['dashboard','calendar','list','timetable','staff','contacts'].indexOf(savedView)>=0?savedView:'dashboard');
   // add content (list view)
   var ad=document.getElementById('add-date'); var td=todayISO();
   ad.value=(td>='2026-06-15'&&td<='2026-08-09')?td:'2026-06-26';

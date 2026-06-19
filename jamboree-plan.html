@@ -9,8 +9,20 @@
 
 <script type="module" src="jamboree-plan/editor.js"></script>
 <link rel="stylesheet" href="jamboree-plan/styles.css">
+<script>(function(){try{if(localStorage.getItem('jamboree-plan:unlocked')==='1')document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
+
+<div id="pw-gate">
+  <div class="pw-box">
+    <img src="jamboree/assets/logo.png" width="68" height="68" alt="제16회 한국잼버리 엠블럼">
+    <h2>기획조정본부 홍보부 운영 보드</h2>
+    <p>접근하려면 비밀번호를 입력하세요.</p>
+    <input id="pw-input" type="password" placeholder="비밀번호" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button id="pw-go" class="btn solid">입장</button>
+    <p class="pw-err" id="pw-err"></p>
+  </div>
+</div>
 <div class="wrap">
 
   <div class="syncbar">
@@ -32,12 +44,22 @@
   </header>
 
   <div class="viewtabs" role="tablist">
-    <button class="vtab active" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더 보기</button>
+    <button class="vtab active" data-v="dashboard" role="tab"><span data-ic="grid"></span> 대시보드</button>
+    <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더 보기</button>
     <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 리스트 보기</button>
     <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
     <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 인원 · 배치</button>
     <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 취재 연락처</button>
   </div>
+
+  <section id="dashboard">
+    <div class="sec-head">
+      <h2>대시보드</h2>
+      <span class="sub">강원 고성 잼버리 현장 날씨 · 운영 현황 한눈에</span>
+    </div>
+    <div class="wxmod" id="wx"><div class="wxload">날씨 준비 중…</div></div>
+    <div id="dash-stats"></div>
+  </section>
 
   <section id="calendar">
     <div class="sec-head">
