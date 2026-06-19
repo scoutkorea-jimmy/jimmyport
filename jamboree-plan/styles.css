@@ -679,3 +679,16 @@ th.prh.sorted::after{content:attr(data-dir);font-size:9px;margin-left:3px;vertic
 .evkind.rep{font-size:12px}
 .evkind.rep:disabled{opacity:.45;cursor:default}
 .evkind.rep .repwd{opacity:.7;margin-left:2px;font-size:11px}
+
+/* 시간 일정 세부 식순(rundown) */
+.rundown{display:flex;flex-direction:column;gap:6px}
+.rd-row{display:flex;gap:6px;align-items:center}
+.rd-in{border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit;font-size:13px;color:var(--ink);background:var(--surface)}
+.rd-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.rd-time{width:72px;flex:0 0 auto;text-align:center;font-family:ui-monospace,Menlo,monospace}
+.rd-title{flex:1;min-width:0}
+.rd-note{width:108px;flex:0 0 auto}
+.rd-del{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--danger);border-radius:6px;width:30px;height:30px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.rd-add{align-self:flex-start;margin-top:2px;border:1.5px dashed var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:var(--pill);padding:6px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.ttg-evp.rd{color:#234636;font-weight:600}
+@media(max-width:680px){ .rd-note{display:none} }

@@ -111,6 +111,12 @@ function cleanTT(e) {
   const contacts = Array.isArray(e.contacts)
     ? e.contacts.slice(0, 30).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean)
     : [];
+  const rundown = Array.isArray(e.rundown)
+    ? e.rundown.slice(0, 80).map((r) => {
+        r = r && typeof r === "object" ? r : {};
+        return { time: (r.time || "").toString().slice(0, 20), title: (r.title || "").toString().slice(0, 200), note: (r.note || "").toString().slice(0, 200) };
+      })
+    : [];
   return {
     id: (e.id || "").toString().slice(0, 40),
     day: (e.day || "").toString().slice(0, 10),
@@ -122,6 +128,7 @@ function cleanTT(e) {
     assignees,
     contacts,
     memo: (e.memo || "").toString().slice(0, 500),
+    rundown,
   };
 }
 function cleanRoster(e) {
