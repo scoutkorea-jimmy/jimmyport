@@ -1236,24 +1236,18 @@ function renderTimetable(){
         var who=ttAssignees(t).map(personLabel);
         var cons=ttContacts(t).map(function(c){ return contactLabel(c)+(c.phone?(' '+c.phone):''); });
         var tip=(t.start||'')+(t.end?('–'+t.end):'')+' '+(t.title||'')+(t.place?(' @ '+t.place):'')+(who.length?(' · 담당 '+who.join(', ')):'')+(cons.length?(' · 연락처 '+cons.join(', ')):'');
-        // 일간 뷰 + 시간이 있는 식순 → 블록 내부를 시간 비례 서브타임라인으로 표기
-        var rdTimed=(t.rundown||[]).filter(function(r){return t2h(r.time)!=null;}).sort(function(a,bb){return t2h(a.time)-t2h(bb.time);});
-        var hasRD=dayView && rdTimed.length;
-        var inner;
-        if(hasRD){
-          var segs=rdTimed.map(function(r,k){ var rtop=Math.max(0,(t2h(r.time)-s))*TT_HH; var rnext=(k+1<rdTimed.length)?Math.max(0,(t2h(rdTimed[k+1].time)-s))*TT_HH:(ht-3); var rh=Math.max(13,rnext-rtop); return '<div class="ttg-sub" style="top:'+rtop+'px;height:'+(rh-1)+'px"><span class="ttg-sub-t">'+esc(r.time)+'</span><span class="ttg-sub-x">'+esc(r.title||'')+(r.note?(' · '+esc(r.note)):'')+'</span></div>'; }).join('');
-          inner='<div class="ttg-rdtitle">'+esc(t.title||'(제목 없음)')+(who.length?(' · '+esc(who.join(','))):'')+'</div>'+segs;
-        } else {
-          inner='<div class="ttg-evt">'+esc(t.title||'(제목 없음)')+'</div>'+
-            '<div class="ttg-evm">'+esc(t.start||'')+(t.end?('–'+esc(t.end)):'')+(t.place?(' · '+esc(t.place)):'')+'</div>'+
-            (who.length?'<div class="ttg-evp">'+icon('users',10)+' '+esc(who.join(', '))+'</div>':'')+
-            (dayView&&cons.length?'<div class="ttg-evp con">'+icon('phone',10)+' '+esc(cons.join(', '))+'</div>':'')+
-            ((t.rundown&&t.rundown.length)?'<div class="ttg-evp rd">'+icon('fileText',10)+' 식순 '+t.rundown.length+'단계</div>':'');
-        }
-        H+='<div class="ttg-ev'+(dayView?' big':'')+(hasRD?' has-rd':'')+'" data-id="'+esc(t.id)+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+(ht-3)+'px;left:calc('+L+'% + 2px);width:calc('+w+'% - 4px);background:'+ttCatColor(t.cat)+'">'+
+        // 일간 뷰: 기본 블록 헤더 유지 + 내부에 식순(서브 일정) 미니 타임라인 리스트 / 전체기간: 배지
+        var rd=(t.rundown||[]).filter(function(r){return (r.time||r.title);});
+        var rdHtml=(dayView&&rd.length)
+          ? ('<div class="ttg-rd">'+rd.map(function(r){return '<div class="ttg-rd-row"><span class="ttg-rd-t">'+esc(r.time||'·')+'</span><span class="ttg-rd-x">'+esc(r.title||'')+(r.note?(' · '+esc(r.note)):'')+'</span></div>';}).join('')+'</div>')
+          : ((t.rundown&&t.rundown.length)?('<div class="ttg-evp rd">'+icon('fileText',10)+' 식순 '+t.rundown.length+'단계</div>'):'');
+        H+='<div class="ttg-ev'+(dayView?' big':'')+'" data-id="'+esc(t.id)+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+(ht-3)+'px;left:calc('+L+'% + 2px);width:calc('+w+'% - 4px);background:'+ttCatColor(t.cat)+'">'+
           '<div class="ttg-rz top" data-id="'+esc(t.id)+'" title="시작 시간 조절"></div>'+
           '<button class="ttg-del" data-id="'+esc(t.id)+'" title="이 일정 삭제" aria-label="일정 삭제">'+icon('x',12)+'</button>'+
-          inner+
+          '<div class="ttg-evt">'+esc(t.title||'(제목 없음)')+'</div>'+
+          '<div class="ttg-evm">'+esc(t.start||'')+(t.end?('–'+esc(t.end)):'')+(t.place?(' · '+esc(t.place)):'')+'</div>'+
+          (who.length?'<div class="ttg-evp">'+icon('users',10)+' '+esc(who.join(', '))+'</div>':'')+
+          rdHtml+
           '<div class="ttg-rz bot" data-id="'+esc(t.id)+'" title="종료 시간 조절"></div>'+
         '</div>';
       });

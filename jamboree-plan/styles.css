@@ -691,12 +691,13 @@ th.prh.sorted::after{content:attr(data-dir);font-size:9px;margin-left:3px;vertic
 .rd-del{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--danger);border-radius:6px;width:30px;height:30px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .rd-add{align-self:flex-start;margin-top:2px;border:1.5px dashed var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:var(--pill);padding:6px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .ttg-evp.rd{color:#fff;font-weight:700}
-/* 일간 뷰: 블록 내부 식순을 시간 비례 서브타임라인으로 표기 */
-.ttg-ev.has-rd{padding:0}
-.ttg-rdtitle{position:absolute;top:1px;right:22px;z-index:2;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,.32);border-radius:5px;padding:1px 6px;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-.ttg-sub{position:absolute;left:0;right:0;padding:1px 6px;border-top:1px solid rgba(255,255,255,.4);overflow:hidden;display:flex;gap:5px;align-items:baseline}
-.ttg-sub-t{font-family:ui-monospace,Menlo,monospace;font-size:9px;font-weight:700;color:#fff;opacity:.92;flex:0 0 auto}
-.ttg-sub-x{font-size:9.5px;color:#fff;opacity:.97;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 일간 뷰: 기본 블록 안에 식순(서브 일정) 미니 타임라인 리스트 — 좌측 레일 + 시각 점 */
+.ttg-rd{margin-top:3px;padding-top:3px;border-top:1px solid rgba(255,255,255,.28);display:flex;flex-direction:column;gap:1px;position:relative}
+.ttg-rd::before{content:"";position:absolute;left:3px;top:7px;bottom:2px;width:1px;background:rgba(255,255,255,.32)}
+.ttg-rd-row{display:flex;gap:5px;align-items:baseline;font-size:9.5px;line-height:1.42;color:#fff;white-space:nowrap;overflow:hidden}
+.ttg-rd-t{font-family:ui-monospace,Menlo,monospace;font-weight:700;opacity:.86;flex:0 0 auto;position:relative;padding-left:9px}
+.ttg-rd-t::before{content:"";position:absolute;left:1px;top:5px;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.ttg-rd-x{opacity:.96;overflow:hidden;text-overflow:ellipsis}
 /* 분단 연락망: 연맹 칩 + 검색 */
 .divfedcell{vertical-align:middle}
 .fedset{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
