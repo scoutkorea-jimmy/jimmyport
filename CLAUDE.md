@@ -478,3 +478,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **대시보드 탭**(viewtabs 맨 앞 `data-v="dashboard"`, ICON `grid` 추가): 기본 뷰=dashboard(saved-view 목록에 포함). `setView`/`renderAll`이 dashboard 분기. `renderDashboard()` = 통계 6카드(개영 D-카운트·콘텐츠 진행 ready/total·운영 일정·시간 일정·인원·연락처·진행률 바) + 2패널(다가오는 콘텐츠/운영 일정, 클릭 시 `openSlot`/`openEvent`). 집계는 `daySlots`/`peek`/`isMeeting`/`eventList`/`rosterList`/`ttList`/`contactList` 재사용.
 - **날씨 모듈**(`#wx`, **Open-Meteo** 무키 client fetch, `WX_LAT=38.286/WX_LON=128.520` Asia/Seoul): 현재(아이콘·온도·체감·습도) + **오늘/내일/모레 3일**(최고/최저·강수확률) + **시간별 12개**(지금부터, 미래 중심, 1시간 단위·강수%). WMO코드→이모지/한글 매핑(`WMO`/`wxInfo`). 30분 메모리 캐시, 실패 시 '다시 시도'. CDN/API 키 없음(본 규칙 준수).
 - 검증: 로컬 http + 헤드리스 Chrome — 게이트 표시·오답 에러·`scout1922` 통과·대시보드 활성(통계 6·패널 2)·**날씨 라이브**(3일·시간별 12·현재온도)·탭 전환·**콘솔/페이지 에러 0**(404는 정적서버 /api·/VERSION 한정).
+
+### 16.30 v0.9.51 — 분단 명단 + 발대식 식순 + 회의(캘린더) + 의전(별도 페이지·시간 게이트) + 오프타임 실시간
+- 사용자 제공 자료(분단 명단표·잼버리 기간 회의·운영요원 발대식 식순·대회장/야영장 의전표) 반영 + roster→offtime 실시간 버그 수정.
+- **분단 명단**(`divisions`, 탭 '분단·발대식'): 7분단 시드(분단명·소속·분단장·운영부장·야영안전부장·지원부장) 편집 표(`#divtbl`, td.mk contenteditable, 추가/삭제·자동저장). KV `jp:divisions`.
+- **운영요원 발대식**(`launch`, 같은 탭): 일시/장소(`#launch-head` 인라인 편집) + 식순 7행(`#launchtbl` 시간·소요·식순·비고) 편집·추가/삭제. KV `jp:launch`(객체).
+- **회의 → 캘린더**: `meetingSeeds()` 8건(분단야영장회의 8/4~8/8·분단장회의 8/4·6·8, 시간/참석/장소 memo)을 운영 일정(events, kind '회의')으로. `defaultEvents`에 concat + `mergeSeedMeetings()`(안정 id로 서버 events에 없으면 병합·저장) → 라이브 보드 캘린더에도 보라 띠로 표시·이벤트 모달 편집.
+- **의전 일정**(`protocol`, 별도 탭 '의전 일정'): 대회장/부대회장/야영장/부야영장(5인) × 8/5~8/9 활동 25행 시드 편집 표(`#prtbl`: 구분·성명직책·날짜·시간·활동·장소·메모). KV `jp:protocol`. **캘린더 노출은 시간이 입력된 항목만**(`.cline.protocol` 금색 '의전' 칩, 클릭→의전 탭). 시간 비면 캘린더 미표시(요구사항).
+- **오프타임 실시간 반영**: 홍보부 R&R(roster) 이름 수정 시 blur 핸들러가 `renderOfftimes()`도 호출(기존엔 `renderDerivedPlacement()`만 호출해 오프타임 표 이름이 새로고침 전까지 안 바뀌던 버그) → 이제 인원 수정 즉시 오프타임 매트릭스·현장 배치 모두 갱신.
+- API(`jamboree-plan.js`): `jp:divisions/jp:protocol/jp:launch` 키 + `cleanDivision/cleanProtocol/cleanLaunch` + GET 13키 + PUT 분기(divisions/protocol 배열, launch 객체). setView/savedView에 orginfo·protocol 추가.
+- 검증: `node --check`(app·API) + 헤드리스 Chrome — 탭 8개·분단 7행·발대식 일시+7식순·의전 25행·회의 events 8건·**의전 시간 입력→캘린더 1줄(시간 게이트)**·이벤트 띠 35개·**roster 이름 수정→오프타임 표 즉시 반영**·**콘솔 에러 0**.

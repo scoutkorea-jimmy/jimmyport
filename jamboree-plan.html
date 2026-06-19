@@ -50,6 +50,8 @@
     <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
     <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 인원 · 배치</button>
     <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 취재 연락처</button>
+    <button class="vtab" data-v="orginfo" role="tab"><span data-ic="users"></span> 분단 · 발대식</button>
+    <button class="vtab" data-v="protocol" role="tab"><span data-ic="grid"></span> 의전 일정</button>
   </div>
 
   <section id="dashboard">
@@ -183,6 +185,53 @@
       </table>
     </div>
     <p class="note">취재 · 섭외 시 연락할 담당자 연락처를 한곳에 정리합니다. 칸을 클릭해 직접 수정하세요. <b>잼버리 일정표</b>의 시간 일정에서 담당자 연락처를 연결하면 여기에 함께 모이고, <b>연결된 일정</b>을 클릭하면 해당 일정이 바로 열립니다. 변경은 서버에 자동 저장됩니다.</p>
+  </section>
+
+  <section id="orginfo" style="display:none">
+    <div class="sec-head">
+      <h2><span data-ic="users" data-ic-size="17" style="vertical-align:-3px"></span> 분단 명단</h2>
+      <button class="btn sm" id="div-add"><span data-ic="plus" data-ic-size="14"></span> 분단 추가</button>
+    </div>
+    <div class="tblscroll">
+      <table id="divtbl">
+        <thead><tr>
+          <th style="width:120px">분단명</th><th style="width:96px">소속(지역)</th><th>분단장</th><th>운영부장</th><th>야영안전부장</th><th>지원부장</th><th style="width:38px"></th>
+        </tr></thead>
+        <tbody id="div-body"></tbody>
+      </table>
+    </div>
+    <p class="note">분단별 임원 명단. 칸을 클릭해 직접 수정하세요. 변경은 서버에 자동 저장됩니다.</p>
+
+    <div class="sec-head" style="margin-top:28px">
+      <h2>운영요원 발대식 및 사전 훈련</h2>
+      <button class="btn sm" id="launch-add"><span data-ic="plus" data-ic-size="14"></span> 순서 추가</button>
+    </div>
+    <div id="launch-head"></div>
+    <div class="tblscroll">
+      <table id="launchtbl">
+        <thead><tr>
+          <th style="width:148px">시간</th><th style="width:60px">소요</th><th>식 순</th><th style="width:200px">비 고</th><th style="width:38px"></th>
+        </tr></thead>
+        <tbody id="launch-body"></tbody>
+      </table>
+    </div>
+    <p class="note">2026. 8. 4.(화) 운영요원 발대식 식순. 칸을 클릭해 직접 수정하세요.</p>
+  </section>
+
+  <section id="protocol" style="display:none">
+    <div class="sec-head">
+      <h2>대회장 · 야영장 의전 일정</h2>
+      <button class="btn sm" id="pr-add"><span data-ic="plus" data-ic-size="14"></span> 의전 일정 추가</button>
+    </div>
+    <p class="note"><b>시간을 입력하면</b> 운영 캘린더에도 <b>‘의전’</b>으로 구분되어 표시됩니다. 시간이 비어 있으면 캘린더에는 노출되지 않습니다. 칸을 클릭해 직접 수정하세요.</p>
+    <div class="tblscroll">
+      <table id="prtbl">
+        <thead><tr>
+          <th style="width:78px">구분</th><th style="width:150px">성명 · 직책</th><th style="width:100px">날짜</th><th style="width:62px">시간</th><th>활동</th><th style="width:104px">장소</th><th style="width:118px">메모</th><th style="width:38px"></th>
+        </tr></thead>
+        <tbody id="pr-body"></tbody>
+      </table>
+    </div>
   </section>
 
   <footer class="foot">

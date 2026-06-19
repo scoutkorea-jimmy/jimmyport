@@ -22,6 +22,49 @@ const PLACEMENT = "jp:placement";
 const TTCATS = "jp:ttcats";
 const OFFTIMES = "jp:offtimes";
 const CONTACTS = "jp:contacts";
+const DIVISIONS = "jp:divisions";
+const PROTOCOL = "jp:protocol";
+const LAUNCH = "jp:launch";
+
+function cleanDivision(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    name: (e.name || "").toString().slice(0, 60),
+    region: (e.region || "").toString().slice(0, 60),
+    leader: (e.leader || "").toString().slice(0, 60),
+    ops: (e.ops || "").toString().slice(0, 60),
+    safety: (e.safety || "").toString().slice(0, 60),
+    support: (e.support || "").toString().slice(0, 60),
+  };
+}
+function cleanProtocol(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    role: (e.role || "").toString().slice(0, 40),
+    person: (e.person || "").toString().slice(0, 80),
+    date: (e.date || "").toString().slice(0, 10),
+    time: (e.time || "").toString().slice(0, 5),
+    activity: (e.activity || "").toString().slice(0, 300),
+    place: (e.place || "").toString().slice(0, 120),
+    memo: (e.memo || "").toString().slice(0, 400),
+  };
+}
+function cleanLaunch(o) {
+  o = o && typeof o === "object" ? o : {};
+  const steps = Array.isArray(o.steps) ? o.steps.slice(0, 40).map((s) => {
+    s = s && typeof s === "object" ? s : {};
+    return {
+      id: (s.id || "").toString().slice(0, 40),
+      time: (s.time || "").toString().slice(0, 40),
+      dur: (s.dur || "").toString().slice(0, 20),
+      title: (s.title || "").toString().slice(0, 200),
+      note: (s.note || "").toString().slice(0, 200),
+    };
+  }) : [];
+  return { when: (o.when || "").toString().slice(0, 80), place: (o.place || "").toString().slice(0, 120), steps };
+}
 
 function cleanContact(e) {
   e = e && typeof e === "object" ? e : {};
@@ -195,7 +238,19 @@ export async function onRequestGet({ env }) {
   const craw = await env.SCOUT_KV.get(CONTACTS);
   if (craw) { try { contacts = JSON.parse(craw).contacts; } catch {} }
 
-  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts });
+  let divisions = null;
+  const draw = await env.SCOUT_KV.get(DIVISIONS);
+  if (draw) { try { divisions = JSON.parse(draw).divisions; } catch {} }
+
+  let protocol = null;
+  const proraw = await env.SCOUT_KV.get(PROTOCOL);
+  if (proraw) { try { protocol = JSON.parse(proraw).protocol; } catch {} }
+
+  let launch = null;
+  const lraw = await env.SCOUT_KV.get(LAUNCH);
+  if (lraw) { try { launch = JSON.parse(lraw).launch; } catch {} }
+
+  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch });
 }
 
 export async function onRequestPut({ request, env }) {
@@ -265,6 +320,27 @@ export async function onRequestPut({ request, env }) {
   if (body.offtimes && typeof body.offtimes === "object" && !Array.isArray(body.offtimes)) {
     const offtimes = cleanOff(body.offtimes);
     await env.SCOUT_KV.put(OFFTIMES, JSON.stringify({ offtimes, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 분단 명단(divisions) 저장
+  if (Array.isArray(body.divisions)) {
+    const divisions = body.divisions.slice(0, 60).map(cleanDivision);
+    await env.SCOUT_KV.put(DIVISIONS, JSON.stringify({ divisions, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 의전 일정(protocol) 저장
+  if (Array.isArray(body.protocol)) {
+    const protocol = body.protocol.slice(0, 200).map(cleanProtocol);
+    await env.SCOUT_KV.put(PROTOCOL, JSON.stringify({ protocol, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 운영요원 발대식(launch) 저장 — 객체(배열 아님)
+  if (body.launch && typeof body.launch === "object" && !Array.isArray(body.launch)) {
+    const launch = cleanLaunch(body.launch);
+    await env.SCOUT_KV.put(LAUNCH, JSON.stringify({ launch, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

@@ -93,7 +93,7 @@ var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
 var CHANNELS=['페이스북','인스타그램','유튜브','블로그','기타'];
 var MAX_IMG=10;
-function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null, timetable:null, roster:null, placement:null, ttcats:null, offtimes:null, contacts:null}; }
+function stateDefaults(){ return {edits:{}, extra:{}, marketing:null, header:null, hidden:{}, history:{}, meta:{}, notes:{}, types:null, events:null, timetable:null, roster:null, placement:null, ttcats:null, offtimes:null, contacts:null, divisions:null, protocol:null, launch:null}; }
 function defaultTypes(){ return ['카드뉴스','영상','이미지카드','웹포스터','보도자료','릴스/숏폼']; }
 /* 운영 일정(일정 레이어) — 회의·공모전 등 단일/연속(여러 날). 콘텐츠와 분리. */
 var EVENT_KINDS=[['회의','#6B4FA0'],['공모전','#0F8A8A'],['행사','#C0492F'],['운영','#2E6FAE'],['기타','#7A6A57']];
@@ -102,7 +102,24 @@ function defaultEvents(){ return [
   {id:mkid(),title:'참여형·AI 콘텐츠 이벤트 접수',kind:'공모전',start:'2026-07-06',end:'2026-07-26',owner:'',memo:'D-30~D-10 접수 기간'},
   {id:mkid(),title:'이벤트 결과 발표 · 콘텐츠 공개',kind:'행사',start:'2026-08-05',end:'2026-08-05',owner:'',memo:'개영일 공개'},
   {id:mkid(),title:'제16회 한국잼버리',kind:'행사',start:'2026-08-05',end:'2026-08-09',owner:'',memo:'본 행사 기간'}
+].concat(meetingSeeds()); }
+/* 잼버리 기간 중 회의(고정) — 운영 일정(events)에 회의 종류로 노출. 안정적 id로 중복 방지. */
+function meetingSeeds(){ return [
+  {id:'mtg-jy-0804',title:'분단야영장회의 22:00',kind:'회의',start:'2026-08-04',end:'2026-08-04',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-jy-0805',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-05',end:'2026-08-05',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-jy-0806',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-06',end:'2026-08-06',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-jy-0807',title:'분단야영장회의 22:00',kind:'회의',start:'2026-08-07',end:'2026-08-07',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-jy-0808',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-08',end:'2026-08-08',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-bd-0804',title:'분단장 회의 21:00',kind:'회의',start:'2026-08-04',end:'2026-08-04',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-bd-0806',title:'분단장 회의 22:00',kind:'회의',start:'2026-08-06',end:'2026-08-06',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHG 회의실'},
+  {id:'mtg-bd-0808',title:'분단장 회의 22:00',kind:'회의',start:'2026-08-08',end:'2026-08-08',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHG 회의실'}
 ]; }
+/* 서버 events에 회의 시드가 없으면 병합(라이브 보드에도 회의가 보이도록). 추가가 있으면 저장. */
+function mergeSeedMeetings(){
+  var evs=eventList(); var have={}; evs.forEach(function(e){ have[e.id]=1; });
+  var added=0; meetingSeeds().forEach(function(m){ if(!have[m.id]){ evs.push(Object.assign({},m)); added++; } });
+  if(added) saveEvents();
+}
 function eventList(){ if(!state.events) state.events=defaultEvents(); return state.events; }
 function layoutEvents(){
   var evs=eventList().filter(function(e){return e.start;}).map(function(e){return {e:e, s:e.start, en:e.end||e.start};}).filter(function(x){return x.en>=x.s;});
@@ -355,6 +372,9 @@ function applyServer(j){
   if(j&&Array.isArray(j.ttcats)&&j.ttcats.length) state.ttcats=j.ttcats;
   if(j&&j.offtimes&&typeof j.offtimes==='object'&&!Array.isArray(j.offtimes)) state.offtimes=j.offtimes;
   if(j&&Array.isArray(j.contacts)&&j.contacts.length) state.contacts=j.contacts;
+  if(j&&Array.isArray(j.divisions)&&j.divisions.length) state.divisions=j.divisions;
+  if(j&&Array.isArray(j.protocol)&&j.protocol.length) state.protocol=j.protocol;
+  if(j&&j.launch&&typeof j.launch==='object'&&!Array.isArray(j.launch)) state.launch=j.launch;
 }
 function saveTypes(){
   saveLocal();
@@ -552,6 +572,10 @@ function renderCalendar(){
       }
     });
     if(minis) html+='<div class="cminis">'+minis+'</div>';
+    // 의전 일정 — 시간이 지정된 항목만 캘린더에 '의전'으로 구분 표시(시간 미지정은 노출 안 함)
+    protocolList().filter(function(p){ return p.date===rec.date && (p.time||'').trim(); }).forEach(function(p){
+      html+='<div class="cline protocol citem-pr" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+(p.person||'')+' · '+(p.activity||''))+'"><span class="prtag">의전</span>'+esc(p.time)+' · '+esc(p.activity||p.person||p.role)+'</div>';
+    });
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
     cell.innerHTML=html;
     (function(rc){
@@ -563,6 +587,9 @@ function renderCalendar(){
       });
       cell.querySelectorAll('.eband[data-ev]').forEach(function(el){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); openEvent(el.getAttribute('data-ev')); });
+      });
+      cell.querySelectorAll('.citem-pr[data-pid]').forEach(function(el){
+        el.addEventListener('click',function(ev){ ev.stopPropagation(); setView('protocol'); });
       });
       // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
       cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){
@@ -1397,7 +1424,7 @@ function renderStaff(){
         '<td class="mk" contenteditable data-f="channel">'+esc(m.channel)+'</td>'+
         '<td class="mk" contenteditable data-f="contact">'+esc(m.contact)+'</td>'+
         '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
-      tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); renderDerivedPlacement(); }); });
+      tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); }); });
       tr.querySelector('.rm').onclick=function(){ state.roster=rosterList().filter(function(x){return x!==m;}); renderStaff(); saveRoster(); };
       rb.appendChild(tr);
     });
@@ -1538,6 +1565,110 @@ function exportJSON(){
   else toast('JSON 다운로드 완료');
 }
 
+/* ===== 분단 명단 (divisions) ===== */
+function defaultDivisions(){ return [
+  {id:mkid(),name:'평화숲분단',region:'서울북부',leader:'엄철용',ops:'송중현',safety:'허삼흥',support:'조형호'},
+  {id:mkid(),name:'어울림분단',region:'가톨릭',leader:'구형수',ops:'방중현',safety:'김지현',support:'김수연'},
+  {id:mkid(),name:'푸른별분단',region:'',leader:'',ops:'',safety:'',support:''},
+  {id:mkid(),name:'솔바람분단',region:'서울남부',leader:'안승휘',ops:'',safety:'',support:''},
+  {id:mkid(),name:'큰물결분단',region:'전북',leader:'엄정영',ops:'박철',safety:'김인',support:'전혁준'},
+  {id:mkid(),name:'빛누리분단',region:'광주',leader:'이승용',ops:'박선주',safety:'한진혁',support:'유창훈'},
+  {id:mkid(),name:'꿈동산분단',region:'경기남부',leader:'이성수',ops:'박혜정',safety:'주락형',support:'김홍기'}
+]; }
+function divisionList(){ if(!state.divisions) state.divisions=defaultDivisions(); return state.divisions; }
+function saveDivisions(){ debouncedPut('divTimer', {divisions: state.divisions||[]}, '분단 명단 저장됨'); }
+function addDivision(){ divisionList().push({id:mkid(),name:'',region:'',leader:'',ops:'',safety:'',support:''}); renderDivisions(); saveDivisions(); }
+function renderDivisions(){
+  var tb=document.getElementById('div-body'); if(!tb) return; tb.innerHTML='';
+  divisionList().forEach(function(m){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="mk" contenteditable data-f="name">'+esc(m.name||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="region">'+esc(m.region||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="leader">'+esc(m.leader||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="ops">'+esc(m.ops||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="safety">'+esc(m.safety||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="support">'+esc(m.support||'')+'</td>'+
+      '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
+    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveDivisions(); }); });
+    tr.querySelector('.rm').onclick=function(){ state.divisions=divisionList().filter(function(x){return x!==m;}); renderDivisions(); saveDivisions(); };
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== 운영요원 발대식 및 사전 훈련 (launch) ===== */
+function defaultLaunch(){ return {
+  when:'2026. 8. 4.(화) 14:00', place:'잼버리 대집회장',
+  steps:[
+    {id:mkid(),time:'14:00 ~ 14:10',dur:'10분',title:'개회 및 내빈소개',note:'사회자'},
+    {id:mkid(),time:'14:10 ~ 14:13',dur:'3분',title:'환영사',note:'야영장'},
+    {id:mkid(),time:'14:13 ~ 14:16',dur:'3분',title:'격려사',note:'총재(대회장)'},
+    {id:mkid(),time:'14:16 ~ 14:19',dur:'3분',title:'잼버리기 전달',note:'대회장, 야영장'},
+    {id:mkid(),time:'14:19 ~ 14:29',dur:'10분',title:'임명장 수여',note:'분단야영장'},
+    {id:mkid(),time:'14:30 ~ 15:00',dur:'30분',title:'잼버리 사전 교육',note:'안전교육, 운영요원 역할'},
+    {id:mkid(),time:'15:00 ~ 15:10',dur:'10분',title:'폐회 및 광고 / 기념촬영',note:'사회자'}
+  ]
+}; }
+function launchData(){ if(!state.launch) state.launch=defaultLaunch(); if(!Array.isArray(state.launch.steps)) state.launch.steps=[]; return state.launch; }
+function saveLaunch(){ debouncedPut('launchTimer', {launch: launchData()}, '발대식 저장됨'); }
+function renderLaunch(){
+  var L=launchData();
+  var head=document.getElementById('launch-head');
+  if(head){
+    head.innerHTML='<div class="launchmeta"><label>일시 <span class="mk" contenteditable data-f="when">'+esc(L.when||'')+'</span></label>'+
+      '<label>장소 <span class="mk" contenteditable data-f="place">'+esc(L.place||'')+'</span></label></div>';
+    head.querySelectorAll('.mk').forEach(function(sp){ sp.addEventListener('blur',function(){ L[sp.dataset.f]=sp.textContent.trim(); saveLaunch(); }); });
+  }
+  var tb=document.getElementById('launch-body'); if(!tb) return; tb.innerHTML='';
+  L.steps.forEach(function(s){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="mk" contenteditable data-f="time">'+esc(s.time||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="dur">'+esc(s.dur||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="title">'+esc(s.title||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="note">'+esc(s.note||'')+'</td>'+
+      '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
+    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ s[td.dataset.f]=td.textContent.trim(); saveLaunch(); }); });
+    tr.querySelector('.rm').onclick=function(){ L.steps=L.steps.filter(function(x){return x!==s;}); renderLaunch(); saveLaunch(); };
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== 의전 일정 (protocol) — 별도 페이지 + (시간 지정 시) 캘린더 노출 ===== */
+function defaultProtocol(){
+  var P=[
+    ['대회장','이찬희 총재',{'2026-08-05':'리셉션(인사말) · 개영식(인사말)','2026-08-06':'과정활동 방문 · K-POP 콘서트','2026-08-07':'분단 방문 · 아침 배식봉사(식당)','2026-08-08':'과정활동 방문 · 폐영식(인사말)','2026-08-09':'환송'}],
+    ['부대회장','정복현 강원연맹장(부총재)',{'2026-08-05':'리셉션 및 개영식','2026-08-06':'저녁 배식 봉사(급식배급소) · K-POP 콘서트','2026-08-07':'영지방문','2026-08-08':'과정활동 방문 · 폐영식','2026-08-09':'환송'}],
+    ['야영장','김시범 중앙치프커미셔너',{'2026-08-05':'리셉션 · 개영식(기수단 선언)','2026-08-06':'과정활동 방문 · K-POP 콘서트','2026-08-07':'아침 배식봉사(식당) · 영지방문','2026-08-08':'과정활동 방문 · 폐영식(폐영선언)','2026-08-09':'환송'}],
+    ['부야영장','김상협 국제커미셔너',{'2026-08-05':'리셉션 · 개영식','2026-08-06':'K-POP 콘서트','2026-08-07':'영지방문','2026-08-08':'과정활동 방문 · 폐영식','2026-08-09':'환송'}],
+    ['부야영장','최유석 중앙훈련원장',{'2026-08-05':'리셉션 및 개영식','2026-08-06':'저녁 배식 봉사(급식배급소) · K-POP 콘서트','2026-08-07':'영지방문','2026-08-08':'과정활동 방문 · 폐영식','2026-08-09':'환송'}]
+  ];
+  var out=[]; P.forEach(function(r){ var role=r[0],person=r[1],days=r[2]; Object.keys(days).forEach(function(d){ out.push({id:mkid(),role:role,person:person,date:d,time:'',activity:days[d],place:'',memo:''}); }); });
+  return out;
+}
+function protocolList(){ if(!state.protocol) state.protocol=defaultProtocol(); return state.protocol; }
+function saveProtocol(){ debouncedPut('protoTimer', {protocol: state.protocol||[]}, '의전 일정 저장됨'); }
+function addProtocol(){ protocolList().push({id:mkid(),role:'',person:'',date:'',time:'',activity:'',place:'',memo:''}); renderProtocol(); saveProtocol(); }
+function renderProtocol(){
+  var tb=document.getElementById('pr-body'); if(!tb) return; tb.innerHTML='';
+  var rows=protocolList().slice().sort(function(a,b){ if((a.person||'')!==(b.person||'')) return (a.person||'')<(b.person||'')?-1:1; return (a.date||'')<(b.date||'')?-1:(a.date||'')>(b.date||'')?1:0; });
+  rows.forEach(function(m){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="mk" contenteditable data-f="role">'+esc(m.role||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="person">'+esc(m.person||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="date">'+esc(m.date||'')+'</td>'+
+      '<td class="mk pr-time" contenteditable data-f="time">'+esc(m.time||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="activity">'+esc(m.activity||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
+      '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
+    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveProtocol(); if(['time','date','activity','person'].indexOf(td.dataset.f)>=0) renderCalendar(); }); });
+    tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); renderProtocol(); saveProtocol(); renderCalendar(); };
+    tb.appendChild(tr);
+  });
+}
+
 /* ===== password gate (scout1922) ===== */
 var PW='scout1922';
 function wirePwGate(){
@@ -1676,6 +1807,8 @@ function setView(v){
   document.getElementById('timetable').style.display = v==='timetable'?'':'none';
   document.getElementById('staff').style.display     = v==='staff'?'':'none';
   var cn=document.getElementById('contacts'); if(cn) cn.style.display = v==='contacts'?'':'none';
+  var oi=document.getElementById('orginfo'); if(oi) oi.style.display = v==='orginfo'?'':'none';
+  var pr=document.getElementById('protocol'); if(pr) pr.style.display = v==='protocol'?'':'none';
   // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
@@ -1685,18 +1818,21 @@ function setView(v){
   if(v==='timetable') renderTimetable();
   if(v==='staff') renderStaff();
   if(v==='contacts') renderContacts();
+  if(v==='orginfo'){ renderDivisions(); renderLaunch(); }
+  if(v==='protocol') renderProtocol();
 }
 
 function init(){
   wirePwGate();
   loadLocal();
+  mergeSeedMeetings();   // 잼버리 기간 회의를 운영 일정에 보장
   // 정적 라인 아이콘 주입
   document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=icon(el.getAttribute('data-ic'), +(el.getAttribute('data-ic-size')||16)); });
   renderAll();
   setInterval(renderClock,1000);
   // try server (shared board) — MERGE into local (never wipes local-only content)
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
-    applyServer(j); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 
@@ -1714,7 +1850,10 @@ function init(){
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
-  setView(['dashboard','calendar','list','timetable','staff','contacts'].indexOf(savedView)>=0?savedView:'dashboard');
+  setView(['dashboard','calendar','list','timetable','staff','contacts','orginfo','protocol'].indexOf(savedView)>=0?savedView:'dashboard');
+  var dvAdd=document.getElementById('div-add'); if(dvAdd) dvAdd.onclick=addDivision;
+  var lnAdd=document.getElementById('launch-add'); if(lnAdd) lnAdd.onclick=function(){ launchData().steps.push({id:mkid(),time:'',dur:'',title:'',note:''}); renderLaunch(); saveLaunch(); };
+  var prAdd=document.getElementById('pr-add'); if(prAdd) prAdd.onclick=addProtocol;
   // add content (list view)
   var ad=document.getElementById('add-date'); var td=todayISO();
   ad.value=(td>='2026-06-15'&&td<='2026-08-09')?td:'2026-06-26';
