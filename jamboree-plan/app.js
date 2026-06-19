@@ -542,10 +542,10 @@ function renderCalendar(){
     var tint = CAT_TINT[rec.phase]||'#fff';
     cell.style.background=tint;
     var slots=daySlots(rec);
-    var vis = q ? slots.filter(function(s){ return matchSearch(rec,s,peek(s.k)); }) : slots;
-    if(q && !vis.length) cell.classList.add('dim');
-    // 날짜 옆 작은 진행상태 점(슬롯별)
-    var dots=vis.map(function(s){ var st=peek(s.k).status||'planned'; return '<span class="sdot" style="background:'+STCOL[st]+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
+    var ql=q.toLowerCase();
+    var smatch=function(s){ return !q || matchSearch(rec,s,peek(s.k)); };
+    // 검색 시: 일치 항목만 색, 나머지는 회색(.ghost) — 숨기지 않음
+    var dots=slots.map(function(s){ var st=peek(s.k).status||'planned'; var g=q&&!smatch(s); return '<span class="sdot'+(g?' ghost':'')+'" style="background:'+(g?'#cfd3cd':STCOL[st])+'" title="'+STATUS_LABEL[st]+'"></span>'; }).join('');
     var html='<div class="ctop"><span class="date">'+rec.label+(dots?(' <span class="sdots">'+dots+'</span>'):'')+'</span><span class="dd mono">'+rec.dlabel+'</span></div>';
     // 운영 일정(여러 날 연속) 띠 — 콘텐츠와 분리된 일정 레이어
     if(elay.lanes){
@@ -553,29 +553,31 @@ function renderCalendar(){
       for(var li=0; li<elay.lanes; li++){
         var be=null; for(var bi=0;bi<elay.items.length;bi++){ var x=elay.items[bi]; if(x.lane===li && x.s<=rec.date && x.en>=rec.date){ be=x; break; } }
         if(be){ var isS=be.s===rec.date, isE=be.en===rec.date, wkS=(dt.getDay()===0);
-          bands+='<div class="eband citem-ev" data-ev="'+be.e.id+'" title="'+esc(be.e.title+' · '+be.s+'~'+be.en)+'" style="background:'+eventColor(be.e.kind)+';'+(isS?'border-top-left-radius:6px;border-bottom-left-radius:6px;':'')+(isE?'border-top-right-radius:6px;border-bottom-right-radius:6px;':'')+'">'+((isS||wkS)?esc(be.e.title):'')+'</div>';
+          var eg=q&&((be.e.title||'')+' '+(be.e.kind||'')).toLowerCase().indexOf(ql)<0;
+          bands+='<div class="eband citem-ev'+(eg?' ghost':'')+'" data-ev="'+be.e.id+'" title="'+esc(be.e.title+' · '+be.s+'~'+be.en)+'" style="background:'+(eg?'#d7dad4':eventColor(be.e.kind))+';'+(isS?'border-top-left-radius:6px;border-bottom-left-radius:6px;':'')+(isE?'border-top-right-radius:6px;border-bottom-right-radius:6px;':'')+'">'+((isS||wkS)?esc(be.e.title):'')+'</div>';
         } else bands+='<div class="eband ph"></div>';
       }
       html+='<div class="bands">'+bands+'</div>';
     }
-    // 실제 콘텐츠(제목 있음)=카드처럼 부각 / 의미있는 시드(참가국·역할·이벤트)=옅게 / 빈 슬롯=작은 칩
+    // 실제 콘텐츠=부각 / 시드=옅게 / 빈 슬롯=작은 칩 — 검색 비일치=회색
     var minis='';
-    vis.forEach(function(s){
-      var e=peek(s.k), typ=ctchip(e.ctype);
+    slots.forEach(function(s){
+      var e=peek(s.k), typ=ctchip(e.ctype), g=q&&!smatch(s);
       if(e.title){
         var mt=isMeeting(e);
-        html+='<div class="cline filled citem'+(mt?' meeting':'')+'" data-sk="'+s.k+'"'+(mt?(' style="border-left-color:'+ctypeColor(e.ctype)+'"'):'')+'>'+typ+esc(e.title)+'</div>';
+        html+='<div class="cline filled citem'+(mt?' meeting':'')+(g?' ghost':'')+'" data-sk="'+s.k+'"'+((mt&&!g)?(' style="border-left-color:'+ctypeColor(e.ctype)+'"'):'')+'>'+typ+esc(e.title)+'</div>';
       } else if(s.seedTitle){
-        html+='<div class="cline seed citem" data-sk="'+s.k+'">'+esc(s.seedTitle)+'</div>';
+        html+='<div class="cline seed citem'+(g?' ghost':'')+'" data-sk="'+s.k+'">'+esc(s.seedTitle)+'</div>';
       } else {
-        minis+='<span class="cmini citem" data-sk="'+s.k+'">'+TYPE_LABEL[s.type]+'</span>';
+        minis+='<span class="cmini citem'+(g?' ghost':'')+'" data-sk="'+s.k+'">'+TYPE_LABEL[s.type]+'</span>';
       }
     });
     if(minis) html+='<div class="cminis">'+minis+'</div>';
-    // 의전 일정 — 시간이 지정된 항목만 캘린더에 '의전'으로 구분 표시(시간 미지정은 노출 안 함)
+    // 의전 일정 — 시간 지정된 항목만 표시, 검색 비일치=회색
     protocolList().filter(function(p){ return p.date===rec.date && (p.time||'').trim(); }).forEach(function(p){
       var pw=prWho(p);
-      html+='<div class="cline protocol citem-pr" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+pw+' · '+(p.activity||''))+'"><span class="prtag">의전</span>'+esc(p.time)+' · '+esc(p.activity||pw||p.role)+'</div>';
+      var pg=q&&(((p.activity||'')+' '+pw+' '+(p.role||'')).toLowerCase().indexOf(ql)<0);
+      html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+pw+' · '+(p.activity||''))+'"><span class="prtag">의전</span>'+esc(p.time)+' · '+esc(p.activity||pw||p.role)+'</div>';
     });
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
     cell.innerHTML=html;
@@ -1241,7 +1243,10 @@ function renderTimetable(){
           '<div class="ttg-evm">'+esc(t.start||'')+(t.end?('–'+esc(t.end)):'')+(t.place?(' · '+esc(t.place)):'')+'</div>'+
           (who.length?'<div class="ttg-evp">'+icon('users',10)+' '+esc(who.join(', '))+'</div>':'')+
           (dayView&&cons.length?'<div class="ttg-evp con">'+icon('phone',10)+' '+esc(cons.join(', '))+'</div>':'')+
-          ((t.rundown&&t.rundown.length)?'<div class="ttg-evp rd">'+icon('fileText',10)+' 식순 '+t.rundown.length+'단계</div>':'')+
+          ((t.rundown&&t.rundown.length)?(dayView
+            ? ('<div class="ttg-rd">'+t.rundown.map(function(r){return '<div class="ttg-rd-row"><span class="ttg-rd-t">'+esc(r.time||'')+'</span>'+esc(r.title||'')+(r.note?(' <span class="ttg-rd-n">'+esc(r.note)+'</span>'):'')+'</div>';}).join('')+'</div>')
+            : ('<div class="ttg-evp rd">'+icon('fileText',10)+' 식순 '+t.rundown.length+'단계</div>'))
+          :'')+
           '<div class="ttg-rz bot" data-id="'+esc(t.id)+'" title="종료 시간 조절"></div>'+
         '</div>';
       });
@@ -1436,17 +1441,43 @@ function renderTTModal(){
   b.querySelectorAll('#tt-rundown .rd-del').forEach(function(x){ x.onclick=function(){ var i=+x.dataset.i; if(ttDraft.rundown){ ttDraft.rundown.splice(i,1); renderTTModal(); } }; });
   var rdAdd=b.querySelector('#tt-rd-add'); if(rdAdd) rdAdd.onclick=function(){ if(!Array.isArray(ttDraft.rundown)) ttDraft.rundown=[]; ttDraft.rundown.push({time:'',title:'',note:''}); renderTTModal(); };
 }
+function ttIdx(id){ var l=ttList(); for(var i=0;i<l.length;i++) if(l[i].id===id) return i; return -1; }
+function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
+function ttCopy(src, day, sid){ return Object.assign({},src,{id:mkid(),day:day,series:sid,assignees:src.assignees.slice(),contacts:src.contacts.slice(),rundown:(src.rundown||[]).map(function(r){return Object.assign({},r);})}); }
+function finishTT(msg){ saveTimetable(); renderTimetable(); if(curViewMode==='staff') renderStaff(); closeTT(); toast(msg); }
+/* 반복 일정 수정 범위 선택 — 이 일정만 / 모든 반복 */
+function askSeriesScope(cb){
+  var ov=document.createElement('div'); ov.className='scrim show'; ov.style.zIndex='300';
+  ov.innerHTML='<div class="modal" style="max-width:380px"><div class="mhead"><div class="mt">반복 일정 수정</div></div>'+
+    '<div class="mbody"><p style="margin:0;color:var(--ink-2);font-size:14px;line-height:1.65">이 일정은 <b>여러 날 반복</b> 일정입니다.<br>어떻게 수정할까요?</p></div>'+
+    '<div class="mfoot"><button class="btn ghost sm" data-a="cancel">취소</button><span class="spacer"></span><button class="btn sm" data-a="one">이 일정만</button><button class="btn solid" data-a="all">모든 반복 일정</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov){ document.body.removeChild(ov); return; } var a=e.target.closest('[data-a]'); if(!a) return; var act=a.dataset.a; document.body.removeChild(ov); if(act==='one'||act==='all') cb(act); });
+}
 function commitTT(){
   if(!ttDraft) return;
   if(!(ttDraft.title||'').trim()){ toast('일정 제목을 입력하세요'); return; }
   var sH=t2h(ttDraft.start), eH=t2h(ttDraft.end); if(eH==null||sH==null||eH<=sH) ttDraft.end=h2hhmm((sH==null?TT_HS:sH)+TT_SNAP);
-  var clean={id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})};
-  var list=ttList(), idx=-1; for(var i=0;i<list.length;i++) if(list[i].id===clean.id){idx=i;break;}
-  if(idx>=0) list[idx]=clean; else list.push(clean);
-  // 반복: 선택한 다른 날짜에도 같은 일정을 독립 항목으로 추가
+  var clean=buildCleanTT();
+  var list=ttList();
   var rep=(ttDraft._repeat||[]).filter(function(x){return x && x!==clean.day;});
-  var addedN=0; rep.forEach(function(dy){ list.push(Object.assign({},clean,{id:mkid(),day:dy,assignees:clean.assignees.slice(),contacts:clean.contacts.slice(),rundown:(clean.rundown||[]).map(function(r){return Object.assign({},r);})})); addedN++; });
-  saveTimetable(); renderTimetable(); if(curViewMode==='staff') renderStaff(); closeTT(); toast(addedN?('시간 일정 저장됨 · '+addedN+'일 반복 추가'):'시간 일정 저장됨');
+  var others=clean.series?list.filter(function(x){return x.series===clean.series && x.id!==clean.id;}):[];
+  function applyOne(){ var i=ttIdx(clean.id); if(i>=0) list[i]=clean; else list.push(clean); }
+  function addReps(sid){ rep.forEach(function(dy){ list.push(ttCopy(clean,dy,sid)); }); }
+  // 기존 + 시리즈(다른 반복 멤버 존재) → 범위 물어보기
+  if(!ttDraft._new && others.length){
+    askSeriesScope(function(scope){
+      applyOne();
+      if(scope==='all'){ others.forEach(function(o){ o.title=clean.title; o.start=clean.start; o.end=clean.end; o.cat=clean.cat; o.place=clean.place; o.memo=clean.memo; o.assignees=clean.assignees.slice(); o.contacts=clean.contacts.slice(); o.rundown=(clean.rundown||[]).map(function(r){return Object.assign({},r);}); }); }
+      if(rep.length) addReps(clean.series);
+      finishTT(scope==='all'?'반복 일정 전체 수정됨':'이 일정만 수정됨');
+    });
+    return;
+  }
+  // 반복 날짜 선택됨 → 시리즈 생성/확장
+  if(rep.length){ var sid=clean.series||('ser'+mkid()); clean.series=sid; applyOne(); addReps(sid); finishTT('시간 일정 저장됨 · '+rep.length+'일 반복 추가'); return; }
+  // 단건
+  applyOne(); finishTT('시간 일정 저장됨');
 }
 function deleteTTCur(){
   if(!ttDraft||ttDraft._new){ closeTT(); return; }
@@ -1628,19 +1659,29 @@ function divisionList(){
 }
 function saveDivisions(){ debouncedPut('divTimer', {divisions: state.divisions||[]}, '분단 명단 저장됨'); }
 function addDivision(){ divisionList().push({id:mkid(),name:'',region:'',leader:'',ops:'',safety:'',support:''}); renderDivisions(); saveDivisions(); }
+var divSearchQ='', divSearchTimer=null;
+function divFeds(m){ return (m.federations||'').split(',').map(function(s){return s.trim();}).filter(Boolean); }
+function setDivFeds(m, arr){ m.federations=arr.join(', '); }
 function renderDivisions(){
   var tb=document.getElementById('div-body'); if(!tb) return; tb.innerHTML='';
+  var q=(divSearchQ||'').trim().toLowerCase();
   divisionList().forEach(function(m){
-    var tr=document.createElement('tr');
+    var feds=divFeds(m);
+    var hay=[m.name,m.leader,m.ops,m.safety,m.support].concat(feds).join(' ').toLowerCase();
+    var match=!q||hay.indexOf(q)>=0;
+    var fedChips=feds.map(function(f){ var hit=q&&f.toLowerCase().indexOf(q)>=0; return '<span class="fedchip'+(hit?' hit':'')+'">'+esc(f)+'<button type="button" class="fedx" data-f="'+esc(f)+'" title="삭제" aria-label="삭제">'+icon('x',10)+'</button></span>'; }).join('');
+    var tr=document.createElement('tr'); if(q&&!match) tr.className='rowdim';
     tr.innerHTML=
       '<td class="mk" contenteditable data-f="name">'+esc(m.name||'')+'</td>'+
-      '<td class="mk divfed" contenteditable data-f="federations">'+esc(m.federations||'')+'</td>'+
+      '<td class="divfedcell"><div class="fedset">'+fedChips+'<input type="text" class="fedadd" placeholder="+ 연맹·국가"></div></td>'+
       '<td class="mk" contenteditable data-f="leader">'+esc(m.leader||'')+'</td>'+
       '<td class="mk" contenteditable data-f="ops">'+esc(m.ops||'')+'</td>'+
       '<td class="mk" contenteditable data-f="safety">'+esc(m.safety||'')+'</td>'+
       '<td class="mk" contenteditable data-f="support">'+esc(m.support||'')+'</td>'+
       '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
     tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveDivisions(); }); });
+    tr.querySelectorAll('.fedx').forEach(function(x){ x.onclick=function(){ setDivFeds(m, divFeds(m).filter(function(y){return y!==x.dataset.f;})); saveDivisions(); renderDivisions(); }; });
+    var addIn=tr.querySelector('.fedadd'); if(addIn){ addIn.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v){ var arr=divFeds(m); if(arr.indexOf(v)<0){ arr.push(v); setDivFeds(m,arr); saveDivisions(); } } this.value=''; renderDivisions(); } }); }
     tr.querySelector('.rm').onclick=function(){ state.divisions=divisionList().filter(function(x){return x!==m;}); renderDivisions(); saveDivisions(); };
     tb.appendChild(tr);
   });
@@ -1918,6 +1959,7 @@ function init(){
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
   setView(['dashboard','calendar','list','timetable','staff','contacts','orginfo','protocol'].indexOf(savedView)>=0?savedView:'dashboard');
   var dvAdd=document.getElementById('div-add'); if(dvAdd) dvAdd.onclick=addDivision;
+  var dvSe=document.getElementById('div-search'); if(dvSe) dvSe.addEventListener('input',function(){ var v=this.value; if(divSearchTimer)clearTimeout(divSearchTimer); divSearchTimer=setTimeout(function(){ divSearchQ=v; renderDivisions(); },120); });
   var prAdd=document.getElementById('pr-add'); if(prAdd) prAdd.onclick=addProtocol;
   // add content (list view)
   var ad=document.getElementById('add-date'); var td=todayISO();

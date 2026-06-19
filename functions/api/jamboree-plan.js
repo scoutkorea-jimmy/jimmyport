@@ -129,6 +129,7 @@ function cleanTT(e) {
     contacts,
     memo: (e.memo || "").toString().slice(0, 500),
     rundown,
+    series: (e.series || "").toString().slice(0, 40),
   };
 }
 function cleanRoster(e) {
