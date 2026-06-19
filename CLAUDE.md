@@ -488,3 +488,15 @@ WOSM Region → 국가(NSO) → 단위대
 - **오프타임 실시간 반영**: 홍보부 R&R(roster) 이름 수정 시 blur 핸들러가 `renderOfftimes()`도 호출(기존엔 `renderDerivedPlacement()`만 호출해 오프타임 표 이름이 새로고침 전까지 안 바뀌던 버그) → 이제 인원 수정 즉시 오프타임 매트릭스·현장 배치 모두 갱신.
 - API(`jamboree-plan.js`): `jp:divisions/jp:protocol/jp:launch` 키 + `cleanDivision/cleanProtocol/cleanLaunch` + GET 13키 + PUT 분기(divisions/protocol 배열, launch 객체). setView/savedView에 orginfo·protocol 추가.
 - 검증: `node --check`(app·API) + 헤드리스 Chrome — 탭 8개·분단 7행·발대식 일시+7식순·의전 25행·회의 events 8건·**의전 시간 입력→캘린더 1줄(시간 게이트)**·이벤트 띠 35개·**roster 이름 수정→오프타임 표 즉시 반영**·**콘솔 에러 0**.
+
+### 16.31 v0.9.52 — 날씨 박스폭 채움 + 탭 리네이밍/발대식 제거 + 의전 고도화 + 24h 일정표·반복일정 + 분단 연맹목록
+- 사용자 다건 피드백 일괄 반영.
+- **날씨 시간별 줄 박스폭 채움**: `.wxh` 고정폭(60px)→`flex:1 1 58px`(넓으면 늘어 가득, 좁으면 가로 스크롤). 박스 우측 빈 공간 제거.
+- **탭 리네이밍**: 인원·배치→**홍보부 인원 관리**, 취재 연락처→**협조 연락처**, 분단·발대식→**분단 연락망**. **운영요원 발대식 UI 제거**(launch 함수/데이터는 dormant).
+- **분단 연락망에 소속 연맹 목록 추가**: division에 `federations` 필드(분단별 6~7개 연맹/국가, 예: 평화숲=서울북부연맹·경기북부연맹·부산연맹·일본·스리랑카·말레이시아). 2열을 '소속(지역)'→'소속 연맹'(줄바꿈 셀)로. `divisionList` 이름 기반 백필(구버전 데이터 보완). API `cleanDivision`에 federations.
+- **의전 표 고도화**: 성명·직책 단일컬럼 → **성명/직책 2컬럼 분리**(`person`→`name`+`title`, 마이그레이션). 날짜=`<input type=date>`·시간=`<input type=time>`(캘린더 폼). **헤더 클릭 정렬**(`prSort`, 재클릭 토글 ▲▼). API `cleanProtocol` name/title(person 폴백).
+- **의전 → 잼버리 일정표 노출**: 날짜·시간 지정된 의전 항목을 타임테이블에도 금색 '의전' 블록으로(읽기전용, 클릭→의전 탭). `ttLanes`에 의전 pseudo-ev 합류. **일간 뷰는 좌=일반 프로그램(취재일정)·우=의전**으로 분할(`.ttg-grouplab`·`.ttg-vsplit`), 전체기간 뷰는 통합 레인.
+- **24시간 일정표**: `TT_HS=0, TT_HE=24`(기존 06–22시 → 00–23시 전체). 늦은 회의(22~23시) 노출.
+- **시간 입력 = 시/분 숫자 입력**: 모달 96옵션 드롭다운(timeOptions) 제거 → `시 <input number 0-23> : 분 <input number 0-59>`(`ttTimeFields`/`readTimeFields`). 24h·숫자입력.
+- **반복 일정**: 모달에 '반복' 날짜칩(JAM_DAYS) — 체크한 다른 날짜에 같은 일정을 독립 항목으로 일괄 생성(`commitTT` _repeat). 기준일 칩 disabled.
+- 검증: `node --check`(app·API) + 헤드리스 — 탭 라벨 8개·연맹셀·발대식 없음·성명/직책 분리·date/time 인풋·정렬헤더 8·정렬 동작·의전→일정표 블록·일간 좌우라벨 2·24시간행·모달 시/분 인풋·반복칩 8·드롭다운 제거·**콘솔 에러 0**.

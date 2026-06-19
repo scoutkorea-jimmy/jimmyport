@@ -32,6 +32,7 @@ function cleanDivision(e) {
     id: (e.id || "").toString().slice(0, 40),
     name: (e.name || "").toString().slice(0, 60),
     region: (e.region || "").toString().slice(0, 60),
+    federations: (e.federations || "").toString().slice(0, 400),
     leader: (e.leader || "").toString().slice(0, 60),
     ops: (e.ops || "").toString().slice(0, 60),
     safety: (e.safety || "").toString().slice(0, 60),
@@ -43,7 +44,8 @@ function cleanProtocol(e) {
   return {
     id: (e.id || "").toString().slice(0, 40),
     role: (e.role || "").toString().slice(0, 40),
-    person: (e.person || "").toString().slice(0, 80),
+    name: (e.name || e.person || "").toString().slice(0, 60),
+    title: (e.title || "").toString().slice(0, 80),
     date: (e.date || "").toString().slice(0, 10),
     time: (e.time || "").toString().slice(0, 5),
     activity: (e.activity || "").toString().slice(0, 300),
