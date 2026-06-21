@@ -252,8 +252,12 @@
       card("location", "Location",
         '<label style="' + LBL + '">Address or place search</label><div style="display:flex;gap:7px;"><input id="f-addr" value="' + escAttr(state.addrQuery) + '" class="sf-fld" placeholder="Search an address or place" style="flex:1;" /><button data-act="find" style="' + BTN_SOFT + '">Find &amp; set</button></div>' +
         '<label style="' + LBL + '">Full address</label><input id="f-address" value="' + escAttr(s.address) + '" class="sf-fld" placeholder="Street, city, country" />' +
-        '<div style="display:flex;gap:10px;margin-top:12px;"><div style="flex:1;"><label style="' + LBL + '">Latitude</label><input id="f-lat" value="' + escAttr(s.lat) + '" class="sf-fld" inputmode="decimal" /></div><div style="flex:1;"><label style="' + LBL + '">Longitude</label><input id="f-lng" value="' + escAttr(s.lng) + '" class="sf-fld" inputmode="decimal" /></div></div>' +
-        '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;">Type coordinates directly, drag the pin, or click the map.</div>') +
+        '<div style="display:flex;gap:8px;margin-top:12px;align-items:flex-end;">' +
+        '<div style="flex:1;min-width:0;"><label style="' + LBL + '">Latitude</label><input id="f-lat" value="' + escAttr(s.lat) + '" class="sf-fld" inputmode="decimal" /></div>' +
+        '<div style="flex:1;min-width:0;"><label style="' + LBL + '">Longitude</label><input id="f-lng" value="' + escAttr(s.lng) + '" class="sf-fld" inputmode="decimal" /></div>' +
+        '<button data-act="showcoord" title="Apply coordinates and show on the map" style="' + BTN_SOFT + 'padding:11px 16px;flex:none;">Show on map</button>' +
+        '</div>' +
+        '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;">Type coordinates and press “Show on map”, drag the pin, or click the map.</div>') +
       '</div>';
     updateCap();
   }
@@ -476,6 +480,7 @@
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act"), val = b.getAttribute("data-val");
       if (act === "save") { saveNow(); }
+      else if (act === "showcoord") { commitLatLng(); syncMarker(true); toast("Showing location on the map"); }
       else if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
       else if (act === "status") { set({ status: val }); renderRail(); renderForm(); }
       else if (act === "sec") { var s = sel(); var has = s.sections.indexOf(val) !== -1; s.sections = has ? s.sections.filter(function (x) { return x !== val; }) : s.sections.concat([val]); touch(); renderForm(); }

@@ -607,6 +607,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **Profile 기본 접힘**: 폼 카드 5종(Basics/Affiliation/Profile/Contact/Location)을 접이식(`card()` 헬퍼 + `state.collapsed`, 헤더 클릭 토글·쉐브론). `collapsed.profile=true` 기본. DOM 토글(재렌더 없이 포커스 보존).
 - 검증: 헤드리스 CDP — 공개(목록·팝업 4링크·Report 4필드) + 관리자(Fetch로 /api/me·/api/units 목업해 게이트 통과: Save 버튼·4 contact+lat/lng 필드·**Profile 기본 display:none**·Basics 표시·'37.12' 미재포맷·Profile 토글 펼침). `node --check` app·admin OK.
 
+### 17.12 v0.9.69 — 좌표 'Show on map' 버튼 + 소수점 입력 오류 재확인
+- 사용자: (1) 위/경도 입력 옆 **확인 버튼**으로 위치 표시, (2) 소수점이 안 찍히는 오류 확인.
+- **소수점 오류**: 재현 결과 **v0.9.68에서 이미 해결됨**(구버전 `setCoords(v||0)`이 매 키 입력마다 `toFixed(5)`로 재포맷 → '.' 직후 '37.00000'이 되어 소수 입력 불가였음). 헤드리스 실제 키 입력 `3 7 . 5 6 → 37.56` 정상. 라이브 admin.js에 `onLatLngInput` 존재·구 핸들러 0 확인 → 사용자는 캐시된 옛 버전이었고 새로고침이면 해결.
+- **Show on map 버튼**: Location 카드 위/경도 옆 `data-act="showcoord"` → `commitLatLng`(clamp·반올림·필드 재포맷) + `syncMarker(true)`(해당 좌표로 지도 recenter, zoom≥11). 검증: 48.8584/2.2945 입력→클릭→지도중심 서울→파리 이동.
+- 검증: `node --check` admin.js OK + 헤드리스(버튼 존재·center 이동·필드 재포맷).
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
