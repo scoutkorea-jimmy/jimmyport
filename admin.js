@@ -1,8 +1,8 @@
 /* =========================================================================
- * scout-finder — Admin (admin.html, Google sign-in, Bricolage + Hanken design).
+ * scout-finder — Admin (admin.html, TOTP sign-in, Bricolage + Hanken design).
  * Left rail (search + kind filter + list) · center form · right draggable map.
- * Auth: Google-only (in-app GIS, verified server-side). Auto-saves to
- * /api/units (KV) with an Authorization: Bearer <id_token> header.
+ * Auth: TOTP-only (6-digit Google Authenticator code → /api/login → session token).
+ * Auto-saves to /api/units (KV) with an Authorization: Bearer <session_token> header.
  * ========================================================================= */
 (function () {
   "use strict";
@@ -297,37 +297,43 @@
       .catch(function () { toast("Network error"); });
   }
 
-  // ── Google sign-in gate ────────────────────────────────────────────
+  // ── TOTP sign-in gate ──────────────────────────────────────────────
   var Auth = (function () {
-    var token = "", email = "", expMs = 0, clientId = "", inited = false;
-    function decode(jwt) { try { var p = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch (e) { return {}; } }
+    var token = "", expMs = 0, inited = false;
+    var LS = "scoutfinder:admin-session";
     function gate(msg) { var m = $("auth-msg"); if (m) m.textContent = msg || ""; }
     function valid() { return !!token && Date.now() < expMs - 5000; }
     function headers() { return token ? { "Authorization": "Bearer " + token } : {}; }
-    function requireReauth() { token = ""; expMs = 0; document.body.classList.remove("authed"); try { if (window.google) google.accounts.id.prompt(); } catch (e) {} }
-    function renderButton() {
-      if (!window.google || !google.accounts || !google.accounts.id) { setTimeout(renderButton, 150); return; }
-      google.accounts.id.initialize({ client_id: clientId, callback: onCredential, auto_select: false });
-      google.accounts.id.renderButton($("g-signin"), { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" });
-      google.accounts.id.prompt();
-    }
-    function onCredential(resp) {
-      var cred = resp && resp.credential; if (!cred) { gate("Sign-in failed."); return; }
-      var p = decode(cred); token = cred; email = p.email || ""; expMs = (p.exp ? p.exp * 1000 : Date.now() + 3300 * 1000);
+    function save() { try { localStorage.setItem(LS, JSON.stringify({ token: token, exp: expMs })); } catch (e) {} }
+    function clearLS() { try { localStorage.removeItem(LS); } catch (e) {} }
+    function showGate(msg) { document.body.classList.remove("authed"); gate(msg || ""); var i = $("otp-input"); if (i) { i.value = ""; try { i.focus(); } catch (e) {} } }
+    function requireReauth() { token = ""; expMs = 0; clearLS(); showGate("Session expired — enter a new code."); }
+    function onAuthed() { var w = $("admin-who"); if (w) w.textContent = "Admin"; document.body.classList.add("authed"); gate(""); if (!inited) { inited = true; init(); } }
+    function submit(code) {
+      code = String(code || "").replace(/\D/g, "");
+      if (code.length !== 6) { gate("Enter the 6-digit code."); return; }
       gate("Verifying…");
-      fetch("/api/me", { headers: headers() }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-        if (j && j.ok) { $("admin-who").textContent = j.email || email; document.body.classList.add("authed"); gate(""); if (!inited) { inited = true; init(); } }
-        else { token = ""; expMs = 0; gate("This account (" + email + ") is not authorized."); }
-      }).catch(function () { token = ""; expMs = 0; gate("Network error during verification."); });
+      fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: code }) })
+        .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }, function () { return { s: r.status, j: {} }; }); })
+        .then(function (res) {
+          if (res.s === 200 && res.j && res.j.ok) { token = res.j.token; expMs = res.j.exp || (Date.now() + 12 * 3600 * 1000); save(); onAuthed(); }
+          else if (res.s === 429) { gate("Too many attempts. Wait a few minutes, then try again."); }
+          else if (res.s === 503) { gate("Server is missing TOTP_SECRET. Set it in Cloudflare Pages env."); }
+          else { token = ""; expMs = 0; var i = $("otp-input"); if (i) { i.value = ""; try { i.focus(); } catch (e) {} } gate("Invalid code. Check your authenticator app and try again."); }
+        })
+        .catch(function () { gate("Network error. Try again."); });
     }
     function start() {
-      fetch("/api/auth-config").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-        clientId = (j && j.googleClientId) || "";
-        if (!clientId) { gate("Server is missing GOOGLE_CLIENT_ID. Set it in Cloudflare Pages env."); return; }
-        renderButton();
-      }).catch(function () { gate("Could not load auth config."); });
+      try { var raw = localStorage.getItem(LS); if (raw) { var o = JSON.parse(raw); if (o && o.token && o.exp && Date.now() < o.exp - 5000) { token = o.token; expMs = o.exp; } } } catch (e) {}
+      var form = $("otp-form");
+      if (form) form.addEventListener("submit", function (e) { e.preventDefault(); submit($("otp-input").value); });
+      if (valid()) {
+        fetch("/api/me", { headers: headers() }).then(function (r) {
+          if (r.ok) onAuthed(); else { token = ""; expMs = 0; clearLS(); showGate(); }
+        }).catch(function () { onAuthed(); }); // network hiccup: trust local session until a real call 401s
+      } else { showGate(); }
     }
-    function signOut() { token = ""; email = ""; expMs = 0; try { if (window.google) google.accounts.id.disableAutoSelect(); } catch (e) {} document.body.classList.remove("authed"); gate("Signed out."); }
+    function signOut() { token = ""; expMs = 0; clearLS(); showGate("Signed out."); }
     return { start: start, valid: valid, headers: headers, requireReauth: requireReauth, signOut: signOut };
   })();
 

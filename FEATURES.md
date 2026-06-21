@@ -12,10 +12,10 @@
 | 경로 | 정체 | 스택 | 공개/비공개 | 인증 |
 |------|------|------|------------|------|
 | `/` | **scout-finder** — 가까운 스카우트 단위대 찾기 | Vanilla | 공개(영문) | — |
-| `/admin` | scout-finder **관리자**(단위대 CRUD) | Vanilla + Leaflet | 비공개(noindex) | **Google 로그인** |
+| `/admin` | scout-finder **관리자**(단위대 CRUD) | Vanilla + Leaflet | 비공개(noindex) | **TOTP**(인증 앱 6자리) |
 | `/jamboree` | 한국잼버리 **카드뉴스 제작기** | React(격리) | 비공개(홈 링크 없음) | 없음(서버 백업만 비번) |
 | `/jamboree-plan` | 미디어부(홍보부) **SNS 운영 보드** | Vanilla | 비공개(noindex) | 비밀번호 게이트 `scout1922` |
-| `/api/*` | 백엔드(Pages Functions) | JS modules | — | 공개 GET / 관리 Google |
+| `/api/*` | 백엔드(Pages Functions) | JS modules | — | 공개 GET / 관리 TOTP 세션 |
 
 - 배포 대상: Cloudflare Pages 프로젝트 **`jimmyport`** (도메인 `jimmypark.net`).
 - 버전: 루트 `VERSION` 파일. 새 배포 감지 시 `version-watch.js`가 우측 상단 새로고침 알림 표시.
@@ -59,13 +59,13 @@
 
 **목적**: 단위대 추가/수정/삭제 + 좌표 지정. 변경은 **자동으로 KV 서버에 반영**(전 방문자 적용).
 
-### 인증 — Google 로그인 전용 (비밀번호 없음)
-- 페이지 진입 시 **Google 로그인 게이트**(`#auth-gate`)가 전체를 가림. 로그인 전에는 콘텐츠/지도 비노출.
-- **Google Identity Services(GIS)** 버튼 → ID 토큰 발급 → 서버가 검증.
-- 서버 검증(`functions/api/_lib.js`): 토큰 서명을 **Google JWKS로 검증** + `aud == GOOGLE_CLIENT_ID` + `iss` 확인 + `exp`/`email_verified` 확인 + **이메일이 `ADMIN_EMAILS` 화이트리스트에 포함**.
-- 인증된 이메일은 헤더에 "Signed in as …"로 표시 + **Sign out** 버튼.
-- 토큰 만료(약 1시간) 또는 401 시 → "Session expired — sign in again" 안내 + 재로그인(로컬 드래프트 보존).
-- 모든 관리 API 호출은 `Authorization: Bearer <id_token>` 헤더 사용(기존 `X-Admin-Token` 비밀번호 폐기).
+### 인증 — TOTP 전용 (Google Authenticator 6자리 코드)
+- 페이지 진입 시 **OTP 게이트**(`#auth-gate`)가 전체를 가림. 로그인 전에는 콘텐츠/지도 비노출.
+- 인증 앱(Google Authenticator 등)의 **6자리 코드 입력** → `POST /api/login {code}` → 서버가 `env.TOTP_SECRET`(base32)와 대조(±1 타임스텝 허용) → 통과 시 **서명된 세션 토큰** 발급.
+- 세션 토큰은 `TOTP_SECRET`에서 파생한 키로 HMAC-SHA256 서명(`<exp>.<sig>`), 유효기간 **12시간**. localStorage(`scoutfinder:admin-session`)에 저장 → 재방문 시 게이트 통과(`/api/me`로 재확인).
+- 비밀번호·구글 계정·이메일 전혀 사용 안 함. **비밀키를 가진 사람 = 관리자**(단일 관리자 모델).
+- 무차별 대입 방지: `POST /api/login`은 IP당 **10회 실패/10분** 초과 시 429.
+- 401(세션 만료) 시 → "Session expired — enter a new code" 안내 + 재로그인(로컬 드래프트 보존). 모든 관리 API 호출은 `Authorization: Bearer <session_token>` 헤더 사용.
 
 ### 편집 기능
 - **+ Add unit**: 새 단위대 추가(ID 자동 배정 `unit-…`).
@@ -159,7 +159,7 @@
 
 ## 5. 백엔드 API (`functions/api/`)
 
-> 공개 GET은 인증 불필요. **관리 작업은 Google 로그인(Bearer ID 토큰)** 필요(`isAdmin`/`adminUser`).
+> 공개 GET은 인증 불필요. **관리 작업은 TOTP 세션 토큰(Bearer)** 필요(`isAdmin`/`adminUser`).
 
 ### scout-finder
 | 엔드포인트 | 메서드 | 인증 | 설명 |
@@ -170,8 +170,9 @@
 | `/api/submissions` | GET / PATCH | **관리** | 대기 목록 / `{id,action:approve\|reject}` |
 | `/api/comments` | GET / POST / DELETE | 공개(작성)·**관리**(삭제) | 댓글(GDPR 동의 필수, 공개 IP 마스킹, 삭제는 대댓글 포함) |
 | `/api/log` | GET | **관리** | 변경 로그(시각·동작·IP) |
-| `/api/auth-config` | GET | 공개 | 관리자 페이지용 `GOOGLE_CLIENT_ID` 제공 |
-| `/api/me` | GET | **관리** | 로그인 계정 검증(`{ok,email,…}` 또는 401) |
+| `/api/login` | POST | 공개 | `{code}` TOTP 검증 → 세션 토큰 발급(`{ok,token,exp}` / 401 / 429 / 503) |
+| `/api/auth-config` | GET | 공개 | 인증 모드 안내(`{mode:"totp", configured}`) |
+| `/api/me` | GET | **관리** | 세션 토큰 검증(`{ok:true}` 또는 401) |
 | `/api/image` | POST | 공개 | 이미지 바이트 업로드 → `{url}` |
 | `/api/file` | (POST/GET) | 공개 | 일반 첨부파일(최대 10MB, 다운로드) |
 
@@ -182,8 +183,9 @@
 | `/api/jamboree-plan` | GET / PUT | 미디어부 보드. per-card 키(`jp:s:<slotKey>`) + `jp:marketing/types/events/timetable/roster/offtimes/contacts/divisions/protocol/ttcats` 등 |
 
 ### 인증 메커니즘 (`_lib.js`)
-- `adminUser(request, env)` → `Authorization: Bearer <token>` 추출 → `verifyGoogleIdToken`(JWKS 서명검증 + 클레임검증) → 이메일이 `ADMIN_EMAILS`에 있으면 payload 반환.
-- `isAdmin` = `adminUser` 존재 여부(boolean). JWKS는 1시간 캐시.
+- `verifyTotp(env, code)` → `env.TOTP_SECRET`(base32) 디코드 → HMAC-SHA1 HOTP를 현재 30초 윈도(±1)로 계산해 6자리 코드 대조. RFC 6238 표준(Google Authenticator 호환).
+- `issueSession(env)` → `<expEpochSec>.<base64url(HMAC-SHA256)>` 세션 토큰 발급(키 = `"sess:"+TOTP_SECRET`, 12시간).
+- `adminUser(request, env)` → `Authorization: Bearer <token>` 추출 → 세션 서명·만료 검증 → 유효 시 `{admin:true}`. `isAdmin` = boolean. **`TOTP_SECRET` 교체 시 기존 세션 전부 무효화**.
 - 공통 유틸: `json`, `clientIp`(CF-Connecting-IP), `maskIp`, `getArr/putArr`, `appendLog`, `newId`.
 
 ---
@@ -201,16 +203,15 @@
 
 | 이름 | 용도 | 비고 |
 |------|------|------|
-| `GOOGLE_CLIENT_ID` | Google OAuth Web 클라이언트 ID | 공개값(시크릿 아님). 토큰 `aud` 검증 + 프런트 로그인 버튼 |
-| `ADMIN_EMAILS` | 관리자 허용 이메일(콤마구분) | 예: `tsak1420@gmail.com`. 미설정 시 **아무도 관리 불가(안전 기본값)** |
+| `TOTP_SECRET` | 관리자 인증 TOTP 비밀키(base32) | **시크릿**(노출 금지). 미설정 시 `/api/login`이 503 → 아무도 관리 불가(안전 기본값) |
 
-> **`ADMIN_TOKEN`(구 비밀번호)는 더 이상 사용하지 않음** — Google 로그인으로 대체됨.
+> **`GOOGLE_CLIENT_ID`·`ADMIN_EMAILS`·`ADMIN_TOKEN`은 더 이상 사용하지 않음** — TOTP(인증 앱 6자리 코드)로 대체됨.
 
-### Google 로그인 설정 절차 (최초 1회)
-1. Google Cloud Console → **OAuth 2.0 클라이언트 ID(웹 애플리케이션)** 생성.
-2. **승인된 JavaScript 원본**에 `https://jimmypark.net` (필요 시 미리보기 도메인) 추가. *(클라이언트 시크릿 불필요 — ID 토큰 방식)*
-3. Cloudflare Pages(`jimmyport`) → Settings → **Environment variables(Production)** 에 `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS` 추가.
-4. 재배포 후 `/admin`에서 Google 로그인 → 허용 이메일만 접근.
+### TOTP 설정 절차 (최초 1회)
+1. base32 비밀키 1개 생성(서버가 생성해 전달).
+2. Cloudflare Pages(`jimmyport`) → Settings → **Environment variables(Production)** 에 `TOTP_SECRET`(시크릿)로 추가.
+3. 휴대폰 **Google Authenticator**(또는 호환 앱)에 같은 키를 등록 — otpauth URL을 QR로 스캔하거나 base32 키를 수동 입력(SHA1·6자리·30초).
+4. 재배포 후 `/admin` → 앱에 표시된 6자리 코드 입력 → 접근. 키 분실/유출 시 새 키로 교체하면 기존 세션 전부 무효화.
 
 ---
 

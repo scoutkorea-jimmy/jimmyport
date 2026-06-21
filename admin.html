@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scout Finder Admin</title>
+  <title>Scout Tour Assistant Admin</title>
   <meta name="robots" content="noindex" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,8 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- Google Sign-In (in-app). Admin access is Google-only; no password. -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Admin access is TOTP-only (Google Authenticator 6-digit code, verified server-side). -->
   <style>
     body:not(.authed) #admin-root { display: none !important; }
     #auth-gate { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #f3f0ea; padding: 24px; }
@@ -21,7 +20,11 @@
     .auth-card { width: 100%; max-width: 380px; background: #fff; border: 1px solid #ece6db; border-radius: 18px; box-shadow: 0 18px 50px rgba(30,18,55,.16); padding: 28px 24px; text-align: center; }
     .auth-card h1 { font:700 20px 'Bricolage Grotesque'; margin: 0 0 6px; color: #1E1730; }
     .auth-card p { font-size: 13.5px; line-height: 1.5; color: #8a8496; margin: 0 0 18px; }
-    #g-signin { display: inline-flex; justify-content: center; min-height: 44px; }
+    #otp-form { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    #otp-input { width: 100%; max-width: 220px; text-align: center; font:700 26px 'Hanken Grotesk'; letter-spacing: .35em; padding: 12px 10px; border: 1px solid #e0d9ce; border-radius: 12px; background: #faf8f4; color: #1E1730; outline: none; }
+    #otp-input:focus { border-color: #6336B5; background: #fff; box-shadow: 0 0 0 3px rgba(99,54,181,.14); }
+    #otp-submit { width: 100%; max-width: 220px; border: none; background: #6336B5; color: #fff; font:600 14px 'Hanken Grotesk'; padding: 12px 14px; border-radius: 12px; cursor: pointer; }
+    #otp-submit:hover { background: #5226a0; }
     #auth-msg { margin-top: 14px; font-size: 13px; color: #b4524e; min-height: 18px; }
     .auth-foot { margin-top: 16px; font-size: 12px; }
     .auth-foot a { color: #6336B5; }
@@ -30,9 +33,12 @@
 <body>
   <div id="auth-gate" aria-live="polite">
     <div class="auth-card">
-      <h1>Scout Finder Admin</h1>
-      <p>This area is restricted. Sign in with an authorized Google account to continue.</p>
-      <div id="g-signin"></div>
+      <h1>Scout Tour Assistant Admin</h1>
+      <p>This area is restricted. Enter the 6-digit code from your authenticator app.</p>
+      <form id="otp-form" autocomplete="off">
+        <input id="otp-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" aria-label="6-digit code" autocomplete="one-time-code" />
+        <button id="otp-submit" type="submit">Sign in</button>
+      </form>
       <div id="auth-msg"></div>
       <p class="auth-foot"><a href="/">&larr; Back to site</a></p>
     </div>
@@ -44,7 +50,7 @@
     <div style="flex:none;height:64px;background:#fff;border-bottom:1px solid #ece6db;display:flex;align-items:center;gap:14px;padding:0 18px;z-index:30;">
       <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(150deg,#6336B5,#3D1D6E);display:flex;align-items:center;justify-content:center;color:#fff;font:700 17px 'Bricolage Grotesque';flex:none;">S</div>
       <div>
-        <div style="font:700 15px 'Bricolage Grotesque';letter-spacing:-.01em;line-height:1;">Scout Finder <span style="color:#9a93a6;font-weight:600;">Admin</span></div>
+        <div style="font:700 15px 'Bricolage Grotesque';letter-spacing:-.01em;line-height:1;">Scout Tour Assistant <span style="color:#9a93a6;font-weight:600;">Admin</span></div>
         <div style="font-size:11px;color:#8a8496;margin-top:2px;">Changes apply to every visitor · <span id="saved-label">Loading…</span></div>
       </div>
       <div style="flex:1;"></div>

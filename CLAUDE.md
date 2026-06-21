@@ -567,6 +567,20 @@ WOSM Region → 국가(NSO) → 단위대
 - **관리자 승인 UI**: 툴바 **Reports 버튼+미처리 카운트 배지**. 모달(`#pending-modal`)에 제보 목록(장소 요약 + 제보자 이름·소속·IP·시각) + **Approve/Reject**. approve→`PATCH approve`→units 반영(선택 유지 후 재로드), reject→confirm 후 `PATCH reject`. 부팅·열람 시 `GET /api/submissions`(Bearer)로 갱신.
 - 검증: `node --check`(app·admin·submissions) OK + 헤드리스 스크린샷(제보 모달) + 라이브 스모크.
 
+### 17.7 v0.9.64 — 관리자 인증을 Google 로그인 → TOTP(인증 앱 6자리)로 교체
+- 사용자: "구글 로그인 필요없어 / Google Authenticator OTP로 로그인" (AskUserQuestion 확정: OTP 코드만·비밀키 내가 생성). 17.2에서 도입한 Google Auth 폐기.
+- **백엔드**(`functions/api/_lib.js`): `verifyGoogleIdToken`/JWKS/`ADMIN_EMAILS` 제거 → **TOTP**(RFC 6238, HMAC-SHA1, base32 `env.TOTP_SECRET`, ±1 타임스텝) + **세션 토큰**(`issueSession`: `<expSec>.<base64url(HMAC-SHA256)>`, 키=`"sess:"+TOTP_SECRET`, 12h). `adminUser`=세션 서명·만료 검증→`{admin:true}`. **시크릿 교체 시 전 세션 무효화**.
+- **신규** `functions/api/login.js`: `POST {code}`→TOTP 검증→세션 발급(`{ok,token,exp}`/401/429/503). IP당 10회 실패/10분 KV 레이트리밋.
+- `auth-config.js`→`{mode:"totp",configured}`, `me.js`→`{ok:true}`(이메일 제거).
+- **프런트**(`admin.html`/`admin.js`): GIS 스크립트·`#g-signin` 제거 → 6자리 OTP 입력 게이트(`#otp-form`/`#otp-input`). `Auth`=`POST /api/login`→세션토큰 메모리+localStorage(`scoutfinder:admin-session`, 12h, 재방문 시 `/api/me` 재확인). 관리 호출 `Authorization: Bearer <session_token>`. 401→"enter a new code".
+- **환경변수**: `TOTP_SECRET`(base32, 시크릿) 1개로 단순화. `GOOGLE_CLIENT_ID`·`ADMIN_EMAILS`·`ADMIN_TOKEN` 폐기. ⚠️ 사용자가 Cloudflare Pages env에 `TOTP_SECRET` 설정 + 인증 앱에 같은 키 등록 필요(otpauth URL/QR 또는 수동 base32).
+- 검증: RFC 6238 테스트 벡터(287082·081804) 일치 확인 + `_lib.js` ESM 임포트 라운드트립 13/13 PASS(TOTP accept/reject·세션 발급·위조/만료/시크릿교체 거부) + `node --check` admin.js·4개 함수 모듈 임포트 OK.
+
+### 17.8 v0.9.65 — 제품명 Scout Finder → Scout Tour Assistant (표시 텍스트)
+- 사용자: "프로젝트명도 Scout Finder 말고 Scout Tour Assistant가 좋아보여." **사용자에게 보이는 브랜드명만** 교체(5곳): `index.html` title·홈 헤더, `admin.html` title·인증 카드 h1·툴바 로고. (otpauth 발급 issuer 라벨도 'Scout Tour Assistant Admin'으로 갱신.)
+- **내부 식별자는 유지**(변경 시 세션/저장/데이터 깨짐): localStorage `scoutfinder:*`, KV 네임스페이스 `SCOUT_KV`, 폴더/파일 `scout-finder`, Cloudflare 프로젝트 `jimmyport`, 코드 주석. 필요 시 추후 별도 작업으로 코드네임 리네임.
+- 검증: deployable(`*.html/js/css`)에서 표시 'Scout Finder' 잔여 0 grep 확인.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

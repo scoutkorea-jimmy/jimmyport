@@ -7,70 +7,91 @@ export function json(data, status = 200) {
   });
 }
 
-// ── Google Sign-In (in-app) admin auth ──────────────────────────────────
-// Admin endpoints require an "Authorization: Bearer <google_id_token>" header.
-// The token is verified against Google's public keys (JWKS), and the verified
-// email must be in env.ADMIN_EMAILS (comma-separated). env.GOOGLE_CLIENT_ID is
-// the OAuth Web Client ID and is matched against the token "aud" claim.
-let _googleKeys = { keys: null, exp: 0 };
+// ── TOTP (Google Authenticator) admin auth ──────────────────────────────
+// Login flow: POST /api/login { code } verifies a 6-digit TOTP code against
+// env.TOTP_SECRET (a base32 secret) and returns a signed session token. Admin
+// endpoints then require "Authorization: Bearer <session_token>". Sessions are
+// HMAC-signed with a key derived from TOTP_SECRET, so rotating the secret
+// invalidates every existing session.
+const SESSION_TTL = 12 * 3600; // seconds
 
-function b64urlToBytes(s) {
-  s = String(s).replace(/-/g, "+").replace(/_/g, "/");
-  const pad = s.length % 4; if (pad) s += "=".repeat(4 - pad);
-  const bin = atob(s); const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  return arr;
-}
-function b64urlToJson(s) { return JSON.parse(new TextDecoder().decode(b64urlToBytes(s))); }
-
-async function googleKeys() {
-  const now = Date.now();
-  if (_googleKeys.keys && now < _googleKeys.exp) return _googleKeys.keys;
-  const res = await fetch("https://www.googleapis.com/oauth2/v3/certs");
-  if (!res.ok) throw new Error("jwks fetch failed");
-  const data = await res.json();
-  _googleKeys = { keys: data.keys || [], exp: now + 3600 * 1000 };
-  return _googleKeys.keys;
+function base32Decode(str) {
+  const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  str = String(str).toUpperCase().replace(/=+$/, "").replace(/\s/g, "");
+  let bits = "";
+  for (const c of str) { const v = A.indexOf(c); if (v < 0) continue; bits += v.toString(2).padStart(5, "0"); }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(parseInt(bits.substr(i, 8), 2));
+  return new Uint8Array(bytes);
 }
 
-export async function verifyGoogleIdToken(idToken, env) {
-  if (!idToken) return null;
-  const parts = String(idToken).split(".");
-  if (parts.length !== 3) return null;
-  let header, payload;
-  try { header = b64urlToJson(parts[0]); payload = b64urlToJson(parts[1]); } catch { return null; }
-  let jwk;
-  try { jwk = (await googleKeys()).find((k) => k.kid === header.kid); } catch { return null; }
-  if (!jwk) return null;
-  let ok = false;
-  try {
-    const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
-    ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, b64urlToBytes(parts[2]), new TextEncoder().encode(parts[0] + "." + parts[1]));
-  } catch { return null; }
-  if (!ok) return null;
-  const now = Math.floor(Date.now() / 1000);
-  if (payload.exp && now >= payload.exp) return null;
-  if (payload.nbf && now < payload.nbf) return null;
-  if (payload.iss !== "https://accounts.google.com" && payload.iss !== "accounts.google.com") return null;
-  if (env.GOOGLE_CLIENT_ID && payload.aud !== env.GOOGLE_CLIENT_ID) return null;
-  if (payload.email_verified !== true && payload.email_verified !== "true") return null;
-  return payload;
+function bytesToB64url(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function adminEmails(env) {
-  return String(env.ADMIN_EMAILS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+async function hotp(keyBytes, counter) {
+  const buf = new ArrayBuffer(8);
+  const dv = new DataView(buf);
+  dv.setUint32(0, Math.floor(counter / 0x100000000));
+  dv.setUint32(4, counter >>> 0);
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, buf));
+  const off = sig[19] & 0xf;
+  const code = ((sig[off] & 0x7f) << 24) | (sig[off + 1] << 16) | (sig[off + 2] << 8) | sig[off + 3];
+  return (code % 1000000).toString().padStart(6, "0");
 }
 
-// Returns the verified admin payload ({ email, ... }) or null.
+// Verify a 6-digit TOTP code against env.TOTP_SECRET (±1 time-step tolerance).
+export async function verifyTotp(env, code) {
+  const secret = String(env.TOTP_SECRET || "").trim();
+  if (!secret) return false;
+  code = String(code || "").replace(/\D/g, "");
+  if (code.length !== 6) return false;
+  const key = base32Decode(secret);
+  if (!key.length) return false;
+  const t = Math.floor(Date.now() / 1000 / 30);
+  for (let i = -1; i <= 1; i++) {
+    if ((await hotp(key, t + i)) === code) return true;
+  }
+  return false;
+}
+
+async function sessionKey(env) {
+  return crypto.subtle.importKey(
+    "raw", new TextEncoder().encode("sess:" + String(env.TOTP_SECRET || "")),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+}
+
+// Issue a signed session token: "<expEpochSec>.<base64url(hmac)>". Returns { token, exp(ms) }.
+export async function issueSession(env) {
+  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL;
+  const key = await sessionKey(env);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(exp))));
+  return { token: exp + "." + bytesToB64url(sig), exp: exp * 1000 };
+}
+
+async function verifySession(env, token) {
+  if (!env.TOTP_SECRET) return false;
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2) return false;
+  const exp = parseInt(parts[0], 10);
+  if (!exp || Math.floor(Date.now() / 1000) >= exp) return false;
+  const key = await sessionKey(env);
+  const expected = bytesToB64url(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(exp)))));
+  if (expected.length !== parts[1].length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ parts[1].charCodeAt(i);
+  return diff === 0;
+}
+
+// Returns a minimal admin marker ({ admin: true }) for a valid session, else null.
 export async function adminUser(request, env) {
   const auth = request.headers.get("Authorization") || "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
   if (!m) return null;
-  const payload = await verifyGoogleIdToken(m[1], env);
-  if (!payload) return null;
-  const allow = adminEmails(env);
-  if (!allow.length) return null;
-  return allow.includes(String(payload.email || "").toLowerCase()) ? payload : null;
+  return (await verifySession(env, m[1])) ? { admin: true } : null;
 }
 
 export async function isAdmin(request, env) {
