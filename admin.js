@@ -352,6 +352,35 @@
       .catch(function () { toast("Network error"); });
   }
 
+  // ── comment keyword filter (admin) ─────────────────────────────────
+  function openFilter() {
+    if (!Auth.valid()) { Auth.requireReauth(); return; }
+    $("filter-modal").style.display = "flex";
+    $("filter-msg").textContent = "Loading…"; $("filter-text").value = ""; $("filter-defaults").textContent = "";
+    fetch("/api/comment-filter", { headers: Auth.headers() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j) { $("filter-msg").textContent = "Could not load the filter."; return; }
+        $("filter-text").value = (j.words || []).join("\n");
+        $("filter-defaults").textContent = (j.defaults || []).join(",  ");
+        $("filter-msg").textContent = "";
+      })
+      .catch(function () { $("filter-msg").textContent = "Network error."; });
+  }
+  function saveFilter() {
+    if (!Auth.valid()) { Auth.requireReauth(); return; }
+    var words = $("filter-text").value.split(/[\n,]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    $("filter-msg").textContent = "Saving…";
+    fetch("/api/comment-filter", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ words: words }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.j.ok) { $("filter-msg").textContent = "Saved — " + res.j.count + " custom word(s)."; toast("Comment filter saved"); setTimeout(function () { $("filter-modal").style.display = "none"; }, 800); }
+        else if (res.status === 401) { Auth.requireReauth(); }
+        else $("filter-msg").textContent = "Save failed: " + (res.j.error || res.status);
+      })
+      .catch(function () { $("filter-msg").textContent = "Network error."; });
+  }
+
   // ── TOTP sign-in gate ──────────────────────────────────────────────
   var Auth = (function () {
     var token = "", expMs = 0, inited = false, idleTimer = null, idleWired = false;
@@ -450,6 +479,11 @@
     $("add-btn").addEventListener("click", addUnit);
     $("copy-btn").addEventListener("click", doCopy);
     $("download-btn").addEventListener("click", doDownload);
+    $("filter-btn").addEventListener("click", openFilter);
+    $("filter-close").addEventListener("click", function () { $("filter-modal").style.display = "none"; });
+    $("filter-cancel").addEventListener("click", function () { $("filter-modal").style.display = "none"; });
+    $("filter-modal").addEventListener("click", function (e) { if (e.target === $("filter-modal")) $("filter-modal").style.display = "none"; });
+    $("filter-save").addEventListener("click", saveFilter);
     $("import-btn").addEventListener("click", function () { $("import-text").value = ""; $("import-modal").style.display = "flex"; });
     $("import-cancel").addEventListener("click", function () { $("import-modal").style.display = "none"; });
     $("import-load").addEventListener("click", doImport);

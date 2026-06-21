@@ -109,6 +109,34 @@ export function maskIp(ip) {
   return ip.split(":").slice(0, 2).join(":") + ":***";
 }
 
+// ── comment keyword blocklist (moderation) ──────────────────────────────
+// Default banned terms (profanity / spam). Admins can add more via KV "comments:blocklist".
+export const DEFAULT_BANNED = [
+  "fuck", "shit", "bitch", "asshole", "cunt", "nigger", "faggot", "dick", "pussy", "whore", "slut",
+  "viagra", "casino", "porn", "sex cam",
+  "씨발", "시발", "씨발놈", "개새끼", "병신", "좆", "좆같", "지랄", "니미", "썅", "보지", "자지",
+];
+
+export async function bannedTerms(env) {
+  let custom = [];
+  try { custom = await getArr(env, "comments:blocklist"); } catch { custom = []; }
+  return DEFAULT_BANNED.concat(Array.isArray(custom) ? custom : []);
+}
+
+// Returns the first matched banned term in `text`, or null. Matches case-insensitively
+// on both the raw text and a punctuation/space-stripped version (catches "f.u.c.k").
+export function matchBanned(terms, text) {
+  const lo = String(text || "").toLowerCase();
+  const tight = lo.replace(/[^a-z0-9가-힣]/g, "");
+  for (const w of terms) {
+    const wl = String(w || "").toLowerCase().trim();
+    if (!wl) continue;
+    const wt = wl.replace(/[^a-z0-9가-힣]/g, "");
+    if (lo.indexOf(wl) !== -1 || (wt && tight.indexOf(wt) !== -1)) return w;
+  }
+  return null;
+}
+
 export async function getArr(env, key) {
   try { const raw = await env.SCOUT_KV.get(key); return raw ? JSON.parse(raw) : []; }
   catch { return []; }

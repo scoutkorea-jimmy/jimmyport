@@ -634,6 +634,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **좌우 무한 루프**: `maxBounds`를 위도만 클램프(`[[-85.05,-1e6],[85.05,1e6]]`)로 변경 — 경도는 사실상 무제한이라 타일 wrap+`worldCopyJump`로 좌우 무한 스크롤, 위도는 ±85로 고정(상하 여백 0 유지). 검증: setView lng 400 허용·lat 89→83 클램프·북단 85.
 - **댓글 발견성**: 컴팩트 redesign 후 💬가 선택 카드에만 보이던 문제 → 각 컴팩트 행 메타줄에 **클릭 가능한 💬+개수 버튼**(`data-comments`, 0 포함 항상 표시) 노출 → 행 선택 없이 바로 댓글 드로어 오픈(레딧식 쓰레드·GDPR·IP마스킹은 기존). 검증: 행 댓글버튼 클릭→drawer 열림·카드 선택 안 됨.
 
+### 17.17 v0.9.74 — 댓글 금지어 필터(차단) + 관리자 단어 관리
+- 사용자: 댓글에 금지어를 **막는**(차단) 필터. (AskUserQuestion '마스킹' 선택했으나 후속 메시지 '금지어를 막는 필터'로 차단 확정.)
+- **서버 차단**(`_lib.js`+`comments.js`): `DEFAULT_BANNED`(영/한 욕설·스팸 27종) + KV `comments:blocklist`(관리자 커스텀) = `bannedTerms(env)`. `matchBanned(terms,text)`=원문 소문자 + 비영숫자 제거(tight) 양쪽 substring 매칭(`f.u.c.k`류 회피 탐지). POST /api/comments에서 name+body 검사 → 매칭 시 **400 `blocked_keyword`**(저장 안 함). 짧은 단어 오탐 방지: 목록은 'asshole' 등 완전어 사용('ass' 아님) → 'assemble' 통과 확인.
+- **관리자 관리 UI**: 신규 `functions/api/comment-filter.js`(GET admin `{words,defaults}` · PUT admin `{words}`→KV, 최대 1000·중복제거). admin 툴바 'Comment filter' 버튼 + 모달(줄/콤마 구분 textarea, 기본목록 read-only details, Bearer 인증). `openFilter`/`saveFilter`.
+- **공개 안내**: `app.js postComment`가 `blocked_keyword`→"contains words that aren't allowed", `consent_required`/`empty`도 친절 메시지.
+- 검증: node 매칭 10케이스 전수(차단 6/허용 4, 한/영/tight/커스텀)·모듈 import OK·`node --check` client OK. 배포 후 라이브 비파괴 테스트(욕설 POST→400, 저장 안 됨).
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

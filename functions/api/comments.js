@@ -6,7 +6,7 @@
  *
  * GDPR 메모: 개인정보(IP, 닉네임)는 명시적 consent 시에만 저장, 공개 표시 시 IP 마스킹,
  * 원본 IP는 관리자 전용, 삭제(에러셔) 지원. 보존 최대 5000건(초과 시 오래된 것부터 정리). */
-import { json, isAdmin, clientIp, maskIp, getArr, putArr, newId } from "./_lib.js";
+import { json, isAdmin, clientIp, maskIp, getArr, putArr, newId, bannedTerms, matchBanned } from "./_lib.js";
 
 export async function onRequestGet({ request, env }) {
   const admin = await isAdmin(request, env);
@@ -32,6 +32,9 @@ export async function onRequestPost({ request, env }) {
   const text = (body.body || "").toString().trim().slice(0, 1000);
   const imageUrl = body.imageUrl ? String(body.imageUrl).slice(0, 500) : "";
   if (!text && !imageUrl) return json({ error: "empty" }, 400);
+
+  // Keyword filter: reject comments (or nicknames) containing banned terms.
+  if (matchBanned(await bannedTerms(env), name + " " + text)) return json({ error: "blocked_keyword" }, 400);
 
   const arr = await getArr(env, "comments");
   const parentId = body.parentId ? String(body.parentId).slice(0, 60) : null;

@@ -390,7 +390,14 @@
           try { localStorage.setItem("sf_nick", name); } catch (e) {}
           $("draft").value = ""; state.replyTo = null; updateReplyBanner(); updatePostBtn();
           renderThread(); renderList();
-        } else alert("Could not post: " + ((j && j.error) || "error"));
+        } else {
+          var err = (j && j.error) || "error";
+          var msg = err === "blocked_keyword" ? "Your comment contains words that aren't allowed. Please revise it."
+            : err === "consent_required" ? "Please tick the consent box to post."
+            : err === "empty" ? "Please write something first."
+            : "Could not post: " + err;
+          alert(msg);
+        }
       })
       .catch(function () { $("post-btn").textContent = "Post comment"; alert("Network error — comment not posted."); });
   }
