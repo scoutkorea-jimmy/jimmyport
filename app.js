@@ -48,13 +48,6 @@
   var openCmtId = null, cmtCache = {};
   var NICK_KEY = "scoutfinder:nick";
   var PAGE = 10;
-  // editor (home inline editing)
-  var NSOS = window.SCOUT_NSOS || [];
-  var TOKEN_KEY = "scoutfinder:adminToken";
-  var editMode = false, saveTimer = null;
-  var SECS = ["Beaver", "Cub", "Scout", "Venture", "Rover"];
-  function round5(n) { return Math.round(n * 1e5) / 1e5; }
-  function applyCountry(u) { for (var k = 0; k < NSOS.length; k++) { if (NSOS[k].country === u.country) { u.country_ko = NSOS[k].country_ko; u.nso = NSOS[k].nso; u.region = NSOS[k].region; u.lang = NSOS[k].lang; return; } } }
 
   // ── utils ──────────────────────────────────────────────────────────
   function toRad(d) { return (d * Math.PI) / 180; }
@@ -392,123 +385,6 @@
       .catch(function () { btn.disabled = false; err.textContent = "Network error."; });
   }
 
-  // ── editor (home inline editing) ────────────────────────────────────
-  function getToken(force) {
-    var t = ""; try { t = sessionStorage.getItem(TOKEN_KEY) || ""; } catch (e) {}
-    if (!t || force) { t = prompt("Admin password:") || ""; if (t) { try { sessionStorage.setItem(TOKEN_KEY, t); } catch (e) {} } }
-    return t;
-  }
-  function setSaveStatus(txt, ok) { var el = document.getElementById("save-status"); if (el) { el.textContent = txt; el.classList.toggle("ok", !!ok); } }
-  function scheduleSave() { if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(function () { saveServer(false); }, 900); }
-  function saveServer() {
-    var token = getToken(false);
-    if (!token) { setSaveStatus("Enter admin password to save", false); return; }
-    setSaveStatus("Saving…", false);
-    fetch("/api/units", { method: "PUT", headers: { "content-type": "application/json", "X-Admin-Token": token }, body: JSON.stringify({ units: UNITS }) })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
-      .then(function (res) {
-        if (res.ok) { var t = new Date(); setSaveStatus("Saved ✓ " + ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2), true); }
-        else if (res.status === 401) { try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} setSaveStatus("Wrong password", false); }
-        else setSaveStatus("Save failed", false);
-      })
-      .catch(function () { setSaveStatus("Save failed (network)", false); });
-  }
-  function reflectEditUI() { var eb = document.getElementById("edit-toggle"); if (eb) { eb.classList.toggle("active", editMode); eb.setAttribute("aria-pressed", editMode ? "true" : "false"); eb.title = editMode ? "Exit admin mode" : "Admin tools"; } }
-  function toggleEditMode() {
-    if (!editMode) { if (!getToken(false)) { setSaveStatus("Password required", false); return; } editMode = true; document.body.classList.add("edit-mode"); }
-    else { editMode = false; document.body.classList.remove("edit-mode"); $list.querySelectorAll(".edit-panel").forEach(function (p) { p.hidden = true; p.innerHTML = ""; }); }
-    reflectEditUI();
-  }
-  function unitIndex(id) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].id === id) return i; return -1; }
-  function editPanelFor(id) { return $list.querySelector('.edit-panel[data-edit-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
-  function editCoordText(u) { var a = parseFloat(u.lat), b = parseFloat(u.lng); if (isNaN(a) || isNaN(b)) return "Not set — search an address"; return "📍 " + a + ", " + b + (u.place ? " — " + u.place : ""); }
-  function countryOptions(cur) { var o = '<option value="">(select country)</option>'; for (var i = 0; i < NSOS.length; i++) { var c = NSOS[i].country; o += '<option value="' + escAttr(c) + '"' + (c === cur ? " selected" : "") + ">" + esc(c) + "</option>"; } return o; }
-  function editFormHtml(u) {
-    var secs = SECS.map(function (s) { var on = (u.sections || []).indexOf(s) !== -1; return '<label class="section-toggle' + (on ? " checked" : "") + '"><input type="checkbox" data-esec="' + s + '"' + (on ? " checked" : "") + " />" + s + "</label>"; }).join("");
-    var photo = u.photo ? '<img class="edit-photo-prev" src="' + escAttr(u.photo) + '" alt="" />' : "";
-    return '<div class="edit-form">' +
-      '<label class="ef-l">Name<input type="text" data-ef="name" value="' + escAttr(u.name) + '" /></label>' +
-      '<label class="ef-l">Type<select data-ef="type"><option' + (u.type === "Community unit" ? " selected" : "") + ">Community unit</option><option" + (u.type === "School unit" ? " selected" : "") + ">School unit</option></select></label>" +
-      '<label class="ef-l">Country<select data-ef="country">' + countryOptions(u.country) + "</select></label>" +
-      '<div class="readonly-line" data-enso>' + esc((u.nso || "—") + " · " + (u.region || "—")) + "</div>" +
-      '<label class="ef-l">About (description)<textarea data-ef="note" rows="2">' + esc(u.note) + "</textarea></label>" +
-      '<label class="ef-l">Homepage (Instagram)<input type="text" data-ef="homepage" value="' + escAttr(u.homepage) + '" placeholder="https://instagram.com/..." /></label>' +
-      '<div class="ef-l">Photo<div class="cmt-file-row"><label class="cmt-file-btn">Upload photo<input type="file" data-ephoto accept="image/*" /></label><span class="ef-photo-status"></span></div>' + photo + "</div>" +
-      '<div class="ef-l">Location<div class="coord-row"><input type="text" data-eaddr placeholder="Search address / place" value="' + escAttr(u.place || "") + '" style="flex:1 1 auto" /><button type="button" class="admin-btn" data-eaddr-btn>Find</button></div><div class="readonly-line" data-ecoord>' + editCoordText(u) + "</div></div>" +
-      '<div class="ef-l">Recruiting<div class="sections-box">' + secs + "</div></div>" +
-      '<div class="ef-row"><button type="button" class="cmt-submit" data-edone>Done</button><button type="button" class="ef-del" data-edel>Delete</button></div>' +
-      "</div>";
-  }
-  function openEdit(id) {
-    if (!editMode) { if (!getToken(false)) { setSaveStatus("Password required", false); return; } editMode = true; document.body.classList.add("edit-mode"); reflectEditUI(); }
-    var i = unitIndex(id); if (i < 0) return;
-    $list.querySelectorAll(".edit-panel").forEach(function (p) { if (p.getAttribute("data-edit-for") !== id) { p.hidden = true; p.innerHTML = ""; } });
-    var panel = editPanelFor(id); if (!panel) return;
-    if (!panel.hidden) { panel.hidden = true; panel.innerHTML = ""; return; }
-    panel.innerHTML = editFormHtml(UNITS[i]); panel.hidden = false;
-    setTimeout(function () { panel.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 30);
-  }
-  function onEditInput(e) {
-    var f = e.target.closest("[data-ef]"); if (!f) return;
-    var panel = e.target.closest(".edit-panel"); if (!panel) return;
-    var i = unitIndex(panel.getAttribute("data-edit-for")); if (i < 0) return;
-    var field = f.getAttribute("data-ef"); UNITS[i][field] = f.value;
-    if (field === "country") { applyCountry(UNITS[i]); var info = panel.querySelector("[data-enso]"); if (info) info.textContent = (UNITS[i].nso || "—") + " · " + (UNITS[i].region || "—"); }
-    scheduleSave();
-  }
-  function onEditChange(e) {
-    var sec = e.target.closest("[data-esec]");
-    if (sec) {
-      var p1 = sec.closest(".edit-panel"); var i1 = unitIndex(p1.getAttribute("data-edit-for")); if (i1 < 0) return;
-      var s = sec.getAttribute("data-esec"); if (!Array.isArray(UNITS[i1].sections)) UNITS[i1].sections = [];
-      var pos = UNITS[i1].sections.indexOf(s);
-      if (sec.checked && pos === -1) UNITS[i1].sections.push(s); else if (!sec.checked && pos !== -1) UNITS[i1].sections.splice(pos, 1);
-      UNITS[i1].sections = SECS.filter(function (x) { return UNITS[i1].sections.indexOf(x) !== -1; });
-      sec.closest(".section-toggle").classList.toggle("checked", sec.checked); scheduleSave(); return;
-    }
-    var ph = e.target.closest("[data-ephoto]");
-    if (ph) {
-      var p2 = ph.closest(".edit-panel"); var i2 = unitIndex(p2.getAttribute("data-edit-for")); if (i2 < 0) return;
-      var status = p2.querySelector(".ef-photo-status"); var file = ph.files && ph.files[0]; if (!file) return;
-      if (file.size > 2 * 1024 * 1024) { status.textContent = "Too large (2MB)"; return; }
-      status.textContent = "Uploading…";
-      fetch("/api/image", { method: "POST", headers: { "content-type": file.type }, body: file })
-        .then(function (r) { return r.json(); })
-        .then(function (j) { if (j && j.url) { UNITS[i2].photo = j.url; status.textContent = "Uploaded ✓"; var prev = p2.querySelector(".edit-photo-prev"); if (prev) prev.src = j.url; else { var img = document.createElement("img"); img.className = "edit-photo-prev"; img.src = j.url; status.parentNode.parentNode.appendChild(img); } scheduleSave(); } else status.textContent = "Upload failed"; })
-        .catch(function () { status.textContent = "Upload failed"; });
-    }
-  }
-  function editGeocode(i, panel) {
-    var input = panel.querySelector("[data-eaddr]"); var q = input ? input.value.trim() : "";
-    if (!q) { setSaveStatus("Enter an address to search", false); return; }
-    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=en&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (arr) {
-        if (arr && arr[0]) {
-          UNITS[i].lat = round5(parseFloat(arr[0].lat)); UNITS[i].lng = round5(parseFloat(arr[0].lon)); UNITS[i].place = arr[0].display_name || q;
-          var co = panel.querySelector("[data-ecoord]"); if (co) co.textContent = editCoordText(UNITS[i]);
-          var info = markerInfo[UNITS[i].id]; if (info && info.marker) info.marker.setLatLng([UNITS[i].lat, UNITS[i].lng]);
-          if (!isMobile()) { try { map.flyTo([UNITS[i].lat, UNITS[i].lng], 13); } catch (e) {} }
-          setSaveStatus("Location set", true); scheduleSave();
-        } else setSaveStatus("No place found", false);
-      })
-      .catch(function () { setSaveStatus("Search failed", false); });
-  }
-  function onEditClick(e) {
-    var panel = e.target.closest(".edit-panel"); if (!panel) return;
-    var id = panel.getAttribute("data-edit-for"); var i = unitIndex(id); if (i < 0) return;
-    if (e.target.closest("[data-eaddr-btn]")) { editGeocode(i, panel); return; }
-    if (e.target.closest("[data-edone]")) { panel.hidden = true; panel.innerHTML = ""; relayout(); return; }
-    if (e.target.closest("[data-edel]")) { if (confirm("Delete this unit?")) { UNITS.splice(i, 1); scheduleSave(); showAll(); } return; }
-  }
-  function addUnit() {
-    if (!getToken(false)) { setSaveStatus("Password required", false); return; }
-    if (!editMode) { editMode = true; document.body.classList.add("edit-mode"); reflectEditUI(); }
-    var c = map.getCenter();
-    var u = { id: "unit-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), name: "New Scout Unit", type: "Community unit", country: "Republic of Korea", lat: round5(c.lat), lng: round5(c.lng), place: "", sections: [], homepage: "", note: "", photo: "" };
-    applyCountry(u); UNITS.push(u); scheduleSave(); showAll(); openEdit(u.id);
-  }
-
   // ── 서버 로드 (Cloudflare KV) → 폴백 data.js ────────────────────────
   function loadFromServer() {
     return fetch("/api/units", { cache: "no-store" })
@@ -527,16 +403,11 @@
 
     // 좌측 목록: 클릭 → 지도에 정보(팝업). 편집 버튼만 별도. (댓글은 지도 팝업 안에서)
     $list.addEventListener("click", function (e) {
-      if (e.target.closest(".edit-panel")) return;
-      var eb = e.target.closest("[data-edit]"); if (eb) { openEdit(eb.getAttribute("data-edit")); return; }
       var card = e.target.closest(".result-card"); if (card) setActive(card.getAttribute("data-id"), true);
     });
     $list.addEventListener("keydown", function (e) {
       if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("result-card")) { e.preventDefault(); setActive(e.target.getAttribute("data-id"), true); }
     });
-    $list.addEventListener("click", onEditClick);
-    $list.addEventListener("change", onEditChange);
-    $list.addEventListener("input", onEditInput);
     // 댓글은 지도 팝업 내부 → document 위임
     document.addEventListener("click", function (e) {
       var b = e.target.closest("[data-cmt]"); if (b) { togglePanel(b.getAttribute("data-cmt")); return; }
@@ -545,9 +416,6 @@
     document.addEventListener("change", onPanelChange);
     document.addEventListener("submit", onPanelSubmit);
 
-    var eb = document.getElementById("edit-toggle"); if (eb) eb.addEventListener("click", toggleEditMode);
-    var sb = document.getElementById("save-btn"); if (sb) sb.addEventListener("click", function () { saveServer(true); });
-    var ab = document.getElementById("add-btn-home"); if (ab) ab.addEventListener("click", addUnit);
     $form.addEventListener("submit", function (e) { e.preventDefault(); var q = $input.value.trim(); if (q) doSearch(q); else showAll(); });
     map.on("click", function (e) { setAnchorFromMap(e.latlng); });
     $reset.addEventListener("click", showAll);

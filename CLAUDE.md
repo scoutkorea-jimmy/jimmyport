@@ -545,6 +545,11 @@ WOSM Region → 국가(NSO) → 단위대
 - 조치: 카드 HTML에서 `card-tools(✎ Edit)` + `edit-panel` 제거 → **공개 페이지 보기 전용**. 진입점(카드 Edit 버튼)이 사라져 편집/저장/삭제/`prompt` 함수 전부 **도달 불가**(`#edit-toggle/#add-btn-home/#save-btn`는 원래 index.html에 없음). 편집은 이제 `/admin`(Google)에서만.
 - 잔여 편집기 JS는 호출처 없는 죽은 코드(무해) — 추후 정리 권장. 검증: `node --check` OK + 라이브 공개 페이지에 Edit 버튼 0.
 
+### 17.4 v0.9.61 — 공개 app.js 死코드(인라인 편집기) 완전 제거
+- 사용자: "필요없는 것들은 모두 삭제." 17.3에서 진입점만 막았던 공개 편집기 JS 전부 제거(약 11.5KB): `getToken`(prompt)·`saveServer`(X-Admin-Token)·`scheduleSave`·`reflectEditUI`·`toggleEditMode`·`openEdit`·`onEdit*`·`editGeocode`·`editFormHtml`·`countryOptions`·`addUnit`·`unitIndex`·`editPanelFor`·`editCoordText` + 전용 변수(`TOKEN_KEY`·`editMode`·`saveTimer`·`SECS`·`NSOS`·`round5`·`applyCountry`) + init 배선(edit-toggle/save-btn/add-btn-home, onEdit 리스너, $list 클릭의 data-edit 분기). `$list` 클릭은 카드→`setActive`만 유지.
+- CSS는 보류: `section-toggle`·`readonly-line`·`coord-row`·`sections-box`는 `/admin`(admin.js)도 사용 → 공유. 죽은 편집기 CSS(`edit-form`·`ef-l`·`edit-panel`·`card-tools` 등) 정리는 디자인 자료 수령 후.
+- 검증: `node --check` OK + 제거 식별자 11종 잔여 참조 0 + `card-tools/edit-panel/data-edit` 문자열 0.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
