@@ -12,9 +12,10 @@
     EUR: { full: "European", color: "#2F6FB0" },
     ARB: { full: "Arab", color: "#2E8B6B" },
     AFR: { full: "Africa", color: "#C26A2E" },
-    IAR: { full: "Interamerican", color: "#C23E6E" }
+    IAR: { full: "Interamerican", color: "#C23E6E" },
+    WSB: { full: "World Bureau", color: "#4B4E8A" }
   };
-  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR" };
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
 
@@ -171,6 +172,7 @@
 
     var kindSeg = ["unit", "office", "heritage"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
     var countryOpts = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === s.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("");
+    var regionOpts = Object.keys(REGION).map(function (code) { return '<option value="' + code + '"' + (code === s.region ? " selected" : "") + ">" + code + " · " + esc(REGION[code].full) + "</option>"; }).join("");
     var sectionChips = ALL_SECTIONS.map(function (x) { return '<button data-act="sec" data-val="' + x + '" style="' + chip(s.sections.indexOf(x) !== -1) + '">' + x + '</button>'; }).join("");
     var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:6px 8px 6px 11px;border-radius:999px;">' + esc(t) + '<button data-act="tagdel" data-val="' + escAttr(t) + '" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
     var contactSeg = [["none", "None"], ["instagram", "Instagram"], ["homepage", "Homepage"]].map(function (p) { return '<button data-act="contact" data-val="' + p[0] + '" style="' + seg(ctype === p[0]) + '">' + p[1] + '</button>'; }).join("");
@@ -189,7 +191,9 @@
       '<div style="' + CARD + '"><div style="' + SEC + '">Affiliation</div>' +
       '<label style="' + LBL + '">Country</label>' +
       '<select id="f-country" class="sf-fld" style="appearance:none;cursor:pointer;">' + countryOpts + '</select>' +
-      '<label style="' + LBL + '">NSO · Region · Language <span style="color:#b3adbd;font-weight:500;">(auto)</span></label>' +
+      '<label style="' + LBL + '">Region</label>' +
+      '<select id="f-region" class="sf-fld" style="appearance:none;cursor:pointer;">' + regionOpts + '</select>' +
+      '<label style="' + LBL + '">NSO · Language <span style="color:#b3adbd;font-weight:500;">(auto from country)</span></label>' +
       '<div style="background:#f5f2ec;border:1px solid #ece6db;border-radius:11px;padding:11px 13px;font:500 13px \'Hanken Grotesk\';color:#6b6577;">' + esc(autoLine) + '</div></div>' +
 
       '<div style="' + CARD + '"><div style="' + SEC + '">Profile</div>' +
@@ -337,12 +341,50 @@
     return { start: start, valid: valid, headers: headers, requireReauth: requireReauth, signOut: signOut };
   })();
 
+  // ── draggable splitter (form ↔ map column widths) ──────────────────
+  function initSplitter() {
+    var mapCol = $("map-col"), splitter = $("col-splitter");
+    if (!mapCol || !splitter) return;
+    var LS = "scoutfinder:admin-mapw";
+    function clampW(w) {
+      var row = mapCol.parentElement, rail = document.querySelector(".sf-admin-rail");
+      var total = row ? row.clientWidth : window.innerWidth;
+      var railW = rail ? rail.offsetWidth : 0;
+      var maxW = Math.max(360, total - railW - 320); // leave room for the rail + a min form width
+      return Math.max(320, Math.min(w, maxW));
+    }
+    try { var saved = parseInt(localStorage.getItem(LS), 10); if (saved) mapCol.style.width = clampW(saved) + "px"; } catch (e) {}
+    var dragging = false;
+    function onMove(e) {
+      if (!dragging) return;
+      var cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+      var rect = mapCol.parentElement.getBoundingClientRect();
+      mapCol.style.width = clampW(rect.right - cx) + "px";
+      if (map) map.invalidateSize();
+    }
+    function onUp() {
+      if (!dragging) return;
+      dragging = false; document.body.style.cursor = ""; document.body.style.userSelect = "";
+      try { localStorage.setItem(LS, parseInt(mapCol.style.width, 10)); } catch (e) {}
+      if (map) map.invalidateSize();
+      window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp);
+    }
+    splitter.addEventListener("pointerdown", function (e) {
+      dragging = true; document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none";
+      window.addEventListener("pointermove", onMove); window.addEventListener("pointerup", onUp);
+      e.preventDefault();
+    });
+    window.addEventListener("resize", function () { if (mapCol.style.width) mapCol.style.width = clampW(parseInt(mapCol.style.width, 10)) + "px"; if (map) map.invalidateSize(); });
+  }
+
   // ── init (after sign-in) ───────────────────────────────────────────
   function init() {
     map = L.map("admin-map", { zoomControl: false }).setView([20, 0], 2);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     map.on("click", function (e) { setCoords(e.latlng.lat, e.latlng.lng, true); reverse(e.latlng.lat, e.latlng.lng); });
+
+    initSplitter();
 
     // toolbar
     $("add-btn").addEventListener("click", addUnit);
@@ -392,6 +434,7 @@
     $("form").addEventListener("keydown", function (e) { if (e.target.id === "f-tagdraft" && e.key === "Enter") { e.preventDefault(); addTag(); } if (e.target.id === "f-addr" && e.key === "Enter") { e.preventDefault(); find(); } });
     $("form").addEventListener("change", function (e) {
       if (e.target.id === "f-country") { var c = e.target.value, m = COUNTRY[c]; set(m ? { country: c, nso: m.nso, region: m.region, lang: m.lang } : { country: c }); renderRail(); renderForm(); syncMarker(false); }
+      else if (e.target.id === "f-region") { set({ region: e.target.value }); renderRail(); renderForm(); syncMarker(false); }
     });
 
     loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); fetchPending(); });

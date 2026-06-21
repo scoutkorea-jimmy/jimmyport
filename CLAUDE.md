@@ -581,6 +581,17 @@ WOSM Region → 국가(NSO) → 단위대
 - **내부 식별자는 유지**(변경 시 세션/저장/데이터 깨짐): localStorage `scoutfinder:*`, KV 네임스페이스 `SCOUT_KV`, 폴더/파일 `scout-finder`, Cloudflare 프로젝트 `jimmyport`, 코드 주석. 필요 시 추후 별도 작업으로 코드네임 리네임.
 - 검증: deployable(`*.html/js/css`)에서 표시 'Scout Finder' 잔여 0 grep 확인.
 
+### 17.9 v0.9.66 — 데이터 초기화 + 줌 클러스터링 + 세로꽉참 minZoom + 팝업 풀주소 복사 + World Bureau + 관리자 패널 리사이즈 + 버전표기
+- 사용자 다건 일괄: (1) 등록 데이터 전체 삭제, (2) 줌아웃 시 지역/국가별 묶음, (3) 지도 축소 시 상하 여백 0, (4) 팝업에 풀 주소 표시 + 클릭 복사, (5) Region에 **World Bureau(WSB)** 카테고리 추가, (6) 관리자 지도↔폼 좌우 드래그 리사이즈, (7) 공개 푸터 Admin 아래 현재 버전 표기.
+- **데이터 삭제**: 인증 세션으로 `PUT /api/units {units:[]}`(권한 있는 삭제, 스모크 아님) → count 0. data.js 폴백도 비어 공개 사이트 'No places found'.
+- **줌 클러스터링**(`app.js` renderMarkers + `zoomend`): `z<=3` 지역(WSB 포함 region)·`z<=5` 국가(country)·그 이상 개별 핀. 그룹 centroid에 카운트 버블(`clusterHtml`, 색=지역색), 툴팁 "이름 · N". 버블 클릭 시 `flyToBounds`(region→maxZoom5·country→9)로 드릴다운. 단일 그룹은 flyTo 7. 검증(헤드리스 CDP, 25 units APR): world=1버블(Asia-Pacific·25)·zoom5=5국가버블·zoom8=25핀.
+- **세로 꽉참 minZoom**(`fitMinZoom`): `ceil(log2(viewportH/256))`(최소2)로 minZoom 동적 설정 → 완전 축소해도 세로 여백 0. `maxBounds`=월드 + `maxBoundsViscosity:1`. resize 시 재계산. 검증: 1213px 높이 → minZoom 3, 회색 띠 없음.
+- **팝업 풀주소 복사**(`popupHtml` + 위임 클릭): `u.address`를 핀아이콘+주소+'Copy' 힌트 행으로 표시, 클릭 시 `copyText`(clipboard API+execCommand 폴백) → 힌트 'Copied ✓'. `data-copy` document 위임 리스너.
+- **World Bureau**: `REGION.WSB={full:'World Bureau',color:#4B4E8A}` + REGION_FULL 역매핑(app.js·admin.js 공통). 공개 범례·지역칩에 WSB 추가(검증: 범례 6행·칩 7개). 관리자 폼에 **Region 셀렉트(`f-region`, 6종)** 신설 — 국가 자동채움과 별개로 수동 지정(WSB 등), NSO·언어만 자동 표기로 분리.
+- **관리자 패널 리사이즈**(`admin.html` `#col-splitter` + `admin.js initSplitter`): 폼↔지도 사이 드래그 핸들(pointer 이벤트), 폭 `localStorage scoutfinder:admin-mapw` 저장, 드래그 중 `map.invalidateSize()`, rail+최소폼 고려 clamp.
+- **버전 표기**: 공개 푸터 Admin 아래 `#app-version`(app.js `loadVersion`→`/VERSION`). **캐시 버스팅**: index/admin html의 app.js·admin.js·styles.css·data.js·version-watch.js 참조에 `?v=0.9.66`(배포 즉시 새 JS 적용, 반복되던 캐시 문제 해소).
+- 검증: `node --check`(app·admin) OK + 헤드리스 Chrome CDP(클러스터 3단계·minZoom·팝업복사행·범례WSB·버전·콘솔 정상).
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

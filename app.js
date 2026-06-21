@@ -12,9 +12,10 @@
     EUR: { full: "European", color: "#2F6FB0" },
     ARB: { full: "Arab", color: "#2E8B6B" },
     AFR: { full: "Africa", color: "#C26A2E" },
-    IAR: { full: "Interamerican", color: "#C23E6E" }
+    IAR: { full: "Interamerican", color: "#C23E6E" },
+    WSB: { full: "World Bureau", color: "#4B4E8A" }
   };
-  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR" };
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
@@ -30,6 +31,12 @@
   function $(id) { return document.getElementById(id); }
   function fmtTs(ts) { try { var d = new Date(ts); var p = function (n) { return ("0" + n).slice(-2); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); } catch (e) { return ""; } }
   function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
+
+  function fallbackCopy(t) { try { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); document.body.removeChild(ta); return ok; } catch (e) { return false; } }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(function () { return true; }, function () { return fallbackCopy(t); });
+    return Promise.resolve(fallbackCopy(t));
+  }
 
   function normUnit(u) {
     var region = regionCode(u.region);
@@ -82,27 +89,69 @@
       '<div style="position:absolute;width:22px;height:22px;border-radius:50%;background:#2c1456;animation:sfpulse 1.8s ease-out infinite;"></div>' +
       '<div style="position:relative;width:16px;height:16px;border-radius:50%;background:#2c1456;border:3px solid #fff;box-shadow:0 3px 8px rgba(30,18,55,.5);"></div></div>';
   }
+  function clusterHtml(count, color, code) {
+    var sz = count >= 50 ? 56 : count >= 10 ? 50 : 44;
+    var sub = code ? '<div style="font:700 9px \'Hanken Grotesk\';letter-spacing:.06em;line-height:1;opacity:.92;margin-top:1px;">' + esc(code) + '</div>' : '';
+    return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 6px 16px rgba(30,18,55,.4);color:#fff;animation:sfpop .25s ease;cursor:pointer;">' +
+      '<div style="font:800 ' + (count >= 100 ? 15 : 17) + 'px \'Bricolage Grotesque\';line-height:1;">' + count + '</div>' + sub + '</div>';
+  }
   function popupHtml(u) {
     var r = REGION[u.region] || { color: "#6336B5" };
     var listc = (u.sections.length ? u.sections : u.tags) || [];
     var chips = listc.map(function (c) { return '<span style="display:inline-block;font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;margin:0 5px 5px 0;">' + esc(c) + '</span>'; }).join("");
     var dist = u._dist != null ? '<span style="font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;">' + u._dist.toFixed(1) + ' km</span>' : "";
     var contact = u.contact && u.contact !== "none" ? '<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font:600 12.5px \'Hanken Grotesk\';color:#fff;background:#6336B5;text-decoration:none;padding:8px 13px;border-radius:10px;">' + (u.contact === "instagram" ? "Instagram" : "Homepage") + ' →</a>' : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
-    var loc = u.city ? esc(u.city) + ", " + esc(u.country) : esc(u.country || u.address);
+    var loc = u.city ? esc(u.city) + ", " + esc(u.country) : esc(u.country || "");
+    var addr = u.address ? '<div class="sf-copy" data-copy="' + escAttr(u.address) + '" title="Click to copy the full address" style="display:flex;align-items:flex-start;gap:7px;cursor:pointer;font-size:12px;color:#5b5366;background:#f6f3fa;border:1px solid #efeae1;border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.4;">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>' +
+      '<span style="flex:1;min-width:0;">' + esc(u.address) + '</span>' +
+      '<span class="copy-hint" style="flex:none;font:700 10px \'Hanken Grotesk\';color:#6336B5;white-space:nowrap;">Copy</span></div>' : "";
     return '<div style="font-family:\'Hanken Grotesk\';max-width:250px;">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">' +
       '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(KIND[u.kind] || "") + '</span>' + dist + '</div>' +
       '<div style="font:700 16px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;line-height:1.15;margin-bottom:3px;">' + esc(u.name) + '</div>' +
-      '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' +
+      (loc ? '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' : '') +
+      addr +
       (u.desc ? '<div style="font-size:12.5px;color:#42394f;line-height:1.5;margin-bottom:10px;">' + esc(u.desc) + '</div>' : "") +
       '<div style="margin-bottom:2px;">' + chips + '</div>' +
       '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact + '</div>';
+  }
+
+  function addAnchorMarker() {
+    if (state.anchor) L.marker([state.anchor.lat, state.anchor.lng], { icon: L.divIcon({ className: "", html: anchorHtml(), iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 2000, interactive: false }).addTo(layer);
   }
 
   function renderMarkers() {
     if (!map) return;
     layer.clearLayers(); markers = {};
     var list = sorted();
+    var pts = list.filter(function (u) { return !isNaN(u.lat) && !isNaN(u.lng); });
+    var z = map.getZoom();
+    var level = z <= 3 ? "region" : (z <= 5 ? "country" : "unit");
+
+    // ── aggregated bubbles (zoomed out): group by region, then by country ──
+    if (level !== "unit" && pts.length > 1) {
+      var groups = {};
+      pts.forEach(function (u) { var k = level === "region" ? u.region : (u.country || u.nso || u.region); (groups[k] = groups[k] || []).push(u); });
+      Object.keys(groups).forEach(function (k) {
+        var g = groups[k];
+        var lat = g.reduce(function (s, u) { return s + u.lat; }, 0) / g.length;
+        var lng = g.reduce(function (s, u) { return s + u.lng; }, 0) / g.length;
+        var color = REGION[g[0].region] ? REGION[g[0].region].color : "#6336B5";
+        var labelTop = level === "region" ? (REGION[k] ? REGION[k].full : k) : k;
+        var m = L.marker([lat, lng], { icon: L.divIcon({ className: "", html: clusterHtml(g.length, color, level === "region" ? k : ""), iconSize: [56, 56], iconAnchor: [28, 28], popupAnchor: [0, -30] }) }).addTo(layer);
+        m.bindTooltip(labelTop + " · " + g.length, { permanent: true, direction: "top", offset: [0, -30], className: "sf-label", opacity: 1 });
+        m.on("click", function () {
+          if (g.length === 1) { map.flyTo([g[0].lat, g[0].lng], 7, { duration: .6 }); return; }
+          var b = L.latLngBounds(g.map(function (u) { return [u.lat, u.lng]; }));
+          map.flyToBounds(b.pad(0.35), { maxZoom: level === "region" ? 5 : 9, duration: .6 });
+        });
+      });
+      addAnchorMarker();
+      return;
+    }
+
+    // ── individual ranked pins (zoomed in) ──
     list.forEach(function (u, i) {
       if (isNaN(u.lat) || isNaN(u.lng)) return;
       var sel = u.id === state.selectedId;
@@ -113,7 +162,7 @@
       m.on("click", function (e) { if (e && e.originalEvent) L.DomEvent.stopPropagation(e); select(u.id, false); });
       markers[u.id] = m;
     });
-    if (state.anchor) L.marker([state.anchor.lat, state.anchor.lng], { icon: L.divIcon({ className: "", html: anchorHtml(), iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 2000, interactive: false }).addTo(layer);
+    addAnchorMarker();
   }
 
   function select(id, pan) {
@@ -121,7 +170,7 @@
     var u = UNITS.find(function (x) { return x.id === id; });
     if (map && u) {
       if (pan) map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 11), { duration: .6 });
-      var m = markers[id]; if (m) setTimeout(function () { m.openPopup(); }, pan ? 480 : 0);
+      setTimeout(function () { var m = markers[id]; if (m) m.openPopup(); }, pan ? 640 : 0);
     }
   }
 
@@ -157,7 +206,7 @@
     $("kind-chips").innerHTML = kinds.map(function (k) {
       return '<button data-kind="' + k.key + '" style="' + chipStyle(state.kind === k.key) + '"><span style="width:8px;height:8px;border-radius:50%;background:' + k.dot + ';display:inline-block;flex:none;"></span>' + k.label + '</button>';
     }).join("");
-    var regions = ["All", "APR", "EUR", "ARB", "AFR", "IAR"];
+    var regions = ["All", "APR", "EUR", "ARB", "AFR", "IAR", "WSB"];
     $("region-chips").innerHTML = regions.map(function (r) {
       var full = r === "All" ? "All regions" : REGION[r].full;
       return '<button data-region="' + r + '" title="' + escAttr(full) + '" style="' + chipStyle(state.region === r) + '">' + (r === "All" ? "All regions" : r) + '</button>';
@@ -367,14 +416,27 @@
       .catch(function () { COMMENTS = []; });
   }
   // ── init ───────────────────────────────────────────────────────────
+  // Smallest zoom at which the world still fills the viewport height (no grey bands top/bottom).
+  function fitMinZoom() {
+    if (!map) return;
+    var h = (map.getSize().y) || window.innerHeight || 800;
+    var mz = Math.ceil(Math.log(h / 256) / Math.LN2);
+    if (!isFinite(mz)) mz = 2;
+    mz = Math.max(2, mz);
+    if (map.getMinZoom() !== mz) map.setMinZoom(mz);
+    if (map.getZoom() < mz) map.setZoom(mz);
+  }
   function initMap() {
-    map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-85, -220], [85, 220]] }).setView([28, 18], 2);
+    map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-85.05, -180], [85.05, 180]], maxBoundsViscosity: 1.0 }).setView([25, 12], 2);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     layer = L.layerGroup().addTo(map);
     map.on("click", function (e) { select(null, false); setAnchor(e.latlng.lat, e.latlng.lng, "your pinned point", false); });
+    map.on("zoomend", renderMarkers);
+    map.on("resize", fitMinZoom);
     renderMarkers();
-    setTimeout(function () { map.invalidateSize(); }, 200);
+    fitMinZoom();
+    setTimeout(function () { map.invalidateSize(); fitMinZoom(); }, 200);
   }
 
   function wire() {
@@ -383,7 +445,7 @@
     $("search-go").addEventListener("click", doSearch);
     $("near-btn").addEventListener("click", geolocate);
     document.querySelectorAll(".q-near").forEach(function (b) { b.addEventListener("click", function () { state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); geolocate(); }); });
-    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([28, 18], 2, { duration: .6 }); });
+    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([25, 12], map.getMinZoom(), { duration: .6 }); });
     $("panel-collapse").addEventListener("click", function () { setPanelOpen(false); });
     $("panel-reopen").addEventListener("click", function () { setPanelOpen(true); });
 
@@ -417,10 +479,29 @@
     $("r-find").addEventListener("click", rFind);
     $("r-addr").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rFind(); } });
     $("r-submit").addEventListener("click", rSubmit);
+
+    // click any full-address row (in a popup) to copy it
+    document.addEventListener("click", function (e) {
+      var c = e.target.closest("[data-copy]"); if (!c) return;
+      var hint = c.querySelector(".copy-hint");
+      copyText(c.getAttribute("data-copy")).then(function (ok) {
+        if (!hint) return;
+        var old = hint.textContent;
+        hint.textContent = ok ? "Copied ✓" : "Copy failed";
+        hint.style.color = ok ? "#248737" : "#b4524e";
+        setTimeout(function () { hint.textContent = old; hint.style.color = "#6336B5"; }, 1400);
+      });
+    });
+  }
+
+  function loadVersion() {
+    fetch("/VERSION", { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (v) { v = (v || "").trim(); var el = $("app-version"); if (el && v) el.textContent = "v" + v; })
+      .catch(function () {});
   }
 
   function init() {
-    renderLegend(); wire();
+    renderLegend(); wire(); loadVersion();
     Promise.all([loadUnits(), loadComments()]).then(function () { renderAll(); updateNearUI(); });
     initMap();
   }
