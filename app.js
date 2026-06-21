@@ -395,9 +395,9 @@
   function rFind() {
     var q = $("r-addr").value.trim(); if (!q) return;
     $("r-coord").textContent = "Searching…";
-    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+    fetch("https://nominatim.openstreetmap.org/search?format=json&accept-language=en&limit=1&q=" + encodeURIComponent(q))
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (d && d[0]) { rep.lat = +(+d[0].lat).toFixed(5); rep.lng = +(+d[0].lon).toFixed(5); rep.address = d[0].display_name || q; $("r-coord").textContent = "📍 " + rep.lat + ", " + rep.lng + " — " + rep.address; } else $("r-coord").textContent = "No match found — try a different address."; })
+      .then(function (d) { if (d && d[0]) { rep.lat = +(+d[0].lat).toFixed(7); rep.lng = +(+d[0].lon).toFixed(7); rep.address = d[0].display_name || q; $("r-coord").textContent = "📍 " + rep.lat + ", " + rep.lng + " — " + rep.address; } else $("r-coord").textContent = "No match found — try a different address."; })
       .catch(function () { $("r-coord").textContent = "Search unavailable — you can still submit; the admin will set the location."; });
   }
   function rSubmit() {

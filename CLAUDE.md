@@ -618,6 +618,11 @@ WOSM Region → 국가(NSO) → 단위대
 - `app.js renderList`: `u.desc` 90자 초과 시 기본 2줄 클램프(`-webkit-line-clamp:2`) + `Show more`/`Show less` 토글(`data-more`, `state.descExpanded[id]`). 90자 이하는 그대로 전체 표시(토글 없음). 토글 클릭은 목록 클릭 핸들러에서 `data-more` 우선 분기 → `renderList` 재렌더.
 - 검증: 헤드리스 — 긴 설명 카드 기본 클램프(높이 ~36px·line-clamp 존재)·'Show more' 표시 → 클릭 시 클램프 해제·전체 텍스트·'Show less'.
 
+### 17.14 v0.9.71 — 좌표 정밀도 5→7 소수자리 + 주소 영어 강제
+- 사용자: 좌표 소수점 7자리까지. `admin.js` `setCoords`/`commitLatLng` `toFixed(5)`→`toFixed(7)`, 지도 캡션 `toFixed(4)`→7. 공개 Report 폼 `rFind` `toFixed(5)`→7. (관리자 승인 모달 요약은 toFixed(3) 유지 — 편집 필드 아님.)
+- **Full address 영어 강제**(사용자: 사이트는 영어 전용): Nominatim 기본은 브라우저 언어를 따라가 한국어 혼입(예 '나이로비, 케냐') → 모든 Nominatim 호출(admin search·reverse, 공개 Report search)에 `&accept-language=en` 추가. 라이브 확인: en='…Sejong-daero, …Jung…' vs ko='…세종대로, 중구, 서울특별시, 대한민국'. ⚠️ 기존 저장된 혼합 주소는 재조회 전까지 유지(신규 조회분만 영어).
+- 검증: 헤드리스 — '37.1234567' 입력→Show on map 커밋 후 값 유지, '37.12345678'→'37.1234568'(7자리 반올림). 잔여 좌표 toFixed(5/4) 0. Nominatim en 응답 영어 확인.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

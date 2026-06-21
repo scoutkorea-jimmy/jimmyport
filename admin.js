@@ -100,7 +100,7 @@
     if (recenter) map.setView([s.lat, s.lng], Math.max(map.getZoom(), 11), { animate: true });
   }
   function setCoords(lat, lng, moveMarker) {
-    lat = +(+lat).toFixed(5); lng = +(+lng).toFixed(5);
+    lat = +(+lat).toFixed(7); lng = +(+lng).toFixed(7);
     var s = sel(); if (!s) return; s.lat = lat; s.lng = lng; touch();
     if (marker && moveMarker) marker.setLatLng([lat, lng]);
     var fl = $("f-lat"), fn = $("f-lng"); if (fl) fl.value = lat; if (fn) fn.value = lng;
@@ -120,7 +120,7 @@
   // On blur/Enter: clamp to valid ranges, round, and re-format the fields.
   function commitLatLng() {
     var s = sel(); if (!s) return;
-    var la = +(+s.lat).toFixed(5), ln = +(+s.lng).toFixed(5);
+    var la = +(+s.lat).toFixed(7), ln = +(+s.lng).toFixed(7);
     if (!isFinite(la)) la = 0; if (!isFinite(ln)) ln = 0;
     la = Math.max(-90, Math.min(90, la)); ln = Math.max(-180, Math.min(180, ln));
     s.lat = la; s.lng = ln;
@@ -130,13 +130,13 @@
   }
   function find() {
     var s = sel(), q = state.addrQuery.trim(); if (!q || !s) return;
-    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+    fetch("https://nominatim.openstreetmap.org/search?format=json&accept-language=en&limit=1&q=" + encodeURIComponent(q))
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d && d[0]) { setCoords(d[0].lat, d[0].lon, true); s.address = d[0].display_name; var fa = $("f-address"); if (fa) fa.value = s.address; updateCap(); syncMarker(true); touch(); toast("Location set"); } else toast("No match — click the map instead"); })
       .catch(function () { toast("Search unavailable — click the map to set the point"); });
   }
   function reverse(lat, lng) {
-    fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lng)
+    fetch("https://nominatim.openstreetmap.org/reverse?format=json&accept-language=en&lat=" + lat + "&lon=" + lng)
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d && d.display_name) { var s = sel(); if (s) { s.address = d.display_name; var fa = $("f-address"); if (fa) fa.value = s.address; updateCap(); touch(); } } })
       .catch(function () {});
@@ -146,7 +146,7 @@
     cap.style.display = "flex";
     $("cap-dot").style.background = REGION[s.region] ? REGION[s.region].color : "#6336B5";
     $("cap-name").textContent = s.name || "Untitled";
-    $("cap-addr").textContent = s.address ? s.address : (s.lat.toFixed(4) + ", " + s.lng.toFixed(4));
+    $("cap-addr").textContent = s.address ? s.address : (s.lat.toFixed(7) + ", " + s.lng.toFixed(7));
   }
 
   // ── rail ───────────────────────────────────────────────────────────
