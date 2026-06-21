@@ -11,7 +11,6 @@
 (function () {
   "use strict";
 
-  var TOKEN_KEY = "scoutfinder:adminToken";
   var DRAFT_KEY = "scoutfinder:units";
   var SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover"];
   var TYPES = ["Community unit", "School unit"];
@@ -252,28 +251,27 @@
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
     loadFromServer(true);
   }
-
-  // ── server (Cloudflare KV) — auto save ──────────────────────────────
-  function getToken(force) {
-    var t = "";
-    try { t = sessionStorage.getItem(TOKEN_KEY) || ""; } catch (e) {}
-    if (!t || force) { t = prompt("Admin password (ADMIN_TOKEN):") || ""; if (t) { try { sessionStorage.setItem(TOKEN_KEY, t); } catch (e) {} } }
-    return t;
+  function doClearAll() {
+    if (!units.length) { setStatus("Already empty", true); return; }
+    if (!confirm("Remove ALL " + units.length + " units from the server? This cannot be undone.")) return;
+    units = []; activeIndex = null; render(); scheduleSave();
+    setStatus("Cleared all units — publishing…", false);
   }
+
+  // ── server (Cloudflare KV) — auto save (Google auth) ────────────────
   function scheduleSave() {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(units)); } catch (e) {}
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(saveToServer, 900);
   }
   function saveToServer() {
-    var token = getToken(false);
-    if (!token) { setStatus("Saved locally — enter admin password to publish", false); return; }
+    if (!Auth.valid()) { setStatus("Saved locally — sign in again to publish", false); Auth.requireReauth(); return; }
     setStatus("Saving to server…", false);
-    fetch("/api/units", { method: "PUT", headers: { "content-type": "application/json", "X-Admin-Token": token }, body: JSON.stringify({ units: units }) })
+    fetch("/api/units", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ units: units }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
       .then(function (res) {
         if (res.ok) { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} var t = new Date(); setStatus("Saved to server ✓ " + ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2) + " (" + res.j.count + ")", true); }
-        else if (res.status === 401) { try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} setStatus("Wrong password — edit again to retry", false); }
+        else if (res.status === 401) { setStatus("Session expired — sign in again to publish", false); Auth.requireReauth(); }
         else setStatus("Server save failed: " + (res.j.error || res.status), false);
       })
       .catch(function () { setStatus("Server save failed (network) — kept locally", false); });
@@ -299,7 +297,53 @@
     if (view === "map" && map) setTimeout(function () { map.invalidateSize(); }, 60);
   }
 
-  // ── init ───────────────────────────────────────────────────────────
+  // ── Google Sign-In gate (admin access is Google-only) ───────────────
+  var Auth = (function () {
+    var token = "", email = "", expMs = 0, clientId = "", inited = false;
+    function decode(jwt) { try { var p = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch (e) { return {}; } }
+    function gate(msg, ok) { var m = document.getElementById("auth-msg"); if (m) { m.textContent = msg || ""; m.classList.toggle("ok", !!ok); } }
+    function valid() { return !!token && Date.now() < expMs - 5000; }
+    function headers() { return token ? { "Authorization": "Bearer " + token } : {}; }
+    function show() { document.body.classList.remove("authed"); if (window.google && google.accounts && google.accounts.id) { try { google.accounts.id.prompt(); } catch (e) {} } }
+    function requireReauth() { token = ""; expMs = 0; show(); }
+    function renderButton() {
+      var host = document.getElementById("g-signin");
+      if (!window.google || !google.accounts || !google.accounts.id) { setTimeout(renderButton, 150); return; }
+      google.accounts.id.initialize({ client_id: clientId, callback: onCredential, auto_select: false });
+      google.accounts.id.renderButton(host, { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" });
+      google.accounts.id.prompt();
+    }
+    function onCredential(resp) {
+      var cred = resp && resp.credential; if (!cred) { gate("Sign-in failed."); return; }
+      var p = decode(cred); token = cred; email = p.email || ""; expMs = (p.exp ? p.exp * 1000 : Date.now() + 3300 * 1000);
+      gate("Verifying…", true);
+      fetch("/api/me", { headers: headers() })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (j && j.ok) {
+            var who = document.getElementById("admin-who"); if (who) who.textContent = j.email || email;
+            document.body.classList.add("authed"); gate("");
+            if (!inited) { inited = true; init(); }
+          } else { token = ""; expMs = 0; gate("This account (" + email + ") is not authorized."); }
+        })
+        .catch(function () { token = ""; expMs = 0; gate("Network error during verification."); });
+    }
+    function start() {
+      fetch("/api/auth-config").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        clientId = (j && j.googleClientId) || "";
+        if (!clientId) { gate("Server is missing GOOGLE_CLIENT_ID. Set it in Cloudflare Pages env."); return; }
+        renderButton();
+      }).catch(function () { gate("Could not load auth config."); });
+    }
+    function signOut() {
+      token = ""; email = ""; expMs = 0;
+      try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) {}
+      document.body.classList.remove("authed"); gate("Signed out.", true);
+    }
+    return { start: start, valid: valid, headers: headers, requireReauth: requireReauth, signOut: signOut };
+  })();
+
+  // ── init (runs once, after successful Google sign-in) ───────────────
   function init() {
     map = L.map("admin-map", { zoomControl: true }).setView([20, 60], 2);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
@@ -312,12 +356,15 @@
     document.getElementById("download-js").addEventListener("click", doDownloadJs);
     document.getElementById("copy-json").addEventListener("click", doCopyJson);
     document.getElementById("reset-btn-admin").addEventListener("click", doReload);
+    document.getElementById("clear-all").addEventListener("click", doClearAll);
+    document.getElementById("signout-btn").addEventListener("click", function () { Auth.signOut(); });
     document.getElementById("import-input").addEventListener("change", function (e) { if (e.target.files && e.target.files[0]) doImport(e.target.files[0]); e.target.value = ""; });
     document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
 
     loadFromServer(false);
+    setTimeout(function () { if (map) map.invalidateSize(); }, 80);
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", Auth.start);
+  else Auth.start();
 })();

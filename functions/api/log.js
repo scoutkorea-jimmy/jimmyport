@@ -2,6 +2,6 @@
 import { json, isAdmin, getArr } from "./_lib.js";
 
 export async function onRequestGet({ request, env }) {
-  if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
+  if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   return json({ log: await getArr(env, "log") });
 }

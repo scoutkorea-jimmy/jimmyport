@@ -9,7 +9,7 @@
 import { json, isAdmin, clientIp, maskIp, getArr, putArr, newId } from "./_lib.js";
 
 export async function onRequestGet({ request, env }) {
-  const admin = isAdmin(request, env);
+  const admin = await isAdmin(request, env);
   const arr = await getArr(env, "comments");
   const out = arr.map(function (c) {
     return {
@@ -50,7 +50,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  if (!isAdmin(request, env)) return json({ error: "unauthorized" }, 401);
+  if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "id required" }, 400);
   let arr = await getArr(env, "comments");

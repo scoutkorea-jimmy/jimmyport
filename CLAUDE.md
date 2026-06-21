@@ -524,6 +524,22 @@ WOSM Region → 국가(NSO) → 단위대
 - 사용자: "기본 타임라인 살리고 그 안에 서브타임라인. 지금 3분단위 쪼개져 보기 불편." → 16.34의 시간 엄격 절대배치(3분 간격 단계 겹침) 폐기. **기본 이벤트 블록(제목·시간 헤더) 유지 + 내부에 식순을 균일행 리스트**(`ttg-rd`/`ttg-rd-row` = 시각 점·시간·내용, 좌측 세로 레일 `ttg-rd::before`)로. 시간순 정렬은 유지하되 균일 높이라 단계 밀집해도 안 겹침·가독. 전체기간뷰는 `식순 N단계` 배지. `has-rd`/`ttg-sub`/`ttg-rdtitle` 제거.
 - 검증: 헤드리스 — 발대식 14:00–15:30 + 7단계(3분 간격 포함) → 블록 헤더 유지·식순 7행 리스트·firstRow '14:00 개회 및 내빈소개'·**콘솔 에러 0** + 스크린샷(레일·점·시간·내용 깔끔).
 
+## 17. scout-finder 관리자 — Google 인증 + /admin 이전 + 샘플 정리
+
+### 17.1 v0.9.58 — 샘플 단위대 전체 삭제(data.js 폴백 비움)
+- 사용자: "단위대 찾기 데이터 샘플 모두 삭제." `data.js`의 `window.SCOUT_UNITS`(샘플 25개)를 `[]`로 비움. `SCOUT_NSOS`(176국)·`SCOUT_REGION_COLORS`는 유지. ⚠️ 공개 사이트는 `/api/units`(KV)를 우선 읽으므로 **라이브 KV의 샘플 25개는 별도 삭제 필요**(아래 17.2 Clear all units로 처리).
+
+### 17.2 v0.9.59 — 관리자 인증을 Google 로그인 전용으로 + /admin 이전 + 기능 문서
+- 사용자 4건(AskUserQuestion 확정): (1) 관리자 경로 manage→**admin**, (2) 개인정보 보호 위해 **Google Auth**, (3) **비밀번호 폐기, Google 인증만**, (4) UX 디자인은 직접 개발 예정 → 대신 **전 기능 문서화** 요청.
+- **인증 교체**(`functions/api/_lib.js`): `isAdmin`(X-Admin-Token 비번) → **async Google ID 토큰 검증**. `verifyGoogleIdToken`(Google JWKS 서명검증 + `aud==GOOGLE_CLIENT_ID`·iss·exp·email_verified) + `adminUser`(이메일이 `ADMIN_EMAILS` 화이트리스트에 포함). JWKS 1h 캐시. 호출부 5개(`units` PUT·`submissions` GET/PATCH·`comments` GET/DELETE·`log` GET) 전부 `await isAdmin`로 변경.
+- **신규 엔드포인트**: `auth-config.js`(공개 GET → `{googleClientId}`) · `me.js`(GET → 검증된 `{ok,email}` 또는 401).
+- **경로 이전**: `manage.html`→`admin.html`, `manage.js`→`admin.js`(git mv). `/manage` 제거(→`/admin`). index.html 푸터 링크 `/admin`로.
+- **프런트 게이트**(admin.html/admin.js): GIS 스크립트 + `#auth-gate` 오버레이(로그인 전 헤더·에디터 숨김). `Auth` 모듈 = auth-config로 clientId 로드→GIS 버튼→credential→`/api/me` 검증→`body.authed`+`init()` 1회. 저장은 `Authorization: Bearer <id_token>`(구 X-Admin-Token·prompt 비번 제거). 401/만료 시 재로그인 안내(로컬 드래프트 보존). "Signed in as …"+Sign out.
+- **Clear all units 버튼**: 전체 비우기(확인)→`units=[]`→자동저장 PUT → **KV 샘플 정리용**(라이브 KV 25개는 사용자가 로그인 후 1클릭으로 제거).
+- **환경변수**: `GOOGLE_CLIENT_ID`(공개, aud+프런트)·`ADMIN_EMAILS`(콤마, 미설정=관리 불가 안전기본). `ADMIN_TOKEN` 폐기. 사용자가 Pages 대시보드 env에 설정 + Google Cloud OAuth 웹 클라이언트(JS 원본 jimmypark.net) 발급 필요.
+- **전 기능 문서**: `FEATURES.md` 신규 — 3앱(scout-finder 공개/admin, /jamboree, /jamboree-plan) + API + KV + env + 운영 한 문서 정리.
+- 검증: `node --check` 8파일 OK + 라이브 배포 후 `/api/auth-config`·인증 없는 PUT 401·공개 GET 정상 확인.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

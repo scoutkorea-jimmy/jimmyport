@@ -8,8 +8,37 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="" />
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Google Sign-In (in-app). Admin access is Google-only; no password. -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    /* Auth gate (scoped to admin; does not affect the public site) */
+    body:not(.authed) .site-header,
+    body:not(.authed) .admin-layout { display: none !important; }
+    #auth-gate { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
+                 background: #f6f3fa; padding: 24px; }
+    body.authed #auth-gate { display: none; }
+    .auth-card { width: 100%; max-width: 380px; background: #fff; border: 1px solid rgba(0,0,0,.1);
+                 border-radius: 16px; box-shadow: 0 8px 30px rgba(77,0,110,.12); padding: 28px 24px; text-align: center; }
+    .auth-card h1 { font-size: 20px; margin: 0 0 6px; color: #221b2b; }
+    .auth-card p { font-size: 14px; line-height: 1.5; color: #5a5364; margin: 0 0 18px; }
+    #g-signin { display: inline-flex; justify-content: center; min-height: 44px; }
+    #auth-msg { margin-top: 14px; font-size: 13px; color: #FF5655; min-height: 18px; }
+    #auth-msg.ok { color: #248737; }
+    .auth-foot { margin-top: 16px; font-size: 12px; }
+    .auth-foot a { color: #622599; }
+  </style>
 </head>
 <body class="view-list">
+  <div id="auth-gate" aria-live="polite">
+    <div class="auth-card">
+      <h1>scout-finder Admin</h1>
+      <p>This area is restricted. Sign in with an authorized Google account to continue.</p>
+      <div id="g-signin"></div>
+      <div id="auth-msg"></div>
+      <p class="auth-foot"><a href="./">&larr; Back to site</a></p>
+    </div>
+  </div>
   <header class="site-header">
     <div class="site-header-inner">
       <div class="title-block">
@@ -19,7 +48,9 @@
 
       <p class="admin-note">
         Changes are saved to the Cloudflare server automatically and apply to every visitor.
-        An admin password is required on first edit. <a href="./">← Back to site</a>
+        Signed in as <strong id="admin-who">—</strong>.
+        <button type="button" id="signout-btn" class="admin-btn">Sign out</button>
+        <a href="./">← Back to site</a>
       </p>
 
       <div class="admin-toolbar">
@@ -30,6 +61,7 @@
           <input id="import-input" type="file" accept=".json,application/json" />
         </label>
         <button type="button" id="reset-btn-admin" class="admin-btn danger">Reload from server</button>
+        <button type="button" id="clear-all" class="admin-btn danger">Clear all units</button>
         <span id="save-status" class="save-status" role="status" aria-live="polite"></span>
       </div>
 
@@ -56,7 +88,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
   <script src="data.js"></script>
-  <script src="manage.js"></script>
+  <script src="admin.js"></script>
   <script src="version-watch.js"></script>
 </body>
 </html>
