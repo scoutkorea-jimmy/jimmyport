@@ -33,6 +33,7 @@
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
   function sel() { return units.find(function (u) { return u.id === state.selectedId; }); }
   function toast(msg) { var t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(function () { t.style.display = "none"; }, 1800); }
+  function fmtTs(ts) { try { var d = new Date(ts); var p = function (n) { return ("0" + n).slice(-2); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); } catch (e) { return ""; } }
 
   function normUnit(u) {
     var url = u.url || u.homepage || "";
@@ -244,6 +245,58 @@
     } catch (e) { toast("Invalid JSON"); }
   }
 
+  // ── pending location reports (submissions → approve/reject) ────────
+  var pendingItems = [];
+  function updatePendingCount() { var c = $("pending-count"); if (!c) return; if (pendingItems.length) { c.textContent = pendingItems.length; c.style.display = "inline-block"; } else c.style.display = "none"; }
+  function fetchPending() {
+    if (!Auth.valid()) return;
+    fetch("/api/submissions", { headers: Auth.headers() }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      pendingItems = (j && Array.isArray(j.pending)) ? j.pending : [];
+      updatePendingCount();
+      if ($("pending-modal").style.display === "flex") renderPending();
+    }).catch(function () {});
+  }
+  function renderPending() {
+    if (!pendingItems.length) { $("pending-list").innerHTML = '<div style="text-align:center;padding:40px;color:#a39bb0;font-size:13px;">No pending reports.</div>'; return; }
+    $("pending-list").innerHTML = pendingItems.map(function (p) {
+      var u = p.unit || {}, rep = p.reporter || {};
+      var code = regionCode(u.region), rc = REGION[code] || { color: "#9a93a6" };
+      var locLine = u.address ? ("📍 " + esc(u.address) + (u.lat ? " (" + (+u.lat).toFixed(3) + ", " + (+u.lng).toFixed(3) + ")" : "")) : (u.lat ? ("📍 " + (+u.lat).toFixed(3) + ", " + (+u.lng).toFixed(3)) : "");
+      return '<div style="border:1px solid #ece6db;border-radius:14px;padding:16px;margin-bottom:12px;">' +
+        '<div style="display:flex;align-items:flex-start;gap:10px;">' +
+        '<span style="width:11px;height:11px;border-radius:' + (u.kind === "office" ? "3px" : "50%") + ';background:' + rc.color + ';flex:none;margin-top:5px;"></span>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font:700 15px \'Bricolage Grotesque\';">' + esc(u.name || "Untitled") + '</div>' +
+        '<div style="font-size:12px;color:#8a8496;margin-top:3px;">' + esc((KIND[u.kind] || "") + " · " + code + (u.country ? " · " + u.country : "")) + '</div>' +
+        (u.desc ? '<div style="font-size:12.5px;color:#4a4458;margin-top:8px;line-height:1.5;">' + esc(u.desc) + '</div>' : "") +
+        (locLine ? '<div style="font-size:11.5px;color:#9a93a6;margin-top:6px;">' + locLine + '</div>' : "") +
+        (u.contact && u.contact !== "none" && u.url ? '<div style="font-size:11.5px;margin-top:6px;"><a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="color:#6336B5;">' + esc(u.url) + '</a></div>' : "") +
+        '</div></div>' +
+        '<div style="margin-top:12px;padding-top:11px;border-top:1px solid #f0ebe2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+        '<span style="font-size:11.5px;color:#8a8496;"><strong style="color:#1E1730;">' + esc(rep.name || "—") + '</strong> · ' + esc(rep.affiliation || "—") + '</span>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">' + esc(p.ip || "") + ' · ' + fmtTs(p.ts) + '</span>' +
+        '<div style="flex:1;"></div>' +
+        '<button data-reject="' + escAttr(p.id) + '" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 12px \'Hanken Grotesk\';padding:7px 13px;border-radius:9px;cursor:pointer;">Reject</button>' +
+        '<button data-approve="' + escAttr(p.id) + '" style="border:none;background:#248737;color:#fff;font:600 12px \'Hanken Grotesk\';padding:7px 15px;border-radius:9px;cursor:pointer;">Approve</button>' +
+        '</div></div>';
+    }).join("");
+  }
+  function patchPending(id, action) {
+    if (!Auth.valid()) { Auth.requireReauth(); return; }
+    fetch("/api/submissions", { method: "PATCH", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ id: id, action: action }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.j.ok) {
+          toast(action === "approve" ? "Approved & published" : "Report rejected");
+          pendingItems = pendingItems.filter(function (p) { return p.id !== id; });
+          updatePendingCount(); renderPending();
+          if (action === "approve") { var keep = state.selectedId; loadUnits().then(function () { if (keep && units.some(function (u) { return u.id === keep; })) state.selectedId = keep; renderRail(); renderForm(); syncMarker(true); }); }
+        } else if (res.status === 401) { Auth.requireReauth(); }
+        else toast("Failed: " + (res.j.error || res.status));
+      })
+      .catch(function () { toast("Network error"); });
+  }
+
   // ── Google sign-in gate ────────────────────────────────────────────
   var Auth = (function () {
     var token = "", email = "", expMs = 0, clientId = "", inited = false;
@@ -293,6 +346,13 @@
     $("import-cancel").addEventListener("click", function () { $("import-modal").style.display = "none"; });
     $("import-load").addEventListener("click", doImport);
     $("signout-btn").addEventListener("click", function () { Auth.signOut(); });
+    $("pending-btn").addEventListener("click", function () { $("pending-modal").style.display = "flex"; renderPending(); fetchPending(); });
+    $("pending-close").addEventListener("click", function () { $("pending-modal").style.display = "none"; });
+    $("pending-modal").addEventListener("click", function (e) { if (e.target === $("pending-modal")) $("pending-modal").style.display = "none"; });
+    $("pending-list").addEventListener("click", function (e) {
+      var a = e.target.closest("[data-approve]"); if (a) { patchPending(a.getAttribute("data-approve"), "approve"); return; }
+      var r = e.target.closest("[data-reject]"); if (r) { if (confirm("Reject and discard this report?")) patchPending(r.getAttribute("data-reject"), "reject"); }
+    });
 
     // rail
     $("rail-search").addEventListener("input", function (e) { state.query = e.target.value; renderRail(); });
@@ -328,7 +388,7 @@
       if (e.target.id === "f-country") { var c = e.target.value, m = COUNTRY[c]; set(m ? { country: c, nso: m.nso, region: m.region, lang: m.lang } : { country: c }); renderRail(); renderForm(); syncMarker(false); }
     });
 
-    loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); });
+    loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); fetchPending(); });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", Auth.start);

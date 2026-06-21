@@ -16,6 +16,8 @@
   };
   var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
+  var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
+  var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
 
   // ── state ──────────────────────────────────────────────────────────
   var UNITS = [], COMMENTS = [];
@@ -296,6 +298,58 @@
       .catch(function () { $("post-btn").textContent = "Post comment"; alert("Network error — comment not posted."); });
   }
 
+  // ── report a location (public submission → admin approval) ─────────
+  var COUNTRY = (function () { var m = {}; NSOS.forEach(function (n) { m[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; }); return m; })();
+  var COUNTRIES = Object.keys(COUNTRY).sort();
+  var rep = { kind: "unit", contact: "none", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
+  function rSeg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
+  function rChip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
+  function renderRKind() { $("r-kind-seg").innerHTML = ["unit", "office", "heritage"].map(function (k) { return '<button data-rkind="' + k + '" style="' + rSeg(rep.kind === k) + '">' + KIND[k] + '</button>'; }).join(""); $("r-sections-wrap").style.display = rep.kind === "unit" ? "block" : "none"; }
+  function renderRContact() { $("r-contact-seg").innerHTML = [["none", "None"], ["instagram", "Instagram"], ["homepage", "Homepage"]].map(function (p) { return '<button data-rcontact="' + p[0] + '" style="' + rSeg(rep.contact === p[0]) + '">' + p[1] + '</button>'; }).join(""); $("r-url-wrap").style.display = rep.contact === "none" ? "none" : "block"; }
+  function renderRSections() { $("r-sections").innerHTML = ALL_SECTIONS.map(function (s) { return '<button data-rsec="' + s + '" style="' + rChip(rep.sections.indexOf(s) !== -1) + '">' + s + '</button>'; }).join(""); }
+  function renderRCountry() { $("r-country").innerHTML = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === rep.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join(""); }
+  function updateRAuto() {
+    if (!rep.country) { $("r-auto").textContent = "Select a country to auto-fill NSO, region and language."; return; }
+    $("r-auto").textContent = (rep.nso || "—") + " · " + (REGION[rep.region] ? REGION[rep.region].full : rep.region) + " (" + (rep.lang || "—") + ")";
+  }
+  function openReport() {
+    rep = { kind: "unit", contact: "none", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
+    ["r-rname", "r-raff", "r-name", "r-desc", "r-url", "r-addr"].forEach(function (id) { $(id).value = ""; });
+    $("r-msg").textContent = ""; $("r-coord").textContent = "No location set yet — search above (the admin can fine-tune it).";
+    renderRKind(); renderRContact(); renderRSections(); renderRCountry(); updateRAuto();
+    $("report-modal").style.display = "flex";
+  }
+  function closeReport() { $("report-modal").style.display = "none"; }
+  function rFind() {
+    var q = $("r-addr").value.trim(); if (!q) return;
+    $("r-coord").textContent = "Searching…";
+    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d[0]) { rep.lat = +(+d[0].lat).toFixed(5); rep.lng = +(+d[0].lon).toFixed(5); rep.address = d[0].display_name || q; $("r-coord").textContent = "📍 " + rep.lat + ", " + rep.lng + " — " + rep.address; } else $("r-coord").textContent = "No match found — try a different address."; })
+      .catch(function () { $("r-coord").textContent = "Search unavailable — you can still submit; the admin will set the location."; });
+  }
+  function rSubmit() {
+    var rname = $("r-rname").value.trim(), raff = $("r-raff").value.trim(), name = $("r-name").value.trim();
+    if (!rname || !raff) { $("r-msg").textContent = "Please enter your name and affiliation."; return; }
+    if (!name) { $("r-msg").textContent = "Please enter the place name."; return; }
+    var unit = {
+      kind: rep.kind, name: name, country: rep.country, nso: rep.nso, region: rep.region, lang: rep.lang,
+      lat: rep.lat == null ? 0 : rep.lat, lng: rep.lng == null ? 0 : rep.lng, address: rep.address || $("r-addr").value.trim(),
+      sections: rep.kind === "unit" ? rep.sections : [], tags: [], desc: $("r-desc").value.trim(),
+      contact: rep.contact, url: rep.contact === "none" ? "" : $("r-url").value.trim(), status: "published"
+    };
+    var payload = { unit: unit, reporter: { name: rname, affiliation: raff } };
+    $("r-msg").style.color = "#6b6577"; $("r-msg").textContent = "Submitting…"; $("r-submit").disabled = true;
+    fetch("/api/submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        $("r-submit").disabled = false;
+        if (res.ok && res.j.ok) { $("r-msg").style.color = "#248737"; $("r-msg").textContent = "Thank you! Your report was submitted for admin review."; setTimeout(closeReport, 1400); }
+        else { $("r-msg").style.color = "#b4524e"; $("r-msg").textContent = "Could not submit: " + ((res.j && res.j.error) || "error"); }
+      })
+      .catch(function () { $("r-submit").disabled = false; $("r-msg").style.color = "#b4524e"; $("r-msg").textContent = "Network error — please try again."; });
+  }
+
   // ── data load ──────────────────────────────────────────────────────
   function loadUnits() {
     return fetch("/api/units", { cache: "no-store" })
@@ -312,13 +366,6 @@
       .then(function (j) { COMMENTS = (j && Array.isArray(j.comments)) ? j.comments : []; })
       .catch(function () { COMMENTS = []; });
   }
-  function downloadJson() {
-    try {
-      var blob = new Blob([JSON.stringify({ units: UNITS }, null, 2)], { type: "application/json" });
-      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "scout-units.json"; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-    } catch (e) {}
-  }
-
   // ── init ───────────────────────────────────────────────────────────
   function initMap() {
     map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-85, -220], [85, 220]] }).setView([28, 18], 2);
@@ -337,7 +384,6 @@
     $("near-btn").addEventListener("click", geolocate);
     document.querySelectorAll(".q-near").forEach(function (b) { b.addEventListener("click", function () { state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); geolocate(); }); });
     $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([28, 18], 2, { duration: .6 }); });
-    $("download").addEventListener("click", downloadJson);
     $("panel-collapse").addEventListener("click", function () { setPanelOpen(false); });
     $("panel-reopen").addEventListener("click", function () { setPanelOpen(true); });
 
@@ -358,6 +404,19 @@
     $("consent").addEventListener("change", updatePostBtn);
     $("post-btn").addEventListener("click", postComment);
     try { var n = localStorage.getItem("sf_nick"); if (n) $("nick").value = n; } catch (e) {}
+
+    // report a location
+    $("report-btn").addEventListener("click", openReport);
+    $("r-close").addEventListener("click", closeReport);
+    $("r-cancel").addEventListener("click", closeReport);
+    $("report-modal").addEventListener("click", function (e) { if (e.target === $("report-modal")) closeReport(); });
+    $("r-kind-seg").addEventListener("click", function (e) { var b = e.target.closest("[data-rkind]"); if (!b) return; rep.kind = b.getAttribute("data-rkind"); renderRKind(); });
+    $("r-contact-seg").addEventListener("click", function (e) { var b = e.target.closest("[data-rcontact]"); if (!b) return; rep.contact = b.getAttribute("data-rcontact"); renderRContact(); });
+    $("r-sections").addEventListener("click", function (e) { var b = e.target.closest("[data-rsec]"); if (!b) return; var s = b.getAttribute("data-rsec"); var i = rep.sections.indexOf(s); if (i === -1) rep.sections.push(s); else rep.sections.splice(i, 1); renderRSections(); });
+    $("r-country").addEventListener("change", function (e) { rep.country = e.target.value; var m = COUNTRY[rep.country]; if (m) { rep.nso = m.nso; rep.region = m.region; rep.lang = m.lang; } else { rep.nso = ""; rep.lang = ""; } updateRAuto(); });
+    $("r-find").addEventListener("click", rFind);
+    $("r-addr").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rFind(); } });
+    $("r-submit").addEventListener("click", rSubmit);
   }
 
   function init() {

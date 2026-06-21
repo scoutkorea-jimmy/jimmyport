@@ -9,8 +9,16 @@ export async function onRequestPost({ request, env }) {
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const u = body.unit || body;
   if (!u || !u.name || !String(u.name).trim()) return json({ error: "name required" }, 400);
+  var reporter = null;
+  if (body.reporter && typeof body.reporter === "object") {
+    reporter = {
+      name: String(body.reporter.name || "").trim().slice(0, 80),
+      affiliation: String(body.reporter.affiliation || "").trim().slice(0, 120),
+    };
+  }
+  if (!reporter || !reporter.name || !reporter.affiliation) return json({ error: "reporter_required" }, 400);
   const pending = await getArr(env, "pending");
-  const item = { id: newId(), ts: new Date().toISOString(), ip: clientIp(request), unit: u };
+  const item = { id: newId(), ts: new Date().toISOString(), ip: clientIp(request), unit: u, reporter: reporter };
   pending.unshift(item);
   await putArr(env, "pending", pending.slice(0, 1000));
   await appendLog(env, { ts: item.ts, action: "submission.new", name: u.name, ip: item.ip });

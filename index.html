@@ -54,13 +54,15 @@
 
       <div id="unit-list" class="sf-scroll" style="flex:1;overflow-y:auto;padding:12px;"></div>
 
-      <div style="flex:none;padding:11px 16px;border-top:1px solid #f0ebe2;display:flex;align-items:center;gap:16px;background:rgba(251,250,247,.7);">
-        <button id="download" style="border:none;background:transparent;color:#6b6577;font:600 12px 'Hanken Grotesk';cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M5 21h14"></path></svg>Download JSON
+      <div style="flex:none;padding:11px 16px;border-top:1px solid #f0ebe2;background:rgba(251,250,247,.7);">
+        <button id="report-btn" style="width:100%;border:none;background:#6336B5;color:#fff;font:600 12.5px 'Hanken Grotesk';padding:10px;border-radius:11px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-bottom:9px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>Report a location
         </button>
-        <a href="/admin" style="color:#6b6577;font:600 12px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.6 14H4.5a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 6 7.3l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 4.6V4.5a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 17 6l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.1a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"></path></svg>Admin
-        </a>
+        <div style="display:flex;align-items:center;justify-content:center;">
+          <a href="/admin" style="color:#9a93a6;font:600 11.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.6 14H4.5a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 6 7.3l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 4.6V4.5a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 17 6l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.1a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"></path></svg>Admin
+          </a>
+        </div>
       </div>
     </div>
 
@@ -112,6 +114,55 @@
           <span style="font-size:11px;color:#8a8496;line-height:1.4;">I consent to my nickname and a masked IP being stored with this comment (GDPR).</span>
         </label>
         <button id="post-btn" style="width:100%;border:none;border-radius:11px;padding:11px;font:600 13px 'Hanken Grotesk';cursor:pointer;background:#ece6db;color:#a39bb0;">Post comment</button>
+      </div>
+    </div>
+
+    <!-- REPORT A LOCATION (public submission → admin approval) -->
+    <div id="report-modal" style="display:none;position:absolute;inset:0;z-index:950;background:rgba(30,18,55,.32);align-items:center;justify-content:center;padding:20px;">
+      <div class="sf-scroll" style="width:520px;max-width:100%;max-height:90vh;overflow-y:auto;background:#fff;border-radius:18px;box-shadow:0 30px 70px rgba(30,18,55,.3);padding:22px 22px 24px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px;">
+          <div>
+            <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.06em;color:#9a93a6;margin-bottom:3px;">Report a location</div>
+            <div style="font:700 18px 'Bricolage Grotesque';letter-spacing:-.01em;">Suggest a place to add</div>
+          </div>
+          <button id="r-close" style="border:none;background:#f1ece4;width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b6577;flex:none;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+        <div style="font-size:12.5px;color:#8a8496;margin-bottom:16px;line-height:1.5;">Submissions are reviewed by an admin before they appear on the map.</div>
+
+        <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin-bottom:8px;">Your details</div>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Your name *</label><input id="r-rname" class="sf-fld" placeholder="e.g. Jimmy Park" /></div>
+          <div style="flex:1;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Affiliation *</label><input id="r-raff" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" /></div>
+        </div>
+
+        <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Place</div>
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Name *</label>
+        <input id="r-name" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Type</label>
+        <div id="r-kind-seg" style="display:flex;gap:6px;"></div>
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Country</label>
+        <select id="r-country" class="sf-fld" style="appearance:none;cursor:pointer;"></select>
+        <div id="r-auto" style="margin-top:8px;background:#f5f2ec;border:1px solid #ece6db;border-radius:11px;padding:10px 12px;font:500 12.5px 'Hanken Grotesk';color:#6b6577;">Select a country to auto-fill NSO, region and language.</div>
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Short description</label>
+        <textarea id="r-desc" class="sf-fld" style="resize:vertical;min-height:64px;line-height:1.5;" placeholder="A sentence or two about this place."></textarea>
+        <div id="r-sections-wrap"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Sections (recruiting)</label><div id="r-sections" style="display:flex;flex-wrap:wrap;gap:6px;"></div></div>
+
+        <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Contact</div>
+        <div id="r-contact-seg" style="display:flex;gap:6px;"></div>
+        <div id="r-url-wrap" style="display:none;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Link (Instagram / homepage)</label><input id="r-url" class="sf-fld" placeholder="https://" /></div>
+
+        <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Location</div>
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Address or place search</label>
+        <div style="display:flex;gap:7px;"><input id="r-addr" class="sf-fld" placeholder="Search an address or place" style="flex:1;" /><button id="r-find" style="border:none;background:#f1ecf9;color:#5B2EA6;font:600 12.5px 'Hanken Grotesk';padding:9px 14px;border-radius:11px;cursor:pointer;white-space:nowrap;">Find</button></div>
+        <div id="r-coord" style="margin-top:8px;font-size:11.5px;color:#9a93a6;">No location set yet — search above (the admin can fine-tune it).</div>
+
+        <div id="r-msg" style="min-height:18px;margin-top:14px;font-size:12.5px;color:#b4524e;"></div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button id="r-cancel" style="flex:none;border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:11px 16px;border-radius:11px;cursor:pointer;">Cancel</button>
+          <button id="r-submit" style="flex:1;border:none;background:#6336B5;color:#fff;font:600 13px 'Hanken Grotesk';padding:11px;border-radius:11px;cursor:pointer;">Submit for review</button>
+        </div>
       </div>
     </div>
 

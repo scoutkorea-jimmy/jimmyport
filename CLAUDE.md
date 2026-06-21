@@ -10,7 +10,7 @@
 
 ## 1. 목적
 지역(시/구/동)을 검색하거나 지도를 클릭하면, 그 위치 기준으로 가까운 스카우트 단위대를
-**거리순**으로 지도·목록에 보여주는 정적 웹앱. GPS 미사용 — 검색·지도 클릭으로 위치 지정.
+**거리순**으로 지도·목록에 보여주는 정적 웹앱. **GPS 사용 가능**(브라우저 'Near me' 지오로케이션) + 검색·지도 클릭으로도 위치 지정. (이전 'GPS 미사용' 규칙은 v0.9.62에서 폐지)
 
 ## 2. 스택 / 제약 (반드시 준수)
 - **Vanilla HTML/CSS/JS만.** 프레임워크·번들러·빌드 단계 도입 금지.
@@ -559,6 +559,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **관리자**(`admin.html`+`admin.js`): 시안 적용(툴바·좌측 레일·중앙 폼 Basics/Affiliation/Profile/Contact/Location·우측 드래그 지도·Import 모달·토스트). **Google 인증 게이트 유지**, 저장=`/api/units` PUT(Bearer) 700ms 자동저장. 국가 자동완성=SCOUT_NSOS(176)→region 코드 변환. Import `{"units":[]}`로 전체 비우기(KV 샘플 정리 대안).
 - `styles.css` 전면 교체(디자인 글로벌; 컴포넌트 시각=마크업 인라인 고충실 포팅). 폰트=Google Fonts(Bricolage+Hanken), leaflet=unpkg.
 - 검증: `node --check`(app·admin) OK + 로컬 헤드리스 스크린샷(공개=지도+패널+칩+범례+검색바 정상, 데이터 0='No places found'; 관리자=Google 게이트 렌더). 게이트 안쪽 UI는 라이브 Google 인증 후 검증.
+
+### 17.6 v0.9.63 — GPS 규칙 채택 + 위치 제보(공개) → 관리자 승인
+- **GPS 규칙 변경**: §1 'GPS 미사용' 폐지 → **사용 가능**(Near me) 명문화.
+- **공개 'Report a location'**: 좌측 패널 하단 Download JSON 제거 → 그 자리에 **위치 제보 버튼**. 모달 폼(`#report-modal`): **제보자 이름·소속(필수)** + 장소명·종류(unit/office/heritage)·국가(SCOUT_NSOS 자동완성 NSO/region/lang)·설명·섹션(unit)·연락(none/instagram/homepage+URL)·주소검색(Nominatim→lat/lng). 제출 → `POST /api/submissions {unit, reporter}`. 성공 안내.
+- **submissions API**: POST에 `reporter{name,affiliation}` 저장(둘 다 필수, 없으면 `reporter_required` 400). pending item에 `reporter` 포함, approve 시 unit만 units에 추가(reporter 비포함).
+- **관리자 승인 UI**: 툴바 **Reports 버튼+미처리 카운트 배지**. 모달(`#pending-modal`)에 제보 목록(장소 요약 + 제보자 이름·소속·IP·시각) + **Approve/Reject**. approve→`PATCH approve`→units 반영(선택 유지 후 재로드), reject→confirm 후 `PATCH reject`. 부팅·열람 시 `GET /api/submissions`(Bearer)로 갱신.
+- 검증: `node --check`(app·admin·submissions) OK + 헤드리스 스크린샷(제보 모달) + 라이브 스모크.
 
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
