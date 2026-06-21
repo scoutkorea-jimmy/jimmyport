@@ -26,7 +26,7 @@
 
   // ── state ──────────────────────────────────────────────────────────
   var units = [], map, marker = null, saveTimer = null, savedTimer = null;
-  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "" };
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: { profile: true } };
 
   // ── helpers ────────────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
@@ -37,32 +37,38 @@
   function fmtTs(ts) { try { var d = new Date(ts); var p = function (n) { return ("0" + n).slice(-2); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); } catch (e) { return ""; } }
 
   function normUnit(u) {
-    var url = u.url || u.homepage || "";
-    var contact = u.contact;
-    if (!contact) contact = url ? (/instagram/i.test(url) ? "instagram" : "homepage") : "none";
+    var instagram = u.instagram || "", homepage = u.homepage || "", phone = u.phone || "", email = u.email || "";
+    var legacy = u.url || "";  // migrate the old single contact/url model
+    if (!instagram && !homepage && legacy) {
+      if (u.contact === "instagram" || /instagram\.com/i.test(legacy)) instagram = legacy; else homepage = legacy;
+    }
     return {
       id: u.id, kind: u.kind || "unit", name: u.name || "", country: u.country || "",
       nso: u.nso || "", region: regionCode(u.region), lang: u.lang || "",
       lat: +u.lat || 0, lng: +u.lng || 0, address: u.address || u.place || "",
       sections: Array.isArray(u.sections) ? u.sections : [], tags: Array.isArray(u.tags) ? u.tags : [],
-      desc: u.desc || u.note || "", contact: contact, url: url, status: u.status || "published"
+      desc: u.desc || u.note || "", instagram: instagram, homepage: homepage, phone: phone, email: email,
+      status: u.status || "published"
     };
   }
 
   // ── server ─────────────────────────────────────────────────────────
   function touch() { setSaved(false); clearTimeout(saveTimer); saveTimer = setTimeout(save, 700); }
   function setSaved(ok) { $("saved-label").textContent = ok ? "All changes saved" : "Saving…"; }
-  function save() {
-    if (!Auth.valid()) { setSaved(false); $("saved-label").textContent = "Sign in to publish"; Auth.requireReauth(); return; }
+  function save(manual) {
+    clearTimeout(saveTimer);
+    if (!Auth.valid()) { setSaved(false); $("saved-label").textContent = "Sign in to publish"; if (manual) toast("Sign in to save"); Auth.requireReauth(); return; }
+    if (manual) setSaved(false);
     fetch("/api/units", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ units: units }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
       .then(function (res) {
-        if (res.ok) setSaved(true);
-        else if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; Auth.requireReauth(); }
-        else $("saved-label").textContent = "Save failed: " + (res.j.error || res.status);
+        if (res.ok) { setSaved(true); if (manual) toast("Saved"); }
+        else if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; if (manual) toast("Session expired — sign in again"); Auth.requireReauth(); }
+        else { $("saved-label").textContent = "Save failed: " + (res.j.error || res.status); if (manual) toast("Save failed: " + (res.j.error || res.status)); }
       })
-      .catch(function () { $("saved-label").textContent = "Save failed (network)"; });
+      .catch(function () { $("saved-label").textContent = "Save failed (network)"; if (manual) toast("Save failed (network)"); });
   }
+  function saveNow() { save(true); }
   function loadUnits() {
     return fetch("/api/units", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -99,6 +105,28 @@
     if (marker && moveMarker) marker.setLatLng([lat, lng]);
     var fl = $("f-lat"), fn = $("f-lng"); if (fl) fl.value = lat; if (fn) fn.value = lng;
     updateCap();
+  }
+  // While typing in the lat/lng fields: update the model + marker live, but do NOT
+  // rewrite the inputs (so partial values like "37." or "-" survive).
+  function onLatLngInput() {
+    var s = sel(); if (!s) return;
+    var fl = $("f-lat"), fn = $("f-lng");
+    var la = parseFloat(fl ? fl.value : ""), ln = parseFloat(fn ? fn.value : "");
+    if (isFinite(la)) s.lat = la;
+    if (isFinite(ln)) s.lng = ln;
+    if (marker && (isFinite(la) || isFinite(ln))) marker.setLatLng([s.lat, s.lng]);
+    updateCap(); touch();
+  }
+  // On blur/Enter: clamp to valid ranges, round, and re-format the fields.
+  function commitLatLng() {
+    var s = sel(); if (!s) return;
+    var la = +(+s.lat).toFixed(5), ln = +(+s.lng).toFixed(5);
+    if (!isFinite(la)) la = 0; if (!isFinite(ln)) ln = 0;
+    la = Math.max(-90, Math.min(90, la)); ln = Math.max(-180, Math.min(180, ln));
+    s.lat = la; s.lng = ln;
+    var fl = $("f-lat"), fn = $("f-lng"); if (fl) fl.value = la; if (fn) fn.value = ln;
+    if (marker) marker.setLatLng([la, ln]);
+    updateCap(); touch();
   }
   function find() {
     var s = sel(), q = state.addrQuery.trim(); if (!q || !s) return;
@@ -160,6 +188,16 @@
   var LBL = "display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 7px;";
   var BTN_SOFT = "border:none;background:#f1ecf9;color:#5B2EA6;font:600 12.5px 'Hanken Grotesk';padding:9px 14px;border-radius:11px;cursor:pointer;white-space:nowrap;";
 
+  // Collapsible form card. Header click toggles state.collapsed[key]; Profile starts collapsed.
+  function card(key, title, body) {
+    var col = !!state.collapsed[key];
+    var chev = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(' + (col ? "-90deg" : "0deg") + ');transition:transform .15s;color:#b3adbd;flex:none;"><path d="m6 9 6 6 6-6"></path></svg>';
+    return '<div style="' + CARD + '">' +
+      '<div data-collapse="' + key + '" style="' + SEC + 'margin-bottom:' + (col ? "0" : "14px") + ';display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none;">' +
+      '<span>' + title + '</span>' + chev + '</div>' +
+      '<div data-body="' + key + '"' + (col ? ' style="display:none;"' : '') + '>' + body + '</div></div>';
+  }
+
   function renderForm() {
     var s = sel();
     if (!s) { $("form").innerHTML = ""; $("form").style.display = "none"; $("form-empty").style.display = "flex"; updateCap(); return; }
@@ -168,54 +206,54 @@
     var isUnit = s.kind === "unit";
     var autoLine = (s.nso || "—") + " · " + (rc.full || s.region) + " (" + (s.lang || "—") + ")";
     var subline = KIND[s.kind] + " · " + (s.country || "No country") + " · " + s.region;
-    var ctype = s.contact || "none";
 
     var kindSeg = ["unit", "office", "heritage"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
     var countryOpts = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === s.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("");
     var regionOpts = Object.keys(REGION).map(function (code) { return '<option value="' + code + '"' + (code === s.region ? " selected" : "") + ">" + code + " · " + esc(REGION[code].full) + "</option>"; }).join("");
     var sectionChips = ALL_SECTIONS.map(function (x) { return '<button data-act="sec" data-val="' + x + '" style="' + chip(s.sections.indexOf(x) !== -1) + '">' + x + '</button>'; }).join("");
     var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:6px 8px 6px 11px;border-radius:999px;">' + esc(t) + '<button data-act="tagdel" data-val="' + escAttr(t) + '" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
-    var contactSeg = [["none", "None"], ["instagram", "Instagram"], ["homepage", "Homepage"]].map(function (p) { return '<button data-act="contact" data-val="' + p[0] + '" style="' + seg(ctype === p[0]) + '">' + p[1] + '</button>'; }).join("");
     var statusSeg = [["published", "Live"], ["draft", "Draft"]].map(function (p) { return '<button data-act="status" data-val="' + p[0] + '" style="' + seg(s.status === p[0]) + '">' + p[1] + '</button>'; }).join("");
 
     $("form").innerHTML = '<div style="max-width:620px;margin:0 auto;padding:24px 28px 60px;">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px;">' +
       '<div><div style="font:700 21px \'Bricolage Grotesque\';letter-spacing:-.015em;line-height:1.1;">' + esc(s.name || "Untitled") + '</div><div style="font-size:12.5px;color:#8a8496;margin-top:4px;">' + esc(subline) + '</div></div>' +
-      '<button data-act="del" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 12px \'Hanken Grotesk\';padding:8px 12px;border-radius:10px;cursor:pointer;flex:none;">Delete</button></div>' +
+      '<div style="display:flex;gap:8px;flex:none;">' +
+      '<button data-act="save" style="border:none;background:#6336B5;color:#fff;font:600 12px \'Hanken Grotesk\';padding:8px 16px;border-radius:10px;cursor:pointer;">Save</button>' +
+      '<button data-act="del" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 12px \'Hanken Grotesk\';padding:8px 12px;border-radius:10px;cursor:pointer;">Delete</button>' +
+      '</div></div>' +
 
-      '<div style="' + CARD + '"><div style="' + SEC + '">Basics</div>' +
-      '<label style="' + LBL + '">Name</label><input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
-      '<label style="' + LBL + '">Place type</label><div style="display:flex;gap:6px;">' + kindSeg + '</div>' +
-      '<label style="' + LBL + '">Visibility</label><div style="display:flex;gap:6px;">' + statusSeg + '</div></div>' +
+      card("basics", "Basics",
+        '<label style="' + LBL + '">Name</label><input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
+        '<label style="' + LBL + '">Place type</label><div style="display:flex;gap:6px;">' + kindSeg + '</div>' +
+        '<label style="' + LBL + '">Visibility</label><div style="display:flex;gap:6px;">' + statusSeg + '</div>') +
 
-      '<div style="' + CARD + '"><div style="' + SEC + '">Affiliation</div>' +
-      '<label style="' + LBL + '">Country</label>' +
-      '<select id="f-country" class="sf-fld" style="appearance:none;cursor:pointer;">' + countryOpts + '</select>' +
-      '<label style="' + LBL + '">Region</label>' +
-      '<select id="f-region" class="sf-fld" style="appearance:none;cursor:pointer;">' + regionOpts + '</select>' +
-      '<label style="' + LBL + '">NSO · Language <span style="color:#b3adbd;font-weight:500;">(auto from country)</span></label>' +
-      '<div style="background:#f5f2ec;border:1px solid #ece6db;border-radius:11px;padding:11px 13px;font:500 13px \'Hanken Grotesk\';color:#6b6577;">' + esc(autoLine) + '</div></div>' +
+      card("affiliation", "Affiliation",
+        '<label style="' + LBL + '">Country</label>' +
+        '<select id="f-country" class="sf-fld" style="appearance:none;cursor:pointer;">' + countryOpts + '</select>' +
+        '<label style="' + LBL + '">Region</label>' +
+        '<select id="f-region" class="sf-fld" style="appearance:none;cursor:pointer;">' + regionOpts + '</select>' +
+        '<label style="' + LBL + '">NSO · Language <span style="color:#b3adbd;font-weight:500;">(auto from country)</span></label>' +
+        '<div style="background:#f5f2ec;border:1px solid #ece6db;border-radius:11px;padding:11px 13px;font:500 13px \'Hanken Grotesk\';color:#6b6577;">' + esc(autoLine) + '</div>') +
 
-      '<div style="' + CARD + '"><div style="' + SEC + '">Profile</div>' +
-      '<label style="' + LBL + '">Short introduction</label><textarea id="f-desc" class="sf-fld" style="resize:vertical;min-height:74px;line-height:1.5;" placeholder="A sentence or two about this place and its activities.">' + esc(s.desc) + '</textarea>' +
-      (isUnit
-        ? '<label style="' + LBL + '">Sections (recruiting)</label><div style="display:flex;flex-wrap:wrap;gap:6px;">' + sectionChips + '</div>'
-        : '<label style="' + LBL + '">Categories</label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + tagChips + '</div>' +
-          '<div style="display:flex;gap:7px;margin-top:9px;"><input id="f-tagdraft" value="' + escAttr(state.tagDraft) + '" class="sf-fld" placeholder="Add a category (e.g. Training centre) and press Enter" style="flex:1;" /><button data-act="tagadd" style="' + BTN_SOFT + '">Add</button></div>'
-      ) + '</div>' +
+      card("profile", "Profile",
+        '<label style="' + LBL + '">Short introduction</label><textarea id="f-desc" class="sf-fld" style="resize:vertical;min-height:74px;line-height:1.5;" placeholder="A sentence or two about this place and its activities.">' + esc(s.desc) + '</textarea>' +
+        (isUnit
+          ? '<label style="' + LBL + '">Sections (recruiting)</label><div style="display:flex;flex-wrap:wrap;gap:6px;">' + sectionChips + '</div>'
+          : '<label style="' + LBL + '">Categories</label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + tagChips + '</div>' +
+            '<div style="display:flex;gap:7px;margin-top:9px;"><input id="f-tagdraft" value="' + escAttr(state.tagDraft) + '" class="sf-fld" placeholder="Add a category (e.g. Training centre) and press Enter" style="flex:1;" /><button data-act="tagadd" style="' + BTN_SOFT + '">Add</button></div>'
+        )) +
 
-      '<div style="' + CARD + '"><div style="' + SEC + '">Contact</div>' +
-      '<label style="' + LBL + '">Method</label><div style="display:flex;gap:6px;">' + contactSeg + '</div>' +
-      (ctype !== "none"
-        ? '<label style="' + LBL + '">' + (ctype === "instagram" ? "Instagram URL" : "Homepage URL") + '</label><input id="f-url" value="' + escAttr(s.url) + '" class="sf-fld" placeholder="https://" />'
-        : '<div style="margin-top:11px;font-size:12px;color:#a39bb0;background:#f5f2ec;border-radius:10px;padding:10px 12px;">Visitors will see “Contact the national scout organization”.</div>'
-      ) + '</div>' +
+      card("contact", 'Contact <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— all optional, leave blank if none</span>',
+        '<label style="' + LBL + '">Instagram</label><input id="f-instagram" value="' + escAttr(s.instagram) + '" class="sf-fld" placeholder="https://instagram.com/… or @handle" />' +
+        '<label style="' + LBL + '">Phone</label><input id="f-phone" value="' + escAttr(s.phone) + '" class="sf-fld" placeholder="e.g. +82 2 1234 5678" />' +
+        '<label style="' + LBL + '">Email</label><input id="f-email" value="' + escAttr(s.email) + '" class="sf-fld" placeholder="e.g. info@example.org" />' +
+        '<label style="' + LBL + '">Homepage</label><input id="f-homepage" value="' + escAttr(s.homepage) + '" class="sf-fld" placeholder="https://" />') +
 
-      '<div style="' + CARD + '"><div style="' + SEC + '">Location</div>' +
-      '<label style="' + LBL + '">Address or place search</label><div style="display:flex;gap:7px;"><input id="f-addr" value="' + escAttr(state.addrQuery) + '" class="sf-fld" placeholder="Search an address or place" style="flex:1;" /><button data-act="find" style="' + BTN_SOFT + '">Find &amp; set</button></div>' +
-      '<label style="' + LBL + '">Full address</label><input id="f-address" value="' + escAttr(s.address) + '" class="sf-fld" placeholder="Street, city, country" />' +
-      '<div style="display:flex;gap:10px;margin-top:12px;"><div style="flex:1;"><label style="' + LBL + '">Latitude</label><input id="f-lat" value="' + escAttr(s.lat) + '" class="sf-fld" /></div><div style="flex:1;"><label style="' + LBL + '">Longitude</label><input id="f-lng" value="' + escAttr(s.lng) + '" class="sf-fld" /></div></div>' +
-      '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;display:flex;align-items:center;gap:6px;">Drag the pin or click the map to fine-tune the location.</div></div>' +
+      card("location", "Location",
+        '<label style="' + LBL + '">Address or place search</label><div style="display:flex;gap:7px;"><input id="f-addr" value="' + escAttr(state.addrQuery) + '" class="sf-fld" placeholder="Search an address or place" style="flex:1;" /><button data-act="find" style="' + BTN_SOFT + '">Find &amp; set</button></div>' +
+        '<label style="' + LBL + '">Full address</label><input id="f-address" value="' + escAttr(s.address) + '" class="sf-fld" placeholder="Street, city, country" />' +
+        '<div style="display:flex;gap:10px;margin-top:12px;"><div style="flex:1;"><label style="' + LBL + '">Latitude</label><input id="f-lat" value="' + escAttr(s.lat) + '" class="sf-fld" inputmode="decimal" /></div><div style="flex:1;"><label style="' + LBL + '">Longitude</label><input id="f-lng" value="' + escAttr(s.lng) + '" class="sf-fld" inputmode="decimal" /></div></div>' +
+        '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;">Type coordinates directly, drag the pin, or click the map.</div>') +
       '</div>';
     updateCap();
   }
@@ -226,7 +264,7 @@
   function selectUnit(id) { state.selectedId = id; state.addrQuery = ""; renderRail(); renderForm(); syncMarker(true); }
   function addUnit() {
     var id = "unit-" + Date.now().toString(36);
-    var nu = { id: id, kind: "unit", name: "New scout place", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", contact: "none", url: "", status: "draft" };
+    var nu = { id: id, kind: "unit", name: "New scout place", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", instagram: "", homepage: "", phone: "", email: "", status: "draft" };
     units.unshift(nu); state.selectedId = id; state.query = ""; state.kindFilter = "All"; state.addrQuery = "";
     $("rail-search").value = ""; renderFilters(); renderRail(); renderForm(); syncMarker(true); touch();
   }
@@ -274,7 +312,15 @@
         '<div style="font-size:12px;color:#8a8496;margin-top:3px;">' + esc((KIND[u.kind] || "") + " · " + code + (u.country ? " · " + u.country : "")) + '</div>' +
         (u.desc ? '<div style="font-size:12.5px;color:#4a4458;margin-top:8px;line-height:1.5;">' + esc(u.desc) + '</div>' : "") +
         (locLine ? '<div style="font-size:11.5px;color:#9a93a6;margin-top:6px;">' + locLine + '</div>' : "") +
-        (u.contact && u.contact !== "none" && u.url ? '<div style="font-size:11.5px;margin-top:6px;"><a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="color:#6336B5;">' + esc(u.url) + '</a></div>' : "") +
+        (function () {
+          var p = [];
+          if (u.instagram) p.push('<a href="' + escAttr(u.instagram) + '" target="_blank" rel="noopener" style="color:#6336B5;">Instagram</a>');
+          if (u.homepage) p.push('<a href="' + escAttr(u.homepage) + '" target="_blank" rel="noopener" style="color:#6336B5;">Homepage</a>');
+          if (u.phone) p.push(esc(u.phone));
+          if (u.email) p.push('<a href="mailto:' + escAttr(u.email) + '" style="color:#6336B5;">' + esc(u.email) + '</a>');
+          if (!p.length && u.url && u.contact !== "none") p.push('<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="color:#6336B5;">' + esc(u.url) + '</a>');
+          return p.length ? '<div style="font-size:11.5px;margin-top:6px;">' + p.join(" · ") + '</div>' : "";
+        })() +
         '</div></div>' +
         '<div style="margin-top:12px;padding-top:11px;border-top:1px solid #f0ebe2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
         '<span style="font-size:11.5px;color:#8a8496;"><strong style="color:#1E1730;">' + esc(rep.name || "—") + '</strong> · ' + esc(rep.affiliation || "—") + '</span>' +
@@ -418,11 +464,20 @@
 
     // form (delegated)
     $("form").addEventListener("click", function (e) {
+      var col = e.target.closest("[data-collapse]");
+      if (col) {
+        var key = col.getAttribute("data-collapse"); state.collapsed[key] = !state.collapsed[key];
+        var isCol = state.collapsed[key], body = $("form").querySelector('[data-body="' + key + '"]');
+        if (body) body.style.display = isCol ? "none" : "";
+        col.style.marginBottom = isCol ? "0" : "14px";
+        var svg = col.querySelector("svg"); if (svg) svg.style.transform = "rotate(" + (isCol ? "-90deg" : "0deg") + ")";
+        return;
+      }
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act"), val = b.getAttribute("data-val");
-      if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
+      if (act === "save") { saveNow(); }
+      else if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
       else if (act === "status") { set({ status: val }); renderRail(); renderForm(); }
-      else if (act === "contact") { set({ contact: val }); renderForm(); }
       else if (act === "sec") { var s = sel(); var has = s.sections.indexOf(val) !== -1; s.sections = has ? s.sections.filter(function (x) { return x !== val; }) : s.sections.concat([val]); touch(); renderForm(); }
       else if (act === "tagdel") { var s2 = sel(); s2.tags = s2.tags.filter(function (x) { return x !== val; }); touch(); renderForm(); }
       else if (act === "tagadd") { addTag(); }
@@ -433,16 +488,19 @@
       var id = e.target.id, v = e.target.value;
       if (id === "f-name") { set({ name: v }); renderRail(); updateCap(); }
       else if (id === "f-desc") { set({ desc: v }); }
-      else if (id === "f-url") { set({ url: v }); }
+      else if (id === "f-instagram") { set({ instagram: v }); }
+      else if (id === "f-phone") { set({ phone: v }); }
+      else if (id === "f-email") { set({ email: v }); }
+      else if (id === "f-homepage") { set({ homepage: v }); }
       else if (id === "f-address") { set({ address: v }); updateCap(); }
-      else if (id === "f-lat") { setCoords(v || 0, sel() ? sel().lng : 0, true); }
-      else if (id === "f-lng") { setCoords(sel() ? sel().lat : 0, v || 0, true); }
+      else if (id === "f-lat" || id === "f-lng") { onLatLngInput(); }
       else if (id === "f-tagdraft") { state.tagDraft = v; }
       else if (id === "f-addr") { state.addrQuery = v; }
     });
-    $("form").addEventListener("keydown", function (e) { if (e.target.id === "f-tagdraft" && e.key === "Enter") { e.preventDefault(); addTag(); } if (e.target.id === "f-addr" && e.key === "Enter") { e.preventDefault(); find(); } });
+    $("form").addEventListener("keydown", function (e) { if (e.target.id === "f-tagdraft" && e.key === "Enter") { e.preventDefault(); addTag(); } if (e.target.id === "f-addr" && e.key === "Enter") { e.preventDefault(); find(); } if ((e.target.id === "f-lat" || e.target.id === "f-lng") && e.key === "Enter") { e.preventDefault(); commitLatLng(); } });
     $("form").addEventListener("change", function (e) {
       if (e.target.id === "f-country") { var c = e.target.value, m = COUNTRY[c]; set(m ? { country: c, nso: m.nso, region: m.region, lang: m.lang } : { country: c }); renderRail(); renderForm(); syncMarker(false); }
+      else if (e.target.id === "f-lat" || e.target.id === "f-lng") { commitLatLng(); }
       else if (e.target.id === "f-region") { set({ region: e.target.value }); renderRail(); renderForm(); syncMarker(false); }
     });
 

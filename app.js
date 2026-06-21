@@ -40,16 +40,27 @@
 
   function normUnit(u) {
     var region = regionCode(u.region);
-    var url = u.url || u.homepage || "";
-    var contact = u.contact;
-    if (!contact) contact = url ? (/instagram/i.test(url) ? "instagram" : "homepage") : "none";
+    var instagram = u.instagram || "", homepage = u.homepage || "", phone = u.phone || "", email = u.email || "";
+    var legacy = u.url || "";  // migrate the old single contact/url model
+    if (!instagram && !homepage && legacy) {
+      if (u.contact === "instagram" || /instagram\.com/i.test(legacy)) instagram = legacy; else homepage = legacy;
+    }
     return {
       id: u.id, kind: u.kind || "unit", name: u.name || "", country: u.country || "", city: u.city || "",
       nso: u.nso || "", region: region, lang: u.lang || "", lat: +u.lat, lng: +u.lng,
       address: u.address || u.place || "", sections: Array.isArray(u.sections) ? u.sections : [],
       tags: Array.isArray(u.tags) ? u.tags : [], desc: u.desc || u.note || "",
-      contact: contact, url: url, status: u.status || "published"
+      instagram: instagram, homepage: homepage, phone: phone, email: email, status: u.status || "published"
     };
+  }
+  function igUrl(v) { v = String(v || "").trim(); return /^https?:\/\//i.test(v) ? v : "https://instagram.com/" + v.replace(/^@/, ""); }
+  function contactItems(u) {
+    var items = [];
+    if (u.instagram) items.push({ label: "Instagram", href: igUrl(u.instagram) });
+    if (u.homepage) items.push({ label: "Homepage", href: /^https?:\/\//i.test(u.homepage) ? u.homepage : "https://" + u.homepage });
+    if (u.phone) items.push({ label: u.phone, href: "tel:" + u.phone.replace(/[^+\d]/g, "") });
+    if (u.email) items.push({ label: u.email, href: "mailto:" + u.email });
+    return items;
   }
 
   function haversine(a, b, c, d) {
@@ -100,7 +111,10 @@
     var listc = (u.sections.length ? u.sections : u.tags) || [];
     var chips = listc.map(function (c) { return '<span style="display:inline-block;font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;margin:0 5px 5px 0;">' + esc(c) + '</span>'; }).join("");
     var dist = u._dist != null ? '<span style="font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;">' + u._dist.toFixed(1) + ' km</span>' : "";
-    var contact = u.contact && u.contact !== "none" ? '<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font:600 12.5px \'Hanken Grotesk\';color:#fff;background:#6336B5;text-decoration:none;padding:8px 13px;border-radius:10px;">' + (u.contact === "instagram" ? "Instagram" : "Homepage") + ' →</a>' : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+    var citems = contactItems(u);
+    var contact = citems.length
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;font:600 12px \'Hanken Grotesk\';color:#fff;background:#6336B5;text-decoration:none;padding:7px 12px;border-radius:9px;">' + esc(it.label) + '</a>'; }).join("") + '</div>'
+      : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
     var loc = u.city ? esc(u.city) + ", " + esc(u.country) : esc(u.country || "");
     var addr = u.address ? '<div class="sf-copy" data-copy="' + escAttr(u.address) + '" title="Click to copy the full address" style="display:flex;align-items:flex-start;gap:7px;cursor:pointer;font-size:12px;color:#5b5366;background:#f6f3fa;border:1px solid #efeae1;border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.4;">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>' +
@@ -223,7 +237,10 @@
       var place = [u.country || u.address, u.nso].filter(Boolean).join(" · ");
       var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
       var dist = u._dist != null ? '<span style="flex:none;font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
-      var contact = u.contact && u.contact !== "none" ? '<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">' + (u.contact === "instagram" ? "Instagram" : "Homepage") + ' →</a>' : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+      var citems = contactItems(u);
+      var contact = citems.length
+        ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;">' + esc(it.label) + '</a>'; }).join('<span style="color:#d6cfe0;">·</span>') + '</div>'
+        : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
       var badge = "width:30px;height:30px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 13px 'Hanken Grotesk';";
       var kindChip = "display:inline-flex;align-items:center;font:700 9.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.05em;color:#6b6577;background:#f1ece4;padding:3px 7px;border-radius:6px;";
       var regionChip = "display:inline-flex;align-items:center;font:700 9.5px 'Hanken Grotesk';letter-spacing:.04em;color:" + rc.color + ";background:" + rc.color + "14;padding:3px 7px;border-radius:6px;";
@@ -350,11 +367,10 @@
   // ── report a location (public submission → admin approval) ─────────
   var COUNTRY = (function () { var m = {}; NSOS.forEach(function (n) { m[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; }); return m; })();
   var COUNTRIES = Object.keys(COUNTRY).sort();
-  var rep = { kind: "unit", contact: "none", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
+  var rep = { kind: "unit", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
   function rSeg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
   function rChip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
   function renderRKind() { $("r-kind-seg").innerHTML = ["unit", "office", "heritage"].map(function (k) { return '<button data-rkind="' + k + '" style="' + rSeg(rep.kind === k) + '">' + KIND[k] + '</button>'; }).join(""); $("r-sections-wrap").style.display = rep.kind === "unit" ? "block" : "none"; }
-  function renderRContact() { $("r-contact-seg").innerHTML = [["none", "None"], ["instagram", "Instagram"], ["homepage", "Homepage"]].map(function (p) { return '<button data-rcontact="' + p[0] + '" style="' + rSeg(rep.contact === p[0]) + '">' + p[1] + '</button>'; }).join(""); $("r-url-wrap").style.display = rep.contact === "none" ? "none" : "block"; }
   function renderRSections() { $("r-sections").innerHTML = ALL_SECTIONS.map(function (s) { return '<button data-rsec="' + s + '" style="' + rChip(rep.sections.indexOf(s) !== -1) + '">' + s + '</button>'; }).join(""); }
   function renderRCountry() { $("r-country").innerHTML = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === rep.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join(""); }
   function updateRAuto() {
@@ -362,10 +378,10 @@
     $("r-auto").textContent = (rep.nso || "—") + " · " + (REGION[rep.region] ? REGION[rep.region].full : rep.region) + " (" + (rep.lang || "—") + ")";
   }
   function openReport() {
-    rep = { kind: "unit", contact: "none", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
-    ["r-rname", "r-raff", "r-name", "r-desc", "r-url", "r-addr"].forEach(function (id) { $(id).value = ""; });
+    rep = { kind: "unit", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
+    ["r-rname", "r-raff", "r-name", "r-desc", "r-instagram", "r-phone", "r-email", "r-homepage", "r-addr"].forEach(function (id) { var el = $(id); if (el) el.value = ""; });
     $("r-msg").textContent = ""; $("r-coord").textContent = "No location set yet — search above (the admin can fine-tune it).";
-    renderRKind(); renderRContact(); renderRSections(); renderRCountry(); updateRAuto();
+    renderRKind(); renderRSections(); renderRCountry(); updateRAuto();
     $("report-modal").style.display = "flex";
   }
   function closeReport() { $("report-modal").style.display = "none"; }
@@ -385,7 +401,8 @@
       kind: rep.kind, name: name, country: rep.country, nso: rep.nso, region: rep.region, lang: rep.lang,
       lat: rep.lat == null ? 0 : rep.lat, lng: rep.lng == null ? 0 : rep.lng, address: rep.address || $("r-addr").value.trim(),
       sections: rep.kind === "unit" ? rep.sections : [], tags: [], desc: $("r-desc").value.trim(),
-      contact: rep.contact, url: rep.contact === "none" ? "" : $("r-url").value.trim(), status: "published"
+      instagram: $("r-instagram").value.trim(), phone: $("r-phone").value.trim(), email: $("r-email").value.trim(), homepage: $("r-homepage").value.trim(),
+      status: "published"
     };
     var payload = { unit: unit, reporter: { name: rname, affiliation: raff } };
     $("r-msg").style.color = "#6b6577"; $("r-msg").textContent = "Submitting…"; $("r-submit").disabled = true;
@@ -473,7 +490,6 @@
     $("r-cancel").addEventListener("click", closeReport);
     $("report-modal").addEventListener("click", function (e) { if (e.target === $("report-modal")) closeReport(); });
     $("r-kind-seg").addEventListener("click", function (e) { var b = e.target.closest("[data-rkind]"); if (!b) return; rep.kind = b.getAttribute("data-rkind"); renderRKind(); });
-    $("r-contact-seg").addEventListener("click", function (e) { var b = e.target.closest("[data-rcontact]"); if (!b) return; rep.contact = b.getAttribute("data-rcontact"); renderRContact(); });
     $("r-sections").addEventListener("click", function (e) { var b = e.target.closest("[data-rsec]"); if (!b) return; var s = b.getAttribute("data-rsec"); var i = rep.sections.indexOf(s); if (i === -1) rep.sections.push(s); else rep.sections.splice(i, 1); renderRSections(); });
     $("r-country").addEventListener("change", function (e) { rep.country = e.target.value; var m = COUNTRY[rep.country]; if (m) { rep.nso = m.nso; rep.region = m.region; rep.lang = m.lang; } else { rep.nso = ""; rep.lang = ""; } updateRAuto(); });
     $("r-find").addEventListener("click", rFind);

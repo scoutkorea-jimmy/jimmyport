@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.67" />
+  <link rel="stylesheet" href="styles.css?v=0.9.68" />
 </head>
 <body>
   <div style="position:fixed;inset:0;font-family:'Hanken Grotesk',sans-serif;color:#1E1730;background:#e9ece5;overflow:hidden;">
@@ -150,9 +150,15 @@
         <textarea id="r-desc" class="sf-fld" style="resize:vertical;min-height:64px;line-height:1.5;" placeholder="A sentence or two about this place."></textarea>
         <div id="r-sections-wrap"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Sections (recruiting)</label><div id="r-sections" style="display:flex;flex-wrap:wrap;gap:6px;"></div></div>
 
-        <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Contact</div>
-        <div id="r-contact-seg" style="display:flex;gap:6px;"></div>
-        <div id="r-url-wrap" style="display:none;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Link (Instagram / homepage)</label><input id="r-url" class="sf-fld" placeholder="https://" /></div>
+        <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Contact <span style="text-transform:none;letter-spacing:0;font-weight:500;color:#b3adbd;">— all optional, leave blank if none</span></div>
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Instagram</label>
+        <input id="r-instagram" class="sf-fld" placeholder="https://instagram.com/… or @handle" />
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Phone</label>
+        <input id="r-phone" class="sf-fld" placeholder="e.g. +82 2 1234 5678" />
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Email</label>
+        <input id="r-email" class="sf-fld" placeholder="e.g. info@example.org" />
+        <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 6px;">Homepage</label>
+        <input id="r-homepage" class="sf-fld" placeholder="https://" />
 
         <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Location</div>
         <label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Address or place search</label>
@@ -170,8 +176,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.67"></script>
-  <script src="app.js?v=0.9.67"></script>
-  <script src="version-watch.js?v=0.9.67"></script>
+  <script src="data.js?v=0.9.68"></script>
+  <script src="app.js?v=0.9.68"></script>
+  <script src="version-watch.js?v=0.9.68"></script>
 </body>
 </html>

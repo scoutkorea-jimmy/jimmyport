@@ -599,6 +599,14 @@ WOSM Region → 국가(NSO) → 단위대
 - **데이터 삭제 반영 확인**: `PUT units:[]` 후 KV 전파되어 GET count 0(공개 'No places found').
 - 검증: `node --check` admin.js OK + 헤드리스(minZoom/클램프) + 라이브 `_headers` no-cache·clean URL.
 
+### 17.11 v0.9.68 — 관리자 수동 Save 버튼 + 좌표 직접입력 + 다중 Contact(전화/인스타/이메일/홈페이지) + Profile 기본 접힘
+- 사용자 4건: (1) 각 장소 수동 Save 버튼, (2) 위/경도 직접 입력, (3) Contact를 전화·인스타·이메일(+홈페이지) 각각 추가/공백 허용, (4) 폼에서 Profile 기본 접기.
+- **수동 Save**: `save(manual)`로 확장(수동 시 토스트), 폼 헤더에 Save 버튼(`data-act="save"`→`saveNow`). 자동저장(700ms 디바운스)은 유지.
+- **좌표 직접입력**: 기존 `f-lat/f-lng` input이 매 키 입력마다 `setCoords`로 **값을 재포맷**(`37.`→`37.00000`)해 타이핑 불가였음. → `onLatLngInput`(입력 중엔 모델·마커만 갱신, 인풋 값 미수정) + `commitLatLng`(blur/Enter 시 clamp·반올림·재포맷). `inputmode="decimal"`. 검증: '37.12' 타이핑 후 값 유지.
+- **다중 Contact**: 단일 `contact`(none/instagram/homepage)+`url` 모델 폐기 → `instagram·homepage·phone·email` 4개 독립 옵션 필드(모두 공백 가능). `normUnit`(app.js·admin.js 공통)이 구모델(contact/url) 마이그레이션. 공개 팝업/목록은 있는 항목만 링크(Instagram·Homepage·전화 tel:·이메일 mailto:), 없으면 'Contact the national scout org'. 공개 **Report 폼**도 4필드로 교체. 관리자 승인 모달도 4필드 표시.
+- **Profile 기본 접힘**: 폼 카드 5종(Basics/Affiliation/Profile/Contact/Location)을 접이식(`card()` 헬퍼 + `state.collapsed`, 헤더 클릭 토글·쉐브론). `collapsed.profile=true` 기본. DOM 토글(재렌더 없이 포커스 보존).
+- 검증: 헤드리스 CDP — 공개(목록·팝업 4링크·Report 4필드) + 관리자(Fetch로 /api/me·/api/units 목업해 게이트 통과: Save 버튼·4 contact+lat/lng 필드·**Profile 기본 display:none**·Basics 표시·'37.12' 미재포맷·Profile 토글 펼침). `node --check` app·admin OK.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
