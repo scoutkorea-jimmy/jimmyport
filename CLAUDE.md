@@ -613,6 +613,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **Show on map 버튼**: Location 카드 위/경도 옆 `data-act="showcoord"` → `commitLatLng`(clamp·반올림·필드 재포맷) + `syncMarker(true)`(해당 좌표로 지도 recenter, zoom≥11). 검증: 48.8584/2.2945 입력→클릭→지도중심 서울→파리 이동.
 - 검증: `node --check` admin.js OK + 헤드리스(버튼 존재·center 이동·필드 재포맷).
 
+### 17.13 v0.9.70 — 공개 페이지 좌측 목록 카드 설명(bio) 기본 접기
+- 사용자: "좌측메뉴에서 바이오를 접어놔" → (관리자 아니라) **공개 페이지 좌측 결과 목록 카드의 설명**을 기본 접기. (v0.9.68의 관리자 Profile 접기와는 별개.)
+- `app.js renderList`: `u.desc` 90자 초과 시 기본 2줄 클램프(`-webkit-line-clamp:2`) + `Show more`/`Show less` 토글(`data-more`, `state.descExpanded[id]`). 90자 이하는 그대로 전체 표시(토글 없음). 토글 클릭은 목록 클릭 핸들러에서 `data-more` 우선 분기 → `renderList` 재렌더.
+- 검증: 헤드리스 — 긴 설명 카드 기본 클램프(높이 ~36px·line-clamp 존재)·'Show more' 표시 → 클릭 시 클램프 해제·전체 텍스트·'Show less'.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
