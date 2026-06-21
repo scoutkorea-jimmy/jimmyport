@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rev-list *)",
+      "Bash(node -e ' *)",
+      "Bash(node --check /tmp/jp-check.js)",
+      "Bash(node --check functions/api/jamboree-plan.js)",
+      "Bash(node -e 'const fs=require\\(\"fs\"\\);const s=fs.readFileSync\\(\"functions/api/jamboree-plan.js\",\"utf8\"\\);new Function\\(s.replace\\(/import[^;]+;/g,\"\"\\).replace\\(/export /g,\"\"\\)\\);console.log\\(\"API parse OK \\(es module\\)\"\\)')",
+      "Bash(node --check jamboree-plan/app.js)"
+    ]
+  }
+}

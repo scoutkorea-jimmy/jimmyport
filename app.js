@@ -285,7 +285,7 @@
   }
 
   // ── comments (Reddit-style, inline expanding panel per unit) ────────
-  function fmtTime(ts) { try { return new Date(ts).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return ts; } }
+  function fmtTime(ts) { try { var d = new Date(ts); return d.toLocaleDateString("en-US", { dateStyle: "medium" }) + ", " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); } catch (e) { return ts; } }
   function panelFor(id) { return document.querySelector('.leaflet-popup-content .cmt-panel[data-panel-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
   function updatePopup(id) { var info = markerInfo[id]; if (info && info.marker && info.marker.getPopup && info.marker.getPopup()) info.marker.getPopup().update(); }
 

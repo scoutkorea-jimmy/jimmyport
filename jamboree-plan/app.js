@@ -826,7 +826,10 @@ function slotEl(rec,s,e){
   var metaFld=document.createElement('div'); metaFld.className='fld';
   metaFld.innerHTML='<label>'+(meeting?'회의 시간 · 담당자':'게시 예정 시간 · 담당자')+'</label>';
   var mrow=document.createElement('div'); mrow.className='row2';
-  var timeInp=document.createElement('input'); timeInp.type='time'; timeInp.value=e.time||''; timeInp.oninput=function(){ e.time=timeInp.value; mark(); };
+  var th=t2h(e.time); var thh=th!=null?Math.floor(th):'', tmm=th!=null?Math.round((th-Math.floor(th))*60):'';
+  var timeInp=document.createElement('span'); timeInp.className='evtimegrp';
+  timeInp.innerHTML='<input type="number" class="evtime" min="0" max="23" value="'+thh+'" inputmode="numeric" aria-label="시"><span class="evcolon">:</span><input type="number" class="evtime" min="0" max="59" step="5" value="'+tmm+'" inputmode="numeric" aria-label="분">';
+  (function(){ var hi=timeInp.children[0], mi=timeInp.children[2]; function upd(){ if(hi.value===''&&mi.value===''){ e.time=''; mark(); return; } var h=Math.max(0,Math.min(23,parseInt(hi.value,10)||0)), m=Math.max(0,Math.min(59,parseInt(mi.value,10)||0)); e.time=pad2(h)+':'+pad2(m); mark(); } hi.oninput=upd; mi.oninput=upd; })();
   var ownerInp=inputEl('text', e.owner||'', meeting?'주재/담당자':'담당자 이름', function(v){ e.owner=v; mark(); });
   mrow.appendChild(timeInp); mrow.appendChild(ownerInp); metaFld.appendChild(mrow);
   var postWrap=document.createElement('label'); postWrap.className='posttoggle sns-only'+(e.posted?' on':'');
@@ -1760,18 +1763,21 @@ function renderProtocol(){
   var rows=protocolList().slice().sort(function(a,b){ var f=prSort.f, av=(a[f]||'').toString(), bv=(b[f]||'').toString(); if(av<bv) return -prSort.dir; if(av>bv) return prSort.dir; return 0; });
   rows.forEach(function(m){
     var tr=document.createElement('tr');
+    var prh=t2h(m.time), prHH=prh!=null?Math.floor(prh):'', prMM=prh!=null?Math.round((prh-Math.floor(prh))*60):'';
     tr.innerHTML=
       '<td class="mk" contenteditable data-f="role">'+esc(m.role||'')+'</td>'+
       '<td class="mk" contenteditable data-f="name">'+esc(m.name||'')+'</td>'+
       '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
       '<td><input type="date" class="prin" data-f="date" min="2026-06-15" max="2026-08-09" value="'+esc(m.date||'')+'"></td>'+
-      '<td><input type="time" class="prin pr-time" data-f="time" value="'+esc(m.time||'')+'"></td>'+
+      '<td><span class="evtimegrp pr-timegrp"><input type="number" class="evtime prtime-h" min="0" max="23" value="'+prHH+'" inputmode="numeric" aria-label="시"><span class="evcolon">:</span><input type="number" class="evtime prtime-m" min="0" max="59" step="5" value="'+prMM+'" inputmode="numeric" aria-label="분"></span></td>'+
       '<td class="mk" contenteditable data-f="activity">'+esc(m.activity||'')+'</td>'+
       '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
       '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
       '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
     tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveProtocol(); if(td.dataset.f==='activity') refreshProtocolViews(); }); });
     tr.querySelectorAll('input.prin').forEach(function(inp){ inp.addEventListener('change',function(){ m[inp.dataset.f]=inp.value; refreshProtocolViews(); }); });
+    var prtH=tr.querySelector('.prtime-h'), prtM=tr.querySelector('.prtime-m');
+    if(prtH&&prtM){ var updT=function(){ if(prtH.value===''&&prtM.value===''){ m.time=''; } else { var h=Math.max(0,Math.min(23,parseInt(prtH.value,10)||0)), mm=Math.max(0,Math.min(59,parseInt(prtM.value,10)||0)); m.time=pad2(h)+':'+pad2(mm); } saveProtocol(); refreshProtocolViews(); }; prtH.addEventListener('change',updT); prtM.addEventListener('change',updT); }
     tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); renderProtocol(); refreshProtocolViews(); };
     tb.appendChild(tr);
   });

@@ -523,3 +523,10 @@ WOSM Region → 국가(NSO) → 단위대
 ### 16.35 v0.9.56 — 식순: 시간비례 절대배치 → 기본 블록 + 내부 미니 타임라인 리스트
 - 사용자: "기본 타임라인 살리고 그 안에 서브타임라인. 지금 3분단위 쪼개져 보기 불편." → 16.34의 시간 엄격 절대배치(3분 간격 단계 겹침) 폐기. **기본 이벤트 블록(제목·시간 헤더) 유지 + 내부에 식순을 균일행 리스트**(`ttg-rd`/`ttg-rd-row` = 시각 점·시간·내용, 좌측 세로 레일 `ttg-rd::before`)로. 시간순 정렬은 유지하되 균일 높이라 단계 밀집해도 안 겹침·가독. 전체기간뷰는 `식순 N단계` 배지. `has-rd`/`ttg-sub`/`ttg-rdtitle` 제거.
 - 검증: 헤드리스 — 발대식 14:00–15:30 + 7단계(3분 간격 포함) → 블록 헤더 유지·식순 7행 리스트·firstRow '14:00 개회 및 내빈소개'·**콘솔 에러 0** + 스크린샷(레일·점·시간·내용 깔끔).
+
+### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
+- 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
+- **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
+- **홍보부 캘린더 슬롯 모달 게시/회의 시간**(`jamboree-plan/app.js` ~829): native `<input type="time">`(OS 로케일 12h 픽커) → **시/분 숫자 입력**(`.evtimegrp` 0–23 / 0–59, 빈값=시간 미설정 유지, `pad2` 24h 저장).
+- **의전 표 시간 입력**(`renderProtocol` 행, ~1768): `<input type="time">` → 동일 시/분 숫자 입력(`.prtime-h/.prtime-m`, change 시 24h `HH:MM` 저장·`refreshProtocolViews`). 날짜는 `type=date` 유지(AM/PM 무관).
+- 검증: `node --check`(app.js·jamboree-plan/app.js) OK + grep으로 `type=time`/`timeStyle`/`hour12`/`toLocaleTimeString` 잔여 0 확인. `.evtimegrp/.evtime` CSS 기존 존재.
