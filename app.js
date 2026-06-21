@@ -143,9 +143,7 @@
         '<p class="card-meta">' + esc(u.nso) + "</p>" + about + photo +
         (chips ? '<div class="chips">' + chips + "</div>" : "") +
         '<p class="card-meta">' + homepageHtml(u, false) + "</p>" +
-      "</div>" +
-      '<div class="card-tools"><button type="button" class="card-tool-btn card-edit-btn" data-edit="' + escAttr(u.id) + '">✎ Edit</button></div>' +
-      '<div class="edit-panel" data-edit-for="' + escAttr(u.id) + '" hidden></div>'
+      "</div>"
     );
   }
 

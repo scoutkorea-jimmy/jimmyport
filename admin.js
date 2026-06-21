@@ -1,5 +1,5 @@
 /* =========================================================================
- * scout-finder — Admin (manage.html, English-only)
+ * scout-finder — Admin (admin.html, English-only, Google sign-in)
  * -------------------------------------------------------------------------
  * Global standard: WOSM Region -> Country (NSO) -> Unit.
  * - Pick a country (WOSM 176 list) -> NSO / region / language auto-fill.

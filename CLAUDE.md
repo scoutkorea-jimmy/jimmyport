@@ -540,6 +540,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **전 기능 문서**: `FEATURES.md` 신규 — 3앱(scout-finder 공개/admin, /jamboree, /jamboree-plan) + API + KV + env + 운영 한 문서 정리.
 - 검증: `node --check` 8파일 OK + 라이브 배포 후 `/api/auth-config`·인증 없는 PUT 401·공개 GET 정상 확인.
 
+### 17.3 v0.9.60 — 공개 홈 인라인 편집기 제거(비번 프롬프트 노출 차단)
+- 발견: 공개 `index.html`/`app.js`에 카드별 `✎ Edit` 버튼(`data-edit`)→`prompt("Admin password:")`→`X-Admin-Token` 저장의 **숨은 인라인 관리자 편집기**가 모든 방문자에게 노출돼 있었음. Google 전용 인증 전환으로 이 비번 경로는 깨짐(401)이고 "비번 금지" 방침과 충돌.
+- 조치: 카드 HTML에서 `card-tools(✎ Edit)` + `edit-panel` 제거 → **공개 페이지 보기 전용**. 진입점(카드 Edit 버튼)이 사라져 편집/저장/삭제/`prompt` 함수 전부 **도달 불가**(`#edit-toggle/#add-btn-home/#save-btn`는 원래 index.html에 없음). 편집은 이제 `/admin`(Google)에서만.
+- 잔여 편집기 JS는 호출처 없는 죽은 코드(무해) — 추후 정리 권장. 검증: `node --check` OK + 라이브 공개 페이지에 Edit 버튼 0.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
