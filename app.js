@@ -1,431 +1,369 @@
 /* =========================================================================
- * scout-finder — app logic (public, English-only)
- * -------------------------------------------------------------------------
- * - 글로벌 표준: WOSM Region → 국가(NSO) → 단위대. (지방연맹/지구연합회 없음)
- * - 데이터는 서버(/api/units, Cloudflare KV)에서 로드, 없으면 data.js 폴백.
- * - 검색 → 일치 centroid anchor → haversine 오름차순. 지도 클릭 재정렬.
- * - 핀 색 = WOSM Region 색(SCOUT_REGION_COLORS).
+ * scout-finder — public app (Bricolage + Hanken design).
+ * Full-screen CARTO map + floating results panel + bottom search + comments.
+ * Data: /api/units (KV) with data.js fallback. Comments: /api/comments (server,
+ * GDPR consent, masked IP). Pin colour = WOSM region. 24-hour timestamps.
  * ========================================================================= */
 (function () {
   "use strict";
 
-  var REGION_COLORS = window.SCOUT_REGION_COLORS || {};
-  var DEFAULT_COLOR = "#622599";
-  var MOBILE = "(max-width: 820px)";
-
-  var T = {
-    title: "Find Scout Units Near You", badge: "Sample data",
-    ph: "Search a country, NSO, or unit (e.g. Korea, Japan, Fiji)",
-    hint: "Or click the map to set your reference point.",
-    go: "Search", list: "List", map: "Map", showAll: "Show all",
-    emptyTitle: "No results.", emptySub: "Try another keyword, or click the map to set a location.",
-    legend: function (n) { return "Region colors (" + n + ")"; },
-    admin: "Admin", dlJson: "Download data (JSON)", dlJs: "Download data.js", note: "Running on sample data",
-    statusAll: function (n) { return "All units · " + n; },
-    statusMap: function (n) { return "Nearest to selected point · " + n; },
-    statusNone: "No results", refMap: "Selected location",
-    activities: "About", recruiting: "Recruiting",
-    homepage: "Homepage (Instagram)", homepageDefault: "Contact the national scout organization",
+  var REGION = {
+    APR: { full: "Asia-Pacific", color: "#6A3FB5" },
+    EUR: { full: "European", color: "#2F6FB0" },
+    ARB: { full: "Arab", color: "#2E8B6B" },
+    AFR: { full: "Africa", color: "#C26A2E" },
+    IAR: { full: "Interamerican", color: "#C23E6E" }
   };
-
-  // ── DOM ────────────────────────────────────────────────────────────
-  var $form = document.getElementById("search-form");
-  var $input = document.getElementById("search-input");
-  var $list = document.getElementById("result-list");
-  var $status = document.getElementById("status");
-  var $reset = document.getElementById("reset-btn");
-  var $empty = document.getElementById("empty-state");
-  var $badge = document.getElementById("site-badge");
-  var $dlJson = document.getElementById("download-json");
-  var $dlJs = document.getElementById("download-js");
-  var $results = document.querySelector(".results");
-  var legendControl = null;
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR" };
+  var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
 
   // ── state ──────────────────────────────────────────────────────────
-  var UNITS = Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : [];
-  var map, unitLayer = L.layerGroup(), anchorMarker = null, markerInfo = {}, activeId = null;
-  var lastState = { kind: "all", ordered: [], anchor: null, q: "" };
-  var openCmtId = null, cmtCache = {};
-  var NICK_KEY = "scoutfinder:nick";
-  var PAGE = 10;
+  var UNITS = [], COMMENTS = [];
+  var map, layer, markers = {};
+  var state = { query: "", region: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null };
 
-  // ── utils ──────────────────────────────────────────────────────────
-  function toRad(d) { return (d * Math.PI) / 180; }
-  function haversine(a, b) {
-    var R = 6371, dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
-    var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
-  }
-  function centroid(u) { var lat = 0, lng = 0; u.forEach(function (x) { lat += x.lat; lng += x.lng; }); return { lat: lat / u.length, lng: lng / u.length }; }
-  function fmtKm(km) { return km.toFixed(1) + "km"; }
+  // ── helpers ────────────────────────────────────────────────────────
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
-  function colorOf(u) { return REGION_COLORS[u.region] || DEFAULT_COLOR; }
-  function textOn(hex) {
-    var c = String(hex).replace("#", "");
-    if (c.length === 3) c = c.split("").map(function (x) { return x + x; }).join("");
-    var r = parseInt(c.substr(0, 2), 16), g = parseInt(c.substr(2, 2), 16), b = parseInt(c.substr(4, 2), 16);
-    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? "#221b2b" : "#ffffff";
-  }
-  function isMobile() { return window.matchMedia(MOBILE).matches; }
-  function hasHome(u) { return u.homepage && String(u.homepage).trim(); }
+  function $(id) { return document.getElementById(id); }
+  function fmtTs(ts) { try { var d = new Date(ts); var p = function (n) { return ("0" + n).slice(-2); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); } catch (e) { return ""; } }
+  function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
 
-  // ── search ─────────────────────────────────────────────────────────
-  function matchUnits(query) {
-    var q = query.trim().toLowerCase();
-    if (!q) return [];
-    return UNITS.filter(function (u) {
-      return [u.name, u.type, u.country, u.country_ko, u.nso, u.region].join(" ").toLowerCase().indexOf(q) !== -1;
-    });
-  }
-
-  // ── icons ──────────────────────────────────────────────────────────
-  function unitIcon(rank, active, color) {
-    return L.divIcon({
-      className: "unit-pin" + (active ? " is-active" : ""),
-      html: '<div class="unit-pin-dot" style="background:' + color + '"><span style="color:' + textOn(color) + '">' + rank + "</span></div>",
-      iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28],
-    });
-  }
-  function anchorIcon() {
-    return L.divIcon({ className: "anchor-pin", html: '<div class="anchor-pin-dot"></div>', iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -12] });
-  }
-
-  // ── rendering ──────────────────────────────────────────────────────
-  function chipsHtml(u) { return (u.sections || []).map(function (s) { return '<span class="chip">' + esc(s) + "</span>"; }).join(""); }
-
-  function homepageHtml(u, link) {
-    if (hasHome(u)) {
-      if (link) return '<a class="popup-ig" href="' + escAttr(u.homepage) + '" target="_blank" rel="noopener">' + esc(T.homepage) + "</a>";
-      return esc(T.homepage);
-    }
-    return esc(T.homepageDefault);
-  }
-
-  function popupHtml(u, anchor) {
-    var dist = anchor ? '<div class="popup-line"><strong>' + fmtKm(haversine(anchor, u)) + "</strong></div>" : "";
-    var photo = u.photo ? '<img class="popup-photo" src="' + escAttr(u.photo) + '" alt="" loading="lazy" />' : "";
-    var act = u.note ? '<div class="popup-line">' + esc(u.note) + "</div>" : "";
-    var rec = (u.sections && u.sections.length) ? '<div class="popup-line"><b>' + esc(T.recruiting) + ":</b> " + u.sections.map(esc).join(", ") + "</div>" : "";
-    return (
-      '<div class="popup-name">' + esc(u.name) + (u.type ? ' <span class="popup-type">' + esc(u.type) + "</span>" : "") + "</div>" +
-      '<div class="popup-affil">' + esc(u.country) + (u.region ? " · " + esc(u.region) : "") + "</div>" +
-      '<div class="popup-line">' + esc(u.nso) + "</div>" + photo + act + rec +
-      '<div class="popup-line">' + homepageHtml(u, true) + "</div>" + dist +
-      '<button class="popup-cmt" data-cmt="' + escAttr(u.id) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-4 4z"></path></svg>Comments</button>' +
-      '<div class="cmt-panel" data-panel-for="' + escAttr(u.id) + '" hidden></div>'
-    );
-  }
-
-  function cardHtml(u, rank, anchor) {
-    var color = colorOf(u);
-    var distBadge = anchor ? '<span class="card-dist">' + fmtKm(haversine(anchor, u)) + "</span>" : "";
-    var chips = chipsHtml(u);
-    var about = u.note ? '<p class="card-about">' + esc(u.note) + "</p>" : "";
-    var photo = u.photo ? '<img class="card-photo" src="' + escAttr(u.photo) + '" alt="" loading="lazy" />' : "";
-    var region = u.region ? ' <span class="card-region" style="background:' + color + ";color:" + textOn(color) + '">' + esc(u.region) + "</span>" : "";
-    return (
-      '<div class="result-card" data-id="' + escAttr(u.id) + '" role="button" tabindex="0">' +
-        '<div class="card-top">' +
-          '<span class="card-rank" style="background:' + color + ";color:" + textOn(color) + '">' + rank + "</span>" +
-          '<div class="card-heading">' +
-            '<p class="card-name">' + esc(u.name) + (u.type ? ' <span class="card-type">' + esc(u.type) + "</span>" : "") + "</p>" +
-            '<p class="card-affil">' + esc(u.country) + region + "</p>" +
-          "</div>" + distBadge +
-        "</div>" +
-        '<p class="card-meta">' + esc(u.nso) + "</p>" + about + photo +
-        (chips ? '<div class="chips">' + chips + "</div>" : "") +
-        '<p class="card-meta">' + homepageHtml(u, false) + "</p>" +
-      "</div>"
-    );
-  }
-
-  function statusText(kind, q, n) {
-    if (kind === "none") return T.statusNone;
-    if (kind === "search") return '<span class="accent">' + esc(q) + "</span> · " + n;
-    if (kind === "map") return T.statusMap(n);
-    return T.statusAll(n);
-  }
-
-  function render(kind, ordered, anchor, q) {
-    lastState = { kind: kind, ordered: ordered, anchor: anchor, q: q || "" };
-    activeId = null;
-    $list.innerHTML = ordered.map(function (u, i) { return "<li>" + cardHtml(u, i + 1, anchor) + "</li>"; }).join("");
-
-    unitLayer.clearLayers(); markerInfo = {};
-    ordered.forEach(function (u, i) {
-      var rank = i + 1, color = colorOf(u);
-      var marker = L.marker([u.lat, u.lng], { icon: unitIcon(rank, false, color), title: u.name, keyboard: true, alt: u.name });
-      marker.bindPopup(popupHtml(u, anchor), { maxWidth: 360, minWidth: 300, maxHeight: 520, autoPanPadding: [24, 24], className: "unit-popup" });
-      marker.on("click", function () { setActive(u.id, false); });
-      unitLayer.addLayer(marker);
-      markerInfo[u.id] = { marker: marker, rank: rank, color: color };
-    });
-
-    if (anchorMarker) { map.removeLayer(anchorMarker); anchorMarker = null; }
-    if (anchor) {
-      anchorMarker = L.marker([anchor.lat, anchor.lng], { icon: anchorIcon(), zIndexOffset: 1000, title: anchor.label || "", alt: "" });
-      anchorMarker.bindPopup('<div class="popup-name">' + esc(anchor.label || "") + "</div>");
-      anchorMarker.addTo(map);
-    }
-
-    $status.innerHTML = statusText(kind, q, ordered.length);
-    $empty.hidden = !(kind === "none");
-    $list.hidden = ordered.length === 0;
-    $reset.hidden = !(anchor || kind === "none");
-    fitView(ordered, anchor);
-  }
-
-  function fitView(ordered, anchor) {
-    var pts = [];
-    if (anchor) { pts.push([anchor.lat, anchor.lng]); ordered.slice(0, 5).forEach(function (u) { pts.push([u.lat, u.lng]); }); }
-    else ordered.forEach(function (u) { pts.push([u.lat, u.lng]); });
-    if (pts.length === 0) return;
-    if (pts.length === 1) { map.setView(pts[0], 12); return; }
-    map.fitBounds(L.latLngBounds(pts), { padding: [44, 44], maxZoom: 13 });
-  }
-
-  // ── interactions ───────────────────────────────────────────────────
-  function setActive(id, fly) {
-    var info = markerInfo[id];
-    if (!info) return;
-    if (activeId && markerInfo[activeId]) { var p = markerInfo[activeId]; p.marker.setIcon(unitIcon(p.rank, false, p.color)); }
-    info.marker.setIcon(unitIcon(info.rank, true, info.color));
-    activeId = id;
-    $list.querySelectorAll(".result-card").forEach(function (c) {
-      var on = c.getAttribute("data-id") === id;
-      c.classList.toggle("is-active", on);
-      if (on) c.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    });
-    var u = findUnit(id);
-    if (u) {
-      if (isMobile()) setView("map");
-      setTimeout(function () {
-        try { map.invalidateSize(); if (fly) map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 12), { duration: 0.5 }); info.marker.openPopup(); } catch (e) {}
-      }, isMobile() ? 90 : 0);
-    }
-  }
-  function findUnit(id) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].id === id) return UNITS[i]; return null; }
-  function sortByAnchor(anchor) { return UNITS.slice().sort(function (a, b) { return haversine(anchor, a) - haversine(anchor, b); }); }
-
-  function doSearch(query) {
-    var matched = matchUnits(query);
-    if (matched.length === 0) { render("none", [], null, query.trim()); return; }
-    var anchor = centroid(matched); anchor.label = '"' + query.trim() + '"';
-    render("search", sortByAnchor(anchor), anchor, query.trim());
-  }
-  function setAnchorFromMap(latlng) { var anchor = { lat: latlng.lat, lng: latlng.lng, label: T.refMap }; render("map", sortByAnchor(anchor), anchor, ""); }
-  function showAll() { $input.value = ""; render("all", UNITS.slice(), null, ""); }
-
-  // ── legend (region) ─────────────────────────────────────────────────
-  function buildLegend() {
-    var seen = {}, items = [];
-    UNITS.forEach(function (u) { if (u.region && !seen[u.region]) { seen[u.region] = true; items.push({ color: colorOf(u), label: u.region }); } });
-    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
-    if (!items.length) return;
-    legendControl = L.control({ position: "bottomright" });
-    legendControl.onAdd = function () {
-      var div = L.DomUtil.create("div", "map-legend");
-      div.innerHTML = '<div class="map-legend-title">Region</div>' +
-        items.map(function (it) { return '<div class="legend-item"><span class="legend-swatch" style="background:' + it.color + '"></span><span class="legend-name">' + esc(it.label) + "</span></div>"; }).join("");
-      L.DomEvent.disableClickPropagation(div);
-      return div;
+  function normUnit(u) {
+    var region = regionCode(u.region);
+    var url = u.url || u.homepage || "";
+    var contact = u.contact;
+    if (!contact) contact = url ? (/instagram/i.test(url) ? "instagram" : "homepage") : "none";
+    return {
+      id: u.id, kind: u.kind || "unit", name: u.name || "", country: u.country || "", city: u.city || "",
+      nso: u.nso || "", region: region, lang: u.lang || "", lat: +u.lat, lng: +u.lng,
+      address: u.address || u.place || "", sections: Array.isArray(u.sections) ? u.sections : [],
+      tags: Array.isArray(u.tags) ? u.tags : [], desc: u.desc || u.note || "",
+      contact: contact, url: url, status: u.status || "published"
     };
-    legendControl.addTo(map);
   }
 
-  // ── view toggle ─────────────────────────────────────────────────────
-  function setView(view) {
-    document.body.classList.toggle("view-map", view === "map");
-    document.body.classList.toggle("view-list", view !== "map");
-    document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-view") === view ? "true" : "false"); });
-    if (view === "map" && map) setTimeout(function () { map.invalidateSize(); }, 60);
+  function haversine(a, b, c, d) {
+    var R = 6371, t = function (x) { return x * Math.PI / 180; }, dLat = t(c - a), dLng = t(d - b);
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(t(a)) * Math.cos(t(c)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
   }
 
-  // ── downloads ──────────────────────────────────────────────────────
-  function triggerDownload(filename, text, mime) {
-    var blob = new Blob([text], { type: mime }), url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-  }
-  function dataJsText() {
-    return "// scout-finder data\n" +
-      "window.SCOUT_UNITS = " + JSON.stringify(UNITS, null, 2) + ";\n\n" +
-      "window.SCOUT_NSOS = " + JSON.stringify(window.SCOUT_NSOS || []) + ";\n\n" +
-      "window.SCOUT_REGION_COLORS = " + JSON.stringify(REGION_COLORS, null, 2) + ";\n";
-  }
-
-  function applyStatic() {
-    document.documentElement.lang = "en";
-    var byId = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
-    byId("site-title", T.title);
-    if ($badge) $badge.textContent = T.badge;
-    $input.setAttribute("placeholder", T.ph);
-    byId("search-hint", T.hint);
-    var go = document.querySelector(".search-go"); if (go) go.textContent = T.go;
-    document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.textContent = b.getAttribute("data-view") === "map" ? T.map : T.list; });
-    $reset.textContent = T.showAll;
-    document.querySelectorAll("[data-reset]").forEach(function (b) { b.textContent = T.showAll; });
-    var et = document.querySelector(".empty-title"); if (et) et.textContent = T.emptyTitle;
-    var es = document.querySelector(".empty-sub"); if (es) es.textContent = T.emptySub;
-    byId("footer-admin", T.admin);
-    if ($dlJson) $dlJson.textContent = T.dlJson;
-    if ($dlJs) $dlJs.textContent = T.dlJs;
-    byId("footer-note", T.note);
+  function sorted() {
+    var q = state.query.trim().toLowerCase();
+    var list = UNITS.filter(function (u) {
+      if (state.kind !== "All" && u.kind !== state.kind) return false;
+      if (state.region !== "All" && u.region !== state.region) return false;
+      if (q) { var hay = (u.name + " " + u.country + " " + u.city + " " + u.nso + " " + u.region + " " + (REGION[u.region] ? REGION[u.region].full : "") + " " + u.kind + " " + u.address).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
+      return true;
+    });
+    var a = state.anchor;
+    if (a) list = list.map(function (u) { return Object.assign({ _dist: haversine(a.lat, a.lng, u.lat, u.lng) }, u); }).sort(function (x, y) { return x._dist - y._dist; });
+    return list;
   }
 
-  // ── comments (Reddit-style, inline expanding panel per unit) ────────
-  function fmtTime(ts) { try { var d = new Date(ts); return d.toLocaleDateString("en-US", { dateStyle: "medium" }) + ", " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); } catch (e) { return ts; } }
-  function panelFor(id) { return document.querySelector('.leaflet-popup-content .cmt-panel[data-panel-for="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); }
-  function updatePopup(id) { var info = markerInfo[id]; if (info && info.marker && info.marker.getPopup && info.marker.getPopup()) info.marker.getPopup().update(); }
+  function commentsFor(id) { return COMMENTS.filter(function (c) { return c.unitId === id; }); }
 
-  function formHtml(parentId, reply) {
-    var nk = ""; try { nk = localStorage.getItem(NICK_KEY) || ""; } catch (e) {}
-    return '<form class="cmt-form' + (reply ? " reply" : "") + '" data-parent="' + escAttr(parentId || "") + '">' +
-      '<input type="text" class="cmt-nick" maxlength="40" placeholder="Nickname" value="' + escAttr(nk) + '" />' +
-      '<textarea class="cmt-body" maxlength="1000" placeholder="' + (reply ? "Write a reply…" : "Write a comment (you can add a photo below)…") + '"></textarea>' +
-      '<div class="cmt-file-row"><label class="cmt-file-btn">Add photo<input type="file" class="cmt-img-file" accept="image/*" /></label><span class="cmt-img-status"></span></div>' +
-      '<label class="cmt-consent"><input type="checkbox" class="cmt-agree" /> <span>I agree that my nickname and IP address are stored for moderation (GDPR).</span></label>' +
-      '<div class="cmt-form-row"><button type="submit" class="cmt-submit">' + (reply ? "Reply" : "Post") + '</button><span class="cmt-error"></span></div>' +
-      "</form>";
+  // ── map / markers ──────────────────────────────────────────────────
+  function pinHtml(rank, u, sel) {
+    var c = REGION[u.region] ? REGION[u.region].color : "#6336B5";
+    var sz = sel ? 36 : 30;
+    var shape = u.kind === "office" ? "7px" : "50%";
+    var ring = sel ? "box-shadow:0 0 0 5px " + c + "33,0 6px 14px rgba(30,18,55,.4);" : "box-shadow:0 4px 11px rgba(30,18,55,.35);";
+    var badge = u.kind === "heritage" ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:#C2872E;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px \'Hanken Grotesk\';">★</span>' : "";
+    return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;animation:sfpop .25s ease;">' +
+      '<div style="position:relative;width:' + sz + 'px;height:' + sz + 'px;border-radius:' + shape + ';background:' + c + ';border:2.5px solid #fff;' + ring + 'display:flex;align-items:center;justify-content:center;color:#fff;font:700 ' + (sel ? 14 : 12) + 'px \'Hanken Grotesk\';">' + rank + badge + '</div>' +
+      '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff;margin-top:-1px;filter:drop-shadow(0 2px 1px rgba(30,18,55,.25));"></div></div>';
   }
-  function commentNode(c, byParent) {
-    var kids = (byParent[c.id] || []).map(function (k) { return commentNode(k, byParent); }).join("");
-    var img = c.imageUrl ? '<a href="' + escAttr(c.imageUrl) + '" target="_blank" rel="noopener"><img class="cmt-img" src="' + escAttr(c.imageUrl) + '" alt="attached photo" loading="lazy" /></a>' : "";
-    return '<div class="cmt" data-cid="' + escAttr(c.id) + '">' +
-      '<div class="cmt-meta"><span class="cmt-name">' + esc(c.name) + "</span>" +
-        ' <span class="cmt-ip">' + esc(c.ipMasked || "") + "</span>" +
-        ' <span class="cmt-time">' + esc(fmtTime(c.ts)) + "</span></div>" +
-      (c.body ? '<div class="cmt-text">' + esc(c.body) + "</div>" : "") + img +
-      '<div class="cmt-actions"><button type="button" class="cmt-reply-btn" data-reply="' + escAttr(c.id) + '">Reply</button></div>' +
-      (kids ? '<div class="cmt-children">' + kids + "</div>" : "") + "</div>";
+  function anchorHtml() {
+    return '<div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">' +
+      '<div style="position:absolute;width:22px;height:22px;border-radius:50%;background:#2c1456;animation:sfpulse 1.8s ease-out infinite;"></div>' +
+      '<div style="position:relative;width:16px;height:16px;border-radius:50%;background:#2c1456;border:3px solid #fff;box-shadow:0 3px 8px rgba(30,18,55,.5);"></div></div>';
   }
-  function renderPanel(id) {
-    var panel = panelFor(id); if (!panel) return;
-    var cache = cmtCache[id];
-    if (!cache) { panel.innerHTML = '<p class="cmt-loading">Loading…</p>'; return; }
-    var roots = cache.roots, shown = Math.min(cache.shown, roots.length);
-    var head = '<div class="cmt-panel-head"><strong>' + roots.length + ' comment' + (roots.length === 1 ? "" : "s") + "</strong></div>";
-    var thread = roots.length
-      ? roots.slice(0, shown).map(function (c) { return commentNode(c, cache.byParent); }).join("")
-      : '<p class="cmt-empty">No comments yet. Be the first!</p>';
-    var more = shown < roots.length ? '<button type="button" class="cmt-more" data-more="' + escAttr(id) + '">Load more (' + (roots.length - shown) + ")</button>" : "";
-    panel.innerHTML = head + '<div class="cmt-thread">' + thread + "</div>" + more + formHtml("", false);
-  }
-  function loadComments(id) {
-    fetch("/api/comments", { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : { comments: [] }; })
-      .then(function (j) {
-        var all = (j.comments || []).filter(function (c) { return c.unitId === id; });
-        var byParent = {};
-        all.forEach(function (c) { var k = c.parentId || "_root"; (byParent[k] = byParent[k] || []).push(c); });
-        Object.keys(byParent).forEach(function (k) { byParent[k].sort(function (a, b) { return a.ts < b.ts ? -1 : 1; }); });
-        cmtCache[id] = { roots: byParent._root || [], byParent: byParent, shown: PAGE };
-        if (openCmtId === id) renderPanel(id);
-      })
-      .catch(function () { var p = panelFor(id); if (p) p.innerHTML = '<p class="cmt-empty">Failed to load comments.</p>'; });
-  }
-  function openPanel(id) {
-    openCmtId = id;
-    var panel = panelFor(id); if (!panel) return;
-    panel.hidden = false;
-    panel.innerHTML = '<p class="cmt-loading">Loading…</p>';
-    if (cmtCache[id]) renderPanel(id); else loadComments(id);
-  }
-  function collapsePanel() { if (openCmtId) { var p = panelFor(openCmtId); if (p) { p.hidden = true; p.innerHTML = ""; updatePopup(openCmtId); } openCmtId = null; } }
-  function togglePanel(id) { var p = panelFor(id); if (p && !p.hidden) collapsePanel(); else openPanel(id); }
-
-  function uploadImage(file, statusEl, cb) {
-    if (!file) { cb(""); return; }
-    if (file.size > 2 * 1024 * 1024) { statusEl.textContent = "Image too large (max 2MB)"; cb(""); return; }
-    statusEl.textContent = "Uploading…";
-    fetch("/api/image", { method: "POST", headers: { "content-type": file.type }, body: file })
-      .then(function (r) { return r.json(); })
-      .then(function (j) { if (j && j.url) { statusEl.textContent = "Photo attached ✓"; cb(j.url); } else { statusEl.textContent = "Upload failed"; cb(""); } })
-      .catch(function () { statusEl.textContent = "Upload failed (network)"; cb(""); });
+  function popupHtml(u) {
+    var r = REGION[u.region] || { color: "#6336B5" };
+    var listc = (u.sections.length ? u.sections : u.tags) || [];
+    var chips = listc.map(function (c) { return '<span style="display:inline-block;font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;margin:0 5px 5px 0;">' + esc(c) + '</span>'; }).join("");
+    var dist = u._dist != null ? '<span style="font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;">' + u._dist.toFixed(1) + ' km</span>' : "";
+    var contact = u.contact && u.contact !== "none" ? '<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font:600 12.5px \'Hanken Grotesk\';color:#fff;background:#6336B5;text-decoration:none;padding:8px 13px;border-radius:10px;">' + (u.contact === "instagram" ? "Instagram" : "Homepage") + ' →</a>' : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+    var loc = u.city ? esc(u.city) + ", " + esc(u.country) : esc(u.country || u.address);
+    return '<div style="font-family:\'Hanken Grotesk\';max-width:250px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">' +
+      '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(KIND[u.kind] || "") + '</span>' + dist + '</div>' +
+      '<div style="font:700 16px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;line-height:1.15;margin-bottom:3px;">' + esc(u.name) + '</div>' +
+      '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' +
+      (u.desc ? '<div style="font-size:12.5px;color:#42394f;line-height:1.5;margin-bottom:10px;">' + esc(u.desc) + '</div>' : "") +
+      '<div style="margin-bottom:2px;">' + chips + '</div>' +
+      '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact + '</div>';
   }
 
-  function onPanelClick(e) {
-    var more = e.target.closest("[data-more]");
-    if (more) { var id = more.getAttribute("data-more"); if (cmtCache[id]) { cmtCache[id].shown += PAGE; renderPanel(id); } return; }
-    var rb = e.target.closest("[data-reply]");
-    if (rb) {
-      var panel = rb.closest(".cmt-panel");
-      var ex = panel.querySelector(".cmt-form.reply"); if (ex) ex.remove();
-      var holder = document.createElement("div"); holder.innerHTML = formHtml(rb.getAttribute("data-reply"), true);
-      var f = holder.firstChild; rb.closest(".cmt").appendChild(f); f.querySelector("textarea").focus();
+  function renderMarkers() {
+    if (!map) return;
+    layer.clearLayers(); markers = {};
+    var list = sorted();
+    list.forEach(function (u, i) {
+      if (isNaN(u.lat) || isNaN(u.lng)) return;
+      var sel = u.id === state.selectedId;
+      var icon = L.divIcon({ className: "", html: pinHtml(i + 1, u, sel), iconSize: [40, 46], iconAnchor: [20, 44], popupAnchor: [0, -42] });
+      var m = L.marker([u.lat, u.lng], { icon: icon, zIndexOffset: sel ? 1000 : 0 }).addTo(layer);
+      m.bindTooltip(u.name, { permanent: true, direction: "top", offset: [0, -46], className: "sf-label", opacity: 1 });
+      m.bindPopup(popupHtml(u), { closeButton: true, maxWidth: 280, minWidth: 248, autoPanPadding: [60, 60] });
+      m.on("click", function (e) { if (e && e.originalEvent) L.DomEvent.stopPropagation(e); select(u.id, false); });
+      markers[u.id] = m;
+    });
+    if (state.anchor) L.marker([state.anchor.lat, state.anchor.lng], { icon: L.divIcon({ className: "", html: anchorHtml(), iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 2000, interactive: false }).addTo(layer);
+  }
+
+  function select(id, pan) {
+    state.selectedId = id; renderMarkers(); renderList();
+    var u = UNITS.find(function (x) { return x.id === id; });
+    if (map && u) {
+      if (pan) map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 11), { duration: .6 });
+      var m = markers[id]; if (m) setTimeout(function () { m.openPopup(); }, pan ? 480 : 0);
     }
   }
-  function onPanelChange(e) {
-    var file = e.target.closest(".cmt-img-file");
-    if (!file) return;
-    var form = file.closest(".cmt-form"); var status = form.querySelector(".cmt-img-status");
-    uploadImage(file.files && file.files[0], status, function (url) { form.dataset.imageUrl = url || ""; });
+
+  function setAnchor(lat, lng, label, fly) {
+    state.anchor = { lat: lat, lng: lng, label: label }; state.geoMsg = "";
+    renderMarkers(); renderList(); updateCounts(); updateNearUI();
+    if (map) {
+      var near = sorted().slice(0, 5).map(function (u) { return [u.lat, u.lng]; }); near.push([lat, lng]);
+      if (near.length > 1) map.fitBounds(L.latLngBounds(near).pad(0.25), { maxZoom: 11 });
+      else if (fly) map.flyTo([lat, lng], 11, { duration: .6 });
+    }
   }
-  function onPanelSubmit(e) {
-    var form = e.target.closest(".cmt-form"); if (!form) return;
-    e.preventDefault();
-    if (!openCmtId) return;
-    var nick = (form.querySelector(".cmt-nick").value || "").trim();
-    var body = (form.querySelector(".cmt-body").value || "").trim();
-    var agree = form.querySelector(".cmt-agree").checked;
-    var err = form.querySelector(".cmt-error");
-    var imageUrl = form.dataset.imageUrl || "";
-    var parentId = form.getAttribute("data-parent") || null;
-    err.textContent = "";
-    if (!body && !imageUrl) { err.textContent = "Write something or attach a photo."; return; }
-    if (!agree) { err.textContent = "Please agree to the privacy notice."; return; }
-    try { if (nick) localStorage.setItem(NICK_KEY, nick); } catch (e2) {}
-    var btn = form.querySelector(".cmt-submit"); btn.disabled = true;
-    fetch("/api/comments", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: nick || "Anonymous", body: body, unitId: openCmtId, parentId: parentId, imageUrl: imageUrl, consent: true }) })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (res) { btn.disabled = false; if (res.ok) loadComments(openCmtId); else err.textContent = "Failed: " + (res.j.error || ""); })
-      .catch(function () { btn.disabled = false; err.textContent = "Network error."; });
+  function doSearch() {
+    var q = state.query.trim().toLowerCase();
+    if (!q) return;
+    var f0 = UNITS.filter(function (u) { var hay = (u.name + " " + u.country + " " + u.city + " " + u.nso + " " + u.region + " " + (REGION[u.region] ? REGION[u.region].full : "")).toLowerCase(); return hay.indexOf(q) !== -1; });
+    if (f0.length) { var lat = f0.reduce(function (s, u) { return s + u.lat; }, 0) / f0.length, lng = f0.reduce(function (s, u) { return s + u.lng; }, 0) / f0.length; setAnchor(lat, lng, '"' + state.query.trim() + '"', true); }
+  }
+  function geolocate() {
+    if (!navigator.geolocation) { state.geoMsg = "Location unavailable — click the map to set your point."; updateCounts(); return; }
+    navigator.geolocation.getCurrentPosition(
+      function (p) { setAnchor(p.coords.latitude, p.coords.longitude, "your location", true); },
+      function () { state.geoMsg = "Location blocked — click the map to set your point."; updateCounts(); },
+      { timeout: 8000, maximumAge: 60000 }
+    );
   }
 
-  // ── 서버 로드 (Cloudflare KV) → 폴백 data.js ────────────────────────
-  function loadFromServer() {
+  // ── panel rendering ────────────────────────────────────────────────
+  function chipStyle(active) { return "display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';border:1px solid;cursor:pointer;white-space:nowrap;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
+
+  function renderChips() {
+    var kinds = [{ key: "All", label: "All", dot: "#b8b2a6" }, { key: "unit", label: "Units", dot: "#6336B5" }, { key: "office", label: "Offices", dot: "#3A57B0" }, { key: "heritage", label: "Heritage", dot: "#C2872E" }];
+    $("kind-chips").innerHTML = kinds.map(function (k) {
+      return '<button data-kind="' + k.key + '" style="' + chipStyle(state.kind === k.key) + '"><span style="width:8px;height:8px;border-radius:50%;background:' + k.dot + ';display:inline-block;flex:none;"></span>' + k.label + '</button>';
+    }).join("");
+    var regions = ["All", "APR", "EUR", "ARB", "AFR", "IAR"];
+    $("region-chips").innerHTML = regions.map(function (r) {
+      var full = r === "All" ? "All regions" : REGION[r].full;
+      return '<button data-region="' + r + '" title="' + escAttr(full) + '" style="' + chipStyle(state.region === r) + '">' + (r === "All" ? "All regions" : r) + '</button>';
+    }).join("");
+  }
+
+  function renderList() {
+    var f = sorted();
+    var cardBase = "border:1px solid;border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;background:#fff;";
+    var html = f.map(function (u, i) {
+      var sel = u.id === state.selectedId;
+      var rc = REGION[u.region] || { color: "#6336B5" };
+      var cs = commentsFor(u.id).length;
+      var place = [u.country || u.address, u.nso].filter(Boolean).join(" · ");
+      var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
+      var dist = u._dist != null ? '<span style="flex:none;font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
+      var contact = u.contact && u.contact !== "none" ? '<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">' + (u.contact === "instagram" ? "Instagram" : "Homepage") + ' →</a>' : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+      var badge = "width:30px;height:30px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 13px 'Hanken Grotesk';";
+      var kindChip = "display:inline-flex;align-items:center;font:700 9.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.05em;color:#6b6577;background:#f1ece4;padding:3px 7px;border-radius:6px;";
+      var regionChip = "display:inline-flex;align-items:center;font:700 9.5px 'Hanken Grotesk';letter-spacing:.04em;color:" + rc.color + ";background:" + rc.color + "14;padding:3px 7px;border-radius:6px;";
+      var cardStyle = cardBase + (sel ? "border-color:#6336B5;box-shadow:0 0 0 3px #6336B51f;" : "border-color:#efeae1;");
+      return '<div data-open="' + escAttr(u.id) + '" style="' + cardStyle + '">' +
+        '<div style="display:flex;gap:12px;">' +
+        '<div style="' + badge + '">' + (i + 1) + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">' +
+        '<span style="font:700 14.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.15;">' + esc(u.name) + '</span>' + dist + '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;">' +
+        '<span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span></div>' +
+        '<div style="font-size:12px;color:#8a8496;margin-bottom:6px;line-height:1.35;">' + esc(place) + '</div>' +
+        (u.desc ? '<div style="font-size:12.5px;color:#4a4458;line-height:1.45;margin-bottom:9px;">' + esc(u.desc) + '</div>' : "") +
+        (chips ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">' + chips + '</div>' : "") +
+        '<div style="display:flex;align-items:center;gap:12px;padding-top:9px;border-top:1px solid #f3eee5;">' + contact +
+        '<div style="flex:1;"></div>' +
+        '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>' +
+        '</div></div></div></div>';
+    }).join("");
+    if (!f.length) html = '<div style="text-align:center;padding:46px 20px;color:#9a93a6;"><div style="font:600 14px \'Hanken Grotesk\';margin-bottom:4px;color:#6b6577;">No places found</div><div style="font-size:12.5px;">Try a different search or reset the filters.</div></div>';
+    $("unit-list").innerHTML = html;
+  }
+
+  function updateCounts() {
+    var f = sorted();
+    $("count").textContent = f.length; $("total").textContent = UNITS.length; $("reopen-count").textContent = f.length;
+    $("anchor-line").textContent = state.geoMsg ? state.geoMsg : (state.anchor ? "Sorted by distance from " + state.anchor.label : "Showing all places · search or tap the map");
+  }
+
+  function renderLegend() {
+    $("legend-rows").innerHTML = Object.keys(REGION).map(function (code) {
+      var r = REGION[code];
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:11px;height:11px;border-radius:50%;background:' + r.color + ';flex:none;"></span><span style="font:700 11.5px \'Hanken Grotesk\';color:#1E1730;width:30px;">' + code + '</span><span style="font-size:11.5px;color:#8a8496;">' + r.full + '</span></div>';
+    }).join("");
+  }
+
+  function renderAll() { renderChips(); renderList(); updateCounts(); renderMarkers(); }
+
+  function setPanelOpen(open) {
+    state.panelOpen = open;
+    $("panel").style.transform = open ? "none" : "translateX(-118%)";
+    $("panel").style.opacity = open ? 1 : 0;
+    $("panel-reopen").style.display = open ? "none" : "flex";
+    $("searchbar").style.left = open ? "398px" : "18px";
+    if (map) setTimeout(function () { map.invalidateSize(); }, 340);
+  }
+
+  function updateNearUI() {
+    var nb = $("near-btn"), has = !!state.anchor;
+    nb.style.background = has ? "#6336B5" : "#fff"; nb.style.color = has ? "#fff" : "#5b5366"; nb.style.borderColor = has ? "#6336B5" : "#e7e1d8";
+    $("near-label").textContent = has ? "Located" : "Near me";
+    document.querySelectorAll(".q-near").forEach(function (b) {
+      var on = state.kind === b.getAttribute("data-kind");
+      b.style.background = on ? "#6336B5" : "#fff"; b.style.color = on ? "#fff" : "#5b5366"; b.style.borderColor = on ? "#6336B5" : "#e7e1d8";
+    });
+  }
+
+  // ── comments drawer ────────────────────────────────────────────────
+  function flatten(id) {
+    var all = commentsFor(id), out = [];
+    function walk(parent, depth) { all.filter(function (c) { return (c.parentId || null) === parent; }).forEach(function (c) { out.push(Object.assign({ depth: depth }, c)); walk(c.id, depth + 1); }); }
+    walk(null, 0); return out;
+  }
+  function openComments(id) {
+    state.commentsFor = id; state.replyTo = null;
+    var u = UNITS.find(function (x) { return x.id === id; });
+    $("drawer-title").textContent = u ? u.name : "";
+    $("drawer").style.display = "flex"; $("drawer").style.animation = "sfslide .28s cubic-bezier(.4,0,.2,1)";
+    renderThread(); updateReplyBanner();
+  }
+  function closeComments() { state.commentsFor = null; state.replyTo = null; $("drawer").style.display = "none"; }
+  function renderThread() {
+    var id = state.commentsFor; if (!id) return;
+    var thread = flatten(id);
+    var html = thread.map(function (c) {
+      var rowStyle = "padding:11px 0;border-bottom:1px solid #f0ebe2;margin-left:" + (c.depth * 20) + "px;" + (c.depth ? "border-left:2px solid #efe7f7;padding-left:11px;" : "");
+      return '<div style="' + rowStyle + '">' +
+        '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">' +
+        '<span style="font:700 12.5px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name) + '</span>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">' + esc(c.ipMasked || "") + '</span>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">·</span>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">' + fmtTs(c.ts) + '</span></div>' +
+        '<div style="font-size:13px;color:#3a3346;line-height:1.5;margin-bottom:5px;white-space:pre-wrap;">' + esc(c.body) + '</div>' +
+        '<button data-reply="' + escAttr(c.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;">Reply</button></div>';
+    }).join("");
+    if (!thread.length) html = '<div style="text-align:center;padding:36px 16px;color:#a39bb0;font-size:12.5px;">No comments yet. Be the first to share your experience.</div>';
+    $("thread").innerHTML = html;
+  }
+  function updateReplyBanner() {
+    var rb = $("reply-banner");
+    if (state.replyTo) {
+      var c = commentsFor(state.commentsFor).find(function (x) { return x.id === state.replyTo; });
+      $("reply-name").textContent = c ? "@" + c.name : "";
+      rb.style.display = "flex";
+    } else rb.style.display = "none";
+  }
+  function updatePostBtn() {
+    var can = $("nick").value.trim() && $("draft").value.trim() && $("consent").checked;
+    var b = $("post-btn");
+    b.style.background = can ? "#6336B5" : "#ece6db"; b.style.color = can ? "#fff" : "#a39bb0"; b.style.cursor = can ? "pointer" : "not-allowed";
+  }
+  function postComment() {
+    var id = state.commentsFor; if (!id) return;
+    var name = $("nick").value.trim(), body = $("draft").value.trim();
+    if (!name || !body || !$("consent").checked) return;
+    var payload = { name: name, body: body, unitId: id, parentId: state.replyTo || null, consent: true };
+    $("post-btn").textContent = "Posting…";
+    fetch("/api/comments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        $("post-btn").textContent = "Post comment";
+        if (j && j.ok && j.comment) {
+          COMMENTS.unshift({ id: j.comment.id, ts: j.comment.ts, name: j.comment.name, body: j.comment.body, parentId: j.comment.parentId, unitId: id, ipMasked: j.comment.ipMasked || "" });
+          try { localStorage.setItem("sf_nick", name); } catch (e) {}
+          $("draft").value = ""; state.replyTo = null; updateReplyBanner(); updatePostBtn();
+          renderThread(); renderList();
+        } else alert("Could not post: " + ((j && j.error) || "error"));
+      })
+      .catch(function () { $("post-btn").textContent = "Post comment"; alert("Network error — comment not posted."); });
+  }
+
+  // ── data load ──────────────────────────────────────────────────────
+  function loadUnits() {
     return fetch("/api/units", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && Array.isArray(j.units) && j.units.length) UNITS = j.units; })
-      .catch(function () { /* 폴백: data.js */ });
+      .then(function (j) {
+        var arr = (j && Array.isArray(j.units)) ? j.units : (Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []);
+        UNITS = arr.map(normUnit).filter(function (u) { return u.status !== "draft" && !isNaN(u.lat) && !isNaN(u.lng); });
+      })
+      .catch(function () { UNITS = (Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []).map(normUnit); });
+  }
+  function loadComments() {
+    return fetch("/api/comments", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { COMMENTS = (j && Array.isArray(j.comments)) ? j.comments : []; })
+      .catch(function () { COMMENTS = []; });
+  }
+  function downloadJson() {
+    try {
+      var blob = new Blob([JSON.stringify({ units: UNITS }, null, 2)], { type: "application/json" });
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "scout-units.json"; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    } catch (e) {}
   }
 
   // ── init ───────────────────────────────────────────────────────────
+  function initMap() {
+    map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-85, -220], [85, 220]] }).setView([28, 18], 2);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    layer = L.layerGroup().addTo(map);
+    map.on("click", function (e) { select(null, false); setAnchor(e.latlng.lat, e.latlng.lng, "your pinned point", false); });
+    renderMarkers();
+    setTimeout(function () { map.invalidateSize(); }, 200);
+  }
+
+  function wire() {
+    $("search-input").addEventListener("input", function (e) { state.query = e.target.value; renderMarkers(); renderList(); updateCounts(); });
+    $("search-input").addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
+    $("search-go").addEventListener("click", doSearch);
+    $("near-btn").addEventListener("click", geolocate);
+    document.querySelectorAll(".q-near").forEach(function (b) { b.addEventListener("click", function () { state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); geolocate(); }); });
+    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([28, 18], 2, { duration: .6 }); });
+    $("download").addEventListener("click", downloadJson);
+    $("panel-collapse").addEventListener("click", function () { setPanelOpen(false); });
+    $("panel-reopen").addEventListener("click", function () { setPanelOpen(true); });
+
+    $("kind-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-kind]"); if (!b) return; state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); });
+    $("region-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-region]"); if (!b) return; state.region = b.getAttribute("data-region"); renderChips(); renderAll(); });
+
+    $("unit-list").addEventListener("click", function (e) {
+      if (e.target.closest("[data-stop]")) { e.stopPropagation(); return; }
+      var cb = e.target.closest("[data-comments]"); if (cb) { e.stopPropagation(); openComments(cb.getAttribute("data-comments")); return; }
+      var card = e.target.closest("[data-open]"); if (card) select(card.getAttribute("data-open"), true);
+    });
+
+    $("drawer-close").addEventListener("click", closeComments);
+    $("reply-cancel").addEventListener("click", function () { state.replyTo = null; updateReplyBanner(); });
+    $("thread").addEventListener("click", function (e) { var b = e.target.closest("[data-reply]"); if (b) { state.replyTo = b.getAttribute("data-reply"); updateReplyBanner(); } });
+    $("nick").addEventListener("input", updatePostBtn);
+    $("draft").addEventListener("input", updatePostBtn);
+    $("consent").addEventListener("change", updatePostBtn);
+    $("post-btn").addEventListener("click", postComment);
+    try { var n = localStorage.getItem("sf_nick"); if (n) $("nick").value = n; } catch (e) {}
+  }
+
   function init() {
-    map = L.map("map", { zoomControl: true }).setView([20, 60], 2);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-    unitLayer.addTo(map);
-
-    // 좌측 목록: 클릭 → 지도에 정보(팝업). 편집 버튼만 별도. (댓글은 지도 팝업 안에서)
-    $list.addEventListener("click", function (e) {
-      var card = e.target.closest(".result-card"); if (card) setActive(card.getAttribute("data-id"), true);
-    });
-    $list.addEventListener("keydown", function (e) {
-      if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("result-card")) { e.preventDefault(); setActive(e.target.getAttribute("data-id"), true); }
-    });
-    // 댓글은 지도 팝업 내부 → document 위임
-    document.addEventListener("click", function (e) {
-      var b = e.target.closest("[data-cmt]"); if (b) { togglePanel(b.getAttribute("data-cmt")); return; }
-      onPanelClick(e);
-    });
-    document.addEventListener("change", onPanelChange);
-    document.addEventListener("submit", onPanelSubmit);
-
-    $form.addEventListener("submit", function (e) { e.preventDefault(); var q = $input.value.trim(); if (q) doSearch(q); else showAll(); });
-    map.on("click", function (e) { setAnchorFromMap(e.latlng); });
-    $reset.addEventListener("click", showAll);
-    $empty.addEventListener("click", function (e) { if (e.target.closest("[data-reset]")) showAll(); });
-    document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
-    if ($dlJson) $dlJson.addEventListener("click", function () { triggerDownload("scout-units.json", JSON.stringify(UNITS, null, 2), "application/json"); });
-    if ($dlJs) $dlJs.addEventListener("click", function () { triggerDownload("data.js", dataJsText(), "text/javascript"); });
-
-    applyStatic();
-    loadFromServer().then(function () { buildLegend(); showAll(); });
+    renderLegend(); wire();
+    Promise.all([loadUnits(), loadComments()]).then(function () { renderAll(); updateNearUI(); });
+    initMap();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

@@ -1,332 +1,271 @@
 /* =========================================================================
- * scout-finder — Admin (admin.html, English-only, Google sign-in)
- * -------------------------------------------------------------------------
- * Global standard: WOSM Region -> Country (NSO) -> Unit.
- * - Pick a country (WOSM 176 list) -> NSO / region / language auto-fill.
- * - No street address. Set coordinates by searching the MAP to a place,
- *   then clicking the map ("Set on map") or dragging the marker.
- * - ID is auto-assigned. Pin color = WOSM region.
- * - Changes auto-save to the Cloudflare server (PUT /api/units, admin password).
+ * scout-finder — Admin (admin.html, Google sign-in, Bricolage + Hanken design).
+ * Left rail (search + kind filter + list) · center form · right draggable map.
+ * Auth: Google-only (in-app GIS, verified server-side). Auto-saves to
+ * /api/units (KV) with an Authorization: Bearer <id_token> header.
  * ========================================================================= */
 (function () {
   "use strict";
 
-  var DRAFT_KEY = "scoutfinder:units";
-  var SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover"];
-  var TYPES = ["Community unit", "School unit"];
-  var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
-  var REGION_COLORS = window.SCOUT_REGION_COLORS || {};
-  var DEFAULT_COLOR = "#622599";
-  var MOBILE = "(max-width: 820px)";
-  var COUNTRY_NAMES = NSOS.map(function (n) { return n.country; });
-  var NSO_BY_COUNTRY = (function () { var m = {}; NSOS.forEach(function (n) { m[n.country] = n; }); return m; })();
+  var REGION = {
+    APR: { full: "Asia-Pacific", color: "#6A3FB5" },
+    EUR: { full: "European", color: "#2F6FB0" },
+    ARB: { full: "Arab", color: "#2E8B6B" },
+    AFR: { full: "Africa", color: "#C26A2E" },
+    IAR: { full: "Interamerican", color: "#C23E6E" }
+  };
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR" };
+  var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
+  var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
 
-  function baseUnits() { return Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []; }
-  function clone(v) { return JSON.parse(JSON.stringify(v)); }
-  function colorOf(u) { return REGION_COLORS[u.region] || DEFAULT_COLOR; }
-  function isMobile() { return window.matchMedia(MOBILE).matches; }
+  var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
+  function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
+  var COUNTRY = {}; NSOS.forEach(function (n) { COUNTRY[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; });
+  var COUNTRIES = Object.keys(COUNTRY).sort();
 
   // ── state ──────────────────────────────────────────────────────────
-  var units = [], map, unitLayer = L.layerGroup(), markers = [], pickIndex = null, activeIndex = null, saveTimer = null;
-
-  // ── DOM ────────────────────────────────────────────────────────────
-  var $list = document.getElementById("editor-list");
-  var $empty = document.getElementById("editor-empty");
-  var $status = document.getElementById("save-status");
-  var $mapWrap = document.getElementById("map-wrap");
-  var $hint = document.getElementById("map-hint");
-  var DEFAULT_HINT = $hint.textContent;
+  var units = [], map, marker = null, saveTimer = null, savedTimer = null;
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "" };
 
   // ── helpers ────────────────────────────────────────────────────────
-  function escHtml(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  function escAttr(s) { return escHtml(s).replace(/"/g, "&quot;"); }
-  function uid() { return "unit-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
-  function round5(n) { return Math.round(n * 1e5) / 1e5; }
-  function setStatus(text, ok) { $status.textContent = text; $status.classList.toggle("ok", !!ok); }
-  function applyCountry(u) { var r = NSO_BY_COUNTRY[u.country]; if (r) { u.country_ko = r.country_ko; u.nso = r.nso; u.region = r.region; u.lang = r.lang; } }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
+  function sel() { return units.find(function (u) { return u.id === state.selectedId; }); }
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(function () { t.style.display = "none"; }, 1800); }
 
-  // ── icons ──────────────────────────────────────────────────────────
-  function adminPin(active, color) {
-    return L.divIcon({ className: "unit-pin" + (active ? " is-active" : ""), html: '<div class="unit-pin-dot" style="background:' + color + '"></div>', iconSize: [26, 26], iconAnchor: [13, 26], popupAnchor: [0, -24] });
-  }
-
-  // ── card template ──────────────────────────────────────────────────
-  function selectOptions(values, current) {
-    var opts = '<option value="">(select)</option>', has = false;
-    values.forEach(function (v) { var sel = v === current ? " selected" : ""; if (sel) has = true; opts += '<option value="' + escAttr(v) + '"' + sel + ">" + escHtml(v) + "</option>"; });
-    if (current && !has) opts += '<option value="' + escAttr(current) + '" selected>' + escHtml(current) + "</option>";
-    return opts;
-  }
-  function nsoInfo(u) { return escHtml((u.nso || "—") + " · " + (u.region || "—") + (u.lang ? " (" + u.lang + ")" : "")); }
-  function coordText(u) {
-    var lat = parseFloat(u.lat), lng = parseFloat(u.lng);
-    if (isNaN(lat) || isNaN(lng)) return "Not set — search an address above";
-    return "📍 " + lat + ", " + lng + (u.place ? " — " + u.place : "");
+  function normUnit(u) {
+    var url = u.url || u.homepage || "";
+    var contact = u.contact;
+    if (!contact) contact = url ? (/instagram/i.test(url) ? "instagram" : "homepage") : "none";
+    return {
+      id: u.id, kind: u.kind || "unit", name: u.name || "", country: u.country || "",
+      nso: u.nso || "", region: regionCode(u.region), lang: u.lang || "",
+      lat: +u.lat || 0, lng: +u.lng || 0, address: u.address || u.place || "",
+      sections: Array.isArray(u.sections) ? u.sections : [], tags: Array.isArray(u.tags) ? u.tags : [],
+      desc: u.desc || u.note || "", contact: contact, url: url, status: u.status || "published"
+    };
   }
 
-  function cardHtml(u, i) {
-    var secBoxes = SECTIONS.map(function (s) {
-      var on = (u.sections || []).indexOf(s) !== -1;
-      return '<label class="section-toggle' + (on ? " checked" : "") + '"><input type="checkbox" data-section="' + escAttr(s) + '"' + (on ? " checked" : "") + " />" + escHtml(s) + "</label>";
-    }).join("");
-    return (
-      '<div class="editor-card" data-index="' + i + '">' +
-        '<div class="editor-card-head">' +
-          '<span class="editor-card-swatch" style="background:' + colorOf(u) + '"></span>' +
-          '<span class="editor-card-title">' + (escHtml(u.name) || "(no name)") + "</span>" +
-          '<span class="editor-card-actions"><button type="button" class="icon-btn del" data-action="delete" title="Delete" aria-label="Delete">✕</button></span>' +
-        "</div>" +
-        '<div class="field-grid">' +
-          '<div class="field"><label>Name</label><input type="text" data-field="name" value="' + escAttr(u.name) + '" /></div>' +
-          '<div class="field"><label>Type</label><select data-field="type">' + selectOptions(TYPES, u.type) + "</select></div>" +
-          '<div class="field col-span"><label>Country (WOSM)</label><select data-field="country">' + selectOptions(COUNTRY_NAMES, u.country || "Republic of Korea") + "</select></div>" +
-          '<div class="field col-span"><label>NSO · Region · Language (auto)</label><div class="readonly-line" data-nso-info>' + nsoInfo(u) + "</div></div>" +
-          '<div class="field col-span"><label>Homepage (Instagram)</label><input type="text" data-field="homepage" value="' + escAttr(u.homepage) + '" placeholder="https://instagram.com/..." /></div>' +
-          '<div class="field col-span"><label>Recruiting categories</label><div class="sections-box">' + secBoxes + "</div></div>" +
-          '<div class="field col-span"><label>Location (search an address or place)</label><div class="coord-row">' +
-            '<input type="text" data-loc-search value="' + escAttr(u.place || "") + '" placeholder="e.g. Yeongtong-dong, Suwon  ·  Suva, Fiji" style="flex:1 1 auto" />' +
-            '<button type="button" class="admin-btn pick-btn" data-action="geocode-set">Find &amp; set</button>' +
-          "</div><div class=\"readonly-line\" data-coord>" + coordText(u) + "</div></div>" +
-          '<div class="field col-span"><label>Main activities</label><textarea data-field="note" rows="2">' + escHtml(u.note) + "</textarea></div>" +
-        "</div>" +
-      "</div>"
-    );
-  }
-
-  // ── render ─────────────────────────────────────────────────────────
-  function render() { $list.innerHTML = units.map(cardHtml).join(""); $empty.hidden = units.length > 0; rebuildMarkers(); }
-
-  function rebuildMarkers() {
-    unitLayer.clearLayers(); markers = [];
-    var pts = [];
-    units.forEach(function (u, i) {
-      var lat = parseFloat(u.lat), lng = parseFloat(u.lng);
-      if (isNaN(lat) || isNaN(lng)) { markers[i] = null; return; }
-      var marker = L.marker([lat, lng], { icon: adminPin(i === activeIndex, colorOf(u)), draggable: true, title: u.name, alt: u.name });
-      marker.bindPopup(escHtml(u.name) + "<br>" + escHtml(u.country) + " · " + escHtml(u.nso));
-      marker.on("dragend", function () { onMarkerDrag(i, marker.getLatLng()); });
-      marker.on("click", function () { setActive(i, false); });
-      unitLayer.addLayer(marker); markers[i] = marker; pts.push([lat, lng]);
-    });
-    if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 13 });
-    else if (pts.length === 1) map.setView(pts[0], 11);
-  }
-
-  function cardEl(i) { return $list.querySelector('.editor-card[data-index="' + i + '"]'); }
-
-  function setActive(i, pan) {
-    activeIndex = i;
-    $list.querySelectorAll(".editor-card").forEach(function (c) { c.classList.toggle("is-active", Number(c.getAttribute("data-index")) === i); });
-    markers.forEach(function (m, idx) { if (m) m.setIcon(adminPin(idx === i, colorOf(units[idx]))); });
-    var el = cardEl(i); if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    if (markers[i]) { if (pan) map.panTo(markers[i].getLatLng()); markers[i].openPopup(); }
-  }
-
-  function onMarkerDrag(i, latlng) {
-    var lat = round5(latlng.lat), lng = round5(latlng.lng);
-    units[i].lat = lat; units[i].lng = lng;
-    var el = cardEl(i);
-    if (el) { var co = el.querySelector("[data-coord]"); if (co) co.textContent = coordText(units[i]); }
-    scheduleSave();
-  }
-
-  // ── editing ────────────────────────────────────────────────────────
-  function onFieldInput(e) {
-    var input = e.target, card = input.closest(".editor-card");
-    if (!card) return;
-    var i = Number(card.getAttribute("data-index")), u = units[i];
-
-    if (input.hasAttribute("data-section")) {
-      var sec = input.getAttribute("data-section");
-      if (!Array.isArray(u.sections)) u.sections = [];
-      var pos = u.sections.indexOf(sec);
-      if (input.checked && pos === -1) u.sections.push(sec);
-      else if (!input.checked && pos !== -1) u.sections.splice(pos, 1);
-      u.sections = SECTIONS.filter(function (s) { return u.sections.indexOf(s) !== -1; });
-      input.closest(".section-toggle").classList.toggle("checked", input.checked);
-      scheduleSave(); return;
-    }
-
-    var f = input.getAttribute("data-field");
-    if (!f) return;
-    if (f === "lat" || f === "lng") {
-      var num = parseFloat(input.value); u[f] = isNaN(num) ? "" : num;
-      var m = markers[i]; if (m && !isNaN(parseFloat(u.lat)) && !isNaN(parseFloat(u.lng))) m.setLatLng([parseFloat(u.lat), parseFloat(u.lng)]);
-    } else {
-      u[f] = input.value;
-      if (f === "name") { var t = card.querySelector(".editor-card-title"); if (t) t.textContent = input.value || "(no name)"; }
-      if (f === "country") {
-        applyCountry(u);
-        var info = card.querySelector("[data-nso-info]"); if (info) info.textContent = nsoInfo(u);
-        var sw = card.querySelector(".editor-card-swatch"); if (sw) sw.style.background = colorOf(u);
-        if (markers[i]) markers[i].setIcon(adminPin(i === activeIndex, colorOf(u)));
-      }
-      if (markers[i]) markers[i].setPopupContent(escHtml(u.name) + "<br>" + escHtml(u.country) + " · " + escHtml(u.nso));
-    }
-    scheduleSave();
-  }
-
-  function onListClick(e) {
-    var btn = e.target.closest("[data-action]");
-    if (btn) {
-      var i = Number(btn.closest(".editor-card").getAttribute("data-index")), action = btn.getAttribute("data-action");
-      if (action === "delete") return doDelete(i);
-      if (action === "geocode-set") return doGeocodeSet(i, btn);
-      return;
-    }
-    var head = e.target.closest(".editor-card-head");
-    if (head) setActive(Number(head.closest(".editor-card").getAttribute("data-index")), true);
-  }
-
-  // ── actions ────────────────────────────────────────────────────────
-  function doAdd() {
-    var c = map.getCenter();
-    var u = { id: uid(), name: "New Scout Unit", type: "Community unit", country: "Republic of Korea", lat: round5(c.lat), lng: round5(c.lng), place: "", sections: [], homepage: "", note: "" };
-    applyCountry(u);
-    units.push(u); activeIndex = units.length - 1; render(); scheduleSave();
-    var el = cardEl(activeIndex);
-    if (el) { el.scrollIntoView({ block: "center", behavior: "smooth" }); var n = el.querySelector('[data-field="name"]'); if (n) { n.focus(); n.select(); } }
-  }
-  function doDelete(i) { if (!confirm('Delete "' + (units[i].name || "this unit") + '"?')) return; units.splice(i, 1); if (activeIndex === i) activeIndex = null; render(); scheduleSave(); }
-
-  function doGeocodeSet(i, btn) {
-    var el = cardEl(i), input = el && el.querySelector("[data-loc-search]");
-    var q = input ? input.value.trim() : "";
-    if (!q) { setStatus("Enter an address/place to search", false); return; }
-    var old = btn.textContent; btn.textContent = "Searching…"; btn.disabled = true;
-    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=en&limit=1&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (arr) {
-        if (arr && arr[0]) {
-          var u = units[i];
-          u.lat = round5(parseFloat(arr[0].lat)); u.lng = round5(parseFloat(arr[0].lon)); u.place = arr[0].display_name || q;
-          var co = el.querySelector("[data-coord]"); if (co) co.textContent = coordText(u);
-          if (markers[i]) markers[i].setLatLng([u.lat, u.lng]); else rebuildMarkers();
-          if (isMobile()) setView("map");
-          map.setView([u.lat, u.lng], 14); setActive(i, false);
-          scheduleSave(); setStatus("Location set: " + (arr[0].display_name || q), true);
-        } else setStatus("No place found — try a more specific address", false);
-      })
-      .catch(function () { setStatus("Search failed (network)", false); })
-      .then(function () { btn.textContent = old; btn.disabled = false; });
-  }
-
-  // ── export / import / reload ────────────────────────────────────────
-  function dataJsText() {
-    return "// scout-finder data\n" +
-      "window.SCOUT_UNITS = " + JSON.stringify(units, null, 2) + ";\n\n" +
-      "window.SCOUT_NSOS = " + JSON.stringify(NSOS) + ";\n\n" +
-      "window.SCOUT_REGION_COLORS = " + JSON.stringify(REGION_COLORS, null, 2) + ";\n";
-  }
-  function validate() {
-    var problems = [], seen = {};
-    units.forEach(function (u, i) {
-      var label = "#" + (i + 1) + " " + (u.name || "(no name)");
-      if (!u.id) problems.push(label + ": missing ID"); else if (seen[u.id]) problems.push(label + ": duplicate ID"); else seen[u.id] = true;
-      if (isNaN(parseFloat(u.lat)) || isNaN(parseFloat(u.lng))) problems.push(label + ": missing coordinates");
-      if (!u.country) problems.push(label + ": missing country");
-    });
-    return problems;
-  }
-  function download(filename, text, mime) {
-    var blob = new Blob([text], { type: mime }), url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-  }
-  function doDownloadJs() { download("data.js", dataJsText(), "text/javascript"); }
-  function doCopyJson() {
-    var text = JSON.stringify(units, null, 2);
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { setStatus("JSON copied", true); }).catch(function () { fallbackCopy(text); });
-    else fallbackCopy(text);
-  }
-  function fallbackCopy(text) { var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); setStatus("JSON copied", true); } catch (e) { setStatus("Copy failed", false); } document.body.removeChild(ta); }
-  function doImport(file) {
-    var reader = new FileReader();
-    reader.onload = function () { try { var arr = JSON.parse(reader.result); if (!Array.isArray(arr)) throw new Error("not an array"); units = arr; activeIndex = null; render(); scheduleSave(); setStatus("Imported (" + units.length + ")", true); } catch (e) { alert("Import failed: " + e.message); } };
-    reader.readAsText(file);
-  }
-  function doReload() {
-    if (!confirm("Discard local changes and reload from the server?")) return;
-    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
-    loadFromServer(true);
-  }
-  function doClearAll() {
-    if (!units.length) { setStatus("Already empty", true); return; }
-    if (!confirm("Remove ALL " + units.length + " units from the server? This cannot be undone.")) return;
-    units = []; activeIndex = null; render(); scheduleSave();
-    setStatus("Cleared all units — publishing…", false);
-  }
-
-  // ── server (Cloudflare KV) — auto save (Google auth) ────────────────
-  function scheduleSave() {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(units)); } catch (e) {}
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveToServer, 900);
-  }
-  function saveToServer() {
-    if (!Auth.valid()) { setStatus("Saved locally — sign in again to publish", false); Auth.requireReauth(); return; }
-    setStatus("Saving to server…", false);
+  // ── server ─────────────────────────────────────────────────────────
+  function touch() { setSaved(false); clearTimeout(saveTimer); saveTimer = setTimeout(save, 700); }
+  function setSaved(ok) { $("saved-label").textContent = ok ? "All changes saved" : "Saving…"; }
+  function save() {
+    if (!Auth.valid()) { setSaved(false); $("saved-label").textContent = "Sign in to publish"; Auth.requireReauth(); return; }
     fetch("/api/units", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ units: units }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
       .then(function (res) {
-        if (res.ok) { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} var t = new Date(); setStatus("Saved to server ✓ " + ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2) + " (" + res.j.count + ")", true); }
-        else if (res.status === 401) { setStatus("Session expired — sign in again to publish", false); Auth.requireReauth(); }
-        else setStatus("Server save failed: " + (res.j.error || res.status), false);
+        if (res.ok) setSaved(true);
+        else if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; Auth.requireReauth(); }
+        else $("saved-label").textContent = "Save failed: " + (res.j.error || res.status);
       })
-      .catch(function () { setStatus("Server save failed (network) — kept locally", false); });
+      .catch(function () { $("saved-label").textContent = "Save failed (network)"; });
   }
-  function loadFromServer(forceServer) {
+  function loadUnits() {
     return fetch("/api/units", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        var server = (j && Array.isArray(j.units)) ? j.units : null;
-        // 서버를 항상 우선(진실의 원천). 오래된 로컬 드래프트가 서버를 덮어쓰는 사고 방지.
-        if (server) { units = server; try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} setStatus("Loaded from server (" + units.length + ")", true); }
-        else { try { var raw = localStorage.getItem(DRAFT_KEY); var a = raw ? JSON.parse(raw) : null; units = Array.isArray(a) ? a : clone(baseUnits()); } catch (e) { units = clone(baseUnits()); } setStatus("Server unreachable — local/sample (" + units.length + ")", false); }
-        activeIndex = null; render();
+        var arr = (j && Array.isArray(j.units)) ? j.units : (Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []);
+        units = arr.map(normUnit);
+        state.selectedId = units[0] ? units[0].id : null;
+        setSaved(true);
       })
-      .catch(function () { units = clone(baseUnits()); render(); setStatus("Server unreachable — using sample", false); });
+      .catch(function () { units = []; setSaved(true); });
   }
 
-  // ── view toggle ─────────────────────────────────────────────────────
-  function setView(view) {
-    document.body.classList.toggle("view-map", view === "map");
-    document.body.classList.toggle("view-list", view !== "map");
-    document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-view") === view ? "true" : "false"); });
-    if (view === "map" && map) setTimeout(function () { map.invalidateSize(); }, 60);
+  // ── map ────────────────────────────────────────────────────────────
+  function markerHtml(color, kind) {
+    var shape = kind === "office" ? "7px" : "50%";
+    var badge = kind === "heritage" ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:#C2872E;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px sans-serif;">★</span>' : "";
+    return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;"><div style="position:relative;width:30px;height:30px;border-radius:' + shape + ';background:' + color + ';border:2.5px solid #fff;box-shadow:0 4px 11px rgba(30,18,55,.4);">' + badge + '</div><div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff;margin-top:-1px;"></div></div>';
+  }
+  function syncMarker(recenter) {
+    if (!map) return;
+    var s = sel();
+    if (!s) { if (marker) { map.removeLayer(marker); marker = null; } return; }
+    var color = REGION[s.region] ? REGION[s.region].color : "#6336B5";
+    var icon = L.divIcon({ className: "", html: markerHtml(color, s.kind), iconSize: [40, 46], iconAnchor: [20, 44] });
+    if (!marker) {
+      marker = L.marker([s.lat, s.lng], { icon: icon, draggable: true }).addTo(map);
+      marker.on("dragend", function () { var ll = marker.getLatLng(); setCoords(ll.lat, ll.lng, false); reverse(ll.lat, ll.lng); });
+    } else { marker.setIcon(icon); marker.setLatLng([s.lat, s.lng]); }
+    if (recenter) map.setView([s.lat, s.lng], Math.max(map.getZoom(), 11), { animate: true });
+  }
+  function setCoords(lat, lng, moveMarker) {
+    lat = +(+lat).toFixed(5); lng = +(+lng).toFixed(5);
+    var s = sel(); if (!s) return; s.lat = lat; s.lng = lng; touch();
+    if (marker && moveMarker) marker.setLatLng([lat, lng]);
+    var fl = $("f-lat"), fn = $("f-lng"); if (fl) fl.value = lat; if (fn) fn.value = lng;
+    updateCap();
+  }
+  function find() {
+    var s = sel(), q = state.addrQuery.trim(); if (!q || !s) return;
+    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d[0]) { setCoords(d[0].lat, d[0].lon, true); s.address = d[0].display_name; var fa = $("f-address"); if (fa) fa.value = s.address; updateCap(); syncMarker(true); touch(); toast("Location set"); } else toast("No match — click the map instead"); })
+      .catch(function () { toast("Search unavailable — click the map to set the point"); });
+  }
+  function reverse(lat, lng) {
+    fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lng)
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.display_name) { var s = sel(); if (s) { s.address = d.display_name; var fa = $("f-address"); if (fa) fa.value = s.address; updateCap(); touch(); } } })
+      .catch(function () {});
+  }
+  function updateCap() {
+    var s = sel(), cap = $("map-cap"); if (!s) { cap.style.display = "none"; return; }
+    cap.style.display = "flex";
+    $("cap-dot").style.background = REGION[s.region] ? REGION[s.region].color : "#6336B5";
+    $("cap-name").textContent = s.name || "Untitled";
+    $("cap-addr").textContent = s.address ? s.address : (s.lat.toFixed(4) + ", " + s.lng.toFixed(4));
   }
 
-  // ── Google Sign-In gate (admin access is Google-only) ───────────────
+  // ── rail ───────────────────────────────────────────────────────────
+  function filt(active) { return "flex:1;border:none;padding:6px 4px;border-radius:8px;font:600 11.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;" : "background:#f1ece4;color:#8a8496;"); }
+  function renderFilters() {
+    $("rail-filters").innerHTML = ["All", "unit", "office", "heritage"].map(function (k) {
+      return '<button data-filter="' + k + '" style="' + filt(state.kindFilter === k) + '">' + (k === "All" ? "All" : KIND[k]) + '</button>';
+    }).join("");
+  }
+  function railList() {
+    var q = state.query.trim().toLowerCase();
+    return units.filter(function (u) {
+      if (state.kindFilter !== "All" && u.kind !== state.kindFilter) return false;
+      if (q && (u.name + " " + u.country + " " + u.nso).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+  function renderRail() {
+    var list = railList();
+    $("rail-list").innerHTML = list.map(function (u) {
+      var isSel = u.id === state.selectedId;
+      var rc = REGION[u.region] || { color: "#9a93a6" };
+      var rowStyle = "display:flex;gap:10px;padding:11px 11px;border-radius:12px;cursor:pointer;margin-bottom:3px;transition:background .12s;align-items:flex-start;" + (isSel ? "background:#f1ecf9;" : "background:transparent;");
+      var statusStyle = "flex:none;font:700 9.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:6px;margin-top:2px;" + (u.status === "draft" ? "background:#fbf0dd;color:#b5832e;" : "background:#e6f3ec;color:#2e8b57;");
+      return '<div data-select="' + escAttr(u.id) + '" style="' + rowStyle + '">' +
+        '<span style="width:10px;height:10px;border-radius:' + (u.kind === "office" ? "3px" : "50%") + ';background:' + rc.color + ';flex:none;margin-top:4px;"></span>' +
+        '<div style="flex:1;min-width:0;"><div style="font:700 13px \'Hanken Grotesk\';line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name || "Untitled") + '</div>' +
+        '<div style="font-size:11px;color:#8a8496;margin-top:2px;">' + esc(KIND[u.kind] + " · " + u.region + (u.country ? " · " + u.country : "")) + '</div></div>' +
+        '<span style="' + statusStyle + '">' + (u.status === "draft" ? "Draft" : "Live") + '</span></div>';
+    }).join("");
+    $("rail-count").textContent = list.length;
+  }
+
+  // ── form ───────────────────────────────────────────────────────────
+  function seg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
+  function chip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
+  var CARD = "background:#fff;border:1px solid #ece6db;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(30,18,55,.04);";
+  var SEC = "font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin-bottom:14px;";
+  var LBL = "display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 7px;";
+  var BTN_SOFT = "border:none;background:#f1ecf9;color:#5B2EA6;font:600 12.5px 'Hanken Grotesk';padding:9px 14px;border-radius:11px;cursor:pointer;white-space:nowrap;";
+
+  function renderForm() {
+    var s = sel();
+    if (!s) { $("form").innerHTML = ""; $("form").style.display = "none"; $("form-empty").style.display = "flex"; updateCap(); return; }
+    $("form").style.display = "block"; $("form-empty").style.display = "none";
+    var rc = REGION[s.region] || { full: "", color: "#6336B5" };
+    var isUnit = s.kind === "unit";
+    var autoLine = (s.nso || "—") + " · " + (rc.full || s.region) + " (" + (s.lang || "—") + ")";
+    var subline = KIND[s.kind] + " · " + (s.country || "No country") + " · " + s.region;
+    var ctype = s.contact || "none";
+
+    var kindSeg = ["unit", "office", "heritage"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
+    var countryOpts = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === s.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("");
+    var sectionChips = ALL_SECTIONS.map(function (x) { return '<button data-act="sec" data-val="' + x + '" style="' + chip(s.sections.indexOf(x) !== -1) + '">' + x + '</button>'; }).join("");
+    var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:6px 8px 6px 11px;border-radius:999px;">' + esc(t) + '<button data-act="tagdel" data-val="' + escAttr(t) + '" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
+    var contactSeg = [["none", "None"], ["instagram", "Instagram"], ["homepage", "Homepage"]].map(function (p) { return '<button data-act="contact" data-val="' + p[0] + '" style="' + seg(ctype === p[0]) + '">' + p[1] + '</button>'; }).join("");
+    var statusSeg = [["published", "Live"], ["draft", "Draft"]].map(function (p) { return '<button data-act="status" data-val="' + p[0] + '" style="' + seg(s.status === p[0]) + '">' + p[1] + '</button>'; }).join("");
+
+    $("form").innerHTML = '<div style="max-width:620px;margin:0 auto;padding:24px 28px 60px;">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px;">' +
+      '<div><div style="font:700 21px \'Bricolage Grotesque\';letter-spacing:-.015em;line-height:1.1;">' + esc(s.name || "Untitled") + '</div><div style="font-size:12.5px;color:#8a8496;margin-top:4px;">' + esc(subline) + '</div></div>' +
+      '<button data-act="del" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 12px \'Hanken Grotesk\';padding:8px 12px;border-radius:10px;cursor:pointer;flex:none;">Delete</button></div>' +
+
+      '<div style="' + CARD + '"><div style="' + SEC + '">Basics</div>' +
+      '<label style="' + LBL + '">Name</label><input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
+      '<label style="' + LBL + '">Place type</label><div style="display:flex;gap:6px;">' + kindSeg + '</div>' +
+      '<label style="' + LBL + '">Visibility</label><div style="display:flex;gap:6px;">' + statusSeg + '</div></div>' +
+
+      '<div style="' + CARD + '"><div style="' + SEC + '">Affiliation</div>' +
+      '<label style="' + LBL + '">Country</label>' +
+      '<select id="f-country" class="sf-fld" style="appearance:none;cursor:pointer;">' + countryOpts + '</select>' +
+      '<label style="' + LBL + '">NSO · Region · Language <span style="color:#b3adbd;font-weight:500;">(auto)</span></label>' +
+      '<div style="background:#f5f2ec;border:1px solid #ece6db;border-radius:11px;padding:11px 13px;font:500 13px \'Hanken Grotesk\';color:#6b6577;">' + esc(autoLine) + '</div></div>' +
+
+      '<div style="' + CARD + '"><div style="' + SEC + '">Profile</div>' +
+      '<label style="' + LBL + '">Short introduction</label><textarea id="f-desc" class="sf-fld" style="resize:vertical;min-height:74px;line-height:1.5;" placeholder="A sentence or two about this place and its activities.">' + esc(s.desc) + '</textarea>' +
+      (isUnit
+        ? '<label style="' + LBL + '">Sections (recruiting)</label><div style="display:flex;flex-wrap:wrap;gap:6px;">' + sectionChips + '</div>'
+        : '<label style="' + LBL + '">Categories</label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + tagChips + '</div>' +
+          '<div style="display:flex;gap:7px;margin-top:9px;"><input id="f-tagdraft" value="' + escAttr(state.tagDraft) + '" class="sf-fld" placeholder="Add a category (e.g. Training centre) and press Enter" style="flex:1;" /><button data-act="tagadd" style="' + BTN_SOFT + '">Add</button></div>'
+      ) + '</div>' +
+
+      '<div style="' + CARD + '"><div style="' + SEC + '">Contact</div>' +
+      '<label style="' + LBL + '">Method</label><div style="display:flex;gap:6px;">' + contactSeg + '</div>' +
+      (ctype !== "none"
+        ? '<label style="' + LBL + '">' + (ctype === "instagram" ? "Instagram URL" : "Homepage URL") + '</label><input id="f-url" value="' + escAttr(s.url) + '" class="sf-fld" placeholder="https://" />'
+        : '<div style="margin-top:11px;font-size:12px;color:#a39bb0;background:#f5f2ec;border-radius:10px;padding:10px 12px;">Visitors will see “Contact the national scout organization”.</div>'
+      ) + '</div>' +
+
+      '<div style="' + CARD + '"><div style="' + SEC + '">Location</div>' +
+      '<label style="' + LBL + '">Address or place search</label><div style="display:flex;gap:7px;"><input id="f-addr" value="' + escAttr(state.addrQuery) + '" class="sf-fld" placeholder="Search an address or place" style="flex:1;" /><button data-act="find" style="' + BTN_SOFT + '">Find &amp; set</button></div>' +
+      '<label style="' + LBL + '">Full address</label><input id="f-address" value="' + escAttr(s.address) + '" class="sf-fld" placeholder="Street, city, country" />' +
+      '<div style="display:flex;gap:10px;margin-top:12px;"><div style="flex:1;"><label style="' + LBL + '">Latitude</label><input id="f-lat" value="' + escAttr(s.lat) + '" class="sf-fld" /></div><div style="flex:1;"><label style="' + LBL + '">Longitude</label><input id="f-lng" value="' + escAttr(s.lng) + '" class="sf-fld" /></div></div>' +
+      '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;display:flex;align-items:center;gap:6px;">Drag the pin or click the map to fine-tune the location.</div></div>' +
+      '</div>';
+    updateCap();
+  }
+
+  function set(patch) { var s = sel(); if (!s) return; Object.assign(s, patch); touch(); }
+
+  // ── actions ────────────────────────────────────────────────────────
+  function selectUnit(id) { state.selectedId = id; state.addrQuery = ""; renderRail(); renderForm(); syncMarker(true); }
+  function addUnit() {
+    var id = "unit-" + Date.now().toString(36);
+    var nu = { id: id, kind: "unit", name: "New scout place", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", contact: "none", url: "", status: "draft" };
+    units.unshift(nu); state.selectedId = id; state.query = ""; state.kindFilter = "All"; state.addrQuery = "";
+    $("rail-search").value = ""; renderFilters(); renderRail(); renderForm(); syncMarker(true); touch();
+  }
+  function delUnit() {
+    if (!confirm("Delete this place?")) return;
+    units = units.filter(function (u) { return u.id !== state.selectedId; });
+    state.selectedId = units[0] ? units[0].id : null;
+    renderRail(); renderForm(); syncMarker(true); touch(); toast("Place deleted");
+  }
+  function addTag() { var t = state.tagDraft.trim(), s = sel(); if (!t || !s) return; if (s.tags.indexOf(t) === -1) s.tags.push(t); state.tagDraft = ""; renderForm(); touch(); }
+  function doCopy() { try { navigator.clipboard.writeText(JSON.stringify({ units: units }, null, 2)); toast("JSON copied to clipboard"); } catch (e) { toast("Copy failed"); } }
+  function doDownload() {
+    try { var blob = new Blob(["window.SCOUT_UNITS = " + JSON.stringify(units, null, 2) + ";\n"], { type: "text/javascript" }); var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "data.js"; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000); toast("Downloaded data.js"); } catch (e) {}
+  }
+  function doImport() {
+    try {
+      var p = JSON.parse($("import-text").value); var arr = Array.isArray(p) ? p : p.units; if (!Array.isArray(arr)) throw 0;
+      units = arr.map(normUnit); state.selectedId = units[0] ? units[0].id : null;
+      $("import-modal").style.display = "none"; renderRail(); renderForm(); syncMarker(true); touch(); toast("Imported " + units.length + " places");
+    } catch (e) { toast("Invalid JSON"); }
+  }
+
+  // ── Google sign-in gate ────────────────────────────────────────────
   var Auth = (function () {
     var token = "", email = "", expMs = 0, clientId = "", inited = false;
     function decode(jwt) { try { var p = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(decodeURIComponent(escape(atob(p)))); } catch (e) { return {}; } }
-    function gate(msg, ok) { var m = document.getElementById("auth-msg"); if (m) { m.textContent = msg || ""; m.classList.toggle("ok", !!ok); } }
+    function gate(msg) { var m = $("auth-msg"); if (m) m.textContent = msg || ""; }
     function valid() { return !!token && Date.now() < expMs - 5000; }
     function headers() { return token ? { "Authorization": "Bearer " + token } : {}; }
-    function show() { document.body.classList.remove("authed"); if (window.google && google.accounts && google.accounts.id) { try { google.accounts.id.prompt(); } catch (e) {} } }
-    function requireReauth() { token = ""; expMs = 0; show(); }
+    function requireReauth() { token = ""; expMs = 0; document.body.classList.remove("authed"); try { if (window.google) google.accounts.id.prompt(); } catch (e) {} }
     function renderButton() {
-      var host = document.getElementById("g-signin");
       if (!window.google || !google.accounts || !google.accounts.id) { setTimeout(renderButton, 150); return; }
       google.accounts.id.initialize({ client_id: clientId, callback: onCredential, auto_select: false });
-      google.accounts.id.renderButton(host, { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" });
+      google.accounts.id.renderButton($("g-signin"), { theme: "filled_blue", size: "large", text: "signin_with", shape: "pill" });
       google.accounts.id.prompt();
     }
     function onCredential(resp) {
       var cred = resp && resp.credential; if (!cred) { gate("Sign-in failed."); return; }
       var p = decode(cred); token = cred; email = p.email || ""; expMs = (p.exp ? p.exp * 1000 : Date.now() + 3300 * 1000);
-      gate("Verifying…", true);
-      fetch("/api/me", { headers: headers() })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) {
-          if (j && j.ok) {
-            var who = document.getElementById("admin-who"); if (who) who.textContent = j.email || email;
-            document.body.classList.add("authed"); gate("");
-            if (!inited) { inited = true; init(); }
-          } else { token = ""; expMs = 0; gate("This account (" + email + ") is not authorized."); }
-        })
-        .catch(function () { token = ""; expMs = 0; gate("Network error during verification."); });
+      gate("Verifying…");
+      fetch("/api/me", { headers: headers() }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (j && j.ok) { $("admin-who").textContent = j.email || email; document.body.classList.add("authed"); gate(""); if (!inited) { inited = true; init(); } }
+        else { token = ""; expMs = 0; gate("This account (" + email + ") is not authorized."); }
+      }).catch(function () { token = ""; expMs = 0; gate("Network error during verification."); });
     }
     function start() {
       fetch("/api/auth-config").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
@@ -335,34 +274,61 @@
         renderButton();
       }).catch(function () { gate("Could not load auth config."); });
     }
-    function signOut() {
-      token = ""; email = ""; expMs = 0;
-      try { if (window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch (e) {}
-      document.body.classList.remove("authed"); gate("Signed out.", true);
-    }
+    function signOut() { token = ""; email = ""; expMs = 0; try { if (window.google) google.accounts.id.disableAutoSelect(); } catch (e) {} document.body.classList.remove("authed"); gate("Signed out."); }
     return { start: start, valid: valid, headers: headers, requireReauth: requireReauth, signOut: signOut };
   })();
 
-  // ── init (runs once, after successful Google sign-in) ───────────────
+  // ── init (after sign-in) ───────────────────────────────────────────
   function init() {
-    map = L.map("admin-map", { zoomControl: true }).setView([20, 60], 2);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
-    unitLayer.addTo(map);
+    map = L.map("admin-map", { zoomControl: false }).setView([20, 0], 2);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    map.on("click", function (e) { setCoords(e.latlng.lat, e.latlng.lng, true); reverse(e.latlng.lat, e.latlng.lng); });
 
-    $list.addEventListener("input", onFieldInput);
-    $list.addEventListener("change", onFieldInput);
-    $list.addEventListener("click", onListClick);
-    document.getElementById("add-btn").addEventListener("click", doAdd);
-    document.getElementById("download-js").addEventListener("click", doDownloadJs);
-    document.getElementById("copy-json").addEventListener("click", doCopyJson);
-    document.getElementById("reset-btn-admin").addEventListener("click", doReload);
-    document.getElementById("clear-all").addEventListener("click", doClearAll);
-    document.getElementById("signout-btn").addEventListener("click", function () { Auth.signOut(); });
-    document.getElementById("import-input").addEventListener("change", function (e) { if (e.target.files && e.target.files[0]) doImport(e.target.files[0]); e.target.value = ""; });
-    document.querySelectorAll(".view-toggle-btn").forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
+    // toolbar
+    $("add-btn").addEventListener("click", addUnit);
+    $("copy-btn").addEventListener("click", doCopy);
+    $("download-btn").addEventListener("click", doDownload);
+    $("import-btn").addEventListener("click", function () { $("import-text").value = ""; $("import-modal").style.display = "flex"; });
+    $("import-cancel").addEventListener("click", function () { $("import-modal").style.display = "none"; });
+    $("import-load").addEventListener("click", doImport);
+    $("signout-btn").addEventListener("click", function () { Auth.signOut(); });
 
-    loadFromServer(false);
-    setTimeout(function () { if (map) map.invalidateSize(); }, 80);
+    // rail
+    $("rail-search").addEventListener("input", function (e) { state.query = e.target.value; renderRail(); });
+    $("rail-filters").addEventListener("click", function (e) { var b = e.target.closest("[data-filter]"); if (!b) return; state.kindFilter = b.getAttribute("data-filter"); renderFilters(); renderRail(); });
+    $("rail-list").addEventListener("click", function (e) { var b = e.target.closest("[data-select]"); if (b) selectUnit(b.getAttribute("data-select")); });
+
+    // form (delegated)
+    $("form").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-act]"); if (!b) return;
+      var act = b.getAttribute("data-act"), val = b.getAttribute("data-val");
+      if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
+      else if (act === "status") { set({ status: val }); renderRail(); renderForm(); }
+      else if (act === "contact") { set({ contact: val }); renderForm(); }
+      else if (act === "sec") { var s = sel(); var has = s.sections.indexOf(val) !== -1; s.sections = has ? s.sections.filter(function (x) { return x !== val; }) : s.sections.concat([val]); touch(); renderForm(); }
+      else if (act === "tagdel") { var s2 = sel(); s2.tags = s2.tags.filter(function (x) { return x !== val; }); touch(); renderForm(); }
+      else if (act === "tagadd") { addTag(); }
+      else if (act === "find") { find(); }
+      else if (act === "del") { delUnit(); }
+    });
+    $("form").addEventListener("input", function (e) {
+      var id = e.target.id, v = e.target.value;
+      if (id === "f-name") { set({ name: v }); renderRail(); updateCap(); }
+      else if (id === "f-desc") { set({ desc: v }); }
+      else if (id === "f-url") { set({ url: v }); }
+      else if (id === "f-address") { set({ address: v }); updateCap(); }
+      else if (id === "f-lat") { setCoords(v || 0, sel() ? sel().lng : 0, true); }
+      else if (id === "f-lng") { setCoords(sel() ? sel().lat : 0, v || 0, true); }
+      else if (id === "f-tagdraft") { state.tagDraft = v; }
+      else if (id === "f-addr") { state.addrQuery = v; }
+    });
+    $("form").addEventListener("keydown", function (e) { if (e.target.id === "f-tagdraft" && e.key === "Enter") { e.preventDefault(); addTag(); } if (e.target.id === "f-addr" && e.key === "Enter") { e.preventDefault(); find(); } });
+    $("form").addEventListener("change", function (e) {
+      if (e.target.id === "f-country") { var c = e.target.value, m = COUNTRY[c]; set(m ? { country: c, nso: m.nso, region: m.region, lang: m.lang } : { country: c }); renderRail(); renderForm(); syncMarker(false); }
+    });
+
+    loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", Auth.start);

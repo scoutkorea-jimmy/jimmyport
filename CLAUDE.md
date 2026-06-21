@@ -550,6 +550,16 @@ WOSM Region → 국가(NSO) → 단위대
 - CSS는 보류: `section-toggle`·`readonly-line`·`coord-row`·`sections-box`는 `/admin`(admin.js)도 사용 → 공유. 죽은 편집기 CSS(`edit-form`·`ef-l`·`edit-panel`·`card-tools` 등) 정리는 디자인 자료 수령 후.
 - 검증: `node --check` OK + 제거 식별자 11종 잔여 참조 0 + `card-tools/edit-panel/data-edit` 문자열 0.
 
+### 17.5 v0.9.62 — scout-finder 전면 리디자인(공개+관리자) 적용
+- 사용자 디자인 시안(`scout-finder/*.dc.html`, Bricolage+Hanken, 보라 #6336B5) 적용. 시안=디자인툴 React 컴프 → **vanilla 프로덕션으로 포팅**, 기존 백엔드(/api/units·/api/comments·Google 인증)에 연결. 원본 시안은 deploy 루트 밖(`../scout-finder-design/`)으로 이동.
+- **새 데이터 모델**: `kind`(unit/office/heritage) · region **코드**(APR/EUR/ARB/AFR/IAR) · `tags[]`(office/heritage 카테고리) · `status`(published/draft) · `contact`(none/instagram/homepage)+`url` · `address` · `desc`. 기존 데이터 비어 깔끔 채택하되 `normUnit`이 옛 필드(type/place/note/homepage/region 풀네임) 흡수. 공개는 status!=='draft'만 표시.
+- **REGION 팔레트**: APR #6A3FB5 · EUR #2F6FB0 · ARB #2E8B6B · AFR #C26A2E · IAR #C23E6E (JS 코드 상수).
+- **공개**(`index.html`+`app.js`): 풀스크린 CARTO Voyager 지도 + 좌측 글라스 결과패널(접기) + 우측 지역 범례 + 하단 검색바(**Near me 지오로케이션** + Nearest unit/office/heritage 퀵) + 우측 댓글 드로어. 거리정렬(haversine)·지도클릭 앵커·검색 centroid 앵커. 댓글=서버 `/api/comments`(GDPR·IP 마스킹·24h). 마커=랭크 핀(office 사각/heritage ★)+상시 라벨+팝업.
+  - ⚠️ **GPS 미사용 규칙(§1) 변경**: 시안의 'Near me'(navigator.geolocation) 채택. 검색·지도클릭도 병행.
+- **관리자**(`admin.html`+`admin.js`): 시안 적용(툴바·좌측 레일·중앙 폼 Basics/Affiliation/Profile/Contact/Location·우측 드래그 지도·Import 모달·토스트). **Google 인증 게이트 유지**, 저장=`/api/units` PUT(Bearer) 700ms 자동저장. 국가 자동완성=SCOUT_NSOS(176)→region 코드 변환. Import `{"units":[]}`로 전체 비우기(KV 샘플 정리 대안).
+- `styles.css` 전면 교체(디자인 글로벌; 컴포넌트 시각=마크업 인라인 고충실 포팅). 폰트=Google Fonts(Bricolage+Hanken), leaflet=unpkg.
+- 검증: `node --check`(app·admin) OK + 로컬 헤드리스 스크린샷(공개=지도+패널+칩+범례+검색바 정상, 데이터 0='No places found'; 관리자=Google 게이트 렌더). 게이트 안쪽 UI는 라이브 Google 인증 후 검증.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
