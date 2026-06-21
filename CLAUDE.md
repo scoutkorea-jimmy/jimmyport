@@ -629,6 +629,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **부제목**: 데이터 모델 `subtitle` 추가(normUnit app·admin 공통, addUnit 템플릿). 관리자 Basics 카드 'Subtitle' 입력(`f-subtitle`, 안내 '작게/회색'). 공개 표시: **지도 마커 라벨**(이름 굵게+부제목 작은 회색 2줄, `bindTooltip` HTML)·**팝업**(이름 아래 회색)·**목록 행**(이름 아래 회색 ellipsis).
 - 검증: 헤드리스 — 정렬칩 3·컴팩트 3행·부제목 표시·기본 접힘→클릭 시 상세+Show more·Name 정렬 순서·지도 라벨 '이름 / 부제목'(예 'Yeoksam Scout Unit / Gangnam district · since 1971'). `node --check` app·admin OK.
 
+### 17.16 v0.9.73 — 지도 좌우 무한 루프 + 목록 행마다 댓글 버튼 노출
+- 사용자: (1) 지도 좌우 무한 루프, (2) 각 지명 댓글(이미 구현됨 — 발견성만 개선).
+- **좌우 무한 루프**: `maxBounds`를 위도만 클램프(`[[-85.05,-1e6],[85.05,1e6]]`)로 변경 — 경도는 사실상 무제한이라 타일 wrap+`worldCopyJump`로 좌우 무한 스크롤, 위도는 ±85로 고정(상하 여백 0 유지). 검증: setView lng 400 허용·lat 89→83 클램프·북단 85.
+- **댓글 발견성**: 컴팩트 redesign 후 💬가 선택 카드에만 보이던 문제 → 각 컴팩트 행 메타줄에 **클릭 가능한 💬+개수 버튼**(`data-comments`, 0 포함 항상 표시) 노출 → 행 선택 없이 바로 댓글 드로어 오픈(레딧식 쓰레드·GDPR·IP마스킹은 기존). 검증: 행 댓글버튼 클릭→drawer 열림·카드 선택 안 됨.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

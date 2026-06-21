@@ -244,14 +244,14 @@
       var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";
       var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;";
       var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
-      var csChip = cs ? '<span style="display:inline-flex;align-items:center;gap:3px;font:600 9.5px \'Hanken Grotesk\';color:#9a93a6;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</span>' : "";
+      var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
       // compact header (shared by collapsed + selected)
       var header = '<div style="display:flex;align-items:center;gap:10px;">' +
         '<div style="' + badge + '">' + (i + 1) + '</div>' +
         '<div style="flex:1;min-width:0;">' +
         '<div style="font:700 13.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name) + '</div>' +
         (u.subtitle ? '<div style="font:500 11px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
-        '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (csChip && !sel ? csChip : "") + '</div>' +
+        '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (!sel ? csBtn : "") + '</div>' +
         '</div>' + dist + '</div>';
 
       if (!sel) {
@@ -475,7 +475,9 @@
     if (map.getZoom() < mz) map.setZoom(mz);
   }
   function initMap() {
-    map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-85.05, -180], [85.05, 180]], maxBoundsViscosity: 1.0 }).setView([25, 12], 2);
+    // Latitude is clamped (no grey above/below the world); longitude is left effectively
+    // unbounded so the map loops left↔right infinitely (tiles wrap + worldCopyJump).
+    map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-85.05, -1e6], [85.05, 1e6]], maxBoundsViscosity: 1.0 }).setView([25, 12], 2);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     layer = L.layerGroup().addTo(map);
