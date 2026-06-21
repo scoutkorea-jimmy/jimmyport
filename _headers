@@ -1,0 +1,4 @@
+# Always revalidate so a new deploy is picked up immediately (304 when unchanged).
+# Prevents stale HTML from loading stale app.js/admin.js/styles.css.
+/*
+  Cache-Control: no-cache

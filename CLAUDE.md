@@ -592,6 +592,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **버전 표기**: 공개 푸터 Admin 아래 `#app-version`(app.js `loadVersion`→`/VERSION`). **캐시 버스팅**: index/admin html의 app.js·admin.js·styles.css·data.js·version-watch.js 참조에 `?v=0.9.66`(배포 즉시 새 JS 적용, 반복되던 캐시 문제 해소).
 - 검증: `node --check`(app·admin) OK + 헤드리스 Chrome CDP(클러스터 3단계·minZoom·팝업복사행·범례WSB·버전·콘솔 정상).
 
+### 17.10 v0.9.67 — HTML no-cache(_headers) + 관리자 30분 유휴 타임아웃 + minZoom 재확인
+- **캐시 근본 해결**: 사용자가 배포 후에도 옛 HTML→옛 app.js를 봐서(범례 WSB 없음·옛 minZoom 여백) 수정이 반영 안 됨. 원인=HTML 브라우저 캐시(?v= 버스팅은 HTML이 신선해야 작동). → `_headers` 신설(`/* Cache-Control: no-cache`) → 모든 정적 자산 매 로드 재검증(ETag 304), 배포 즉시 반영. (`?v=0.9.67`은 방어용 유지.) ⚠️ `/admin.html`은 `/admin`으로 308 — curl 검증은 클린 URL로.
+- **관리자 30분 유휴 타임아웃**(`admin.js` Auth): `IDLE_MS=30분`. `startIdle`이 pointerdown/keydown/input/change/wheel/touchstart(capture)로 `resetIdle` → 활동마다 카운트다운 초기화. 만료 시 세션 클리어+게이트("Signed out after 30 minutes of inactivity."). onAuthed에서 시작, showGate/signOut에서 stopIdle. (서버 세션 12h는 유지, 클라 유휴 로그아웃만 추가.)
+- **minZoom 재확인**(사용자 재요청): 헤드리스 2560×1400 → minZoom 3, setZoom(0) 클램프=3, worldHeightPx 2048≥뷰포트 1313(fillsHeight true·bounds ±75) = 상하 여백 0·더 축소 불가 확인. 코드는 v0.9.66부터 정상이었고 캐시로 미반영이었음.
+- **데이터 삭제 반영 확인**: `PUT units:[]` 후 KV 전파되어 GET count 0(공개 'No places found').
+- 검증: `node --check` admin.js OK + 헤드리스(minZoom/클램프) + 라이브 `_headers` no-cache·clean URL.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

@@ -303,16 +303,25 @@
 
   // ── TOTP sign-in gate ──────────────────────────────────────────────
   var Auth = (function () {
-    var token = "", expMs = 0, inited = false;
+    var token = "", expMs = 0, inited = false, idleTimer = null, idleWired = false;
     var LS = "scoutfinder:admin-session";
+    var IDLE_MS = 30 * 60 * 1000; // sign out after 30 min of inactivity
     function gate(msg) { var m = $("auth-msg"); if (m) m.textContent = msg || ""; }
     function valid() { return !!token && Date.now() < expMs - 5000; }
     function headers() { return token ? { "Authorization": "Bearer " + token } : {}; }
     function save() { try { localStorage.setItem(LS, JSON.stringify({ token: token, exp: expMs })); } catch (e) {} }
     function clearLS() { try { localStorage.removeItem(LS); } catch (e) {} }
-    function showGate(msg) { document.body.classList.remove("authed"); gate(msg || ""); var i = $("otp-input"); if (i) { i.value = ""; try { i.focus(); } catch (e) {} } }
+    // 30-minute idle timeout — any click/keypress/action resets the countdown.
+    function resetIdle() { if (!token) return; if (idleTimer) clearTimeout(idleTimer); idleTimer = setTimeout(function () { if (token) { token = ""; expMs = 0; clearLS(); showGate("Signed out after 30 minutes of inactivity."); } }, IDLE_MS); }
+    function startIdle() {
+      resetIdle();
+      if (idleWired) return; idleWired = true;
+      ["pointerdown", "keydown", "input", "change", "wheel", "touchstart"].forEach(function (ev) { document.addEventListener(ev, resetIdle, true); });
+    }
+    function stopIdle() { if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; } }
+    function showGate(msg) { stopIdle(); document.body.classList.remove("authed"); gate(msg || ""); var i = $("otp-input"); if (i) { i.value = ""; try { i.focus(); } catch (e) {} } }
     function requireReauth() { token = ""; expMs = 0; clearLS(); showGate("Session expired — enter a new code."); }
-    function onAuthed() { var w = $("admin-who"); if (w) w.textContent = "Admin"; document.body.classList.add("authed"); gate(""); if (!inited) { inited = true; init(); } }
+    function onAuthed() { var w = $("admin-who"); if (w) w.textContent = "Admin"; document.body.classList.add("authed"); gate(""); startIdle(); if (!inited) { inited = true; init(); } }
     function submit(code) {
       code = String(code || "").replace(/\D/g, "");
       if (code.length !== 6) { gate("Enter the 6-digit code."); return; }
