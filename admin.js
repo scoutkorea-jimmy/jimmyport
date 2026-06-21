@@ -43,7 +43,7 @@
       if (u.contact === "instagram" || /instagram\.com/i.test(legacy)) instagram = legacy; else homepage = legacy;
     }
     return {
-      id: u.id, kind: u.kind || "unit", name: u.name || "", country: u.country || "",
+      id: u.id, kind: u.kind || "unit", name: u.name || "", subtitle: u.subtitle || "", country: u.country || "",
       nso: u.nso || "", region: regionCode(u.region), lang: u.lang || "",
       lat: +u.lat || 0, lng: +u.lng || 0, address: u.address || u.place || "",
       sections: Array.isArray(u.sections) ? u.sections : [], tags: Array.isArray(u.tags) ? u.tags : [],
@@ -224,6 +224,7 @@
 
       card("basics", "Basics",
         '<label style="' + LBL + '">Name</label><input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
+        '<label style="' + LBL + '">Subtitle <span style="color:#b3adbd;font-weight:500;">(shown smaller / grey on the map)</span></label><input id="f-subtitle" value="' + escAttr(s.subtitle) + '" class="sf-fld" placeholder="e.g. Gangnam · since 1971" />' +
         '<label style="' + LBL + '">Place type</label><div style="display:flex;gap:6px;">' + kindSeg + '</div>' +
         '<label style="' + LBL + '">Visibility</label><div style="display:flex;gap:6px;">' + statusSeg + '</div>') +
 
@@ -268,7 +269,7 @@
   function selectUnit(id) { state.selectedId = id; state.addrQuery = ""; renderRail(); renderForm(); syncMarker(true); }
   function addUnit() {
     var id = "unit-" + Date.now().toString(36);
-    var nu = { id: id, kind: "unit", name: "New scout place", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", instagram: "", homepage: "", phone: "", email: "", status: "draft" };
+    var nu = { id: id, kind: "unit", name: "New scout place", subtitle: "", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", instagram: "", homepage: "", phone: "", email: "", status: "draft" };
     units.unshift(nu); state.selectedId = id; state.query = ""; state.kindFilter = "All"; state.addrQuery = "";
     $("rail-search").value = ""; renderFilters(); renderRail(); renderForm(); syncMarker(true); touch();
   }
@@ -492,6 +493,7 @@
     $("form").addEventListener("input", function (e) {
       var id = e.target.id, v = e.target.value;
       if (id === "f-name") { set({ name: v }); renderRail(); updateCap(); }
+      else if (id === "f-subtitle") { set({ subtitle: v }); }
       else if (id === "f-desc") { set({ desc: v }); }
       else if (id === "f-instagram") { set({ instagram: v }); }
       else if (id === "f-phone") { set({ phone: v }); }

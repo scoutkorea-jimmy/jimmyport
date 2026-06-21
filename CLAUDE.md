@@ -623,6 +623,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **Full address 영어 강제**(사용자: 사이트는 영어 전용): Nominatim 기본은 브라우저 언어를 따라가 한국어 혼입(예 '나이로비, 케냐') → 모든 Nominatim 호출(admin search·reverse, 공개 Report search)에 `&accept-language=en` 추가. 라이브 확인: en='…Sejong-daero, …Jung…' vs ko='…세종대로, 중구, 서울특별시, 대한민국'. ⚠️ 기존 저장된 혼합 주소는 재조회 전까지 유지(신규 조회분만 영어).
 - 검증: 헤드리스 — '37.1234567' 입력→Show on map 커밋 후 값 유지, '37.12345678'→'37.1234568'(7자리 반올림). 잔여 좌표 toFixed(5/4) 0. Nominatim en 응답 영어 확인.
 
+### 17.15 v0.9.72 — 공개 목록 컴팩트 행 + 정렬 + 부제목(subtitle)
+- 사용자 2건: (1) 좌측 목록을 데이터 많아도 편하게(AskUserQuestion: **컴팩트 행 + 정렬** 선택), (2) 지도에 저장 지명 이름 + **부제목**(본제목보다 작고 회색).
+- **컴팩트 행 + 정렬**(`app.js`): `renderList` 전면 개편 — 비선택 항목은 한 줄 요약(랭크 배지·이름 ellipsis·부제목 회색·종류/지역 칩·거리·댓글수), **선택 항목만 상세 펼침**(주소·설명+Show more·섹션/태그칩·연락처·댓글). 행 클릭=`select`(지도 flyTo+팝업+해당 행 펼침), 선택 행 `scrollIntoView`. 상단 `#sort-row` 정렬 칩(Distance/Name/Region, `state.sort` 기본 distance) → `sorted()`가 정렬모드 반영(거리 anchor 없으면 이름순 폴백). `renderSort` + wire 핸들러 + renderAll에 추가.
+- **부제목**: 데이터 모델 `subtitle` 추가(normUnit app·admin 공통, addUnit 템플릿). 관리자 Basics 카드 'Subtitle' 입력(`f-subtitle`, 안내 '작게/회색'). 공개 표시: **지도 마커 라벨**(이름 굵게+부제목 작은 회색 2줄, `bindTooltip` HTML)·**팝업**(이름 아래 회색)·**목록 행**(이름 아래 회색 ellipsis).
+- 검증: 헤드리스 — 정렬칩 3·컴팩트 3행·부제목 표시·기본 접힘→클릭 시 상세+Show more·Name 정렬 순서·지도 라벨 '이름 / 부제목'(예 'Yeoksam Scout Unit / Gangnam district · since 1971'). `node --check` app·admin OK.
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).

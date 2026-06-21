@@ -23,7 +23,7 @@
   // ── state ──────────────────────────────────────────────────────────
   var UNITS = [], COMMENTS = [];
   var map, layer, markers = {};
-  var state = { query: "", region: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {} };
+  var state = { query: "", region: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance" };
 
   // ── helpers ────────────────────────────────────────────────────────
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -46,7 +46,7 @@
       if (u.contact === "instagram" || /instagram\.com/i.test(legacy)) instagram = legacy; else homepage = legacy;
     }
     return {
-      id: u.id, kind: u.kind || "unit", name: u.name || "", country: u.country || "", city: u.city || "",
+      id: u.id, kind: u.kind || "unit", name: u.name || "", subtitle: u.subtitle || "", country: u.country || "", city: u.city || "",
       nso: u.nso || "", region: region, lang: u.lang || "", lat: +u.lat, lng: +u.lng,
       address: u.address || u.place || "", sections: Array.isArray(u.sections) ? u.sections : [],
       tags: Array.isArray(u.tags) ? u.tags : [], desc: u.desc || u.note || "",
@@ -78,7 +78,11 @@
       return true;
     });
     var a = state.anchor;
-    if (a) list = list.map(function (u) { return Object.assign({ _dist: haversine(a.lat, a.lng, u.lat, u.lng) }, u); }).sort(function (x, y) { return x._dist - y._dist; });
+    if (a) list = list.map(function (u) { return Object.assign({ _dist: haversine(a.lat, a.lng, u.lat, u.lng) }, u); });
+    var by = state.sort || "distance";
+    if (by === "name" || (by === "distance" && !a)) list.sort(function (x, y) { return (x.name || "").localeCompare(y.name || ""); });
+    else if (by === "region") list.sort(function (x, y) { return ((x.region || "") + " " + (x.name || "")).localeCompare((y.region || "") + " " + (y.name || "")); });
+    else list.sort(function (x, y) { return x._dist - y._dist; });
     return list;
   }
 
@@ -123,7 +127,8 @@
     return '<div style="font-family:\'Hanken Grotesk\';max-width:250px;">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">' +
       '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(KIND[u.kind] || "") + '</span>' + dist + '</div>' +
-      '<div style="font:700 16px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;line-height:1.15;margin-bottom:3px;">' + esc(u.name) + '</div>' +
+      '<div style="font:700 16px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;line-height:1.15;margin-bottom:' + (u.subtitle ? "1px" : "3px") + ';">' + esc(u.name) + '</div>' +
+      (u.subtitle ? '<div style="font:500 12px \'Hanken Grotesk\';color:#9a93a6;line-height:1.25;margin-bottom:7px;">' + esc(u.subtitle) + '</div>' : '') +
       (loc ? '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' : '') +
       addr +
       (u.desc ? '<div style="font-size:12.5px;color:#42394f;line-height:1.5;margin-bottom:10px;">' + esc(u.desc) + '</div>' : "") +
@@ -171,7 +176,8 @@
       var sel = u.id === state.selectedId;
       var icon = L.divIcon({ className: "", html: pinHtml(i + 1, u, sel), iconSize: [40, 46], iconAnchor: [20, 44], popupAnchor: [0, -42] });
       var m = L.marker([u.lat, u.lng], { icon: icon, zIndexOffset: sel ? 1000 : 0 }).addTo(layer);
-      m.bindTooltip(u.name, { permanent: true, direction: "top", offset: [0, -46], className: "sf-label", opacity: 1 });
+      var labelHtml = '<div style="font:700 12px \'Hanken Grotesk\';color:#1E1730;line-height:1.15;">' + esc(u.name) + '</div>' + (u.subtitle ? '<div style="font:500 10.5px \'Hanken Grotesk\';color:#9a93a6;line-height:1.15;margin-top:1px;">' + esc(u.subtitle) + '</div>' : "");
+      m.bindTooltip(labelHtml, { permanent: true, direction: "top", offset: [0, -46], className: "sf-label", opacity: 1 });
       m.bindPopup(popupHtml(u), { closeButton: true, maxWidth: 280, minWidth: 248, autoPanPadding: [60, 60] });
       m.on("click", function (e) { if (e && e.originalEvent) L.DomEvent.stopPropagation(e); select(u.id, false); });
       markers[u.id] = m;
@@ -181,6 +187,7 @@
 
   function select(id, pan) {
     state.selectedId = id; renderMarkers(); renderList();
+    if (id) { var row = $("unit-list").querySelector('[data-open="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); if (row && row.scrollIntoView) { try { row.scrollIntoView({ block: "nearest" }); } catch (e) { row.scrollIntoView(); } } }
     var u = UNITS.find(function (x) { return x.id === id; });
     if (map && u) {
       if (pan) map.flyTo([u.lat, u.lng], Math.max(map.getZoom(), 11), { duration: .6 });
@@ -229,48 +236,65 @@
 
   function renderList() {
     var f = sorted();
-    var cardBase = "border:1px solid;border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;background:#fff;";
     var html = f.map(function (u, i) {
       var sel = u.id === state.selectedId;
       var rc = REGION[u.region] || { color: "#6336B5" };
       var cs = commentsFor(u.id).length;
+      var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
+      var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";
+      var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;";
+      var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
+      var csChip = cs ? '<span style="display:inline-flex;align-items:center;gap:3px;font:600 9.5px \'Hanken Grotesk\';color:#9a93a6;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</span>' : "";
+      // compact header (shared by collapsed + selected)
+      var header = '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="' + badge + '">' + (i + 1) + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font:700 13.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name) + '</div>' +
+        (u.subtitle ? '<div style="font:500 11px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
+        '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (csChip && !sel ? csChip : "") + '</div>' +
+        '</div>' + dist + '</div>';
+
+      if (!sel) {
+        return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #efeae1;border-radius:12px;padding:9px 11px;margin-bottom:7px;cursor:pointer;background:#fff;">' + header + '</div>';
+      }
+
+      // selected → expanded details
       var place = [u.country || u.address, u.nso].filter(Boolean).join(" · ");
       var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
-      var dist = u._dist != null ? '<span style="flex:none;font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
       var citems = contactItems(u);
       var contact = citems.length
         ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;">' + esc(it.label) + '</a>'; }).join('<span style="color:#d6cfe0;">·</span>') + '</div>'
         : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
-      var badge = "width:30px;height:30px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 13px 'Hanken Grotesk';";
-      var kindChip = "display:inline-flex;align-items:center;font:700 9.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.05em;color:#6b6577;background:#f1ece4;padding:3px 7px;border-radius:6px;";
-      var regionChip = "display:inline-flex;align-items:center;font:700 9.5px 'Hanken Grotesk';letter-spacing:.04em;color:" + rc.color + ";background:" + rc.color + "14;padding:3px 7px;border-radius:6px;";
-      var cardStyle = cardBase + (sel ? "border-color:#6336B5;box-shadow:0 0 0 3px #6336B51f;" : "border-color:#efeae1;");
-      return '<div data-open="' + escAttr(u.id) + '" style="' + cardStyle + '">' +
-        '<div style="display:flex;gap:12px;">' +
-        '<div style="' + badge + '">' + (i + 1) + '</div>' +
-        '<div style="flex:1;min-width:0;">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">' +
-        '<span style="font:700 14.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.15;">' + esc(u.name) + '</span>' + dist + '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;">' +
-        '<span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span></div>' +
-        '<div style="font-size:12px;color:#8a8496;margin-bottom:6px;line-height:1.35;">' + esc(place) + '</div>' +
-        (function () {
-          if (!u.desc) return "";
-          var long = u.desc.length > 90, open = !!state.descExpanded[u.id];
-          var clamp = (long && !open) ? "display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" : "";
-          var body = '<div style="font-size:12.5px;color:#4a4458;line-height:1.45;margin-bottom:' + (long ? "4px" : "9px") + ';' + clamp + '">' + esc(u.desc) + '</div>';
-          var toggle = long ? '<button data-more="' + escAttr(u.id) + '" data-stop="1" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:9px;">' + (open ? "Show less" : "Show more") + '</button>' : "";
-          return body + toggle;
-        })() +
+      var descBlock = (function () {
+        if (!u.desc) return "";
+        var long = u.desc.length > 90, open = !!state.descExpanded[u.id];
+        var clamp = (long && !open) ? "display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" : "";
+        var body = '<div style="font-size:12.5px;color:#4a4458;line-height:1.45;margin-bottom:' + (long ? "4px" : "9px") + ';' + clamp + '">' + esc(u.desc) + '</div>';
+        var toggle = long ? '<button data-more="' + escAttr(u.id) + '" data-stop="1" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:9px;">' + (open ? "Show less" : "Show more") + '</button>' : "";
+        return body + toggle;
+      })();
+      return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #6336B5;box-shadow:0 0 0 3px #6336B51f;border-radius:14px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;">' +
+        header +
+        '<div style="margin-top:11px;padding-top:11px;border-top:1px solid #f3eee5;">' +
+        (place ? '<div style="font-size:12px;color:#8a8496;margin-bottom:7px;line-height:1.35;">' + esc(place) + '</div>' : "") +
+        descBlock +
         (chips ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">' + chips + '</div>' : "") +
-        '<div style="display:flex;align-items:center;gap:12px;padding-top:9px;border-top:1px solid #f3eee5;">' + contact +
+        '<div style="display:flex;align-items:center;gap:12px;">' + contact +
         '<div style="flex:1;"></div>' +
         '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
         '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>' +
-        '</div></div></div></div>';
+        '</div></div></div>';
     }).join("");
     if (!f.length) html = '<div style="text-align:center;padding:46px 20px;color:#9a93a6;"><div style="font:600 14px \'Hanken Grotesk\';margin-bottom:4px;color:#6b6577;">No places found</div><div style="font-size:12.5px;">Try a different search or reset the filters.</div></div>';
     $("unit-list").innerHTML = html;
+  }
+  function renderSort() {
+    var el = $("sort-row"); if (!el) return;
+    var opts = [["distance", "Distance"], ["name", "Name"], ["region", "Region"]];
+    el.innerHTML = '<span style="font:700 10px \'Hanken Grotesk\';color:#9a93a6;text-transform:uppercase;letter-spacing:.06em;margin-right:1px;">Sort</span>' + opts.map(function (o) {
+      var active = (state.sort || "distance") === o[0];
+      return '<button data-sort="' + o[0] + '" style="border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + o[1] + '</button>';
+    }).join("");
   }
 
   function updateCounts() {
@@ -286,7 +310,7 @@
     }).join("");
   }
 
-  function renderAll() { renderChips(); renderList(); updateCounts(); renderMarkers(); }
+  function renderAll() { renderChips(); renderSort(); renderList(); updateCounts(); renderMarkers(); }
 
   function setPanelOpen(open) {
     state.panelOpen = open;
@@ -475,6 +499,7 @@
 
     $("kind-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-kind]"); if (!b) return; state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); });
     $("region-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-region]"); if (!b) return; state.region = b.getAttribute("data-region"); renderChips(); renderAll(); });
+    $("sort-row").addEventListener("click", function (e) { var b = e.target.closest("[data-sort]"); if (!b) return; state.sort = b.getAttribute("data-sort"); renderSort(); renderList(); });
 
     $("unit-list").addEventListener("click", function (e) {
       var mb = e.target.closest("[data-more]"); if (mb) { e.stopPropagation(); var mid = mb.getAttribute("data-more"); state.descExpanded[mid] = !state.descExpanded[mid]; renderList(); return; }
