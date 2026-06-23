@@ -23,7 +23,10 @@
   // ── state ──────────────────────────────────────────────────────────
   var UNITS = [], COMMENTS = [];
   var map, layer, markers = {};
-  var state = { query: "", region: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance" };
+  var state = { query: "", region: "All", country: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance", grouped: true, countryOpen: false, countryQuery: "", collapsedGroups: {} };
+
+  // Country bucket for filtering + grouping (falls back to NSO, then "—").
+  function countryOf(u) { return u.country || u.nso || "—"; }
 
   // ── helpers ────────────────────────────────────────────────────────
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -74,6 +77,7 @@
     var list = UNITS.filter(function (u) {
       if (state.kind !== "All" && u.kind !== state.kind) return false;
       if (state.region !== "All" && u.region !== state.region) return false;
+      if (state.country !== "All" && countryOf(u) !== state.country) return false;
       if (q) { var hay = (u.name + " " + u.country + " " + u.city + " " + u.nso + " " + u.region + " " + (REGION[u.region] ? REGION[u.region].full : "") + " " + u.kind + " " + u.address).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
       return true;
     });
@@ -186,7 +190,9 @@
   }
 
   function select(id, pan) {
-    state.selectedId = id; renderMarkers(); renderList();
+    state.selectedId = id;
+    if (id && state.grouped) { var su = UNITS.find(function (x) { return x.id === id; }); if (su) { delete state.collapsedGroups["r:" + su.region]; delete state.collapsedGroups["c:" + su.region + "|" + countryOf(su)]; } }
+    renderMarkers(); renderList();
     if (id) { var row = $("unit-list").querySelector('[data-open="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); if (row && row.scrollIntoView) { try { row.scrollIntoView({ block: "nearest" }); } catch (e) { row.scrollIntoView(); } } }
     var u = UNITS.find(function (x) { return x.id === id; });
     if (map && u) {
@@ -234,67 +240,186 @@
     }).join("");
   }
 
+  // ── searchable country filter (scoped by the active kind + region) ──
+  function availableCountries() {
+    var seen = {};
+    UNITS.forEach(function (u) {
+      if (state.kind !== "All" && u.kind !== state.kind) return;
+      if (state.region !== "All" && u.region !== state.region) return;
+      var c = countryOf(u);
+      var e = seen[c] || (seen[c] = { name: c, region: u.region, count: 0 });
+      e.count++;
+    });
+    return Object.keys(seen).map(function (k) { return seen[k]; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+  }
+  function chevDown() { return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="m6 9 6 6 6-6"></path></svg>'; }
+  function countryOptionsHtml() {
+    var list = availableCountries();
+    var q = (state.countryQuery || "").trim().toLowerCase();
+    var matches = q ? list.filter(function (c) { return c.name.toLowerCase().indexOf(q) !== -1; }) : list;
+    var total = list.reduce(function (s, c) { return s + c.count; }, 0);
+    function opt(value, label, dot, count, active) {
+      var dotEl = dot ? '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';flex:none;"></span>' : '<span style="width:8px;flex:none;"></span>';
+      return '<button data-pick-country="' + escAttr(value) + '" style="display:flex;align-items:center;gap:8px;width:100%;border:none;background:' + (active ? "#f3eefb" : "transparent") + ';cursor:pointer;text-align:left;padding:7px 9px;border-radius:9px;font:600 12.5px \'Hanken Grotesk\';color:' + (active ? "#5B2EA6" : "#3a3346") + ';">' +
+        dotEl + '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(label) + '</span>' +
+        '<span style="flex:none;font:700 10px \'Hanken Grotesk\';color:#9a93a6;background:#f1ece4;border-radius:999px;padding:1px 7px;">' + count + '</span></button>';
+    }
+    var html = opt("All", "All countries", "", total, state.country === "All");
+    html += matches.map(function (c) { return opt(c.name, c.name, (REGION[c.region] || { color: "#6336B5" }).color, c.count, state.country === c.name); }).join("");
+    if (!matches.length) html += '<div style="padding:14px 9px;text-align:center;font-size:12px;color:#a39bb0;">No countries match “' + esc(state.countryQuery) + '”.</div>';
+    return html;
+  }
+  function renderCountryFilter() {
+    var host = $("country-filter"); if (!host) return;
+    var active = state.country !== "All";
+    var label = active ? state.country : "All countries";
+    var trig = "display:flex;align-items:center;gap:8px;width:100%;border:1px solid;cursor:pointer;padding:9px 11px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';transition:all .15s;" + (active ? "background:#f3eefb;color:#5B2EA6;border-color:#d8c8f0;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;");
+    var globe = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"></path></svg>';
+    var clear = active ? '<span data-clear-country="1" title="Clear country" style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#6336B5;color:#fff;font:700 11px \'Hanken Grotesk\';line-height:1;">×</span>' : '';
+    var trigger = '<button id="country-trigger" style="' + trig + '">' + globe +
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">' + esc(label) + '</span>' + clear +
+      '<span style="flex:none;color:#9a93a6;display:inline-flex;">' + chevDown() + '</span></button>';
+    var dropdown = "";
+    if (state.countryOpen) {
+      dropdown = '<div id="country-dropdown" style="position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:50;background:#fff;border:1px solid #ece6db;border-radius:13px;box-shadow:0 16px 40px rgba(30,18,55,.2);padding:9px;">' +
+        '<input id="country-search" placeholder="Search a country…" autocomplete="off" value="' + escAttr(state.countryQuery || "") + '" style="width:100%;border:1px solid #e7e1d8;border-radius:10px;padding:9px 11px;font:500 12.5px \'Hanken Grotesk\';color:#1E1730;outline:none;background:#fbfaf7;" />' +
+        '<div id="country-options" class="sf-scroll" style="max-height:244px;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:1px;">' + countryOptionsHtml() + '</div></div>';
+    }
+    host.innerHTML = trigger + dropdown;
+    if (state.countryOpen) { var si = $("country-search"); if (si) { try { si.focus(); var n = si.value.length; si.setSelectionRange(n, n); } catch (e) {} } }
+  }
+  function pickCountry(name) {
+    state.country = name; state.countryOpen = false; state.countryQuery = "";
+    renderCountryFilter(); renderAll();
+    if (map && name !== "All") {
+      var pts = UNITS.filter(function (u) { return countryOf(u) === name && !isNaN(u.lat) && !isNaN(u.lng); });
+      if (pts.length === 1) map.flyTo([pts[0].lat, pts[0].lng], Math.max(map.getZoom(), 9), { duration: .6 });
+      else if (pts.length > 1) map.flyToBounds(L.latLngBounds(pts.map(function (u) { return [u.lat, u.lng]; })).pad(0.3), { maxZoom: 11, duration: .6 });
+    }
+  }
+
+  // One place row — compact when unselected, expanded when selected. `rank` = 1-based badge number.
+  function unitRowHtml(u, rank) {
+    var sel = u.id === state.selectedId;
+    var rc = REGION[u.region] || { color: "#6336B5" };
+    var cs = commentsFor(u.id).length;
+    var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
+    var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";
+    var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;";
+    var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
+    var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
+    // compact header (shared by collapsed + selected)
+    var header = '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<div style="' + badge + '">' + rank + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+      '<div style="font:700 13.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name) + '</div>' +
+      (u.subtitle ? '<div style="font:500 11px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
+      '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (!sel ? csBtn : "") + '</div>' +
+      '</div>' + dist + '</div>';
+
+    if (!sel) {
+      return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #efeae1;border-radius:12px;padding:9px 11px;margin-bottom:7px;cursor:pointer;background:#fff;">' + header + '</div>';
+    }
+
+    // selected → expanded details
+    var place = [u.country || u.address, u.nso].filter(Boolean).join(" · ");
+    var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
+    var citems = contactItems(u);
+    var contact = citems.length
+      ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;">' + esc(it.label) + '</a>'; }).join('<span style="color:#d6cfe0;">·</span>') + '</div>'
+      : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+    var descBlock = (function () {
+      if (!u.desc) return "";
+      var long = u.desc.length > 90, open = !!state.descExpanded[u.id];
+      var clamp = (long && !open) ? "display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" : "";
+      var body = '<div style="font-size:12.5px;color:#4a4458;line-height:1.45;margin-bottom:' + (long ? "4px" : "9px") + ';' + clamp + '">' + esc(u.desc) + '</div>';
+      var toggle = long ? '<button data-more="' + escAttr(u.id) + '" data-stop="1" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:9px;">' + (open ? "Show less" : "Show more") + '</button>' : "";
+      return body + toggle;
+    })();
+    return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #6336B5;box-shadow:0 0 0 3px #6336B51f;border-radius:14px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;">' +
+      header +
+      '<div style="margin-top:11px;padding-top:11px;border-top:1px solid #f3eee5;">' +
+      (place ? '<div style="font-size:12px;color:#8a8496;margin-bottom:7px;line-height:1.35;">' + esc(place) + '</div>' : "") +
+      descBlock +
+      (chips ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">' + chips + '</div>' : "") +
+      '<div style="display:flex;align-items:center;gap:12px;">' + contact +
+      '<div style="flex:1;"></div>' +
+      '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>' +
+      '</div></div></div>';
+  }
+
+  function groupChevron(collapsed, size) { size = size || 14; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="#9a93a6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(' + (collapsed ? 0 : 90) + 'deg);transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>'; }
+  function countBadge(n) { return '<span style="flex:none;font:700 10px \'Hanken Grotesk\';color:#9a93a6;background:#f1ece4;border-radius:999px;padding:1px 8px;">' + n + '</span>'; }
+
   function renderList() {
     var f = sorted();
-    var html = f.map(function (u, i) {
-      var sel = u.id === state.selectedId;
-      var rc = REGION[u.region] || { color: "#6336B5" };
-      var cs = commentsFor(u.id).length;
-      var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
-      var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : "50%") + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";
-      var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;";
-      var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
-      var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
-      // compact header (shared by collapsed + selected)
-      var header = '<div style="display:flex;align-items:center;gap:10px;">' +
-        '<div style="' + badge + '">' + (i + 1) + '</div>' +
-        '<div style="flex:1;min-width:0;">' +
-        '<div style="font:700 13.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name) + '</div>' +
-        (u.subtitle ? '<div style="font:500 11px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
-        '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (!sel ? csBtn : "") + '</div>' +
-        '</div>' + dist + '</div>';
+    if (!f.length) {
+      $("unit-list").innerHTML = '<div style="text-align:center;padding:46px 20px;color:#9a93a6;"><div style="font:600 14px \'Hanken Grotesk\';margin-bottom:4px;color:#6b6577;">No places found</div><div style="font-size:12.5px;">Try a different search or reset the filters.</div></div>';
+      return;
+    }
+    var rankOf = {};
+    f.forEach(function (u, i) { rankOf[u.id] = i + 1; });
 
-      if (!sel) {
-        return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #efeae1;border-radius:12px;padding:9px 11px;margin-bottom:7px;cursor:pointer;background:#fff;">' + header + '</div>';
-      }
+    if (!state.grouped) {
+      $("unit-list").innerHTML = f.map(function (u) { return unitRowHtml(u, rankOf[u.id]); }).join("");
+      return;
+    }
 
-      // selected → expanded details
-      var place = [u.country || u.address, u.nso].filter(Boolean).join(" · ");
-      var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
-      var citems = contactItems(u);
-      var contact = citems.length
-        ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;">' + esc(it.label) + '</a>'; }).join('<span style="color:#d6cfe0;">·</span>') + '</div>'
-        : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
-      var descBlock = (function () {
-        if (!u.desc) return "";
-        var long = u.desc.length > 90, open = !!state.descExpanded[u.id];
-        var clamp = (long && !open) ? "display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" : "";
-        var body = '<div style="font-size:12.5px;color:#4a4458;line-height:1.45;margin-bottom:' + (long ? "4px" : "9px") + ';' + clamp + '">' + esc(u.desc) + '</div>';
-        var toggle = long ? '<button data-more="' + escAttr(u.id) + '" data-stop="1" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:9px;">' + (open ? "Show less" : "Show more") + '</button>' : "";
-        return body + toggle;
-      })();
-      return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #6336B5;box-shadow:0 0 0 3px #6336B51f;border-radius:14px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;">' +
-        header +
-        '<div style="margin-top:11px;padding-top:11px;border-top:1px solid #f3eee5;">' +
-        (place ? '<div style="font-size:12px;color:#8a8496;margin-bottom:7px;line-height:1.35;">' + esc(place) + '</div>' : "") +
-        descBlock +
-        (chips ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">' + chips + '</div>' : "") +
-        '<div style="display:flex;align-items:center;gap:12px;">' + contact +
-        '<div style="flex:1;"></div>' +
-        '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
-        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>' +
-        '</div></div></div>';
+    // grouped tree: Region › Country › place (district level)
+    var anchored = !!state.anchor && (state.sort || "distance") === "distance";
+    var byRegion = {};
+    f.forEach(function (u) {
+      var rk = u.region, ck = countryOf(u);
+      var rg = byRegion[rk] || (byRegion[rk] = { count: 0, minDist: Infinity, countries: {} });
+      rg.count++; if (u._dist != null && u._dist < rg.minDist) rg.minDist = u._dist;
+      var cg = rg.countries[ck] || (rg.countries[ck] = { units: [], minDist: Infinity });
+      cg.units.push(u); if (u._dist != null && u._dist < cg.minDist) cg.minDist = u._dist;
+    });
+    var order = Object.keys(REGION);
+    var regionKeys = Object.keys(byRegion).sort(function (a, b) {
+      return anchored ? (byRegion[a].minDist - byRegion[b].minDist) : (order.indexOf(a) - order.indexOf(b));
+    });
+
+    var html = regionKeys.map(function (rk) {
+      var rg = byRegion[rk];
+      var rcolor = REGION[rk] ? REGION[rk].color : "#6336B5";
+      var rfull = REGION[rk] ? REGION[rk].full : rk;
+      var rId = "r:" + rk, rCol = !!state.collapsedGroups[rId];
+      var rHeader = '<button data-group="' + escAttr(rId) + '" style="display:flex;align-items:center;gap:8px;width:100%;border:none;background:transparent;cursor:pointer;text-align:left;padding:8px 4px 6px;">' +
+        groupChevron(rCol, 15) +
+        '<span style="width:10px;height:10px;border-radius:50%;background:' + rcolor + ';flex:none;"></span>' +
+        '<span style="flex:1;min-width:0;font:800 12.5px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(rfull) + ' <span style="font:700 10px \'Hanken Grotesk\';color:' + rcolor + ';">' + rk + '</span></span>' +
+        countBadge(rg.count) + '</button>';
+      if (rCol) return '<div style="margin-bottom:4px;border-bottom:1px solid #f3eee5;">' + rHeader + '</div>';
+
+      var countryKeys = Object.keys(rg.countries).sort(function (a, b) {
+        return anchored ? (rg.countries[a].minDist - rg.countries[b].minDist) : a.localeCompare(b);
+      });
+      var body = countryKeys.map(function (ck) {
+        var cg = rg.countries[ck];
+        var cId = "c:" + rk + "|" + ck, cCol = !!state.collapsedGroups[cId];
+        var cHeader = '<button data-group="' + escAttr(cId) + '" style="display:flex;align-items:center;gap:7px;width:100%;border:none;background:transparent;cursor:pointer;text-align:left;padding:5px 4px;">' +
+          groupChevron(cCol, 13) +
+          '<span style="flex:1;min-width:0;font:700 11.5px \'Hanken Grotesk\';color:#5b5366;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(ck) + '</span>' +
+          countBadge(cg.units.length) + '</button>';
+        var units = cCol ? "" : '<div style="margin-left:7px;">' + cg.units.map(function (u) { return unitRowHtml(u, rankOf[u.id]); }).join("") + '</div>';
+        return '<div style="margin-bottom:2px;">' + cHeader + units + '</div>';
+      }).join("");
+      return '<div style="margin-bottom:6px;padding-bottom:2px;border-bottom:1px solid #f3eee5;">' + rHeader + '<div style="margin-left:9px;">' + body + '</div></div>';
     }).join("");
-    if (!f.length) html = '<div style="text-align:center;padding:46px 20px;color:#9a93a6;"><div style="font:600 14px \'Hanken Grotesk\';margin-bottom:4px;color:#6b6577;">No places found</div><div style="font-size:12.5px;">Try a different search or reset the filters.</div></div>';
     $("unit-list").innerHTML = html;
   }
   function renderSort() {
     var el = $("sort-row"); if (!el) return;
-    var opts = [["distance", "Distance"], ["name", "Name"], ["region", "Region"]];
-    el.innerHTML = '<span style="font:700 10px \'Hanken Grotesk\';color:#9a93a6;text-transform:uppercase;letter-spacing:.06em;margin-right:1px;">Sort</span>' + opts.map(function (o) {
+    var groupIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>';
+    var groupBtn = '<button data-toggle="grouped" title="Group by Region › Country › place" style="display:inline-flex;align-items:center;gap:5px;border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (state.grouped ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + groupIcon + 'Grouped</button>';
+    var opts = state.grouped ? [["distance", "Distance"], ["name", "Name"]] : [["distance", "Distance"], ["name", "Name"], ["region", "Region"]];
+    var sort = '<span style="font:700 10px \'Hanken Grotesk\';color:#9a93a6;text-transform:uppercase;letter-spacing:.06em;margin:0 1px 0 4px;">Sort</span>' + opts.map(function (o) {
       var active = (state.sort || "distance") === o[0];
       return '<button data-sort="' + o[0] + '" style="border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + o[1] + '</button>';
     }).join("");
+    el.innerHTML = groupBtn + sort;
   }
 
   function updateCounts() {
@@ -310,7 +435,7 @@
     }).join("");
   }
 
-  function renderAll() { renderChips(); renderSort(); renderList(); updateCounts(); renderMarkers(); }
+  function renderAll() { renderChips(); renderCountryFilter(); renderSort(); renderList(); updateCounts(); renderMarkers(); }
 
   function setPanelOpen(open) {
     state.panelOpen = open;
@@ -502,15 +627,30 @@
     $("search-go").addEventListener("click", doSearch);
     $("near-btn").addEventListener("click", geolocate);
     document.querySelectorAll(".q-near").forEach(function (b) { b.addEventListener("click", function () { state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); geolocate(); }); });
-    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([25, 12], map.getMinZoom(), { duration: .6 }); });
+    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.country = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; state.countryOpen = false; state.countryQuery = ""; state.collapsedGroups = {}; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([25, 12], map.getMinZoom(), { duration: .6 }); });
     $("panel-collapse").addEventListener("click", function () { setPanelOpen(false); });
     $("panel-reopen").addEventListener("click", function () { setPanelOpen(true); });
 
     $("kind-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-kind]"); if (!b) return; state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); });
-    $("region-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-region]"); if (!b) return; state.region = b.getAttribute("data-region"); renderChips(); renderAll(); });
-    $("sort-row").addEventListener("click", function (e) { var b = e.target.closest("[data-sort]"); if (!b) return; state.sort = b.getAttribute("data-sort"); renderSort(); renderList(); });
+    $("region-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-region]"); if (!b) return; state.region = b.getAttribute("data-region"); state.country = "All"; state.countryQuery = ""; renderChips(); renderAll(); });
+    $("sort-row").addEventListener("click", function (e) {
+      var t = e.target.closest("[data-toggle]"); if (t) { state.grouped = !state.grouped; renderSort(); renderList(); return; }
+      var b = e.target.closest("[data-sort]"); if (!b) return; state.sort = b.getAttribute("data-sort"); renderSort(); renderList();
+    });
+
+    // searchable country filter (stopPropagation so the outside-click handler below
+    // doesn't see the post-rerender detached target and immediately close the dropdown)
+    $("country-filter").addEventListener("click", function (e) {
+      e.stopPropagation();
+      var cc = e.target.closest("[data-clear-country]"); if (cc) { state.country = "All"; state.countryQuery = ""; state.countryOpen = false; renderCountryFilter(); renderAll(); return; }
+      var pk = e.target.closest("[data-pick-country]"); if (pk) { pickCountry(pk.getAttribute("data-pick-country")); return; }
+      if (e.target.closest("#country-trigger")) { state.countryOpen = !state.countryOpen; renderCountryFilter(); return; }
+    });
+    $("country-filter").addEventListener("input", function (e) { if (e.target.id !== "country-search") return; state.countryQuery = e.target.value; var o = $("country-options"); if (o) o.innerHTML = countryOptionsHtml(); });
+    $("country-filter").addEventListener("keydown", function (e) { if (e.key === "Escape" && state.countryOpen) { state.countryOpen = false; renderCountryFilter(); } });
 
     $("unit-list").addEventListener("click", function (e) {
+      var gb = e.target.closest("[data-group]"); if (gb) { var gk = gb.getAttribute("data-group"); state.collapsedGroups[gk] = !state.collapsedGroups[gk]; renderList(); return; }
       var mb = e.target.closest("[data-more]"); if (mb) { e.stopPropagation(); var mid = mb.getAttribute("data-more"); state.descExpanded[mid] = !state.descExpanded[mid]; renderList(); return; }
       var cb = e.target.closest("[data-comments]"); if (cb) { e.stopPropagation(); openComments(cb.getAttribute("data-comments")); return; }
       if (e.target.closest("[data-stop]")) { e.stopPropagation(); return; }
@@ -537,6 +677,13 @@
     $("r-find").addEventListener("click", rFind);
     $("r-addr").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rFind(); } });
     $("r-submit").addEventListener("click", rSubmit);
+
+    // close the country dropdown when clicking outside it
+    document.addEventListener("click", function (e) {
+      if (!state.countryOpen) return;
+      if (e.target.closest("#country-filter")) return;
+      state.countryOpen = false; renderCountryFilter();
+    });
 
     // click any full-address row (in a popup) to copy it
     document.addEventListener("click", function (e) {

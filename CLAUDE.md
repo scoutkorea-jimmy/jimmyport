@@ -641,6 +641,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **공개 안내**: `app.js postComment`가 `blocked_keyword`→"contains words that aren't allowed", `consent_required`/`empty`도 친절 메시지.
 - 검증: node 매칭 10케이스 전수(차단 6/허용 4, 한/영/tight/커스텀)·모듈 import OK·`node --check` client OK. 배포 후 라이브 비파괴 테스트(욕설 POST→400, 저장 안 됨).
 
+### 17.18 v0.9.75 — 공개 페이지 좌측: 검색형 국가 필터 + Region › 국가 › 지역 그룹 트리
+- 사용자: 공개 유저페이지 좌측 패널에 **국가 단위 필터(검색 가능)** 추가 + 목록을 기본 **Region → 국가 → 지역단위**로 그룹.
+- **검색형 국가 필터**(`app.js`): region-chips 아래 `#country-filter`(index.html) — 트리거 버튼(🌐 + 현재 선택 + ×클리어 + chevron) 클릭 시 드롭다운(검색 인풋 + 스크롤 옵션). 옵션=현재 kind+region로 스코프된 국가 목록(`availableCountries`, `countryOf(u)=country||nso||"—"`), 각 옵션에 지역색 점 + 카운트. 검색 인풋 타이핑은 `#country-options`만 재렌더(포커스 유지). 선택 시 `pickCountry`(지도 `flyToBounds`로 해당 국가 핀에 포커스). `state.country`로 `sorted()` 필터. region 변경 시 country 리셋. **delegation+재렌더+바깥클릭 레이스**: 필터 내부 클릭은 `e.stopPropagation()`로 바깥-닫기 핸들러 차단(재렌더로 detach된 target이 outside로 오인돼 즉시 닫히던 버그 방지).
+- **그룹 트리**(`renderList` 재작성, 행 빌더 `unitRowHtml(u,rank)` 추출): `state.grouped` 기본 ON → Region(색점·풀네임·코드·카운트, collapse) › 국가(들여쓰기·카운트, collapse) › 지역단위(place) 행. anchor+거리정렬이면 그룹을 최단거리순, 아니면 Region 선언순+국가 알파벳순. 헤더 클릭=`collapsedGroups` 토글. `select()`가 선택 단위의 region/country 그룹 자동 펼침. Sort 행에 **Grouped 토글** 추가(끄면 기존 평면 목록, Region 정렬은 grouped 시 숨김).
+- 검증: 로컬 http + 헤드리스 Chrome(CDP, 샘플 7곳 APR/EUR·5국): 그룹 트리(r:APR/r:EUR·c:5)·country 검색('ger'→Germany,'kor'→Korea)·선택→해당국만(kr1/kr2)·×클리어→복원·Grouped 토글·Region collapse(EUR만 3)·**콘솔 에러 0** + 스크린샷(드롭다운·트리 그린톤 정상).
+
 ### 16.36 v0.9.57 — 사이트 전체 시간 24시간제 통일(로케일 의존 12h 제거)
 - 사용자: "이 사이트내에서 관리하는 모든 시간은 24시간 기준으로 세팅." 전수 조사 결과 대부분은 이미 수동 패딩 24h(시계 카운트다운·일정표 그리드/블록·시/분 입력·날씨·저장 토스트). **로케일 의존 12h 위험 3곳만** 교정.
 - **scout-finder 댓글 타임스탬프**(`app.js` `fmtTime`): `toLocaleString(...,{timeStyle:'short'})`(OS 영어 로케일에서 AM/PM) → `toLocaleDateString(medium)` + 수동 `HH:MM`(24h).
