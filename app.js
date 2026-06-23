@@ -530,12 +530,18 @@
     var thread = flatten(id);
     var html = thread.map(function (c) {
       var rowStyle = "padding:11px 0;border-bottom:1px solid #f0ebe2;margin-left:" + (c.depth * 20) + "px;" + (c.depth ? "border-left:2px solid #efe7f7;padding-left:11px;" : "");
+      if (c.deleted) {
+        return '<div style="' + rowStyle + '">' +
+          '<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#a39bb0;">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>' +
+          '<span style="font-style:italic;">Comment removed by an admin' + (c.deletedReason ? ' — ' + esc(c.deletedReason) : '') + '</span></div></div>';
+      }
       return '<div style="' + rowStyle + '">' +
         '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">' +
         '<span style="font:700 12.5px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name) + '</span>' +
         '<span style="font-size:10.5px;color:#b3adbd;">' + esc(c.ipMasked || "") + '</span>' +
         '<span style="font-size:10.5px;color:#b3adbd;">·</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">' + fmtTs(c.ts) + '</span></div>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">' + fmtTs(c.ts) + (c.edited ? " · edited" : "") + '</span></div>' +
         '<div style="font-size:13px;color:#3a3346;line-height:1.5;margin-bottom:5px;white-space:pre-wrap;">' + esc(c.body) + '</div>' +
         '<button data-reply="' + escAttr(c.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;">Reply</button></div>';
     }).join("");
@@ -736,7 +742,7 @@
       var cb = e.target.closest("[data-comments]"); if (cb) { e.stopPropagation(); openComments(cb.getAttribute("data-comments")); return; }
       var se = e.target.closest("[data-suggestedit]"); if (se) { e.stopPropagation(); var su = UNITS.find(function (x) { return x.id === se.getAttribute("data-suggestedit"); }); if (su) openReport(su); return; }
       if (e.target.closest("[data-stop]")) { e.stopPropagation(); return; }
-      var card = e.target.closest("[data-open]"); if (card) select(card.getAttribute("data-open"), true);
+      var card = e.target.closest("[data-open]"); if (card) { var cid = card.getAttribute("data-open"); select(cid === state.selectedId ? null : cid, true); }
     });
 
     $("drawer-close").addEventListener("click", closeComments);

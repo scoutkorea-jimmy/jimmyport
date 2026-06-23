@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.78" />
+  <link rel="stylesheet" href="styles.css?v=0.9.80" />
 
   <!-- Admin access is TOTP-only (Google Authenticator 6-digit code, verified server-side). -->
   <style>
@@ -28,6 +28,7 @@
     #auth-msg { margin-top: 14px; font-size: 13px; color: #b4524e; min-height: 18px; }
     .auth-foot { margin-top: 16px; font-size: 12px; }
     .auth-foot a { color: #6336B5; }
+    @keyframes toastpop { from { transform: translateX(-50%) translateY(16px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
   </style>
 </head>
 <body>
@@ -59,7 +60,7 @@
       <a href="/" style="color:#6b6577;font:600 12.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin:0 4px;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Back to site
       </a>
-      <button id="pending-btn" style="position:relative;border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;">Reports <span id="pending-count" style="display:none;margin-left:4px;background:#FF5655;color:#fff;font:700 10px 'Hanken Grotesk';padding:1px 6px;border-radius:999px;vertical-align:middle;">0</span></button>
+      <button id="pending-btn" style="position:relative;border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;">Suggestions <span id="pending-count" style="display:none;margin-left:4px;background:#FF5655;color:#fff;font:700 10px 'Hanken Grotesk';padding:1px 6px;border-radius:999px;vertical-align:middle;">0</span></button>
       <button id="filter-btn" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;">Comment filter</button>
       <button id="import-btn" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;">Import JSON</button>
       <button id="copy-btn" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;">Copy JSON</button>
@@ -122,7 +123,7 @@
     <div id="pending-modal" style="display:none;position:absolute;inset:0;z-index:90;background:rgba(30,18,55,.32);align-items:center;justify-content:center;padding:24px;">
       <div class="sf-scroll" style="width:640px;max-width:100%;max-height:86vh;overflow-y:auto;background:#fff;border-radius:18px;box-shadow:0 30px 70px rgba(30,18,55,.3);padding:22px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <div style="font:700 17px 'Bricolage Grotesque';">Location reports</div>
+          <div style="font:700 17px 'Bricolage Grotesque';">Place suggestions</div>
           <button id="pending-close" style="border:none;background:#f1ece4;width:30px;height:30px;border-radius:9px;cursor:pointer;color:#6b6577;">✕</button>
         </div>
         <div style="font-size:12.5px;color:#8a8496;margin-bottom:16px;">Approve to publish the place, or reject to discard. Reporter name, affiliation and IP are recorded.</div>
@@ -149,13 +150,13 @@
     </div>
 
     <!-- TOAST -->
-    <div id="toast" style="display:none;position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:100;background:#1E1730;color:#fff;font:600 12.5px 'Hanken Grotesk';padding:11px 18px;border-radius:12px;box-shadow:0 12px 30px rgba(30,18,55,.35);"></div>
+    <div id="toast" style="display:none;position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:100;background:#1E1730;color:#fff;font:700 15px 'Hanken Grotesk';padding:15px 26px;border-radius:14px;box-shadow:0 16px 44px rgba(30,18,55,.4);min-width:200px;text-align:center;letter-spacing:.01em;"></div>
 
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.78"></script>
-  <script src="admin.js?v=0.9.78"></script>
-  <script src="version-watch.js?v=0.9.78"></script>
+  <script src="data.js?v=0.9.80"></script>
+  <script src="admin.js?v=0.9.80"></script>
+  <script src="version-watch.js?v=0.9.80"></script>
 </body>
 </html>

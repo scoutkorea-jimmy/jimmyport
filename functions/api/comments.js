@@ -12,13 +12,49 @@ export async function onRequestGet({ request, env }) {
   const admin = await isAdmin(request, env);
   const arr = await getArr(env, "comments");
   const out = arr.map(function (c) {
+    // Soft-deleted comments become a tombstone: original text/image are withheld,
+    // only the deletion reason is shown (right to be forgotten, with an audit reason).
+    if (c.deleted) {
+      return {
+        id: c.id, ts: c.ts, name: c.name, body: "", imageUrl: "",
+        parentId: c.parentId || null, unitId: c.unitId || null,
+        deleted: true, deletedReason: c.deletedReason || "", deletedTs: c.deletedTs || null,
+        ip: admin ? c.ip : undefined, ipMasked: maskIp(c.ip),
+      };
+    }
     return {
       id: c.id, ts: c.ts, name: c.name, body: c.body, imageUrl: c.imageUrl || "",
-      parentId: c.parentId || null, unitId: c.unitId || null,
+      parentId: c.parentId || null, unitId: c.unitId || null, edited: !!c.editedTs,
       ip: admin ? c.ip : undefined, ipMasked: maskIp(c.ip),
     };
   });
   return json({ comments: out, admin: admin });
+}
+
+/* PATCH /api/comments → 관리자: 댓글 수정 / 사유와 함께 소프트 삭제
+ *   { id, action: "edit", body }            → 본문 수정
+ *   { id, action: "delete", reason }         → 삭제(사유 보존, 묘비 표시) — 대댓글은 유지 */
+export async function onRequestPatch({ request, env }) {
+  if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
+  const id = body.id, action = body.action;
+  if (!id) return json({ error: "id required" }, 400);
+  const arr = await getArr(env, "comments");
+  const c = arr.find(function (x) { return x.id === id; });
+  if (!c) return json({ error: "not found" }, 404);
+  const now = new Date().toISOString();
+  if (action === "edit") {
+    const text = (body.body || "").toString().trim().slice(0, 1000);
+    if (!text) return json({ error: "empty" }, 400);
+    c.body = text; c.deleted = false; c.deletedReason = ""; c.editedTs = now;
+  } else if (action === "delete") {
+    c.deleted = true; c.deletedReason = (body.reason || "").toString().trim().slice(0, 300); c.deletedTs = now;
+  } else {
+    return json({ error: "bad action" }, 400);
+  }
+  await putArr(env, "comments", arr);
+  return json({ ok: true });
 }
 
 export async function onRequestPost({ request, env }) {

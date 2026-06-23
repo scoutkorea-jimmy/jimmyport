@@ -26,8 +26,8 @@
   var DIAL = window.SCOUT_DIAL || {};
 
   // ── state ──────────────────────────────────────────────────────────
-  var units = [], map, marker = null, saveTimer = null, savedTimer = null;
-  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false };
+  var units = [], comments = [], map, marker = null, saveTimer = null, savedTimer = null;
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false, editingComment: null };
   // every distinct category/tag already used across places (for tag search/autocomplete)
   function allTags() { var set = {}; units.forEach(function (u) { (u.tags || []).forEach(function (t) { if (t) set[t] = 1; }); }); return Object.keys(set).sort(); }
 
@@ -42,8 +42,9 @@
     t.textContent = (type === "success" ? "✓ " : type === "error" ? "⚠ " : "") + msg;
     t.style.background = col;
     t.style.display = "block";
+    t.style.animation = "none"; void t.offsetWidth; t.style.animation = "toastpop .26s cubic-bezier(.2,.9,.3,1.2)";
     clearTimeout(toast._t);
-    toast._t = setTimeout(function () { t.style.display = "none"; }, type === "success" ? 2600 : 2000);
+    toast._t = setTimeout(function () { t.style.display = "none"; }, type === "success" ? 2800 : 2200);
   }
   function fmtTs(ts) { try { var d = new Date(ts); var p = function (n) { return ("0" + n).slice(-2); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); } catch (e) { return ""; } }
 
@@ -275,14 +276,84 @@
         '<button data-act="showcoord" title="Apply coordinates and show on the map" style="' + BTN_SOFT + 'padding:11px 16px;flex:none;">Show on map</button>' +
         '</div>' +
         '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;">Type coordinates and press “Show on map”, drag the pin, or click the map.</div>') +
+
+      card("comments", 'Comments' + (commentsForUnit(s.id).length ? ' <span style="background:#f1ece4;color:#6b6577;font:700 10px \'Hanken Grotesk\';padding:1px 7px;border-radius:999px;vertical-align:middle;">' + commentsForUnit(s.id).length + '</span>' : ''), commentsCardBody(s)) +
       '</div>';
     updateCap();
+  }
+
+  // ── per-place comment management (edit / delete-with-reason / tombstone) ──
+  function commentsForUnit(id) { return comments.filter(function (c) { return c.unitId === id; }); }
+  function commentsCardBody(s) {
+    var list = commentsForUnit(s.id);
+    if (!list.length) return '<div style="font-size:12.5px;color:#a39bb0;">No comments on this place yet.</div>';
+    return list.map(function (c) {
+      var head = '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;">' +
+        '<span style="font:700 12.5px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name || "Anonymous") + '</span>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">' + esc(c.ip || c.ipMasked || "") + '</span>' +
+        '<span style="font-size:10.5px;color:#b3adbd;">· ' + fmtTs(c.ts) + (c.edited ? " · edited" : "") + '</span>' +
+        (c.parentId ? '<span style="font-size:10px;color:#b3adbd;background:#f5f2ec;border-radius:6px;padding:1px 6px;">reply</span>' : '') + '</div>';
+      if (state.editingComment === c.id) {
+        return '<div style="border:1px solid #d8cfe6;border-radius:11px;padding:11px;margin-bottom:9px;background:#faf8fd;">' + head +
+          '<textarea id="cedit-' + escAttr(c.id) + '" class="sf-fld" style="min-height:64px;resize:vertical;line-height:1.5;">' + esc(c.body) + '</textarea>' +
+          '<div style="display:flex;gap:7px;margin-top:8px;justify-content:flex-end;">' +
+          '<button data-act="ceditcancel" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12px \'Hanken Grotesk\';padding:7px 13px;border-radius:9px;cursor:pointer;">Cancel</button>' +
+          '<button data-act="ceditsave" data-val="' + escAttr(c.id) + '" style="border:none;background:#6336B5;color:#fff;font:600 12px \'Hanken Grotesk\';padding:7px 14px;border-radius:9px;cursor:pointer;">Save</button></div></div>';
+      }
+      if (c.deleted) {
+        return '<div style="border:1px solid #f0ebe2;border-radius:11px;padding:11px;margin-bottom:9px;background:#faf8f4;">' + head +
+          '<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#a39bb0;font-style:italic;">🗑 삭제되었습니다' + (c.deletedReason ? ' — ' + esc(c.deletedReason) : '') + '</div>' +
+          '<div style="margin-top:8px;"><button data-act="crestore" data-val="' + escAttr(c.id) + '" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 11.5px \'Hanken Grotesk\';padding:6px 11px;border-radius:9px;cursor:pointer;">Restore</button></div></div>';
+      }
+      return '<div style="border:1px solid #efeae1;border-radius:11px;padding:11px;margin-bottom:9px;">' + head +
+        '<div style="font-size:13px;color:#3a3346;line-height:1.5;white-space:pre-wrap;margin-bottom:8px;">' + esc(c.body) + '</div>' +
+        '<div style="display:flex;gap:7px;justify-content:flex-end;">' +
+        '<button data-act="cedit" data-val="' + escAttr(c.id) + '" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 11.5px \'Hanken Grotesk\';padding:6px 12px;border-radius:9px;cursor:pointer;">Edit</button>' +
+        '<button data-act="cdelete" data-val="' + escAttr(c.id) + '" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 11.5px \'Hanken Grotesk\';padding:6px 12px;border-radius:9px;cursor:pointer;">Delete</button></div></div>';
+    }).join("");
+  }
+  function fetchComments() {
+    return fetch("/api/comments", { headers: Auth.headers(), cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && Array.isArray(j.comments)) comments = j.comments; })
+      .catch(function () {});
+  }
+  function patchComment(id, payload) {
+    return fetch("/api/comments", { method: "PATCH", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify(Object.assign({ id: id }, payload)) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); });
+  }
+  function saveCommentEdit(id) {
+    var el = $("cedit-" + id); if (!el) return;
+    var v = el.value.trim(); if (!v) { toast("Comment can't be empty", "error"); return; }
+    patchComment(id, { action: "edit", body: v }).then(function (res) {
+      if (res.ok && res.j.ok) { state.editingComment = null; fetchComments().then(function () { renderForm(); }); toast("Comment updated", "success"); }
+      else if (res.status === 401) { toast("Session expired — sign in again", "error"); Auth.requireReauth(); }
+      else toast("Edit failed", "error");
+    }).catch(function () { toast("Network error", "error"); });
+  }
+  function deleteComment(id) {
+    var reason = window.prompt("삭제 사유를 입력하세요 (Deletion reason — shown publicly):", "");
+    if (reason === null) return;
+    patchComment(id, { action: "delete", reason: reason }).then(function (res) {
+      if (res.ok && res.j.ok) { fetchComments().then(function () { renderForm(); }); toast("Comment deleted", "success"); }
+      else if (res.status === 401) { toast("Session expired — sign in again", "error"); Auth.requireReauth(); }
+      else toast("Delete failed", "error");
+    }).catch(function () { toast("Network error", "error"); });
+  }
+  function restoreComment(id) {
+    var el = comments.find(function (c) { return c.id === id; });
+    var prior = window.prompt("Restore this comment — enter the corrected text:", (el && el.body) || "");
+    if (prior === null || !prior.trim()) return;
+    patchComment(id, { action: "edit", body: prior.trim() }).then(function (res) {
+      if (res.ok && res.j.ok) { fetchComments().then(function () { renderForm(); }); toast("Comment restored", "success"); }
+      else toast("Restore failed", "error");
+    }).catch(function () { toast("Network error", "error"); });
   }
 
   function set(patch) { var s = sel(); if (!s) return; Object.assign(s, patch); touch(); }
 
   // ── actions ────────────────────────────────────────────────────────
-  function selectUnit(id) { state.selectedId = id; state.addrQuery = ""; renderRail(); renderForm(); syncMarker(true); }
+  function selectUnit(id) { state.selectedId = id; state.addrQuery = ""; state.editingComment = null; renderRail(); renderForm(); syncMarker(true); }
   function addUnit() {
     var id = "unit-" + Date.now().toString(36);
     var nu = { id: id, kind: "unit", name: "New scout place", subtitle: "", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", instagram: "", homepage: "", phone: "", email: "", status: "draft" };
@@ -349,7 +420,7 @@
     }).catch(function () {});
   }
   function renderPending() {
-    if (!pendingItems.length) { $("pending-list").innerHTML = '<div style="text-align:center;padding:40px;color:#a39bb0;font-size:13px;">No pending reports.</div>'; return; }
+    if (!pendingItems.length) { $("pending-list").innerHTML = '<div style="text-align:center;padding:40px;color:#a39bb0;font-size:13px;">No pending suggestions.</div>'; return; }
     $("pending-list").innerHTML = pendingItems.map(function (p) {
       var u = p.unit || {}, rep = p.reporter || {};
       var code = regionCode(u.region), rc = REGION[code] || { color: "#9a93a6" };
@@ -391,7 +462,7 @@
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
       .then(function (res) {
         if (res.ok && res.j.ok) {
-          toast(action === "approve" ? "Approved & published" : "Report rejected");
+          toast(action === "approve" ? "Approved & published" : "Suggestion rejected", action === "approve" ? "success" : undefined);
           pendingItems = pendingItems.filter(function (p) { return p.id !== id; });
           updatePendingCount(); renderPending();
           if (action === "approve") { var keep = state.selectedId; loadUnits().then(function () { if (keep && units.some(function (u) { return u.id === keep; })) state.selectedId = keep; renderRail(); renderForm(); syncMarker(true); }); }
@@ -542,7 +613,7 @@
     $("pending-modal").addEventListener("click", function (e) { if (e.target === $("pending-modal")) $("pending-modal").style.display = "none"; });
     $("pending-list").addEventListener("click", function (e) {
       var a = e.target.closest("[data-approve]"); if (a) { patchPending(a.getAttribute("data-approve"), "approve"); return; }
-      var r = e.target.closest("[data-reject]"); if (r) { if (confirm("Reject and discard this report?")) patchPending(r.getAttribute("data-reject"), "reject"); }
+      var r = e.target.closest("[data-reject]"); if (r) { if (confirm("Reject and discard this suggestion?")) patchPending(r.getAttribute("data-reject"), "reject"); }
     });
 
     // rail
@@ -573,6 +644,11 @@
       else if (act === "tagedit") { editTag(val); }
       else if (act === "tagpick") { addTagValue(val); }
       else if (act === "countrypick") { pickCountry(val); }
+      else if (act === "cedit") { state.editingComment = val; renderForm(); }
+      else if (act === "ceditcancel") { state.editingComment = null; renderForm(); }
+      else if (act === "ceditsave") { saveCommentEdit(val); }
+      else if (act === "cdelete") { deleteComment(val); }
+      else if (act === "crestore") { restoreComment(val); }
       else if (act === "find") { find(); }
       else if (act === "del") { delUnit(); }
     });
@@ -614,7 +690,7 @@
       else if (e.target.id === "f-region") { set({ region: e.target.value }); renderRail(); renderForm(); syncMarker(false); }
     });
 
-    loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); fetchPending(); });
+    loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); fetchPending(); fetchComments().then(function () { renderForm(); }); });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", Auth.start);
