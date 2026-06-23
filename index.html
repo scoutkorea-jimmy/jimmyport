@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.80" />
+  <link rel="stylesheet" href="styles.css?v=0.9.81" />
 </head>
 <body>
   <div style="position:fixed;inset:0;font-family:'Hanken Grotesk',sans-serif;color:#1E1730;background:#e9ece5;overflow:hidden;">
@@ -82,6 +82,10 @@
           <button id="near-btn" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #e7e1d8;padding:8px 13px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;background:#fff;color:#5b5366;transition:all .15s;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg><span id="near-label">Near me</span>
           </button>
+          <div title="Limit results to within this distance of your point" style="display:inline-flex;align-items:center;gap:7px;">
+            <input id="radius-slider" type="range" min="0" max="1000" step="10" value="1000" aria-label="Distance radius in km" style="width:116px;accent-color:#6336B5;cursor:pointer;" />
+            <span id="radius-label" style="font:600 12px 'Hanken Grotesk';color:#6b6577;white-space:nowrap;min-width:54px;">Any range</span>
+          </div>
           <span style="font:600 12px 'Hanken Grotesk';color:#b3adbd;">·</span>
           <span style="font:600 12px 'Hanken Grotesk';color:#9a93a6;">Nearest</span>
           <button class="q-near" data-kind="unit" style="border:1px solid #e7e1d8;padding:6px 11px;border-radius:999px;font:600 12px 'Hanken Grotesk';cursor:pointer;background:#fff;color:#5b5366;transition:all .15s;">Unit</button>
@@ -178,8 +182,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.80"></script>
-  <script src="app.js?v=0.9.80"></script>
-  <script src="version-watch.js?v=0.9.80"></script>
+  <script src="data.js?v=0.9.81"></script>
+  <script src="app.js?v=0.9.81"></script>
+  <script src="version-watch.js?v=0.9.81"></script>
 </body>
 </html>

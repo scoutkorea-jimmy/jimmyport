@@ -23,7 +23,8 @@
   // ── state ──────────────────────────────────────────────────────────
   var UNITS = [], COMMENTS = [];
   var map, layer, markers = {}, labelMarkers = [];
-  var state = { query: "", region: "All", country: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance", grouped: true, countryOpen: false, countryQuery: "", collapsedGroups: {} };
+  var RADIUS_MAX = 1000; // km; the slider's max means "no distance limit"
+  var state = { query: "", region: "All", country: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance", grouped: true, countryOpen: false, countryQuery: "", collapsedGroups: {}, radiusKm: RADIUS_MAX };
 
   // Country bucket for filtering + grouping (falls back to NSO, then "WOSM Bureau" for placeless regional/world offices).
   function countryOf(u) { return u.country || u.nso || "WOSM Bureau"; }
@@ -87,6 +88,7 @@
     });
     var a = state.anchor;
     if (a) list = list.map(function (u) { return Object.assign({ _dist: haversine(a.lat, a.lng, u.lat, u.lng) }, u); });
+    if (a && state.radiusKm < RADIUS_MAX) list = list.filter(function (u) { return u._dist <= state.radiusKm; });
     var by = state.sort || "distance";
     if (by === "name" || (by === "distance" && !a)) list.sort(function (x, y) { return (x.name || "").localeCompare(y.name || ""); });
     else if (by === "region") list.sort(function (x, y) { return ((x.region || "") + " " + (x.name || "")).localeCompare((y.region || "") + " " + (y.name || "")); });
@@ -490,7 +492,7 @@
     }).join("");
   }
 
-  function renderAll() { renderChips(); renderCountryFilter(); renderSort(); renderList(); updateCounts(); renderMarkers(); }
+  function renderAll() { renderChips(); renderCountryFilter(); renderSort(); renderList(); updateCounts(); renderMarkers(); renderRadius(); }
 
   function setPanelOpen(open) {
     state.panelOpen = open;
@@ -501,6 +503,12 @@
     if (map) setTimeout(function () { map.invalidateSize(); }, 340);
   }
 
+  function renderRadius() {
+    var lbl = $("radius-label"), sl = $("radius-slider"); if (!lbl) return;
+    lbl.textContent = state.radiusKm >= RADIUS_MAX ? "Any range" : "≤ " + state.radiusKm + " km";
+    lbl.style.color = (state.anchor && state.radiusKm < RADIUS_MAX) ? "#6336B5" : "#6b6577";
+    if (sl && +sl.value !== state.radiusKm) sl.value = state.radiusKm;
+  }
   function updateNearUI() {
     var nb = $("near-btn"), has = !!state.anchor;
     nb.style.background = has ? "#6336B5" : "#fff"; nb.style.color = has ? "#fff" : "#5b5366"; nb.style.borderColor = has ? "#6336B5" : "#e7e1d8";
@@ -713,8 +721,9 @@
     $("search-input").addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
     $("search-go").addEventListener("click", doSearch);
     $("near-btn").addEventListener("click", geolocate);
+    if ($("radius-slider")) $("radius-slider").addEventListener("input", function (e) { state.radiusKm = +e.target.value; renderRadius(); renderMarkers(); renderList(); updateCounts(); });
     document.querySelectorAll(".q-near").forEach(function (b) { b.addEventListener("click", function () { state.kind = b.getAttribute("data-kind"); renderChips(); renderAll(); updateNearUI(); geolocate(); }); });
-    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.country = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; state.countryOpen = false; state.countryQuery = ""; state.collapsedGroups = {}; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([25, 12], map.getMinZoom(), { duration: .6 }); });
+    $("reset").addEventListener("click", function () { state.query = ""; state.region = "All"; state.country = "All"; state.kind = "All"; state.selectedId = null; state.anchor = null; state.geoMsg = ""; state.countryOpen = false; state.countryQuery = ""; state.collapsedGroups = {}; state.radiusKm = RADIUS_MAX; $("search-input").value = ""; renderChips(); renderAll(); updateNearUI(); if (map) map.flyTo([25, 12], map.getMinZoom(), { duration: .6 }); });
     $("panel-collapse").addEventListener("click", function () { setPanelOpen(false); });
     $("panel-reopen").addEventListener("click", function () { setPanelOpen(true); });
 
