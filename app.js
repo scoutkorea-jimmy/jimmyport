@@ -132,6 +132,13 @@
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>' +
       '<span style="flex:1;min-width:0;">' + esc(u.address) + '</span>' +
       '<span class="copy-hint" style="flex:none;font:700 10px \'Hanken Grotesk\';color:#6336B5;white-space:nowrap;">Copy</span></div>' : "";
+    var pdesc = "";
+    if (u.desc) {
+      var plong = u.desc.length > 90, popen = !!state.descExpanded[u.id];
+      var pclamp = (plong && !popen) ? "display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;" : "";
+      pdesc = '<div style="font-size:12.5px;color:#42394f;line-height:1.5;margin-bottom:' + (plong ? "3px" : "10px") + ';' + pclamp + '">' + esc(u.desc) + '</div>' +
+        (plong ? '<button data-popmore="' + escAttr(u.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:10px;">' + (popen ? "Show less" : "Show more") + '</button>' : "");
+    }
     return '<div style="font-family:\'Hanken Grotesk\';max-width:250px;">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">' +
       '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(KIND[u.kind] || "") + '</span>' + dist + '</div>' +
@@ -139,7 +146,7 @@
       (u.subtitle ? '<div style="font:500 12px \'Hanken Grotesk\';color:#9a93a6;line-height:1.25;margin-bottom:7px;">' + esc(u.subtitle) + '</div>' : '') +
       (loc ? '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' : '') +
       addr +
-      (u.desc ? '<div style="font-size:12.5px;color:#42394f;line-height:1.5;margin-bottom:10px;">' + esc(u.desc) + '</div>' : "") +
+      pdesc +
       '<div style="margin-bottom:2px;">' + chips + '</div>' +
       '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact + '</div>';
   }
@@ -717,6 +724,17 @@
       if (!state.countryOpen) return;
       if (e.target.closest("#country-filter")) return;
       state.countryOpen = false; renderCountryFilter();
+    });
+
+    // toggle the clamped description inside a map popup (collapsed by default)
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-popmore]"); if (!b) return;
+      e.preventDefault();
+      var id = b.getAttribute("data-popmore");
+      state.descExpanded[id] = !state.descExpanded[id];
+      var m = markers[id], u = UNITS.find(function (x) { return x.id === id; });
+      if (m && u && m.getPopup()) m.setPopupContent(popupHtml(u));
+      renderList();
     });
 
     // click any full-address row (in a popup) to copy it
