@@ -28,6 +28,10 @@
   // Country bucket for filtering + grouping (falls back to NSO, then "WOSM Bureau" for placeless regional/world offices).
   function countryOf(u) { return u.country || u.nso || "WOSM Bureau"; }
 
+  // "Browse" = no active search/filter/anchor. In browse mode, tree groups start collapsed
+  // (compact list); when searching/filtering/anchored, groups start expanded so results show.
+  function browseMode() { return !state.anchor && !state.query && state.region === "All" && state.country === "All" && state.kind === "All"; }
+
   // ── helpers ────────────────────────────────────────────────────────
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
@@ -219,7 +223,7 @@
 
   function select(id, pan) {
     state.selectedId = id;
-    if (id && state.grouped) { var su = UNITS.find(function (x) { return x.id === id; }); if (su) { delete state.collapsedGroups["r:" + su.region]; delete state.collapsedGroups["c:" + su.region + "|" + countryOf(su)]; } }
+    if (id && state.grouped) { var su = UNITS.find(function (x) { return x.id === id; }); if (su) { state.collapsedGroups["r:" + su.region] = false; state.collapsedGroups["c:" + su.region + "|" + countryOf(su)] = false; } }
     renderMarkers(); renderList();
     if (id) { var row = $("unit-list").querySelector('[data-open="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]'); if (row && row.scrollIntoView) { try { row.scrollIntoView({ block: "nearest" }); } catch (e) { row.scrollIntoView(); } } }
     var u = UNITS.find(function (x) { return x.id === id; });
@@ -396,6 +400,7 @@
 
     // grouped tree: Region › Country › place (district level)
     var anchored = !!state.anchor && (state.sort || "distance") === "distance";
+    var dfltCol = browseMode(); // groups collapsed by default while just browsing
     var byRegion = {};
     f.forEach(function (u) {
       var rk = u.region, ck = countryOf(u);
@@ -413,7 +418,7 @@
       var rg = byRegion[rk];
       var rcolor = REGION[rk] ? REGION[rk].color : "#6336B5";
       var rfull = REGION[rk] ? REGION[rk].full : rk;
-      var rId = "r:" + rk, rCol = !!state.collapsedGroups[rId];
+      var rId = "r:" + rk, rCol = (rId in state.collapsedGroups) ? !!state.collapsedGroups[rId] : dfltCol;
       var rHeader = '<button data-group="' + escAttr(rId) + '" style="display:flex;align-items:center;gap:8px;width:100%;border:none;background:transparent;cursor:pointer;text-align:left;padding:8px 4px 6px;">' +
         groupChevron(rCol, 15) +
         '<span style="width:10px;height:10px;border-radius:50%;background:' + rcolor + ';flex:none;"></span>' +
@@ -426,7 +431,7 @@
       });
       var body = countryKeys.map(function (ck) {
         var cg = rg.countries[ck];
-        var cId = "c:" + rk + "|" + ck, cCol = !!state.collapsedGroups[cId];
+        var cId = "c:" + rk + "|" + ck, cCol = (cId in state.collapsedGroups) ? !!state.collapsedGroups[cId] : dfltCol;
         var cHeader = '<button data-group="' + escAttr(cId) + '" style="display:flex;align-items:center;gap:7px;width:100%;border:none;background:transparent;cursor:pointer;text-align:left;padding:5px 4px;">' +
           groupChevron(cCol, 13) +
           '<span style="flex:1;min-width:0;font:700 11.5px \'Hanken Grotesk\';color:#5b5366;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(ck) + '</span>' +
@@ -679,7 +684,7 @@
     $("country-filter").addEventListener("keydown", function (e) { if (e.key === "Escape" && state.countryOpen) { state.countryOpen = false; renderCountryFilter(); } });
 
     $("unit-list").addEventListener("click", function (e) {
-      var gb = e.target.closest("[data-group]"); if (gb) { var gk = gb.getAttribute("data-group"); state.collapsedGroups[gk] = !state.collapsedGroups[gk]; renderList(); return; }
+      var gb = e.target.closest("[data-group]"); if (gb) { var gk = gb.getAttribute("data-group"); var cur = (gk in state.collapsedGroups) ? !!state.collapsedGroups[gk] : browseMode(); state.collapsedGroups[gk] = !cur; renderList(); return; }
       var mb = e.target.closest("[data-more]"); if (mb) { e.stopPropagation(); var mid = mb.getAttribute("data-more"); state.descExpanded[mid] = !state.descExpanded[mid]; renderList(); return; }
       var cb = e.target.closest("[data-comments]"); if (cb) { e.stopPropagation(); openComments(cb.getAttribute("data-comments")); return; }
       if (e.target.closest("[data-stop]")) { e.stopPropagation(); return; }

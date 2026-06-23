@@ -41,12 +41,13 @@ input,select,textarea,button{font-family:'Hanken Grotesk',sans-serif}
 
 /* Mobile: stack the floating panel over the map */
 @media (max-width:760px){
-  /* Public site */
-  .sf-panel{left:10px!important;right:10px!important;width:auto!important;top:10px!important;bottom:auto!important;max-height:50vh}
-  .sf-search{left:10px!important;right:10px!important;bottom:10px!important}
+  /* Public site — panel fills the height (down to just above the bottom search bar) so the
+     result list isn't cramped; the collapse "‹" button reveals the full-screen map. */
+  .sf-panel{left:8px!important;right:8px!important;width:auto!important;top:8px!important;bottom:150px!important;max-height:none!important}
+  .sf-search{left:8px!important;right:8px!important;bottom:8px!important}
   .sf-legend{display:none!important}
   .sf-drawer{width:100vw!important;max-width:100vw!important}
-  .leaflet-control-zoom{margin-bottom:138px!important}
+  .leaflet-control-zoom{margin-bottom:150px!important}
 
   /* Admin: stack toolbar → rail (list) → form → map vertically */
   .sf-admin-bar{height:auto!important;flex-wrap:wrap;padding:9px 12px!important;gap:7px 8px!important}
