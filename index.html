@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.81" />
+  <link rel="stylesheet" href="styles.css?v=0.9.82" />
 </head>
 <body>
   <div style="position:fixed;inset:0;font-family:'Hanken Grotesk',sans-serif;color:#1E1730;background:#e9ece5;overflow:hidden;">
@@ -141,7 +141,7 @@
         <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin-bottom:8px;">Your details</div>
         <div style="display:flex;gap:10px;">
           <div style="flex:1;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Your name *</label><input id="r-rname" class="sf-fld" placeholder="e.g. Jimmy Park" /></div>
-          <div style="flex:1;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Affiliation *</label><input id="r-raff" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" /></div>
+          <div style="flex:1;"><label style="display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:0 0 6px;">Nationality *</label><input id="r-raff" class="sf-fld" placeholder="e.g. Republic of Korea" /></div>
         </div>
 
         <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin:20px 0 8px;">Place</div>
@@ -179,11 +179,23 @@
       </div>
     </div>
 
+    <!-- SUBMIT SUCCESS (big thank-you) -->
+    <div id="report-success" style="display:none;position:absolute;inset:0;z-index:980;background:rgba(30,18,55,.45);align-items:center;justify-content:center;padding:24px;">
+      <div style="width:440px;max-width:100%;background:#fff;border-radius:22px;box-shadow:0 36px 90px rgba(30,18,55,.38);padding:38px 32px 30px;text-align:center;">
+        <div style="width:68px;height:68px;border-radius:50%;background:#e9f6ec;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1c7a36" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <div style="font:700 23px 'Bricolage Grotesque';letter-spacing:-.01em;color:#1E1730;">Thank you for your submission!</div>
+        <div style="font-size:14.5px;color:#6b6577;line-height:1.55;margin-top:11px;">We'll review it as quickly as possible.<br>Thanks for helping keep the map accurate.</div>
+        <button id="rs-done" style="margin-top:24px;width:100%;border:none;background:#6336B5;color:#fff;font:600 14px 'Hanken Grotesk';padding:13px;border-radius:13px;cursor:pointer;">Done</button>
+      </div>
+    </div>
+
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.81"></script>
-  <script src="app.js?v=0.9.81"></script>
-  <script src="version-watch.js?v=0.9.81"></script>
+  <script src="data.js?v=0.9.82"></script>
+  <script src="app.js?v=0.9.82"></script>
+  <script src="version-watch.js?v=0.9.82"></script>
 </body>
 </html>

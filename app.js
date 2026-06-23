@@ -643,7 +643,7 @@
   }
   function rSubmit() {
     var rname = $("r-rname").value.trim(), raff = $("r-raff").value.trim(), name = $("r-name").value.trim();
-    if (!rname || !raff) { $("r-msg").textContent = "Please enter your name and affiliation."; return; }
+    if (!rname || !raff) { $("r-msg").textContent = "Please enter your name and nationality."; return; }
     if (!name) { $("r-msg").textContent = "Please enter the place name."; return; }
     var unit = {
       kind: rep.kind, name: name, country: rep.country, nso: rep.nso, region: rep.region, lang: rep.lang,
@@ -660,7 +660,7 @@
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
         $("r-submit").disabled = false;
-        if (res.ok && res.j.ok) { $("r-msg").style.color = "#248737"; $("r-msg").textContent = rep.correctionId ? "Thank you! Your correction was submitted for review." : "Thank you! Your suggestion was submitted for admin review."; setTimeout(closeReport, 1400); }
+        if (res.ok && res.j.ok) { closeReport(); var rsu = $("report-success"); if (rsu) rsu.style.display = "flex"; }
         else { $("r-msg").style.color = "#b4524e"; $("r-msg").textContent = "Could not submit: " + ((res.j && res.j.error) || "error"); }
       })
       .catch(function () { $("r-submit").disabled = false; $("r-msg").style.color = "#b4524e"; $("r-msg").textContent = "Network error — please try again."; });
@@ -768,6 +768,8 @@
     $("r-close").addEventListener("click", closeReport);
     $("r-cancel").addEventListener("click", closeReport);
     $("report-modal").addEventListener("click", function (e) { if (e.target === $("report-modal")) closeReport(); });
+    if ($("rs-done")) $("rs-done").addEventListener("click", function () { $("report-success").style.display = "none"; });
+    if ($("report-success")) $("report-success").addEventListener("click", function (e) { if (e.target === $("report-success")) $("report-success").style.display = "none"; });
     $("r-kind-seg").addEventListener("click", function (e) { var b = e.target.closest("[data-rkind]"); if (!b) return; rep.kind = b.getAttribute("data-rkind"); renderRKind(); });
     $("r-sections").addEventListener("click", function (e) { var b = e.target.closest("[data-rsec]"); if (!b) return; var s = b.getAttribute("data-rsec"); var i = rep.sections.indexOf(s); if (i === -1) rep.sections.push(s); else rep.sections.splice(i, 1); renderRSections(); });
     $("r-country").addEventListener("change", function (e) { rep.country = e.target.value; var m = COUNTRY[rep.country]; if (m) { rep.nso = m.nso; rep.region = m.region; rep.lang = m.lang; } else { rep.nso = ""; rep.lang = ""; } var dial = (window.SCOUT_DIAL || {})[rep.country], pe = $("r-phone"); if (dial && pe && !pe.value.trim()) pe.value = dial + " "; updateRAuto(); });
