@@ -26,7 +26,7 @@
 
   // ── state ──────────────────────────────────────────────────────────
   var units = [], map, marker = null, saveTimer = null, savedTimer = null;
-  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: { profile: true } };
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {} };
 
   // ── helpers ────────────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
@@ -188,7 +188,7 @@
   var LBL = "display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 7px;";
   var BTN_SOFT = "border:none;background:#f1ecf9;color:#5B2EA6;font:600 12.5px 'Hanken Grotesk';padding:9px 14px;border-radius:11px;cursor:pointer;white-space:nowrap;";
 
-  // Collapsible form card. Header click toggles state.collapsed[key]; Profile starts collapsed.
+  // Collapsible form card. Header click toggles state.collapsed[key]; all cards start open.
   function card(key, title, body) {
     var col = !!state.collapsed[key];
     var chev = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(' + (col ? "-90deg" : "0deg") + ');transition:transform .15s;color:#b3adbd;flex:none;"><path d="m6 9 6 6 6-6"></path></svg>';

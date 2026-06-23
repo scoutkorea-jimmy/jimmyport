@@ -603,7 +603,7 @@ function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: UI.bg, fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", color: UI.ink }}>
-      <header style={{ height: 60, flex: '0 0 auto', background: UI.accentInk, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
+      <header className="cc-head" style={{ height: 60, flex: '0 0 auto', background: UI.accentInk, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src={store.getImage('logo-white') || store.getImage('logo') || 'jamboree/assets/logo-white.png'} width={32} height={32} alt="" style={{ display: 'block', objectFit: 'contain' }} />
           <div>
@@ -614,9 +614,9 @@ function App() {
         <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onList={openList} onNew={newProject} status={status} busy={busy} zipCount={deck.length} />
       </header>
 
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <div className="cc-body" style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* 좌: 패밀리 + 베리에이션 + 덱 */}
-        <aside style={{ width: 264, flex: '0 0 auto', background: UI.surface, borderRight: '1px solid '+UI.line, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column' }}>
+        <aside className="cc-aside-l" style={{ width: 264, flex: '0 0 auto', background: UI.surface, borderRight: '1px solid '+UI.line, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column' }}>
           <div>
             <div style={secLabel}>템플릿 종류</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
@@ -636,7 +636,7 @@ function App() {
         </aside>
 
         {/* 중앙: 프리뷰 */}
-        <main ref={stageRef} style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 28 }}>
+        <main ref={stageRef} className="cc-stage" style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 28 }}>
           <window.CCRegisterFieldCtx.Provider value={registerField}>
             <window.CCRegisterPhotoCtx.Provider value={registerPhoto}>
               <window.CCRegisterSceneCtx.Provider value={registerScene}>
@@ -666,7 +666,7 @@ function App() {
         </main>
 
         {/* 우: 카드 편집 + 트윅 + 브랜드 */}
-        <aside style={{ width: 300, flex: '0 0 auto', background: UI.surface, borderLeft: '1px solid '+UI.line, overflowY: 'auto', padding: 18 }}>
+        <aside className="cc-aside-r" style={{ width: 300, flex: '0 0 auto', background: UI.surface, borderLeft: '1px solid '+UI.line, overflowY: 'auto', padding: 18 }}>
           <div style={secLabel}>이 카드 편집 · {card ? card.label : ''}</div>
 
           {(coverScope || ddScope) && (

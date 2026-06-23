@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.74" />
+  <link rel="stylesheet" href="styles.css?v=0.9.76" />
 
   <!-- Admin access is TOTP-only (Google Authenticator 6-digit code, verified server-side). -->
   <style>
@@ -47,13 +47,13 @@
   <div id="admin-root" style="position:fixed;inset:0;font-family:'Hanken Grotesk',sans-serif;color:#1E1730;background:#f3f0ea;display:flex;flex-direction:column;overflow:hidden;">
 
     <!-- TOOLBAR -->
-    <div style="flex:none;height:64px;background:#fff;border-bottom:1px solid #ece6db;display:flex;align-items:center;gap:14px;padding:0 18px;z-index:30;">
+    <div class="sf-admin-bar" style="flex:none;height:64px;background:#fff;border-bottom:1px solid #ece6db;display:flex;align-items:center;gap:14px;padding:0 18px;z-index:30;">
       <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(150deg,#6336B5,#3D1D6E);display:flex;align-items:center;justify-content:center;color:#fff;font:700 17px 'Bricolage Grotesque';flex:none;">S</div>
       <div>
         <div style="font:700 15px 'Bricolage Grotesque';letter-spacing:-.01em;line-height:1;">Scout Tour Assistant <span style="color:#9a93a6;font-weight:600;">Admin</span></div>
         <div style="font-size:11px;color:#8a8496;margin-top:2px;">Changes apply to every visitor · <span id="saved-label">Loading…</span></div>
       </div>
-      <div style="flex:1;"></div>
+      <div class="sf-admin-spacer" style="flex:1;"></div>
       <span id="admin-who" style="font:600 12px 'Hanken Grotesk';color:#8a8496;"></span>
       <button id="signout-btn" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;">Sign out</button>
       <a href="/" style="color:#6b6577;font:600 12.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin:0 4px;">
@@ -69,7 +69,7 @@
       </button>
     </div>
 
-    <div style="flex:1;display:flex;min-height:0;">
+    <div class="sf-admin-body" style="flex:1;display:flex;min-height:0;">
       <!-- LEFT RAIL -->
       <div class="sf-admin-rail" style="width:296px;flex:none;background:#fbfaf7;border-right:1px solid #ece6db;display:flex;flex-direction:column;min-height:0;">
         <div style="flex:none;padding:14px 14px 11px;border-bottom:1px solid #f0ebe2;">
@@ -154,8 +154,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.74"></script>
-  <script src="admin.js?v=0.9.74"></script>
-  <script src="version-watch.js?v=0.9.74"></script>
+  <script src="data.js?v=0.9.76"></script>
+  <script src="admin.js?v=0.9.76"></script>
+  <script src="version-watch.js?v=0.9.76"></script>
 </body>
 </html>

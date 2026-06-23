@@ -22,11 +22,11 @@
 
   // ── state ──────────────────────────────────────────────────────────
   var UNITS = [], COMMENTS = [];
-  var map, layer, markers = {};
+  var map, layer, markers = {}, labelMarkers = [];
   var state = { query: "", region: "All", country: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance", grouped: true, countryOpen: false, countryQuery: "", collapsedGroups: {} };
 
-  // Country bucket for filtering + grouping (falls back to NSO, then "—").
-  function countryOf(u) { return u.country || u.nso || "—"; }
+  // Country bucket for filtering + grouping (falls back to NSO, then "WOSM Bureau" for placeless regional/world offices).
+  function countryOf(u) { return u.country || u.nso || "WOSM Bureau"; }
 
   // ── helpers ────────────────────────────────────────────────────────
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -144,9 +144,33 @@
     if (state.anchor) L.marker([state.anchor.lat, state.anchor.lng], { icon: L.divIcon({ className: "", html: anchorHtml(), iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 2000, interactive: false }).addTo(layer);
   }
 
+  // Hide permanent labels that overlap a higher-priority (selected, then rank order) label.
+  function declutterLabels() {
+    if (!map) return;
+    var order = labelMarkers.slice().sort(function (a, b) { return (b._sfSel ? 1 : 0) - (a._sfSel ? 1 : 0); });
+    var placed = [];
+    for (var i = 0; i < order.length; i++) {
+      var tt = order[i].getTooltip && order[i].getTooltip();
+      var el = tt && (tt.getElement ? tt.getElement() : tt._container);
+      if (!el) continue;
+      el.style.display = "";
+      var r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      var hit = false;
+      if (!order[i]._sfSel) {
+        for (var j = 0; j < placed.length; j++) {
+          var p = placed[j];
+          if (r.left < p.r && r.right > p.l && r.top < p.b && r.bottom > p.t) { hit = true; break; }
+        }
+      }
+      if (hit) el.style.display = "none";
+      else placed.push({ l: r.left, t: r.top, r: r.right, b: r.bottom });
+    }
+  }
+
   function renderMarkers() {
     if (!map) return;
-    layer.clearLayers(); markers = {};
+    layer.clearLayers(); markers = {}; labelMarkers = [];
     var list = sorted();
     var pts = list.filter(function (u) { return !isNaN(u.lat) && !isNaN(u.lng); });
     var z = map.getZoom();
@@ -164,6 +188,7 @@
         var labelTop = level === "region" ? (REGION[k] ? REGION[k].full : k) : k;
         var m = L.marker([lat, lng], { icon: L.divIcon({ className: "", html: clusterHtml(g.length, color, level === "region" ? k : ""), iconSize: [56, 56], iconAnchor: [28, 28], popupAnchor: [0, -30] }) }).addTo(layer);
         m.bindTooltip(labelTop + " · " + g.length, { permanent: true, direction: "top", offset: [0, -30], className: "sf-label", opacity: 1 });
+        labelMarkers.push(m);
         m.on("click", function () {
           if (g.length === 1) { map.flyTo([g[0].lat, g[0].lng], 7, { duration: .6 }); return; }
           var b = L.latLngBounds(g.map(function (u) { return [u.lat, u.lng]; }));
@@ -171,6 +196,7 @@
         });
       });
       addAnchorMarker();
+      if (window.requestAnimationFrame) requestAnimationFrame(declutterLabels); else declutterLabels();
       return;
     }
 
@@ -184,9 +210,11 @@
       m.bindTooltip(labelHtml, { permanent: true, direction: "top", offset: [0, -46], className: "sf-label", opacity: 1 });
       m.bindPopup(popupHtml(u), { closeButton: true, maxWidth: 280, minWidth: 248, autoPanPadding: [60, 60] });
       m.on("click", function (e) { if (e && e.originalEvent) L.DomEvent.stopPropagation(e); select(u.id, false); });
+      m._sfSel = sel; labelMarkers.push(m);
       markers[u.id] = m;
     });
     addAnchorMarker();
+    if (window.requestAnimationFrame) requestAnimationFrame(declutterLabels); else declutterLabels();
   }
 
   function select(id, pan) {
@@ -615,6 +643,7 @@
     layer = L.layerGroup().addTo(map);
     map.on("click", function (e) { select(null, false); setAnchor(e.latlng.lat, e.latlng.lng, "your pinned point", false); });
     map.on("zoomend", renderMarkers);
+    map.on("moveend", declutterLabels);
     map.on("resize", fitMinZoom);
     renderMarkers();
     fitMinZoom();

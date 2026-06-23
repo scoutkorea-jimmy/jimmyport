@@ -561,7 +561,8 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
   .progress .pbar{flex-basis:130px}
   header.top{gap:14px;padding:20px 0 18px} .emblem{width:60px;height:60px}
   h1{font-size:21px}
-  .vtab{flex:1;justify-content:center;padding:10px 0}
+  .viewtabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -13px;padding:0 13px 4px}
+  .vtab{flex:0 0 auto;justify-content:center;white-space:nowrap;padding:9px 13px}
   .cal{gap:4px}
   .cell{min-height:64px;padding:5px;gap:4px;border-radius:var(--r-1)}
   .cell .date{font-size:10.5px} .cell .dd{font-size:9px}
