@@ -23,17 +23,28 @@
   function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
   var COUNTRY = {}; NSOS.forEach(function (n) { COUNTRY[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; });
   var COUNTRIES = Object.keys(COUNTRY).sort();
+  var DIAL = window.SCOUT_DIAL || {};
 
   // ── state ──────────────────────────────────────────────────────────
   var units = [], map, marker = null, saveTimer = null, savedTimer = null;
-  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {} };
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false };
+  // every distinct category/tag already used across places (for tag search/autocomplete)
+  function allTags() { var set = {}; units.forEach(function (u) { (u.tags || []).forEach(function (t) { if (t) set[t] = 1; }); }); return Object.keys(set).sort(); }
 
   // ── helpers ────────────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
   function sel() { return units.find(function (u) { return u.id === state.selectedId; }); }
-  function toast(msg) { var t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(function () { t.style.display = "none"; }, 1800); }
+  function toast(msg, type) {
+    var t = $("toast");
+    var col = type === "success" ? "#1c7a36" : type === "error" ? "#b4362f" : "#1E1730";
+    t.textContent = (type === "success" ? "✓ " : type === "error" ? "⚠ " : "") + msg;
+    t.style.background = col;
+    t.style.display = "block";
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.style.display = "none"; }, type === "success" ? 2600 : 2000);
+  }
   function fmtTs(ts) { try { var d = new Date(ts); var p = function (n) { return ("0" + n).slice(-2); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); } catch (e) { return ""; } }
 
   function normUnit(u) {
@@ -57,16 +68,16 @@
   function setSaved(ok) { $("saved-label").textContent = ok ? "All changes saved" : "Saving…"; }
   function save(manual) {
     clearTimeout(saveTimer);
-    if (!Auth.valid()) { setSaved(false); $("saved-label").textContent = "Sign in to publish"; if (manual) toast("Sign in to save"); Auth.requireReauth(); return; }
+    if (!Auth.valid()) { setSaved(false); $("saved-label").textContent = "Sign in to publish"; if (manual) toast("Sign in to save", "error"); Auth.requireReauth(); return; }
     if (manual) setSaved(false);
     fetch("/api/units", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ units: units }) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
       .then(function (res) {
-        if (res.ok) { setSaved(true); if (manual) toast("Saved"); }
-        else if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; if (manual) toast("Session expired — sign in again"); Auth.requireReauth(); }
-        else { $("saved-label").textContent = "Save failed: " + (res.j.error || res.status); if (manual) toast("Save failed: " + (res.j.error || res.status)); }
+        if (res.ok) { setSaved(true); if (manual) toast("Saved — changes are live", "success"); }
+        else if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; if (manual) toast("Session expired — sign in again", "error"); Auth.requireReauth(); }
+        else { $("saved-label").textContent = "Save failed: " + (res.j.error || res.status); if (manual) toast("Save failed: " + (res.j.error || res.status), "error"); }
       })
-      .catch(function () { $("saved-label").textContent = "Save failed (network)"; if (manual) toast("Save failed (network)"); });
+      .catch(function () { $("saved-label").textContent = "Save failed (network)"; if (manual) toast("Save failed (network)", "error"); });
   }
   function saveNow() { save(true); }
   function loadUnits() {
@@ -208,10 +219,9 @@
     var subline = KIND[s.kind] + " · " + (s.country || "No country") + " · " + s.region;
 
     var kindSeg = ["unit", "office", "heritage"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
-    var countryOpts = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === s.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("");
     var regionOpts = Object.keys(REGION).map(function (code) { return '<option value="' + code + '"' + (code === s.region ? " selected" : "") + ">" + code + " · " + esc(REGION[code].full) + "</option>"; }).join("");
     var sectionChips = ALL_SECTIONS.map(function (x) { return '<button data-act="sec" data-val="' + x + '" style="' + chip(s.sections.indexOf(x) !== -1) + '">' + x + '</button>'; }).join("");
-    var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:6px 8px 6px 11px;border-radius:999px;">' + esc(t) + '<button data-act="tagdel" data-val="' + escAttr(t) + '" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
+    var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:5px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:5px 7px 5px 10px;border-radius:999px;">' + '<button data-act="tagedit" data-val="' + escAttr(t) + '" title="Click to edit this category" style="border:none;background:transparent;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';cursor:pointer;padding:0;">' + esc(t) + '</button>' + '<button data-act="tagdel" data-val="' + escAttr(t) + '" title="Remove" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
     var statusSeg = [["published", "Live"], ["draft", "Draft"]].map(function (p) { return '<button data-act="status" data-val="' + p[0] + '" style="' + seg(s.status === p[0]) + '">' + p[1] + '</button>'; }).join("");
 
     $("form").innerHTML = '<div style="max-width:620px;margin:0 auto;padding:24px 28px 60px;">' +
@@ -230,7 +240,10 @@
 
       card("affiliation", "Affiliation",
         '<label style="' + LBL + '">Country</label>' +
-        '<select id="f-country" class="sf-fld" style="appearance:none;cursor:pointer;">' + countryOpts + '</select>' +
+        '<div id="f-country-combo" style="position:relative;">' +
+        '<input id="f-country-input" class="sf-fld" autocomplete="off" placeholder="Search a country…" value="' + escAttr(s.country || "") + '" style="cursor:text;" />' +
+        '<div id="f-country-menu" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:50;background:#fff;border:1px solid #e7e1d8;border-radius:11px;box-shadow:0 12px 30px rgba(30,18,55,.18);max-height:248px;overflow-y:auto;"></div>' +
+        '</div>' +
         '<label style="' + LBL + '">Region</label>' +
         '<select id="f-region" class="sf-fld" style="appearance:none;cursor:pointer;">' + regionOpts + '</select>' +
         '<label style="' + LBL + '">NSO · Language <span style="color:#b3adbd;font-weight:500;">(auto from country)</span></label>' +
@@ -240,8 +253,11 @@
         '<label style="' + LBL + '">Short introduction</label><textarea id="f-desc" class="sf-fld" style="resize:vertical;min-height:74px;line-height:1.5;" placeholder="A sentence or two about this place and its activities.">' + esc(s.desc) + '</textarea>' +
         (isUnit
           ? '<label style="' + LBL + '">Sections (recruiting)</label><div style="display:flex;flex-wrap:wrap;gap:6px;">' + sectionChips + '</div>'
-          : '<label style="' + LBL + '">Categories</label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + tagChips + '</div>' +
-            '<div style="display:flex;gap:7px;margin-top:9px;"><input id="f-tagdraft" value="' + escAttr(state.tagDraft) + '" class="sf-fld" placeholder="Add a category (e.g. Training centre) and press Enter" style="flex:1;" /><button data-act="tagadd" style="' + BTN_SOFT + '">Add</button></div>'
+          : '<label style="' + LBL + '">Categories <span style="color:#b3adbd;font-weight:500;">— click a chip to rename it</span></label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + (tagChips || '<span style="font-size:12px;color:#a39bb0;">No categories yet.</span>') + '</div>' +
+            '<div id="f-tag-combo" style="position:relative;margin-top:9px;">' +
+            '<div style="display:flex;gap:7px;"><input id="f-tagdraft" value="' + escAttr(state.tagDraft) + '" class="sf-fld" autocomplete="off" placeholder="Search existing categories or type a new one, then Enter" style="flex:1;" /><button data-act="tagadd" style="' + BTN_SOFT + '">Add</button></div>' +
+            '<div id="f-tag-menu" style="display:none;position:absolute;left:0;right:62px;top:calc(100% + 4px);z-index:50;background:#fff;border:1px solid #e7e1d8;border-radius:11px;box-shadow:0 12px 30px rgba(30,18,55,.18);max-height:200px;overflow-y:auto;"></div>' +
+            '</div>'
         )) +
 
       card("contact", 'Contact <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— all optional, leave blank if none</span>',
@@ -279,7 +295,36 @@
     state.selectedId = units[0] ? units[0].id : null;
     renderRail(); renderForm(); syncMarker(true); touch(); toast("Place deleted");
   }
-  function addTag() { var t = state.tagDraft.trim(), s = sel(); if (!t || !s) return; if (s.tags.indexOf(t) === -1) s.tags.push(t); state.tagDraft = ""; renderForm(); touch(); }
+  function addTag() { addTagValue(state.tagDraft); }
+  function addTagValue(t) { var s = sel(); t = (t || "").trim(); if (!s || !t) return; if (s.tags.indexOf(t) === -1) s.tags.push(t); state.tagDraft = ""; state.tagOpen = false; touch(); renderForm(); }
+  function editTag(t) { var s = sel(); if (!s) return; s.tags = s.tags.filter(function (x) { return x !== t; }); state.tagDraft = t; state.tagOpen = false; touch(); renderForm(); setTimeout(function () { var el = $("f-tagdraft"); if (el) { el.focus(); el.select(); } }, 0); }
+
+  // ── searchable country / category combos ───────────────────────────
+  function pickCountry(c) {
+    var m = COUNTRY[c], s = sel();
+    var patch = m ? { country: c, nso: m.nso, region: m.region, lang: m.lang } : { country: c };
+    if (s && DIAL[c] && !(s.phone || "").trim()) patch.phone = DIAL[c] + " ";  // auto-fill dialing code
+    set(patch);
+    state.countryOpen = false; state.countryQuery = "";
+    renderRail(); renderForm(); syncMarker(false);
+  }
+  function renderCountryMenu() {
+    var menu = $("f-country-menu"); if (!menu) return;
+    var q = (state.countryQuery || "").trim().toLowerCase();
+    var list = COUNTRIES.filter(function (c) { return !q || c.toLowerCase().indexOf(q) !== -1; });
+    menu.innerHTML = list.length
+      ? list.slice(0, 80).map(function (c) { return '<div data-act="countrypick" data-val="' + escAttr(c) + '" style="padding:9px 12px;cursor:pointer;font:500 13px \'Hanken Grotesk\';color:#1E1730;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f4f0e9;"><span style="font-size:11px;color:#9a93a6;flex:none;min-width:36px;">' + esc(DIAL[c] || "") + '</span><span style="flex:1;">' + esc(c) + '</span></div>'; }).join("")
+      : '<div style="padding:10px 12px;font-size:12.5px;color:#a39bb0;">No matching country</div>';
+    menu.style.display = state.countryOpen ? "block" : "none";
+  }
+  function renderTagMenu() {
+    var menu = $("f-tag-menu"), s = sel(); if (!menu || !s) return;
+    var q = (state.tagDraft || "").trim().toLowerCase();
+    var avail = allTags().filter(function (t) { return s.tags.indexOf(t) === -1 && (!q || t.toLowerCase().indexOf(q) !== -1); });
+    if (!avail.length || !state.tagOpen) { menu.style.display = "none"; return; }
+    menu.innerHTML = avail.slice(0, 40).map(function (t) { return '<div data-act="tagpick" data-val="' + escAttr(t) + '" style="padding:8px 12px;cursor:pointer;font:500 12.5px \'Hanken Grotesk\';color:#1E1730;border-bottom:1px solid #f4f0e9;">' + esc(t) + '</div>'; }).join("");
+    menu.style.display = "block";
+  }
   function doCopy() { try { navigator.clipboard.writeText(JSON.stringify({ units: units }, null, 2)); toast("JSON copied to clipboard"); } catch (e) { toast("Copy failed"); } }
   function doDownload() {
     try { var blob = new Blob(["window.SCOUT_UNITS = " + JSON.stringify(units, null, 2) + ";\n"], { type: "text/javascript" }); var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "data.js"; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000); toast("Downloaded data.js"); } catch (e) {}
@@ -309,7 +354,11 @@
       var u = p.unit || {}, rep = p.reporter || {};
       var code = regionCode(u.region), rc = REGION[code] || { color: "#9a93a6" };
       var locLine = u.address ? ("📍 " + esc(u.address) + (u.lat ? " (" + (+u.lat).toFixed(3) + ", " + (+u.lng).toFixed(3) + ")" : "")) : (u.lat ? ("📍 " + (+u.lat).toFixed(3) + ", " + (+u.lng).toFixed(3)) : "");
-      return '<div style="border:1px solid #ece6db;border-radius:14px;padding:16px;margin-bottom:12px;">' +
+      var corr = p.correction && p.correction.forId
+        ? '<div style="display:inline-flex;align-items:center;gap:5px;font:700 10.5px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;border:1px solid #e4d9f5;border-radius:999px;padding:3px 9px;margin-bottom:8px;">✎ Correction to: ' + esc(p.correction.forName || u.name || "an existing place") + '</div>'
+        : "";
+      return '<div style="border:1px solid ' + (corr ? "#dccff0" : "#ece6db") + ';border-radius:14px;padding:16px;margin-bottom:12px;">' +
+        corr +
         '<div style="display:flex;align-items:flex-start;gap:10px;">' +
         '<span style="width:11px;height:11px;border-radius:' + (u.kind === "office" ? "3px" : "50%") + ';background:' + rc.color + ';flex:none;margin-top:5px;"></span>' +
         '<div style="flex:1;min-width:0;">' +
@@ -521,6 +570,9 @@
       else if (act === "sec") { var s = sel(); var has = s.sections.indexOf(val) !== -1; s.sections = has ? s.sections.filter(function (x) { return x !== val; }) : s.sections.concat([val]); touch(); renderForm(); }
       else if (act === "tagdel") { var s2 = sel(); s2.tags = s2.tags.filter(function (x) { return x !== val; }); touch(); renderForm(); }
       else if (act === "tagadd") { addTag(); }
+      else if (act === "tagedit") { editTag(val); }
+      else if (act === "tagpick") { addTagValue(val); }
+      else if (act === "countrypick") { pickCountry(val); }
       else if (act === "find") { find(); }
       else if (act === "del") { delUnit(); }
     });
@@ -535,13 +587,30 @@
       else if (id === "f-homepage") { set({ homepage: v }); }
       else if (id === "f-address") { set({ address: v }); updateCap(); }
       else if (id === "f-lat" || id === "f-lng") { onLatLngInput(); }
-      else if (id === "f-tagdraft") { state.tagDraft = v; }
+      else if (id === "f-tagdraft") { state.tagDraft = v; state.tagOpen = true; renderTagMenu(); }
+      else if (id === "f-country-input") { state.countryQuery = v; state.countryOpen = true; renderCountryMenu(); }
       else if (id === "f-addr") { state.addrQuery = v; }
     });
-    $("form").addEventListener("keydown", function (e) { if (e.target.id === "f-tagdraft" && e.key === "Enter") { e.preventDefault(); addTag(); } if (e.target.id === "f-addr" && e.key === "Enter") { e.preventDefault(); find(); } if ((e.target.id === "f-lat" || e.target.id === "f-lng") && e.key === "Enter") { e.preventDefault(); commitLatLng(); } });
+    $("form").addEventListener("focusin", function (e) {
+      if (e.target.id === "f-country-input") { state.countryOpen = true; state.countryQuery = ""; renderCountryMenu(); }
+      else if (e.target.id === "f-tagdraft") { state.tagOpen = true; renderTagMenu(); }
+    });
+    $("form").addEventListener("keydown", function (e) {
+      if (e.target.id === "f-tagdraft" && e.key === "Enter") { e.preventDefault(); addTag(); }
+      if (e.target.id === "f-addr" && e.key === "Enter") { e.preventDefault(); find(); }
+      if ((e.target.id === "f-lat" || e.target.id === "f-lng") && e.key === "Enter") { e.preventDefault(); commitLatLng(); }
+      if (e.target.id === "f-country-input") {
+        if (e.key === "Enter") { e.preventDefault(); var q = (state.countryQuery || "").trim().toLowerCase(); var hit = COUNTRIES.filter(function (c) { return c.toLowerCase().indexOf(q) !== -1; }); if (hit.length) pickCountry(hit[0]); }
+        else if (e.key === "Escape") { state.countryOpen = false; var cm = $("f-country-menu"); if (cm) cm.style.display = "none"; }
+      }
+    });
+    // close the combos when clicking outside them (reset the country input to the saved value)
+    document.addEventListener("click", function (e) {
+      if (state.countryOpen && !e.target.closest("#f-country-combo")) { state.countryOpen = false; var ci = $("f-country-input"), cm = $("f-country-menu"), s = sel(); if (ci && s) ci.value = s.country || ""; if (cm) cm.style.display = "none"; }
+      if (state.tagOpen && !e.target.closest("#f-tag-combo")) { state.tagOpen = false; var tm = $("f-tag-menu"); if (tm) tm.style.display = "none"; }
+    });
     $("form").addEventListener("change", function (e) {
-      if (e.target.id === "f-country") { var c = e.target.value, m = COUNTRY[c]; set(m ? { country: c, nso: m.nso, region: m.region, lang: m.lang } : { country: c }); renderRail(); renderForm(); syncMarker(false); }
-      else if (e.target.id === "f-lat" || e.target.id === "f-lng") { commitLatLng(); }
+      if (e.target.id === "f-lat" || e.target.id === "f-lng") { commitLatLng(); }
       else if (e.target.id === "f-region") { set({ region: e.target.value }); renderRail(); renderForm(); syncMarker(false); }
     });
 

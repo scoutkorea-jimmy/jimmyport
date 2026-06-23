@@ -17,8 +17,15 @@ export async function onRequestPost({ request, env }) {
     };
   }
   if (!reporter || !reporter.name || !reporter.affiliation) return json({ error: "reporter_required" }, 400);
+  let correction = null;
+  if (body.correction && typeof body.correction === "object" && body.correction.forId) {
+    correction = {
+      forId: String(body.correction.forId).slice(0, 80),
+      forName: String(body.correction.forName || "").trim().slice(0, 160),
+    };
+  }
   const pending = await getArr(env, "pending");
-  const item = { id: newId(), ts: new Date().toISOString(), ip: clientIp(request), unit: u, reporter: reporter };
+  const item = { id: newId(), ts: new Date().toISOString(), ip: clientIp(request), unit: u, reporter: reporter, correction: correction };
   pending.unshift(item);
   await putArr(env, "pending", pending.slice(0, 1000));
   await appendLog(env, { ts: item.ts, action: "submission.new", name: u.name, ip: item.ip });
@@ -48,12 +55,18 @@ export async function onRequestPatch({ request, env }) {
     let store = raw ? JSON.parse(raw) : { units: [], updatedAt: null };
     if (!Array.isArray(store.units)) store.units = [];
     const unit = Object.assign({}, item.unit);
-    if (!unit.id) unit.id = newId();
-    store.units.push(unit);
+    // Upsert by id: a correction (unit.id matches an existing place) updates it in place;
+    // a new submission (no matching id) is appended.
+    let replaced = false;
+    if (unit.id) {
+      const i = store.units.findIndex(function (x) { return x.id === unit.id; });
+      if (i !== -1) { store.units[i] = unit; replaced = true; }
+    }
+    if (!replaced) { if (!unit.id) unit.id = newId(); store.units.push(unit); }
     store.updatedAt = ts;
     await env.SCOUT_KV.put("units", JSON.stringify(store));
-    await appendLog(env, { ts, action: "submission.approve", name: unit.name, ip: clientIp(request) });
-    return json({ ok: true, approved: unit.id, count: store.units.length });
+    await appendLog(env, { ts, action: replaced ? "submission.correction" : "submission.approve", name: unit.name, ip: clientIp(request) });
+    return json({ ok: true, approved: unit.id, replaced: replaced, count: store.units.length });
   }
   await appendLog(env, { ts, action: "submission.reject", name: item.unit && item.unit.name, ip: clientIp(request) });
   return json({ ok: true, rejected: id });

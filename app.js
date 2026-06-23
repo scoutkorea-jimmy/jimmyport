@@ -148,7 +148,14 @@
       addr +
       pdesc +
       '<div style="margin-bottom:2px;">' + chips + '</div>' +
-      '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact + '</div>';
+      '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact +
+      '<div style="display:flex;gap:7px;margin-top:11px;">' +
+      '<button data-popcomments="' + escAttr(u.id) + '" style="flex:1;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 12px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' +
+      'Comments (' + commentsFor(u.id).length + ')</button>' +
+      '<button data-suggestedit="' + escAttr(u.id) + '" title="Suggest a correction to this place" style="flex:none;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 12px \'Hanken Grotesk\';padding:9px 11px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>' +
+      'Suggest an edit</button></div></div>';
   }
 
   function addAnchorMarker() {
@@ -240,27 +247,31 @@
     }
   }
 
-  function setAnchor(lat, lng, label, fly) {
+  // view: "fit" = frame the nearest places (search / pinned point) · "me" = fly to the
+  // point itself (geolocation, so you actually see where you are) · "none" = don't move.
+  function setAnchor(lat, lng, label, view) {
     state.anchor = { lat: lat, lng: lng, label: label }; state.geoMsg = "";
     renderMarkers(); renderList(); updateCounts(); updateNearUI();
-    if (map) {
-      var near = sorted().slice(0, 5).map(function (u) { return [u.lat, u.lng]; }); near.push([lat, lng]);
-      if (near.length > 1) map.fitBounds(L.latLngBounds(near).pad(0.25), { maxZoom: 11 });
-      else if (fly) map.flyTo([lat, lng], 11, { duration: .6 });
-    }
+    if (!map) return;
+    if (view === "none") return;
+    if (view === "me") { map.flyTo([lat, lng], Math.max(map.getZoom(), 13), { duration: .6 }); return; }
+    var near = sorted().slice(0, 5).map(function (u) { return [u.lat, u.lng]; }); near.push([lat, lng]);
+    if (near.length > 1) map.fitBounds(L.latLngBounds(near).pad(0.25), { maxZoom: 11 });
+    else map.flyTo([lat, lng], 11, { duration: .6 });
   }
   function doSearch() {
     var q = state.query.trim().toLowerCase();
     if (!q) return;
     var f0 = UNITS.filter(function (u) { var hay = (u.name + " " + u.country + " " + u.city + " " + u.nso + " " + u.region + " " + (REGION[u.region] ? REGION[u.region].full : "")).toLowerCase(); return hay.indexOf(q) !== -1; });
-    if (f0.length) { var lat = f0.reduce(function (s, u) { return s + u.lat; }, 0) / f0.length, lng = f0.reduce(function (s, u) { return s + u.lng; }, 0) / f0.length; setAnchor(lat, lng, '"' + state.query.trim() + '"', true); }
+    if (f0.length) { var lat = f0.reduce(function (s, u) { return s + u.lat; }, 0) / f0.length, lng = f0.reduce(function (s, u) { return s + u.lng; }, 0) / f0.length; setAnchor(lat, lng, '"' + state.query.trim() + '"', "fit"); }
   }
   function geolocate() {
     if (!navigator.geolocation) { state.geoMsg = "Location unavailable — click the map to set your point."; updateCounts(); return; }
+    state.geoMsg = "Locating you…"; updateCounts();
     navigator.geolocation.getCurrentPosition(
-      function (p) { setAnchor(p.coords.latitude, p.coords.longitude, "your location", true); },
-      function () { state.geoMsg = "Location blocked — click the map to set your point."; updateCounts(); },
-      { timeout: 8000, maximumAge: 60000 }
+      function (p) { setAnchor(p.coords.latitude, p.coords.longitude, "your location", "me"); },
+      function (err) { state.geoMsg = (err && err.code === 1) ? "Location permission denied — allow it in your browser, or click the map." : "Couldn't get your location — click the map to set your point."; updateCounts(); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }
 
@@ -385,7 +396,11 @@
       '<div style="flex:1;"></div>' +
       '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>' +
-      '</div></div></div>';
+      '</div>' +
+      '<button data-suggestedit="' + escAttr(u.id) + '" data-stop="1" style="margin-top:10px;width:100%;border:1px dashed #d8cfe6;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';padding:8px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>' +
+      'Suggest an edit / correction</button>' +
+      '</div></div>';
   }
 
   function groupChevron(collapsed, size) { size = size || 14; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="#9a93a6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(' + (collapsed ? 0 : 90) + 'deg);transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>'; }
@@ -580,10 +595,26 @@
     if (!rep.country) { $("r-auto").textContent = "Select a country to auto-fill NSO, region and language."; return; }
     $("r-auto").textContent = (rep.nso || "—") + " · " + (REGION[rep.region] ? REGION[rep.region].full : rep.region) + " (" + (rep.lang || "—") + ")";
   }
-  function openReport() {
-    rep = { kind: "unit", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
-    ["r-rname", "r-raff", "r-name", "r-desc", "r-instagram", "r-phone", "r-email", "r-homepage", "r-addr"].forEach(function (id) { var el = $(id); if (el) el.value = ""; });
-    $("r-msg").textContent = ""; $("r-coord").textContent = "No location set yet — search above (the admin can fine-tune it).";
+  // No arg → suggest a brand-new place. With a unit → "suggest a correction" to that place
+  // (form is pre-filled with its current details; the approved submission updates it in place).
+  function openReport(correct) {
+    var c = (correct && correct.id) ? correct : null;
+    rep = c
+      ? { kind: c.kind || "unit", sections: Array.isArray(c.sections) ? c.sections.slice() : [], country: c.country || "", nso: c.nso || "", region: c.region || "APR", lang: c.lang || "", lat: (c.lat != null ? c.lat : null), lng: (c.lng != null ? c.lng : null), address: c.address || "", correctionId: c.id, correctionName: c.name || "" }
+      : { kind: "unit", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
+    $("r-rname").value = ""; $("r-raff").value = "";
+    $("r-name").value = c ? (c.name || "") : "";
+    $("r-desc").value = c ? (c.desc || "") : "";
+    $("r-instagram").value = c ? (c.instagram || "") : "";
+    $("r-phone").value = c ? (c.phone || "") : "";
+    $("r-email").value = c ? (c.email || "") : "";
+    $("r-homepage").value = c ? (c.homepage || "") : "";
+    $("r-addr").value = c ? (c.address || "") : "";
+    $("r-msg").textContent = "";
+    $("r-coord").textContent = (c && c.lat != null) ? ("📍 " + c.lat + ", " + c.lng + (c.address ? " — " + c.address : "")) : "No location set yet — search above (the admin can fine-tune it).";
+    $("r-eyebrow").textContent = c ? "Suggest a correction" : "Suggest a place";
+    $("r-title").textContent = c ? ("Fix details · " + (c.name || "")) : "Suggest a place to add";
+    $("r-submit").textContent = c ? "Submit correction" : "Submit for review";
     renderRKind(); renderRSections(); renderRCountry(); updateRAuto();
     $("report-modal").style.display = "flex";
   }
@@ -607,13 +638,15 @@
       instagram: $("r-instagram").value.trim(), phone: $("r-phone").value.trim(), email: $("r-email").value.trim(), homepage: $("r-homepage").value.trim(),
       status: "published"
     };
+    if (rep.correctionId) unit.id = rep.correctionId;
     var payload = { unit: unit, reporter: { name: rname, affiliation: raff } };
+    if (rep.correctionId) payload.correction = { forId: rep.correctionId, forName: rep.correctionName || "" };
     $("r-msg").style.color = "#6b6577"; $("r-msg").textContent = "Submitting…"; $("r-submit").disabled = true;
     fetch("/api/submissions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
       .then(function (res) {
         $("r-submit").disabled = false;
-        if (res.ok && res.j.ok) { $("r-msg").style.color = "#248737"; $("r-msg").textContent = "Thank you! Your report was submitted for admin review."; setTimeout(closeReport, 1400); }
+        if (res.ok && res.j.ok) { $("r-msg").style.color = "#248737"; $("r-msg").textContent = rep.correctionId ? "Thank you! Your correction was submitted for review." : "Thank you! Your suggestion was submitted for admin review."; setTimeout(closeReport, 1400); }
         else { $("r-msg").style.color = "#b4524e"; $("r-msg").textContent = "Could not submit: " + ((res.j && res.j.error) || "error"); }
       })
       .catch(function () { $("r-submit").disabled = false; $("r-msg").style.color = "#b4524e"; $("r-msg").textContent = "Network error — please try again."; });
@@ -653,7 +686,14 @@
     L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap &copy; CARTO" }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     layer = L.layerGroup().addTo(map);
-    map.on("click", function (e) { select(null, false); setAnchor(e.latlng.lat, e.latlng.lng, "your pinned point", false); });
+    map.on("click", function (e) {
+      var lat = e.latlng.lat, lng = e.latlng.lng;
+      var html = '<div style="font-family:\'Hanken Grotesk\';text-align:center;min-width:178px;padding:2px 2px 0;">' +
+        '<div style="font:700 13px \'Bricolage Grotesque\';color:#1E1730;margin-bottom:3px;">Search from this point?</div>' +
+        '<div style="font-size:11px;color:#9a93a6;margin-bottom:10px;">Sort places by distance from<br>' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div>' +
+        '<button data-searchhere="' + lat.toFixed(6) + ',' + lng.toFixed(6) + '" style="width:100%;border:none;background:#6336B5;color:#fff;font:600 12.5px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;">Search from here</button></div>';
+      L.popup({ closeButton: true, autoPanPadding: [40, 40], className: "sf-ask" }).setLatLng(e.latlng).setContent(html).openOn(map);
+    });
     map.on("zoomend", renderMarkers);
     map.on("moveend", declutterLabels);
     map.on("resize", fitMinZoom);
@@ -694,6 +734,7 @@
       var gb = e.target.closest("[data-group]"); if (gb) { var gk = gb.getAttribute("data-group"); var cur = (gk in state.collapsedGroups) ? !!state.collapsedGroups[gk] : browseMode(); state.collapsedGroups[gk] = !cur; renderList(); return; }
       var mb = e.target.closest("[data-more]"); if (mb) { e.stopPropagation(); var mid = mb.getAttribute("data-more"); state.descExpanded[mid] = !state.descExpanded[mid]; renderList(); return; }
       var cb = e.target.closest("[data-comments]"); if (cb) { e.stopPropagation(); openComments(cb.getAttribute("data-comments")); return; }
+      var se = e.target.closest("[data-suggestedit]"); if (se) { e.stopPropagation(); var su = UNITS.find(function (x) { return x.id === se.getAttribute("data-suggestedit"); }); if (su) openReport(su); return; }
       if (e.target.closest("[data-stop]")) { e.stopPropagation(); return; }
       var card = e.target.closest("[data-open]"); if (card) select(card.getAttribute("data-open"), true);
     });
@@ -708,13 +749,13 @@
     try { var n = localStorage.getItem("sf_nick"); if (n) $("nick").value = n; } catch (e) {}
 
     // report a location
-    $("report-btn").addEventListener("click", openReport);
+    $("report-btn").addEventListener("click", function () { openReport(); });
     $("r-close").addEventListener("click", closeReport);
     $("r-cancel").addEventListener("click", closeReport);
     $("report-modal").addEventListener("click", function (e) { if (e.target === $("report-modal")) closeReport(); });
     $("r-kind-seg").addEventListener("click", function (e) { var b = e.target.closest("[data-rkind]"); if (!b) return; rep.kind = b.getAttribute("data-rkind"); renderRKind(); });
     $("r-sections").addEventListener("click", function (e) { var b = e.target.closest("[data-rsec]"); if (!b) return; var s = b.getAttribute("data-rsec"); var i = rep.sections.indexOf(s); if (i === -1) rep.sections.push(s); else rep.sections.splice(i, 1); renderRSections(); });
-    $("r-country").addEventListener("change", function (e) { rep.country = e.target.value; var m = COUNTRY[rep.country]; if (m) { rep.nso = m.nso; rep.region = m.region; rep.lang = m.lang; } else { rep.nso = ""; rep.lang = ""; } updateRAuto(); });
+    $("r-country").addEventListener("change", function (e) { rep.country = e.target.value; var m = COUNTRY[rep.country]; if (m) { rep.nso = m.nso; rep.region = m.region; rep.lang = m.lang; } else { rep.nso = ""; rep.lang = ""; } var dial = (window.SCOUT_DIAL || {})[rep.country], pe = $("r-phone"); if (dial && pe && !pe.value.trim()) pe.value = dial + " "; updateRAuto(); });
     $("r-find").addEventListener("click", rFind);
     $("r-addr").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); rFind(); } });
     $("r-submit").addEventListener("click", rSubmit);
@@ -724,6 +765,29 @@
       if (!state.countryOpen) return;
       if (e.target.closest("#country-filter")) return;
       state.countryOpen = false; renderCountryFilter();
+    });
+
+    // confirm "search from this point" (map-click popup)
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-searchhere]"); if (!b) return;
+      var parts = b.getAttribute("data-searchhere").split(",");
+      if (map) map.closePopup();
+      select(null, false);
+      setAnchor(parseFloat(parts[0]), parseFloat(parts[1]), "your pinned point", "fit");
+    });
+
+    // open the comments drawer from a place's map popup
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-popcomments]"); if (!b) return;
+      openComments(b.getAttribute("data-popcomments"));
+    });
+
+    // "Suggest an edit" to a place (pre-fills the correction form)
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-suggestedit]"); if (!b) return;
+      e.stopPropagation();
+      var u = UNITS.find(function (x) { return x.id === b.getAttribute("data-suggestedit"); });
+      if (u) openReport(u);
     });
 
     // toggle the clamped description inside a map popup (collapsed by default)

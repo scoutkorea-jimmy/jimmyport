@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.78" />
+  <link rel="stylesheet" href="styles.css?v=0.9.79" />
 </head>
 <body>
   <div style="position:fixed;inset:0;font-family:'Hanken Grotesk',sans-serif;color:#1E1730;background:#e9ece5;overflow:hidden;">
@@ -58,7 +58,7 @@
 
       <div style="flex:none;padding:11px 16px;border-top:1px solid #f0ebe2;background:rgba(251,250,247,.7);">
         <button id="report-btn" style="width:100%;border:none;background:#6336B5;color:#fff;font:600 12.5px 'Hanken Grotesk';padding:10px;border-radius:11px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-bottom:9px;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>Report a location
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>Suggest a place
         </button>
         <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
           <a href="/admin" style="color:#9a93a6;font:600 11.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
@@ -125,8 +125,8 @@
       <div class="sf-scroll" style="width:520px;max-width:100%;max-height:90vh;overflow-y:auto;background:#fff;border-radius:18px;box-shadow:0 30px 70px rgba(30,18,55,.3);padding:22px 22px 24px;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px;">
           <div>
-            <div style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.06em;color:#9a93a6;margin-bottom:3px;">Report a location</div>
-            <div style="font:700 18px 'Bricolage Grotesque';letter-spacing:-.01em;">Suggest a place to add</div>
+            <div id="r-eyebrow" style="font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.06em;color:#9a93a6;margin-bottom:3px;">Suggest a place</div>
+            <div id="r-title" style="font:700 18px 'Bricolage Grotesque';letter-spacing:-.01em;">Suggest a place to add</div>
           </div>
           <button id="r-close" style="border:none;background:#f1ece4;width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b6577;flex:none;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
@@ -178,8 +178,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.78"></script>
-  <script src="app.js?v=0.9.78"></script>
-  <script src="version-watch.js?v=0.9.78"></script>
+  <script src="data.js?v=0.9.79"></script>
+  <script src="app.js?v=0.9.79"></script>
+  <script src="version-watch.js?v=0.9.79"></script>
 </body>
 </html>
