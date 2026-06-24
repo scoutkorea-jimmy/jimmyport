@@ -141,14 +141,11 @@
       <div className="dc-card">
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14, fontSize: 12, color: 'var(--muted)' }}>
           {['신청가능', '검토중', '확정', '닫힘'].map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 9, height: 9, borderRadius: '50%', background: SS_COLOR[s] }} />{s}</span>)}
-          <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>실시간 · 5일 단위</span>
         </div>
         {groups.map((g, gi) => {
           if (!g || !g.length) return null;
-          const hi = g[0], lo = g[g.length - 1];
           return (
             <div key={gi} className="dc-grp">
-              <div className="dc-grp-h">D-{hi.dNumber} ~ D-{lo.dNumber}<span className="dc-grp-d">{fmtMd(hi.targetDate)} ~ {fmtMd(lo.targetDate)}</span></div>
               <div className="dc-grp-row">
                 {g.map((s) => {
                   const open = s.slotStatus === '신청가능';
@@ -238,7 +235,7 @@
         <div className="dc-modal" onMouseDown={(e) => e.stopPropagation()}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <span className="dc-tag" style={{ background: 'var(--accent)' }}>D-{slot.dNumber}</span>
-            <b style={{ fontSize: 16 }}>{slot.targetDate} 카드 신청</b><span style={{ flex: 1 }} />
+            <b style={{ fontSize: 16 }}>{slot.targetDate} 디데이 카드</b><span style={{ flex: 1 }} />
             <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={onClose}>닫기</button>
           </div>
           <div style={{ display: 'grid', gap: 18 }}>
@@ -433,7 +430,7 @@
               </div>
             </div>
             <window.DCMasterCtx.Provider value={d}>
-              <div style={{ gridColumn: '1/-1' }}><ScaledCard dNumber={30} isDay={false} teaser={'미리보기\nD-COUNT'} /></div>
+              <div style={{ gridColumn: '1/-1' }}><ScaledCard dNumber={30} isDay={false} teaser={'미리보기\n디데이'} /></div>
             </window.DCMasterCtx.Provider>
           </div>
         </div>
@@ -581,9 +578,12 @@
     );
   }
 
-  /* ── 앱 셸 ── */
+  /* ── 앱 셸 (해시 세부라우팅: #/lookup · #/admin) ── */
+  const VIEWS = ['cal', 'lookup', 'admin'];
+  const viewFromHash = () => { try { const h = (location.hash || '').replace(/^#\/?/, ''); return VIEWS.indexOf(h) >= 0 ? h : 'cal'; } catch (_) { return 'cal'; } };
   function App() {
-    const [view, setView] = useState('cal');
+    const [view, setViewState] = useState(viewFromHash);
+    const setView = useCallback((v) => { setViewState(v); try { location.hash = v === 'cal' ? '' : ('#/' + v); } catch (_) {} }, []);
     const [slots, setSlots] = useState(null);
     const [today, setToday] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -602,22 +602,26 @@
       document.addEventListener('visibilitychange', onVis);
       return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
     }, [view, load]);
+    useEffect(() => { const onH = () => setViewState(viewFromHash()); window.addEventListener('hashchange', onH); return () => window.removeEventListener('hashchange', onH); }, []);
 
-    const tabs = [['cal', '신청 캘린더'], ['lookup', '신청 조회'], ['admin', '관리자']];
+    const tabs = [['cal', '디데이 달력'], ['lookup', '신청 조회'], ['admin', '관리자']];
     return (
       <window.DCMasterCtx.Provider value={master}>
         <div className="dc-wrap">
-          <div className="syncbar"><span className="orgtag">제16회 한국잼버리 · D-COUNT</span><span style={{ flex: 1 }} /><span className="st">일자별 D-COUNT 카드 신청</span></div>
+          <div className="syncbar"><span className="orgtag">제16회 한국잼버리 · 디데이 프로젝트</span><span style={{ flex: 1 }} /><span className="st">대원과 함께 채우는 카운트다운</span></div>
           <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 18px' }}>
             <img src="/jamboree/assets/logo.png" width="68" height="68" alt="엠블럼" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
             <div>
-              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>제16회 한국잼버리 PR팀</p>
-              <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>D-COUNT 카드 신청</h1>
-              <p className="dc-note" style={{ marginTop: 6 }}>달력에서 날짜(D-40~D-5)를 골라 카드를 신청하면 <b>하루 한 팀</b>이 선점합니다. 관리자 승인 후 A4로 출력할 수 있어요.</p>
+              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>제16회 한국잼버리 홍보부</p>
+              <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>디데이 프로젝트</h1>
+              <p className="dc-note" style={{ marginTop: 6 }}>전 세계 대원과 함께 잼버리를 향한 <b>디데이 카운트다운</b>을 채워가요. 날짜를 고르면 그 날은 한 대(隊)가 맡고, 홍보부 확인을 받으면 A4로 출력해 함께 나눌 수 있어요.</p>
             </div>
           </header>
+          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8 }}>
+            🛡 비속어·상업적 홍보·정치적 내용 등 <b>잼버리 정신에 어긋나는 내용</b>이 담기면 <b style={{ color: 'var(--danger)' }}>반려</b>될 수 있어요.
+          </div>
           <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55 }}>
-            ⚡ 더 빠른 확정을 원하시면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 문의주세요. 빠르게 확인해 드립니다.
+            ⚡ 더 빠른 확정을 원하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 문의주세요. 빠르게 도와드릴게요.
           </div>
           <div className="dc-nav">{tabs.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>)}</div>
           <div style={{ marginTop: 16 }}>
