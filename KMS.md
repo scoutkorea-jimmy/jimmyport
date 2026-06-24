@@ -8,10 +8,10 @@
 
 ## 0. 한눈에
 - **제품**: 전세계 스카우트 단위대를 지도/거리순으로 찾는 정적 웹앱. **영어 전용.**
-- **라이브**: https://jimmypark.net · 관리자 https://jimmypark.net/manage
-- **호스팅**: Cloudflare Pages 프로젝트 `jimmyport` (도메인 jimmypark.net).
+- **라이브**: https://scoutingapp.net (+ https://jimmypark.net, 둘 다 Active·동일 콘텐츠). 루트 `/`=도구 모음 랜딩 · 공개 앱 `/tour` · 관리자 `/tour/admin` · 잼버리 `/krjam-cardnews`·`/krjam-planning`·`/krjam-dcount`. (구 `/jamboree`·`/jamboree-plan`·`/admin`은 301)
+- **호스팅**: Cloudflare Pages 프로젝트 `jimmyport` (커스텀 도메인 `scoutingapp.net` + `jimmypark.net`). 내부 문서·설정은 `functions/_middleware.js`가 웹에서 404 차단.
 - **스택**: Vanilla HTML/CSS/JS + Leaflet 1.9.4(cdnjs) + OpenStreetMap. 백엔드 = Cloudflare Pages Functions + KV.
-- **버전**: `VERSION` 파일 (현재 0.7.x 대).
+- **버전**: `VERSION` 파일 (현재 0.9.107).
 
 ## 1. 조직 모델 (WOSM 글로벌 표준)
 ```

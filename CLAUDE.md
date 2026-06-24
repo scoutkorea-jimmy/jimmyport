@@ -20,20 +20,25 @@
 - UI 텍스트 **한국어**, 식별자/코드 **영어**.
 - 디자인: 깔끔한 '필드 가이드/지도' 무드. generic AI 톤·보라 그라데이션 남발 금지.
 
-## 3. 파일 구조
+## 3. 파일 구조 (라우팅 개편 v0.9.107 반영)
 ```
-index.html        헤더+검색+2단(목록/지도)+푸터(데이터 다운로드·관리자 링크)
-styles.css        브랜드 팔레트 + Wanted Sans(7단계) 테마 (공개+관리자 공용)
-app.js            검색·centroid anchor·haversine 정렬·지도클릭 재정렬·핀색·범례·다운로드
-manage.html       관리자 페이지 (단위대 CRUD + 좌표 지정)
-manage.js         관리자 로직 (localStorage 편집본 + data.js 다운로드/JSON 가져오기)
-data.js           SCOUT_UNITS + SCOUT_NSOS(176) + SCOUT_REGION_COLORS (← 데이터 교체 지점)
-functions/api/*   백엔드 (units/submissions/comments/image/log + _lib)
-version-watch.js  /VERSION 폴링 → 새 배포 시 우측 상단 새로고침 알림
-VERSION           사이트 버전 (의미 있는 변경마다 bump)
-README.md         실행·교체·배포 안내
-KMS.md            ★ 모든 데이터·사양·API·운영 통합 문서 (단일 소스)
-DESIGN.md         디자인 가이드 (토큰·폰트·컴포넌트)
+index.html           루트 = 도구 모음 랜딩 허브(noindex) → /tour·/krjam-* 카드 링크   [/]
+tour/index.html      Scout Tour Assistant 공개 (지도·검색·거리정렬·댓글)              [/tour]
+tour/admin.html      Tour 관리자 (TOTP 로그인, 단위대 CRUD + 좌표)                     [/tour/admin]
+app.js, admin.js     공개·관리자 로직 (루트 위치, tour/* 는 절대경로 /app.js 로 참조)
+styles.css           공개+관리자 공용 테마 (Bricolage + Hanken, 보라 #6336B5)
+data.js              SCOUT_UNITS + SCOUT_NSOS(176) + SCOUT_REGION_COLORS (← 데이터 교체 지점)
+krjam-cardnews.html  잼버리 카드뉴스 제작기(React) — 모듈은 jamboree/           [/krjam-cardnews] (구 /jamboree)
+krjam-planning.html  잼버리 SNS 운영 캘린더(vanilla) — 모듈은 jamboree-plan/     [/krjam-planning]  (구 /jamboree-plan)
+krjam-dcount.html    D-Count 자리(라우팅만 확보, 내용은 사용자가 작성)          [/krjam-dcount]
+jamboree/ , jamboree-plan/   각 앱의 모듈·자산 폴더 (이름 유지)
+functions/_middleware.js     내부파일(*.md·wrangler.toml·CNAME·package*.json·.claude 등) 404 차단
+functions/api/*      백엔드 (units/submissions/comments/jamboree/jamboree-plan/jp-members/jp-news/login/image/file/log + _lib)
+_redirects           구 경로(/jamboree·/jamboree-plan·/admin) → 신 경로 301
+_headers             전 자산 no-cache(배포 즉시 반영)
+version-watch.js     /VERSION 폴링 → 새 배포 시 우측 상단 새로고침 알림
+VERSION              사이트 버전 (의미 있는 변경마다 bump)
+KMS.md / FEATURES.md / README.md / DESIGN.md   내부 문서(웹 비공개 — _middleware 차단)
 ```
 > **모든 데이터·사양은 [KMS.md](KMS.md)에 통합.** 작업 전 KMS.md + 이 문서 함께 확인.
 
@@ -77,8 +82,9 @@ WOSM Region → 국가(NSO) → 단위대
 - **자동 commit + push + 배포**: 검증 통과 즉시 git commit + push +
   `wrangler pages deploy . --project-name jimmyport --branch main`. 별도 지시 없어도 진행.
 - 로컬 dev server 띄우지 말 것. 의미 있는 변경마다 `VERSION` bump.
-- 배포 대상 Cloudflare Pages 프로젝트 `jimmyport` (도메인 jimmypark.net, CNAME 유지).
-  `/manage.html` 은 clean-URL 로 `/manage` 308 리다이렉트(정상).
+- 배포 대상 Cloudflare Pages 프로젝트 `jimmyport`. **도메인: `scoutingapp.net`(주력) + `jimmypark.net`(둘 다 Active, 동일 콘텐츠).** 둘 다 같은 프로젝트 커스텀 도메인. (사용자: jimmypark.net 노출돼도 무방 → 제거 안 함.)
+- **라우팅(v0.9.107)**: `/`=랜딩 · `/tour`(+`/tour/admin`) · `/krjam-cardnews` · `/krjam-planning` · `/krjam-dcount`. 구 경로(`/jamboree`·`/jamboree-plan`·`/admin`)는 `_redirects` 301. `/tour` 는 디렉터리라 308→`/tour/`(정상).
+- **공개 누수 차단**: `functions/_middleware.js` 가 `*.md`·`wrangler.toml`·`package*.json`·`.gitignore`·`CNAME`·`.claude/*` 를 404(`.assetsignore` 는 `wrangler pages deploy` 가 무시함). 내부 문서·설정은 웹에서 안 보임. GitHub 저장소는 공개(사용자: 무방).
 
 ---
 
@@ -661,3 +667,28 @@ WOSM Region → 국가(NSO) → 단위대
 - **프런트**: `jamboree-plan.html` 게이트 교체(`#auth-gate` 로그인/회원가입 탭 + 관리자 코드) · `기사` 탭/섹션 + 기사·대원계정 모달 2종 · 헤더 syncbar에 로그인 표시/로그아웃/대원계정(관리자만). `app.js` `wirePwGate`→**`Auth` 모듈**(세션 localStorage `jamboree-plan:session`, `authHeader`/`authJsonHeaders`, 401→재로그인) + `renderNews`/`openNewsEditor`/`commitNews`/`deleteNews`(사진 `downscale`+`uploadBlob` 재사용) + `openMembers`/approve/reject/reset. `setView`/savedView에 `news` 추가. `icon`에 logout/edit/check 추가. `styles.css`에 게이트·기사 카드 그리드·작성 모달 사진 슬롯·승인 목록 + `.fl/.ti/.ta/.btn.xs/.btn.danger/.whoami` 신설.
 - ⚠️ 환경변수: 신규 비밀 불필요(서명 키=기존 `TOTP_SECRET`). 관리자=기존 인증 앱 코드.
 - 검증: `node --check`(_lib·jp-members·jp-news·app.js) + `_lib` ESM 라운드트립 8/8(PBKDF2 해시·검증·대원 세션 발급/검증/위조·만료·시크릿회전·memberOrAdmin) + 헤드리스 Chrome(CDP, fetch 목업): 게이트→회원가입(pending 안내)→로그인(대원, 대원계정 버튼 숨김)→기사 작성(카드 1, 본인 수정만)→관리자 코드 로그인(관리자·대원계정 버튼·승인 대기 1)·**콘솔 에러 0**. ⚠️ 라이브 운영 KV에 파괴적 쓰기 금지(§16.6) — 테스트 계정/기사는 정리.
+
+---
+
+## 18. 도메인 이전 + 공개 누수 차단 + 라우팅 개편 (scoutingapp.net)
+> 사용자: jimmypark.net이 공식 도메인이지만 **노출(주소창)되면 안 됨** → 새 도메인으로 전면 이전. + KMS·문서 현행화.
+
+### 18.1 v0.9.104–0.9.105 — 내부 문서·설정 공개 서빙 차단(_middleware)
+- 발견: `pages_build_output_dir="."`(루트 배포) + `.assetsignore` 미지원 → 라이브에서 `CLAUDE.md·KMS.md·FEATURES.md·README.md·DESIGN.md·wrangler.toml·package.json·.gitignore·CNAME·.claude/settings.local.json` 가 전부 **HTTP 200**(관리자 비번 `scout1922`·env명·KV id 노출). `.assetsignore` 는 `wrangler pages deploy`(4.97)가 **무시**함(프리뷰 URL로 확인).
+- 조치: `functions/_middleware.js` — 정적 서빙 전에 가로채 `*.md`·`wrangler.toml`·`package*.json`·`.gitignore`·`.assetsignore`·`CNAME`·`.claude/*` 를 404, 그 외(/api/*·정적자산)는 `next()` 통과. 검증: 해당 경로 404, 앱·API·/VERSION 200.
+
+### 18.2 v0.9.105 — 새 도메인 scoutingapp.net 연결
+- 사용자가 `scoutingapp.net` 구매 → Cloudflare Pages `jimmyport` 프로젝트 **커스텀 도메인**으로 추가(Active). `jimmypark.net` 은 그대로 둠(사용자: "살아있어도 무방"). 두 도메인이 동일 콘텐츠 서빙.
+- 코드: 카드뉴스 OG `og:image`/`og:url`·`twitter:image` + `CNAME` 파일을 scoutingapp.net으로 갱신. **API는 요청 origin(`u.origin`)·이미지/첨부 URL 상대경로(`/api/image?id=`)** 라 도메인 하드코딩 0 → 새 도메인에서 코드·데이터 수정 없이 작동(검증: scoutingapp.net에서 앱·API·문서차단 모두 정상).
+
+### 18.3 v0.9.106 — 카드뉴스 서버백업 scout1922 → TOTP(공개 저장소 대응)
+- `jamboree/app.jsx` 의 클라 하드코딩 비번 `scout1922`(서버 미검증 → `/api/jamboree` 사실상 공개) 폐기. **공개 GitHub 저장소라 하드코딩 교체는 무의미** → 서버 검증으로 전환.
+- 서버: `functions/api/jamboree.js` GET/PUT/POST/DELETE에 `isAdmin`(Bearer 세션) 강제. 클라: 잠금해제를 관리자 **인증앱 6자리 코드 → `/api/login` → 세션**(localStorage `jamboree:session`, 12h)으로 교체, 서버 호출에 `Authorization: Bearer`. 401 시 재인증. 공개 소스에 비밀값 0. 검증: 무인증 401 ×5, 잘못된 코드 401, 페이지·타 API 200.
+
+### 18.4 v0.9.107 — 라우팅 개편(도구 모음 랜딩 + /tour·/krjam-*)
+- 사용자 확정 구조(AskUserQuestion): `/`=**도구 모음 랜딩 허브**(신규 `index.html`, noindex, 4개 도구 카드) · `/tour`=Tour(`tour/index.html`) · `/tour/admin`=Tour 관리자(`tour/admin.html`) · `/krjam-cardnews`=카드뉴스(구 `/jamboree`) · `/krjam-planning`=SNS 캘린더(구 `/jamboree-plan`) · `/krjam-dcount`=신규 자리(사용자가 직접 작성, 플레이스홀더만).
+- 구현: HTML 엔트리만 이동/개명(`jamboree/`·`jamboree-plan/` 모듈 폴더명 유지). `tour/*` 는 서브디렉터리라 자산을 **루트 절대경로**(`/app.js`·`/admin.js`·`/styles.css`)로 고정. 구 경로는 `_redirects` 301. 상호링크(`/admin`→`/tour/admin`, jamboree-plan의 `/jamboree`→`/krjam-cardnews`)·카드뉴스 og:url 갱신.
+- 검증: 신 경로 200(`/tour`는 308→`/tour/`)·구 경로 301 정확 매핑·자산 절대경로 200·카드뉴스 모듈 200·문서 404.
+
+### 18.5 문서 현행화
+- 본 §18 추가 + §3 파일구조 재작성(랜딩/tour/krjam-*/_middleware/_redirects 반영, 옛 manage.html 잔재 제거) + §8 운영규칙(도메인 2개·라우팅·누수차단) 갱신. KMS.md·FEATURES.md·README.md 의 라이브 URL·호스팅·경로도 scoutingapp.net + 신 라우팅으로 갱신.

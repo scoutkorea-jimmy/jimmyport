@@ -1,28 +1,32 @@
-# jimmypark.net — 전체 기능 정리 (Feature Reference)
+# scoutingapp.net — 전체 기능 정리 (Feature Reference)
 
-> 이 문서는 **사이트(jimmypark.net) 안의 모든 페이지·기능·API**를 한 곳에 정리한 단일 참조 문서입니다.
+> 이 문서는 **사이트(scoutingapp.net) 안의 모든 페이지·기능·API**를 한 곳에 정리한 단일 참조 문서입니다.
 > 데이터 스키마·운영 규칙의 상세는 [KMS.md](KMS.md), 의사결정/변경 이력은 [CLAUDE.md](CLAUDE.md) 참조.
 > 스택: **Vanilla HTML/CSS/JS** (프레임워크/번들러 없음) + **Cloudflare Pages Functions**(백엔드) + **KV**(저장). 지도는 Leaflet + OSM.
-> `/jamboree`만 예외적으로 격리된 React 페이지.
+> `/krjam-cardnews`만 예외적으로 격리된 React 페이지.
 
 ---
 
-## 0. 사이트 구성 한눈에
+## 0. 사이트 구성 한눈에 (라우팅 v0.9.107)
 
 | 경로 | 정체 | 스택 | 공개/비공개 | 인증 |
 |------|------|------|------------|------|
-| `/` | **scout-finder** — 가까운 스카우트 단위대 찾기 | Vanilla | 공개(영문) | — |
-| `/admin` | scout-finder **관리자**(단위대 CRUD) | Vanilla + Leaflet | 비공개(noindex) | **TOTP**(인증 앱 6자리) |
-| `/jamboree` | 한국잼버리 **카드뉴스 제작기** | React(격리) | 비공개(홈 링크 없음) | 없음(서버 백업만 비번) |
-| `/jamboree-plan` | 미디어부(홍보부) **SNS 운영 보드** | Vanilla | 비공개(noindex) | 비밀번호 게이트 `scout1922` |
+| `/` | **도구 모음 랜딩 허브**(/tour·/krjam-* 링크) | Vanilla | 비공개(noindex) | — |
+| `/tour` | **scout-finder** — 가까운 스카우트 단위대 찾기 | Vanilla + Leaflet | 공개(영문) | — |
+| `/tour/admin` | scout-finder **관리자**(단위대 CRUD) | Vanilla + Leaflet | 비공개(noindex) | **TOTP**(인증 앱 6자리) |
+| `/krjam-cardnews` | 한국잼버리 **카드뉴스 제작기** | React(격리) | 비공개(홈 링크 없음) | 서버 백업만 **TOTP** 세션 |
+| `/krjam-planning` | 미디어부(홍보부) **SNS 운영 보드** | Vanilla | 비공개(noindex) | 대원 개별 ID/PW + 관리자 TOTP |
+| `/krjam-dcount` | 한국잼버리 **D-Count**(준비 중·자리만) | Vanilla | 비공개(noindex) | — |
 | `/api/*` | 백엔드(Pages Functions) | JS modules | — | 공개 GET / 관리 TOTP 세션 |
 
-- 배포 대상: Cloudflare Pages 프로젝트 **`jimmyport`** (도메인 `jimmypark.net`).
+> 구 경로 `/`·`/admin`·`/jamboree`·`/jamboree-plan` 은 `_redirects`로 신 경로 301. 내부 파일(*.md·wrangler.toml·CNAME·.claude 등)은 `functions/_middleware.js`가 404.
+
+- 배포 대상: Cloudflare Pages 프로젝트 **`jimmyport`** (커스텀 도메인 **`scoutingapp.net`** + `jimmypark.net`, 둘 다 Active).
 - 버전: 루트 `VERSION` 파일. 새 배포 감지 시 `version-watch.js`가 우측 상단 새로고침 알림 표시.
 
 ---
 
-## 1. scout-finder — 공개 페이지 (`/`, `index.html`)
+## 1. scout-finder — 공개 페이지 (`/tour`, `tour/index.html`)
 
 **목적**: 지역을 검색하거나 지도를 클릭하면 그 위치 기준으로 가까운 스카우트 단위대를 **거리순**으로 지도·목록에 표시. (GPS 미사용)
 
@@ -55,7 +59,7 @@
 
 ---
 
-## 2. scout-finder — 관리자 (`/admin`, `admin.html` + `admin.js`)
+## 2. scout-finder — 관리자 (`/tour/admin`, `tour/admin.html` + `admin.js`)
 
 **목적**: 단위대 추가/수정/삭제 + 좌표 지정. 변경은 **자동으로 KV 서버에 반영**(전 방문자 적용).
 
@@ -80,7 +84,7 @@
 
 ---
 
-## 3. /jamboree — 한국잼버리 카드뉴스 제작기 (`jamboree.html` + `jamboree/*.jsx`)
+## 3. /krjam-cardnews — 한국잼버리 카드뉴스 제작기 (`krjam-cardnews.html` + `jamboree/*.jsx`)
 
 **목적**: 제16회 한국잼버리(2026.8.5–8.9, 강원 고성) 카드뉴스를 **제작·편집·PNG 출력·저장**하는 미니앱. 본 앱과 **격리된 React 페이지**(CDN React18 + Babel standalone + html-to-image).
 
@@ -104,7 +108,7 @@
 
 ---
 
-## 4. /jamboree-plan — 미디어부 SNS 운영 보드 (`jamboree-plan.html` + `jamboree-plan/`)
+## 4. /krjam-planning — 미디어부 SNS 운영 보드 (`krjam-planning.html` + `jamboree-plan/`)
 
 **목적**: 제16회 한국잼버리 **홍보부(기획조정본부)** SNS 운영/콘텐츠/일정/인원을 관리하는 보드. Vanilla. **비밀번호 게이트 `scout1922`**(최초 1회, 이후 기억).
 
