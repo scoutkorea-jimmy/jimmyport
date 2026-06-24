@@ -22,6 +22,7 @@
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
   function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
   var COUNTRY = {}; NSOS.forEach(function (n) { COUNTRY[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; });
+  COUNTRY["World Scout Bureau"] = { nso: "World Scout Bureau", region: "WSB", lang: "en" };  // global HQ, no single country
   var COUNTRIES = Object.keys(COUNTRY).sort();
   var DIAL = window.SCOUT_DIAL || {};
 
