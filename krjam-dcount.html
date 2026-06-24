@@ -4,29 +4,75 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
-  <title>D-Count — 제16회 한국잼버리</title>
+  <title>D-COUNT 카드 신청 — 제16회 한국잼버리</title>
   <link rel="icon" type="image/png" href="/jamboree/assets/logo.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Hanken Grotesk',sans-serif;color:#221b2b;background:#f6f3fa;min-height:100vh;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;}
-    .mark{width:48px;height:48px;border-radius:13px;background:linear-gradient(150deg,#6336B5,#3D1D6E);
-      display:flex;align-items:center;justify-content:center;color:#fff;font:700 24px 'Bricolage Grotesque';margin-bottom:18px;}
-    h1{font:700 24px 'Bricolage Grotesque';letter-spacing:-.02em;margin-bottom:8px;}
-    p{color:#6b6577;font-size:14px;line-height:1.6;}
-    a{color:#6336B5;font-weight:600;text-decoration:none;}
-    a:hover{text-decoration:underline;}
-    .back{margin-top:22px;font-size:12.5px;}
+    /* ── 카드용 브랜드 폰트 (자체호스트, krjam-cardnews 와 동일) ── */
+    @font-face { font-family:'Cafe24ProSlim'; src:url('/jamboree/fonts/cafe24proslim-300.woff2') format('woff2'); font-weight:300; font-display:swap; }
+    @font-face { font-family:'Cafe24ProSlim'; src:url('/jamboree/fonts/cafe24proslim-400.woff2') format('woff2'); font-weight:400; font-display:swap; }
+    @font-face { font-family:'Cafe24ProSlim'; src:url('/jamboree/fonts/cafe24proslim-700.woff2') format('woff2'); font-weight:700; font-display:swap; }
+    @font-face { font-family:'Aggravo'; src:url('/jamboree/fonts/aggravo-300.woff') format('woff'); font-weight:300; font-display:swap; }
+    @font-face { font-family:'Aggravo'; src:url('/jamboree/fonts/aggravo-500.woff') format('woff'); font-weight:500; font-display:swap; }
+    @font-face { font-family:'Aggravo'; src:url('/jamboree/fonts/aggravo-700.woff') format('woff'); font-weight:700; font-display:swap; }
+
+    /* ── 페이지 크롬: krjam-planning 그린 톤 토큰 ── */
+    :root{
+      --bg:#F3F4F1; --surface:#FFFFFF; --surface-2:#FAFBF9; --surface-3:#F5F7F3;
+      --ink:#1B211D; --ink-2:#3E453F; --muted:#697066; --faint:#AAB0A8;
+      --line:#E4E7E1; --line-2:#EDEFEA;
+      --accent:#2F5D4A; --accent-ink:#234636; --accent-soft:#E8F0EB;
+      --st-draft:#C8821C; --st-ready:#2F8F6B; --danger:#B5503C;
+      --r-1:8px; --r-2:12px; --r-3:16px; --pill:999px;
+      --sh-1:0 1px 2px rgba(22,32,26,.04), 0 1px 3px rgba(22,32,26,.05);
+      --sh-2:0 6px 20px rgba(22,32,26,.10);
+      --sh-3:0 22px 60px rgba(22,32,26,.24);
+      --ease:.16s cubic-bezier(.4,0,.2,1);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{ background:var(--bg); color:var(--ink); font-family:'Hanken Grotesk','Apple SD Gothic Neo',sans-serif; }
+    /* 카드 내부는 브랜드 폰트(Card 가 var(--cc-main) 사용), 제목용은 .hi(Aggravo) */
+    .hi{ font-family:'Aggravo','Cafe24ProSlim',sans-serif; }
+    img{ -webkit-user-drag:none; user-select:none; }
+    .syncbar{ border-bottom:1px solid var(--line); padding:11px 0; display:flex; gap:12px; align-items:center; }
+    .orgtag{ font-weight:700; color:var(--accent); font-size:13px; letter-spacing:-.01em; }
+    .syncbar .st{ font-size:12px; color:var(--muted); }
+    #__boot{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font:14px/1.4 'Hanken Grotesk',sans-serif; }
   </style>
+
+  <!-- 콘솔 정리: Babel in-browser advisory 경고만 필터 -->
+  <script>
+    (function () {
+      var w = console.warn;
+      console.warn = function () {
+        var m = arguments[0];
+        if (typeof m === 'string' && m.indexOf('in-browser Babel transformer') >= 0) return;
+        return w.apply(console, arguments);
+      };
+    })();
+  </script>
+  <!-- React + Babel (CDN) -->
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
 </head>
 <body>
-  <!-- 라우팅 자리만 확보. 페이지 내용은 사용자가 직접 작성. -->
-  <div class="mark">D</div>
-  <h1>D-Count</h1>
-  <p>제16회 한국잼버리 · 준비 중입니다.</p>
-  <p class="back"><a href="/">← 도구 모음으로</a></p>
+  <div id="root"><div id="__boot">불러오는 중…</div></div>
+
+  <!-- 공용 도형 데이터 + 편집 스토어 (plain JS) -->
+  <script src="/jamboree/shapes.js"></script>
+  <script src="/jamboree/store.js"></script>
+  <!-- 카드 프리미티브 (krjam-cardnews 와 공유) — dcard 가 쓰는 최소 의존만 로드 -->
+  <script type="text/babel" data-presets="react" src="/jamboree/base.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/jamboree/shapes-comp.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/jamboree/lib.jsx"></script>
+  <!-- D-가로 모듈 + D-count 앱 -->
+  <script type="text/babel" data-presets="react" src="/krjam-dcount/dcard.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/krjam-dcount/app.jsx"></script>
 </body>
 </html>
