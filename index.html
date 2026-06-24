@@ -63,11 +63,22 @@
         <button id="report-btn" style="width:100%;border:none;background:#6336B5;color:#fff;font:600 12.5px 'Hanken Grotesk';padding:10px;border-radius:11px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-bottom:9px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>Suggest a place
         </button>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-          <a href="/admin" style="color:#9a93a6;font:600 11.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.6 14H4.5a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 6 7.3l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 4.6V4.5a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 17 6l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.1a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"></path></svg>Admin
-          </a>
-          <span id="app-version" style="font:600 10px 'Hanken Grotesk';color:#c2bcce;letter-spacing:.03em;"></span>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="display:inline-flex;align-items:center;gap:8px;">
+            <a href="/admin" style="color:#9a93a6;font:600 11.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.6 14H4.5a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 6 7.3l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 4.6V4.5a2 2 0 0 1 4 0v.1A1.6 1.6 0 0 0 17 6l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7h.1a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"></path></svg>Admin
+            </a>
+            <span style="color:#d6cfe0;">·</span>
+            <span id="visit-counter" title="Total visits" style="color:#9a93a6;font:600 11.5px 'Hanken Grotesk';display:inline-flex;align-items:center;gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span id="visit-count">—</span>
+            </span>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:7px;">
+            <a href="/privacy" style="color:#b3acbd;font:600 10px 'Hanken Grotesk';text-decoration:none;">Privacy policy</a>
+            <span style="color:#e0dae6;">·</span>
+            <span id="app-version" style="font:600 10px 'Hanken Grotesk';color:#c2bcce;letter-spacing:.03em;"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -125,7 +136,7 @@
         <textarea id="draft" placeholder="Share a tip, a question, or your experience…" style="width:100%;border:1px solid #ece6db;border-radius:11px;padding:10px 12px;font:500 13px 'Hanken Grotesk';outline:none;resize:vertical;min-height:64px;background:#fbfaf7;"></textarea>
         <label style="display:flex;align-items:flex-start;gap:8px;margin:9px 0 11px;cursor:pointer;">
           <input id="consent" type="checkbox" style="margin-top:2px;width:15px;height:15px;accent-color:#6336B5;flex:none;" />
-          <span style="font-size:11px;color:#8a8496;line-height:1.4;">I consent to my nickname and a masked IP being stored with this comment (GDPR).</span>
+          <span style="font-size:11px;color:#8a8496;line-height:1.4;">I consent to my nickname and a masked IP being stored with this comment (GDPR). See our <a href="/privacy" target="_blank" rel="noopener" style="color:#6336B5;">Privacy policy</a>.</span>
         </label>
         <button id="post-btn" style="width:100%;border:none;border-radius:11px;padding:11px;font:600 13px 'Hanken Grotesk';cursor:pointer;background:#ece6db;color:#a39bb0;">Post comment</button>
       </div>

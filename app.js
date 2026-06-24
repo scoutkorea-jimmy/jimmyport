@@ -906,9 +906,21 @@
       .then(function (v) { v = (v || "").trim(); var el = $("app-version"); if (el && v) el.textContent = "v" + v; })
       .catch(function () {});
   }
+  function showVisits(n) { var el = $("visit-count"); if (el && typeof n === "number") el.textContent = n.toLocaleString(); }
+  function loadVisits() {
+    fetch("/api/visits").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) showVisits(j.count); }).catch(function () {});
+    // count this browser at most once per day to keep KV writes minimal
+    try {
+      var today = new Date().toISOString().slice(0, 10);
+      if (localStorage.getItem("scoutfinder:visited") !== today) {
+        localStorage.setItem("scoutfinder:visited", today);
+        fetch("/api/visits", { method: "POST" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) showVisits(j.count); }).catch(function () {});
+      }
+    } catch (e) {}
+  }
 
   function init() {
-    renderLegend(); wire(); loadVersion();
+    renderLegend(); wire(); loadVersion(); loadVisits();
     Promise.all([loadUnits(), loadComments()]).then(function () { renderAll(); updateNearUI(); });
     initMap();
   }
