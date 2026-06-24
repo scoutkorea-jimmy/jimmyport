@@ -1,10 +1,11 @@
-/* 댓글 첨부 이미지 저장/제공 (Cloudflare KV)
- * POST /api/image  → body = 이미지 바이트, header content-type. 최대 2MB.
+/* 첨부 이미지 저장/제공 (Cloudflare KV)
+ * POST /api/image  → body = 이미지 바이트, header content-type. 최대 5MB.
  *                    KV에 img:<id> 로 저장, { url: "/api/image?id=<id>" } 반환.
- * GET  /api/image?id=...  → 이미지 바이트 + content-type (장기 캐시) */
+ * GET  /api/image?id=...  → 이미지 바이트 + content-type (장기 캐시)
+ * (다운스케일하는 댓글/잼버리 앱은 1~2MB 미만이라 한도 상향 영향 없음. D-count 승인 후 원본 사진 최대 5MB.) */
 import { json, newId } from "./_lib.js";
 
-var MAX = 2 * 1024 * 1024; // 2MB
+var MAX = 5 * 1024 * 1024; // 5MB
 var ALLOWED = { "image/jpeg": 1, "image/png": 1, "image/gif": 1, "image/webp": 1 };
 
 export async function onRequestPost({ request, env }) {

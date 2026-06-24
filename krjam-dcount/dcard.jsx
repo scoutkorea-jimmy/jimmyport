@@ -21,8 +21,9 @@
     { bg: P.midnight, ink: '#fff',     num: P.orange,   kicker: P.river,    fill: P.orange, track: 'rgba(255,255,255,.18)', cols: [P.pink, P.leaf, P.river, P.orange] }
   ];
   const DAY_THEME = { bg: '#ffffff', ink: P.midnight, num: P.purple, kicker: P.purple, fill: P.purple, track: 'rgba(77,0,110,.16)', cols: [P.purple, P.ocean, P.forest, P.red] };
-  const BRIGHT = [P.leaf, P.river, P.pink, P.orange];   // 어두운 배경용 오브제 색
-  const DEEP = [P.purple, P.ocean, P.forest, P.red];    // 밝은 배경용 오브제 색
+  // 오브제 색은 자연물 상식에 맞춤: c0=해(주황)·c1=불/텐트(빨강)·c2=물/하늘(파랑)·c3=나무·언덕(초록)
+  const NAT_DARK = [P.orange, P.red, P.river, P.leaf];    // 어두운 배경: 밝은 자연색 (나무=leaf 초록)
+  const NAT_LIGHT = [P.orange, P.red, P.ocean, P.forest]; // 밝은/흰 배경: 진한 자연색 (나무=forest 초록)
 
   function themeFor(dNumber, isDay) {
     if (isDay) return DAY_THEME;
@@ -75,8 +76,12 @@
       <window.Card bg={bg} color={ink} pad={0} style={cardStyle}>
         <window.ShapeScatter items={scatterFor(sceneIdx, cols, isDay)} />
         <div style={{ position: 'absolute', top: 64, left: 84 }}><window.Kicker c={kickerCol}>{kick}</window.Kicker></div>
-        {!isDay && <window.Logo size={120} style={{ position: 'absolute', top: 58, right: 96 }} />}
-        {isDay && <window.Logo size={360} style={{ position: 'absolute', right: 130, top: 300 }} />}
+        {!isDay && (ms.logo
+          ? <span style={{ position: 'absolute', top: 58, right: 96, display: 'inline-block', lineHeight: 0 }}><img src={ms.logo} width={120} height={120} alt="" style={{ display: 'block', objectFit: 'contain' }} /></span>
+          : <window.Logo size={120} style={{ position: 'absolute', top: 58, right: 96 }} />)}
+        {isDay && (ms.logo
+          ? <span style={{ position: 'absolute', right: 130, top: 300, display: 'inline-block', lineHeight: 0 }}><img src={ms.logo} width={360} height={360} alt="" style={{ display: 'block', objectFit: 'contain' }} /></span>
+          : <window.Logo size={360} style={{ position: 'absolute', right: 130, top: 300 }} />)}
         <div style={{ position: 'absolute', left: 84, top, bottom, width: 880, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             <div style={{ fontWeight: 700, fontSize: 156 * numScale, lineHeight: .84, color: num, letterSpacing: '.03em' }}>D-</div>

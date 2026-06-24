@@ -32,10 +32,15 @@ async function rlGet(env, k) { try { return parseInt((await env.SCOUT_KV.get(k))
 async function rlBump(env, k, ttl) { try { const n = await rlGet(env, k); await env.SCOUT_KV.put(k, String(n + 1), { expirationTtl: ttl }); } catch {} }
 async function rlClear(env, k) { try { await env.SCOUT_KV.delete(k); } catch {} }
 
+const ALLOWED_LOGOS = ["/jamboree/assets/logo.png", "/jamboree/assets/logo-white.png", "/jamboree/assets/logo-asset.png"];
 function cleanStyle(s) {
   s = s || {};
   const num = (v, lo, hi, d) => { v = parseFloat(v); return isNaN(v) ? d : Math.max(lo, Math.min(hi, v)); };
-  return { pad: num(s.pad, 0, 16, 0), topAdj: num(s.topAdj, -80, 160, 0), botAdj: num(s.botAdj, -80, 160, 0), lead: num(s.lead, -40, 120, 0), gap: num(s.gap, -30, 100, 0), numScale: num(s.numScale, 0.7, 1.3, 1) };
+  return {
+    pad: num(s.pad, 0, 16, 0), topAdj: num(s.topAdj, -80, 160, 0), botAdj: num(s.botAdj, -80, 160, 0),
+    lead: num(s.lead, -40, 120, 0), gap: num(s.gap, -30, 100, 0), numScale: num(s.numScale, 0.7, 1.3, 1),
+    logo: (typeof s.logo === "string" && ALLOWED_LOGOS.indexOf(s.logo) >= 0) ? s.logo : "",
+  };
 }
 async function getStyle(env) { try { const r = await env.SCOUT_KV.get(STYLE); return r ? cleanStyle(JSON.parse(r)) : {}; } catch { return {}; } }
 
@@ -55,6 +60,7 @@ function publicApp(rec) {
     applicationNo: rec.applicationNo, targetDate: rec.targetDate, dNumber: rec.dNumber,
     name: rec.name, contact: rec.contact, org: rec.org,
     teaser: rec.teaser, bgColor: rec.bgColor, inkColor: rec.inkColor, sceneIdx: rec.sceneIdx,
+    photos: rec.photos || [],
     status: rec.status, rejectReason: rec.rejectReason || "",
     editable: EDITABLE.indexOf(rec.status) >= 0, createdAt: rec.createdAt, updatedAt: rec.updatedAt,
   };
@@ -71,7 +77,7 @@ export async function onRequestGet({ request, env }) {
     if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
     const apps = [];
     for (const e of index) { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) { try { apps.push(JSON.parse(raw)); } catch {} } }
-    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps });
+    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps, log: (await getArr(env, "log")).slice(0, 100) });
   }
 
   const occ = {};
@@ -91,7 +97,7 @@ export async function onRequestPost({ request, env }) {
   const action = b.action;
   const ip = clientIp(request);
 
-  if (action === "lookup" || action === "edit" || action === "withdraw") {
+  if (action === "lookup" || action === "edit" || action === "withdraw" || action === "photos") {
     const no = String(b.applicationNo || "").trim().slice(0, 60);
     // 무차별 대입 방지(4자리 비번): IP·신청번호별 실패 횟수 제한
     const ipKey = "dc:rl:ip:" + ip, noKey = "dc:rl:no:" + no;
@@ -112,6 +118,16 @@ export async function onRequestPost({ request, env }) {
       Object.assign(rec, { org: c.org, teaser: c.teaser, bgColor: c.bgColor, inkColor: c.inkColor, sceneIdx: c.sceneIdx, updatedAt: new Date().toISOString() });
       await env.SCOUT_KV.put(APP(no), JSON.stringify(rec));
       await appendLog(env, { ts: rec.updatedAt, action: "dcount.edit", count: 0, ip: clientIp(request) });
+      return json({ ok: true, application: publicApp(rec) });
+    }
+
+    if (action === "photos") {   // 승인된 신청만 사진 등록(최대 3장, 업로드는 /api/image)
+      if (rec.status !== "승인") return json({ ok: false, error: "not_approved" }, 409);
+      const photos = (Array.isArray(b.photos) ? b.photos : [])
+        .filter((u) => typeof u === "string" && /^\/api\/image\?id=/.test(u)).slice(0, 3);
+      rec.photos = photos; rec.updatedAt = new Date().toISOString();
+      await env.SCOUT_KV.put(APP(no), JSON.stringify(rec));
+      await appendLog(env, { ts: rec.updatedAt, action: "dcount.photos", count: photos.length, ip: clientIp(request) });
       return json({ ok: true, application: publicApp(rec) });
     }
 
@@ -185,6 +201,13 @@ export async function onRequestPatch({ request, env }) {
     await env.SCOUT_KV.put(STYLE, JSON.stringify(st));
     await appendLog(env, { ts: now, action: "dcount.style", count: 0, ip: clientIp(request) });
     return json({ ok: true, masterStyle: st });
+  }
+
+  if (action === "clearlog") {
+    // 로그 초기화 — 단, '초기화했다'는 기록은 무조건 남긴다(감사 추적).
+    const prev = await getArr(env, "log");
+    await putArr(env, "log", [{ ts: now, action: "log.cleared", count: prev.length, ip: clientIp(request) }]);
+    return json({ ok: true, cleared: prev.length });
   }
 
   if (action === "approve" || action === "reject" || action === "changes") {

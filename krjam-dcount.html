@@ -121,6 +121,31 @@
     .dc-app{ border:1px solid var(--line); border-radius:var(--r-2); padding:14px; margin-bottom:10px; }
     .dc-app.todo{ border-color:var(--st-draft); background:var(--st-draft-bg); }
     .dc-applist{ display:grid; gap:10px; }
+
+    /* 5일 단위 그룹 캘린더 */
+    .dc-grp{ margin-bottom:16px; }
+    .dc-grp:last-child{ margin-bottom:0; }
+    .dc-grp-h{ font:700 13px 'Bricolage Grotesque',sans-serif; color:var(--ink); margin:0 0 8px; display:flex; align-items:baseline; gap:8px; }
+    .dc-grp-d{ font:400 11.5px 'Hanken Grotesk',sans-serif; color:var(--muted); }
+    .dc-grp-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+    .dc-slot2{ border:1px solid var(--line); border-radius:9px; padding:8px 3px; text-align:center; background:var(--surface-2); }
+    .dc-slot2.open{ cursor:pointer; }
+    .dc-slot2.open:hover{ border-color:var(--accent); box-shadow:var(--sh-1); }
+    .dc-slot2.dim{ opacity:.5; }
+    .d2-dn{ font:700 14px 'Bricolage Grotesque',sans-serif; color:var(--ink); line-height:1; }
+    .d2-dt{ font-size:10px; color:var(--muted); margin:3px 0 5px; }
+    .dc-ss2{ display:inline-block; font-size:8.5px; font-weight:700; padding:1px 5px; border-radius:var(--pill); color:#fff; }
+
+    /* 사진 업로드(승인 후) */
+    .dc-photos{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .dc-photo{ position:relative; aspect-ratio:1/1; border-radius:var(--r-1); overflow:hidden; border:1px solid var(--line); background:var(--surface-2); }
+    .dc-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .dc-photo .rm{ position:absolute; top:4px; right:4px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; cursor:pointer; font-size:13px; line-height:1; }
+    .dc-photo-add{ display:flex; align-items:center; justify-content:center; aspect-ratio:1/1; border:1.5px dashed var(--line); border-radius:var(--r-1); color:var(--muted); cursor:pointer; font-size:12px; text-align:center; background:var(--surface-2); }
+    .dc-logbox{ max-height:240px; overflow:auto; border:1px solid var(--line); border-radius:var(--r-1); background:var(--surface-2); }
+    .dc-logrow{ display:flex; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line-2); font-size:11.5px; color:var(--ink-2); }
+    .dc-logrow:last-child{ border-bottom:none; }
+    .dc-logrow .t{ color:var(--faint); flex:none; font-variant-numeric:tabular-nums; }
   </style>
 
   <!-- 콘솔 정리: Babel in-browser advisory 경고만 필터 -->

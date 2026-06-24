@@ -17,10 +17,19 @@
     { k: 'privacy', t: '개인정보 수집·이용 (필수)', d: '신청자명·휴대전화·소속대·접속 IP를 카드 검토·게시·통지 목적으로 수집하며, 행사 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.' },
     { k: 'portrait', t: '초상권 / 사진 게시 (필수)', d: '카드에 인물 사진을 포함하는 경우, 해당 인물의 게시·활용에 동의합니다.' },
     { k: 'thirdparty', t: '제3자 초상 확인 (필수)', d: '사진 속 타인이 있는 경우, 그 사람의 게시 동의를 신청자가 직접 받았음을 확인합니다.' },
-    { k: 'license', t: '콘텐츠 사용권 (필수)', d: '제출한 카드를 제16회 한국잼버리/한국스카우트연맹이 게시·홍보에 활용할 수 있도록 사용권을 부여합니다.' },
+    { k: 'license', t: '콘텐츠 사용권 (필수)', d: '제출한 카드·사진을 제16회 한국잼버리/한국스카우트연맹이 게시·홍보 및 잼버리 화보집 제작에 활용할 수 있도록 사용권을 부여합니다.' },
     { k: 'age14', t: '만 14세 이상 확인 (필수)', d: '신청자는 만 14세 이상입니다. (14세 미만은 신청 대상이 아닙니다.)' },
   ];
   const phoneOk = (s) => /^01\d{8,9}$/.test(String(s || '').replace(/\D/g, ''));
+  const hyphenPhone = (v) => { const d = String(v || '').replace(/\D/g, '').slice(0, 11); if (d.length <= 3) return d; if (d.length <= 7) return d.slice(0, 3) + '-' + d.slice(3); return d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7); };
+  const EMBLEMS = [['', '자동'], ['/jamboree/assets/logo.png', '컬러'], ['/jamboree/assets/logo-white.png', '흰색'], ['/jamboree/assets/logo-asset.png', '매듭']];
+  async function uploadImage(file) {
+    if (file.size > 5 * 1024 * 1024) throw new Error('각 이미지는 5MB 이하만 가능합니다.');
+    const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': file.type }, body: file });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.url) throw new Error(j.error === 'too_large' ? '5MB를 초과했습니다.' : j.error === 'unsupported_type' ? '이미지 파일만 가능합니다.' : '업로드 실패');
+    return j.url;
+  }
 
   async function jget(url, headers) { const r = await fetch(url, { headers: headers || {} }); return { ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) }; }
   async function jsend(method, body, headers) {
@@ -122,17 +131,39 @@
   }
   function monthsOf(slots) { const set = {}; slots.forEach((s) => { set[s.targetDate.slice(0, 7)] = 1; }); return Object.keys(set).sort(); }
 
-  function Calendar({ slots, today, loading, onApply }) {
+  const fmtMd = (ds) => { const p = ds.split('-'); return parseInt(p[1], 10) + '/' + parseInt(p[2], 10); };
+  function Calendar({ slots, loading, onApply }) {
     if (loading && !slots) return <div className="dc-card"><p className="dc-note">불러오는 중…</p></div>;
-    const sl = slots || [];
-    const byDate = {}; sl.forEach((s) => { byDate[s.targetDate] = s; });
+    const sl = (slots || []).slice().sort((a, z) => z.dNumber - a.dNumber);   // D-40 → D-5
+    const groups = [];
+    sl.forEach((s) => { const gi = Math.floor((40 - s.dNumber) / 5); (groups[gi] = groups[gi] || []).push(s); });   // 5일 단위
     return (
       <div className="dc-card">
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14, fontSize: 12, color: 'var(--muted)' }}>
           {['신청가능', '검토중', '확정', '닫힘'].map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 9, height: 9, borderRadius: '50%', background: SS_COLOR[s] }} />{s}</span>)}
-          <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>실시간 갱신</span>
+          <span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>실시간 · 5일 단위</span>
         </div>
-        <div className="dc-months">{monthsOf(sl).map((ym) => <MonthGrid key={ym} ym={ym} byDate={byDate} mode="apply" onApply={onApply} today={today} />)}</div>
+        {groups.map((g, gi) => {
+          if (!g || !g.length) return null;
+          const hi = g[0], lo = g[g.length - 1];
+          return (
+            <div key={gi} className="dc-grp">
+              <div className="dc-grp-h">D-{hi.dNumber} ~ D-{lo.dNumber}<span className="dc-grp-d">{fmtMd(hi.targetDate)} ~ {fmtMd(lo.targetDate)}</span></div>
+              <div className="dc-grp-row">
+                {g.map((s) => {
+                  const open = s.slotStatus === '신청가능';
+                  return (
+                    <div key={s.targetDate} className={'dc-slot2' + (open ? ' open' : ' dim')} onClick={() => open && onApply(s)} title={s.targetDate + ' · ' + s.slotStatus}>
+                      <div className="d2-dn">D-{s.dNumber}</div>
+                      <div className="d2-dt">{fmtMd(s.targetDate)}</div>
+                      <span className="dc-ss2" style={{ background: SS_COLOR[s.slotStatus] || 'var(--faint)' }}>{s.slotStatus}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -215,7 +246,7 @@
             <div>
               <div className="dc-row">
                 <div className="dc-field"><label>신청자 이름 * (= 신청번호)</label><input className="dc-input" value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
-                <div className="dc-field"><label>휴대전화 * (끝 4자리 = 비밀번호)</label><input className="dc-input" value={form.contact} onChange={(e) => set('contact', e.target.value)} placeholder="010-1234-5678" inputMode="tel" style={form.contact && !phoneOk(form.contact) ? { borderColor: 'var(--danger)' } : null} /></div>
+                <div className="dc-field"><label>휴대전화 * (끝 4자리 = 비밀번호)</label><input className="dc-input" value={form.contact} onChange={(e) => set('contact', hyphenPhone(e.target.value))} placeholder="010-1234-5678" inputMode="numeric" maxLength={13} style={form.contact && !phoneOk(form.contact) ? { borderColor: 'var(--danger)' } : null} /></div>
                 <div className="dc-field"><label>소속대</label><input className="dc-input" value={form.org} onChange={(e) => set('org', e.target.value)} /></div>
               </div>
               <div style={{ borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
@@ -248,6 +279,38 @@
           <div style={{ margin: '12px 0 16px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>비밀번호 (휴대전화 끝 4자리)</div><div className="dc-mono">{result.password}</div></div>
           <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>확인</button>
         </div>
+      </div>
+    );
+  }
+
+  /* ── 승인 후 사진 공유(최대 3장·각 5MB) ── */
+  function PhotoUploader({ no, pw, app, onUpdate }) {
+    const [photos, setPhotos] = useState(app.photos || []);
+    const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+    async function save(next) {
+      setBusy(true); setErr('');
+      const { ok, j } = await jsend('POST', { action: 'photos', applicationNo: no, password: pw, photos: next });
+      setBusy(false);
+      if (ok && j.ok) { setPhotos(j.application.photos || []); if (onUpdate) onUpdate(j.application); }
+      else setErr(j.error === 'not_approved' ? '승인된 신청만 사진을 올릴 수 있습니다.' : j.error === 'rate_limited' ? '잠시 후 다시 시도하세요.' : '저장 실패');
+    }
+    async function onFiles(e) {
+      const files = Array.from(e.target.files || []); e.target.value = '';
+      if (!files.length) return;
+      if (photos.length + files.length > 3) { setErr('사진은 최대 3장까지입니다.'); return; }
+      setBusy(true); setErr('');
+      try { const urls = []; for (const f of files) urls.push(await uploadImage(f)); await save(photos.concat(urls)); }
+      catch (ex) { setErr(ex.message || '업로드 실패'); setBusy(false); }
+    }
+    return (
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 8 }}>사진 공유 (최대 3장 · 각 5MB)</div>
+        <div className="dc-photos">
+          {photos.map((u, i) => (<div key={i} className="dc-photo"><img src={u} alt="" /><button className="rm" disabled={busy} onClick={() => save(photos.filter((_, k) => k !== i))}>×</button></div>))}
+          {photos.length < 3 && <label className="dc-photo-add">{busy ? '업로드 중…' : '＋ 사진 추가'}<input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onFiles} /></label>}
+        </div>
+        {err && <div className="dc-err">{err}</div>}
+        <p className="dc-note" style={{ marginTop: 8, color: 'var(--danger)' }}>⚠️ 승인 완료 후 <b>7일 이내</b>에 사진이 공유되지 않으면 <b>별도의 고지 없이 취소</b>될 수 있습니다.</p>
       </div>
     );
   }
@@ -300,6 +363,7 @@
             {app.rejectReason && <p className="dc-note" style={{ color: 'var(--danger)', marginBottom: 12 }}><b>사유:</b> {app.rejectReason}</p>}
             <ScaledCard dNumber={app.dNumber} isDay={false} teaser={(form || app).teaser} bgColor={(form || app).bgColor} inkColor={(form || app).inkColor} sceneIdx={(form || app).sceneIdx} />
             {app.status === '승인' && <p className="dc-note" style={{ marginTop: 8, color: 'var(--accent)' }}>✓ 승인된 카드입니다. 위 <b>A4 PNG 출력</b> 버튼으로 A4(가로) 이미지를 내려받으세요.</p>}
+            {app.status === '승인' && <PhotoUploader no={no.trim()} pw={pw} app={app} onUpdate={(a) => { setApp(a); setForm(Object.assign({}, a)); }} />}
 
             {app.editable && (
               <div style={{ marginTop: 16 }}>
@@ -319,7 +383,7 @@
   }
 
   /* ── 마스터 스타일 편집(관리자) ── */
-  const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1 };
+  const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1, logo: '' };
   const SLIDERS = [
     { k: 'pad', label: '전체 여백', min: 0, max: 16, step: 1, unit: '%' },
     { k: 'topAdj', label: '위 여백', min: -80, max: 160, step: 4, unit: 'px' },
@@ -351,7 +415,18 @@
                   <span className="val">{d[s.k]}{s.unit}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>우측 상단 엠블럼</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {EMBLEMS.map(([v, l]) => (
+                    <button key={v || 'auto'} type="button" onClick={() => set('logo', v)} style={{ border: d.logo === v ? '2px solid var(--accent)' : '1px solid var(--line)', borderRadius: 8, padding: 6, background: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 58 }}>
+                      {v ? <img src={v} alt="" style={{ width: 32, height: 32, objectFit: 'contain', background: v.indexOf('white') >= 0 ? '#3b4a3f' : '#fff', borderRadius: 4 }} /> : <span style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--muted)' }}>자동</span>}
+                      <span style={{ fontSize: 10, color: 'var(--muted)' }}>{l}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button className="dc-btn primary" disabled={busy} onClick={save}>저장 (전체 적용)</button>
                 <button className="dc-btn ghost" onClick={() => setD(Object.assign({}, STYLE_DEFAULT))}>초기화</button>
                 {msg && <span className={/실패/.test(msg) ? 'dc-err' : 'dc-ok'} style={{ alignSelf: 'center' }}>{msg}</span>}
@@ -452,6 +527,19 @@
           <div className="dc-secbody"><div className="dc-months">{monthsOf(slots).map((ym) => <MonthGrid key={ym} ym={ym} byDate={byDate} mode="admin" today={today} busy={busy} onToggle={(s) => patch({ action: 'slot', dNumber: s.dNumber, isOpen: !s.isOpen })} />)}</div></div>
         </details>
 
+        <details className="dc-sec">
+          <summary>변경 로그 ({((data && data.log) || []).length})</summary>
+          <div className="dc-secbody">
+            <button className="dc-btn danger" style={{ marginBottom: 10 }} disabled={busy} onClick={() => { if (window.confirm('로그를 초기화할까요?\n(초기화했다는 기록은 반드시 남습니다.)')) patch({ action: 'clearlog' }); }}>로그 초기화</button>
+            <div className="dc-logbox">
+              {((data && data.log) || []).map((l, i) => (
+                <div key={i} className="dc-logrow"><span className="t">{(l.ts || '').slice(5, 16).replace('T', ' ')}</span><span>{l.action}{l.count ? ' (' + l.count + ')' : ''}</span><span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>{l.ip || ''}</span></div>
+              ))}
+              {!((data && data.log) || []).length && <div style={{ padding: 12, color: 'var(--muted)', fontSize: 12 }}>기록 없음</div>}
+            </div>
+          </div>
+        </details>
+
         <div className="dc-card">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
             {FILTERS.map(([k, l]) => (
@@ -475,6 +563,7 @@
                     <div><b>{a.name || '—'}</b>{a.org ? ' · ' + a.org : ''}</div>
                     <div style={{ color: 'var(--muted)' }}>{a.contact || '—'}</div>
                     <div style={{ color: 'var(--faint)', fontSize: 12 }}>IP {a.ip || '—'}</div>
+                    {a.photos && a.photos.length > 0 && <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>{a.photos.map((u, i) => <a key={i} href={u} target="_blank" rel="noopener"><img src={u} alt="" style={{ width: 46, height: 46, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)' }} /></a>)}</div>}
                     {a.rejectReason && <div style={{ color: 'var(--danger)', marginTop: 4 }}>사유: {a.rejectReason}</div>}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
                       <button className="dc-btn primary" style={{ padding: '7px 12px', fontSize: 12.5 }} disabled={busy || a.status === '승인'} onClick={() => act(a, 'approve')}>승인</button>
@@ -520,7 +609,7 @@
         <div className="dc-wrap">
           <div className="syncbar"><span className="orgtag">제16회 한국잼버리 · D-COUNT</span><span style={{ flex: 1 }} /><span className="st">일자별 D-COUNT 카드 신청</span></div>
           <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 18px' }}>
-            <img src="/jamboree/assets/logo.png" width="68" height="68" alt="엠블럼" style={{ borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)' }} />
+            <img src="/jamboree/assets/logo.png" width="68" height="68" alt="엠블럼" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
             <div>
               <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>제16회 한국잼버리 PR팀</p>
               <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>D-COUNT 카드 신청</h1>

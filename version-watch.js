@@ -25,20 +25,21 @@
   function showToast() {
     if (shown) return;
     shown = true;
+    // 자체 스타일(인라인) — 어떤 페이지에서든 우측 상단 토스트로 동일하게 표시
     var el = document.createElement("div");
-    el.className = "version-toast";
     el.setAttribute("role", "alert");
+    el.style.cssText = "position:fixed;top:18px;right:18px;z-index:2147483647;display:flex;align-items:center;gap:12px;max-width:300px;" +
+      "background:#fff;color:#1b211d;border:1px solid rgba(0,0,0,.08);border-radius:14px;box-shadow:0 12px 32px rgba(20,20,30,.20);" +
+      "padding:13px 15px;font-family:'Hanken Grotesk','Apple SD Gothic Neo',system-ui,sans-serif;transform:translateY(-14px);opacity:0;transition:.22s cubic-bezier(.4,0,.2,1);";
     el.innerHTML =
-      '<div class="version-toast-body">' +
-        '<strong class="version-toast-title">A new version is available</strong>' +
-        '<span class="version-toast-sub">Please refresh the page</span>' +
+      '<div style="line-height:1.35;min-width:0;">' +
+        '<strong style="display:block;font-size:13.5px;font-weight:700;">새 버전이 있습니다</strong>' +
+        '<span style="font-size:12px;color:#697066;">새로고침 해주세요</span>' +
       "</div>" +
-      '<button type="button" class="version-toast-btn">Refresh</button>';
-    el.querySelector(".version-toast-btn").addEventListener("click", function () {
-      location.reload();
-    });
+      '<button type="button" style="flex:none;border:none;background:#6336B5;color:#fff;font:600 12.5px \'Hanken Grotesk\',sans-serif;padding:8px 14px;border-radius:9px;cursor:pointer;">새로고침</button>';
+    el.querySelector("button").addEventListener("click", function () { location.reload(); });
     document.body.appendChild(el);
-    requestAnimationFrame(function () { el.classList.add("show"); });
+    requestAnimationFrame(function () { el.style.transform = "translateY(0)"; el.style.opacity = "1"; });
   }
 
   function check() {
