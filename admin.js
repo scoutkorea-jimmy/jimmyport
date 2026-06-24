@@ -13,16 +13,16 @@
     ARB: { full: "Arab", color: "#2E8B6B" },
     AFR: { full: "Africa", color: "#C26A2E" },
     IAR: { full: "Interamerican", color: "#C23E6E" },
-    WSB: { full: "World Bureau", color: "#4B4E8A" }
+    WSB: { full: "WOSM Bureau", color: "#4B4E8A" }
   };
-  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
 
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
   function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
   var COUNTRY = {}; NSOS.forEach(function (n) { COUNTRY[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; });
-  COUNTRY["World Scout Bureau"] = { nso: "World Scout Bureau", region: "WSB", lang: "en" };  // global HQ, no single country
+  COUNTRY["WOSM Bureau"] = { nso: "WOSM Bureau", region: "WSB", lang: "en" };  // global HQ, no single country
   var COUNTRIES = Object.keys(COUNTRY).sort();
   var DIAL = window.SCOUT_DIAL || {};
 

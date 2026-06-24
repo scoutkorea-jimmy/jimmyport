@@ -13,9 +13,9 @@
     ARB: { full: "Arab", color: "#2E8B6B" },
     AFR: { full: "Africa", color: "#C26A2E" },
     IAR: { full: "Interamerican", color: "#C23E6E" },
-    WSB: { full: "World Bureau", color: "#4B4E8A" }
+    WSB: { full: "WOSM Bureau", color: "#4B4E8A" }
   };
-  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage" };
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
