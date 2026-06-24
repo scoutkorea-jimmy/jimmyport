@@ -39,6 +39,12 @@ input,select,textarea,button{font-family:'Hanken Grotesk',sans-serif}
 @keyframes sfslide{from{transform:translateX(102%)}to{transform:none}}
 @keyframes sfpulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(2.8);opacity:0}100%{opacity:0}}
 
+/* "Events held here" — collapsible disclosure (works in the panel card + map popup) */
+.sf-events>summary{list-style:none}
+.sf-events>summary::-webkit-details-marker{display:none}
+.sf-events .ev-chev{transition:transform .15s}
+.sf-events[open]>summary .ev-chev{transform:rotate(90deg)}
+
 /* Mobile: stack the floating panel over the map */
 @media (max-width:760px){
   /* Public site — panel fills the height (down to just above the bottom search bar) so the

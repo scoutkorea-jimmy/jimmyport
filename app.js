@@ -39,19 +39,22 @@
   function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return evDateNum(b.start) - evDateNum(a.start); }); }
   function eventsHtml(u) {
     var ev = sortedEvents(u); if (!ev.length) return "";
+    // public view: date (small, grey) above the event name; scope chips are admin-only
     var rows = ev.map(function (e, i) {
-      var badges = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span style="font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + m.color + ';padding:2px 7px;border-radius:999px;white-space:nowrap;text-align:center;">' + esc(m.label) + '</span>'; }).join("");
       var range = fmtEvRange(e);
-      var sep = i ? "border-top:1px solid #f1ece4;padding-top:7px;" : "";  // faint divider between events
-      return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;' + sep + '">' +  // order: date · name · scope
-        '<span style="flex:none;min-width:74px;font:700 11px \'Hanken Grotesk\';color:#8a8496;white-space:nowrap;">' + esc(range) + '</span>' +
-        '<span style="flex:1;min-width:0;font:600 12px \'Hanken Grotesk\';color:#42394f;line-height:1.3;">' + esc(e.name) + '</span>' +
-        (badges ? '<span style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' + badges + '</span>' : "") +
+      var sep = i ? "border-top:1px solid #f1ece4;" : "";
+      return '<div style="padding:7px 0;' + sep + '">' +
+        (range ? '<div style="font:700 10.5px \'Hanken Grotesk\';color:#9a93a6;letter-spacing:.01em;margin-bottom:1px;">' + esc(range) + '</div>' : "") +
+        '<div style="font:600 12.5px \'Hanken Grotesk\';color:#3a3447;line-height:1.35;">' + esc(e.name) + '</div>' +
         '</div>';
     }).join("");
-    return '<div style="margin-bottom:10px;">' +
-      '<div style="font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:#9a93a6;margin-bottom:6px;">Events held here</div>' +
-      rows + '</div>';
+    return '<details class="sf-events" data-stop="1" open style="margin-bottom:10px;">' +
+      '<summary style="cursor:pointer;display:flex;align-items:center;gap:6px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:#9a93a6;padding:2px 0;outline:none;">' +
+      '<svg class="ev-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="m9 18 6-6-6-6"></path></svg>' +
+      'Events held here <span style="color:#c2bcce;font-weight:600;">' + ev.length + '</span>' +
+      '</summary>' +
+      '<div style="max-height:208px;overflow-y:auto;margin-top:3px;">' + rows + '</div>' +
+      '</details>';
   }
   var KIND_BADGE = { heritage: ["#C2872E", "★"], camp: ["#3E8E4F", "▲"], regevent: ["#1F9CA6", "◆"], globevent: ["#B5408F", "◆"] };
   var KIND_SHAPE = { office: "7px", camp: "4px" };  // marker corner radius; others default to a circle
@@ -551,7 +554,7 @@
     $("panel").style.transform = open ? "none" : "translateX(-118%)";
     $("panel").style.opacity = open ? 1 : 0;
     $("panel-reopen").style.display = open ? "none" : "flex";
-    $("searchbar").style.left = open ? "398px" : "18px";
+    $("searchbar").style.left = open ? "446px" : "18px";
     if (map) setTimeout(function () { map.invalidateSize(); }, 340);
   }
 
