@@ -589,8 +589,11 @@ html.pw-ok #auth-gate{display:none}
 .auth-tab.active{background:var(--accent);color:#fff;box-shadow:var(--sh-1)}
 .auth-form{display:flex;flex-direction:column;gap:9px;text-align:left}
 .auth-hint{color:var(--muted);font-size:12.5px;margin:0 0 2px;text-align:center}
-.auth-box input{width:100%;border:1px solid var(--line);border-radius:var(--r-1);padding:11px 13px;font-size:14px;font-family:inherit;background:var(--surface)}
-.auth-box input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.auth-box input:not([type=checkbox]){width:100%;border:1px solid var(--line);border-radius:var(--r-1);padding:11px 13px;font-size:14px;font-family:inherit;background:var(--surface)}
+.auth-box input:not([type=checkbox]):focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.auth-consent{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;font-size:11.5px;line-height:1.5;color:var(--muted);margin:2px 0;cursor:pointer}
+.auth-consent input{flex:none;margin-top:2px;width:15px;height:15px}
+.auth-consent span{flex:1;min-width:0}
 #ad-code{text-align:center;letter-spacing:.35em;font-size:18px}
 .auth-box .btn.solid{width:100%;justify-content:center;padding:11px;font-size:14.5px;margin-top:2px}
 .auth-err{color:var(--danger);font-size:12.5px;margin:11px 0 0;min-height:16px}
