@@ -9,7 +9,7 @@
  *  - PUT  /api/jamboree-plan  (마케팅)    → body { marketing:[...], author }
  *  - DELETE /api/jamboree-plan?slotKey=…  → 카드 KV 삭제(완전 제거)
  */
-import { json, clientIp, maskIp, appendLog } from "./_lib.js";
+import { json, jsonCacheable, cacheMatch, cachePut, cachePurge, clientIp, maskIp, appendLog } from "./_lib.js";
 
 const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
@@ -197,7 +197,10 @@ function cleanEdit(e) {
   };
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet(ctx) {
+  const { env } = ctx;
+  const hit = await cacheMatch(ctx.request);  // the board GET takes no query params → one cache key
+  if (hit) return hit;
   let cursor, names = [];
   do {
     const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });
@@ -260,10 +263,18 @@ export async function onRequestGet({ env }) {
   const lraw = await env.SCOUT_KV.get(LAUNCH);
   if (lraw) { try { launch = JSON.parse(lraw).launch; } catch {} }
 
-  return json({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch });
+  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch }, 30);  // short TTL; writes purge it
+  cachePut(ctx, resp);
+  return resp;
 }
 
-export async function onRequestPut({ request, env }) {
+export async function onRequestPut(ctx) {
+  const resp = await putImpl(ctx);
+  cachePurge(ctx, "/api/jamboree-plan");  // edits show on the next load (within the GET TTL)
+  return resp;
+}
+async function putImpl(ctx) {
+  const { request, env } = ctx;
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const author = cleanName(body.author, "익명");
@@ -387,10 +398,12 @@ export async function onRequestPut({ request, env }) {
   return json({ ok: true, slot: rec });
 }
 
-export async function onRequestDelete({ request, env }) {
+export async function onRequestDelete(ctx) {
+  const { request, env } = ctx;
   const k = new URL(request.url).searchParams.get("slotKey");
   if (!k) return json({ error: "slotKey required" }, 400);
   await env.SCOUT_KV.delete(SLOT(k));
   await appendLog(env, { ts: new Date().toISOString(), action: "jp.delete", count: 0, ip: clientIp(request) });
+  cachePurge(ctx, "/api/jamboree-plan");
   return json({ ok: true });
 }

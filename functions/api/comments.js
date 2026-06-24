@@ -6,10 +6,12 @@
  *
  * GDPR 메모: 개인정보(IP, 닉네임)는 명시적 consent 시에만 저장, 공개 표시 시 IP 마스킹,
  * 원본 IP는 관리자 전용, 삭제(에러셔) 지원. 보존 최대 5000건(초과 시 오래된 것부터 정리). */
-import { json, isAdmin, clientIp, maskIp, getArr, putArr, newId, bannedTerms, matchBanned } from "./_lib.js";
+import { json, jsonCacheable, cacheMatch, cachePut, cachePurge, isAdmin, clientIp, maskIp, getArr, putArr, newId, bannedTerms, matchBanned } from "./_lib.js";
 
-export async function onRequestGet({ request, env }) {
+export async function onRequestGet(ctx) {
+  const { request, env } = ctx;
   const admin = await isAdmin(request, env);
+  if (!admin) { const hit = await cacheMatch(request); if (hit) return hit; }  // admin sees raw IPs → never cache/serve cached
   const arr = await getArr(env, "comments");
   const out = arr.map(function (c) {
     // Soft-deleted comments become a tombstone: original text/image are withheld,
@@ -28,13 +30,17 @@ export async function onRequestGet({ request, env }) {
       ip: admin ? c.ip : undefined, ipMasked: maskIp(c.ip),
     };
   });
-  return json({ comments: out, admin: admin });
+  if (admin) return json({ comments: out, admin: true });  // fresh, with original IPs
+  const resp = jsonCacheable({ comments: out, admin: false }, 60);
+  cachePut(ctx, resp);
+  return resp;
 }
 
 /* PATCH /api/comments → 관리자: 댓글 수정 / 사유와 함께 소프트 삭제
  *   { id, action: "edit", body }            → 본문 수정
  *   { id, action: "delete", reason }         → 삭제(사유 보존, 묘비 표시) — 대댓글은 유지 */
-export async function onRequestPatch({ request, env }) {
+export async function onRequestPatch(ctx) {
+  const { request, env } = ctx;
   if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
@@ -54,10 +60,12 @@ export async function onRequestPatch({ request, env }) {
     return json({ error: "bad action" }, 400);
   }
   await putArr(env, "comments", arr);
+  cachePurge(ctx, "/api/comments");
   return json({ ok: true });
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost(ctx) {
+  const { request, env } = ctx;
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
 
@@ -85,10 +93,12 @@ export async function onRequestPost({ request, env }) {
   };
   arr.unshift(c);
   await putArr(env, "comments", arr.slice(0, 5000));
+  cachePurge(ctx, "/api/comments");
   return json({ ok: true, comment: { id: c.id, ts: c.ts, name: c.name, body: c.body, imageUrl: c.imageUrl, parentId: c.parentId, ipMasked: maskIp(c.ip) } });
 }
 
-export async function onRequestDelete({ request, env }) {
+export async function onRequestDelete(ctx) {
+  const { request, env } = ctx;
   if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "id required" }, 400);
@@ -97,5 +107,6 @@ export async function onRequestDelete({ request, env }) {
   // 대상 댓글 + 그 대댓글까지 제거 (잊혀질 권리)
   arr = arr.filter(function (c) { return c.id !== id && c.parentId !== id; });
   await putArr(env, "comments", arr);
+  cachePurge(ctx, "/api/comments");
   return json({ ok: true, removed: before - arr.length });
 }

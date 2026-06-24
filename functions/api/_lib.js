@@ -156,3 +156,26 @@ export function newId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return "id-" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
 }
+
+// ── edge response cache (Cloudflare Cache API) — serves repeat GETs from the
+//    nearest data center instead of re-reading KV. Faster + far fewer KV reads.
+//    Writes purge the key so admin edits show up promptly (TTL is the upper bound).
+function cacheKeyFor(request) {
+  const u = new URL(request.url);
+  return new Request(u.origin + u.pathname + u.search, { method: "GET" });
+}
+export function jsonCacheable(data, ttl) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=" + ttl },
+  });
+}
+export async function cacheMatch(request) {
+  try { return await caches.default.match(cacheKeyFor(request)); } catch { return null; }
+}
+export function cachePut(ctx, response) {
+  try { ctx.waitUntil(caches.default.put(cacheKeyFor(ctx.request), response.clone())); } catch (e) {}
+}
+export function cachePurge(ctx, path) {
+  try { const u = new URL(ctx.request.url); ctx.waitUntil(caches.default.delete(new Request(u.origin + path, { method: "GET" }))); } catch (e) {}
+}

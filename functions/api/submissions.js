@@ -2,7 +2,7 @@
  * POST  /api/submissions  → 누구나: 새 단위대 제안 (승인 대기 큐 + IP 기록)
  * GET   /api/submissions  → 관리자: 대기 목록
  * PATCH /api/submissions  → 관리자: { id, action: "approve" | "reject" } */
-import { json, isAdmin, clientIp, getArr, putArr, appendLog, newId } from "./_lib.js";
+import { json, isAdmin, clientIp, getArr, putArr, appendLog, newId, cachePurge } from "./_lib.js";
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -37,7 +37,8 @@ export async function onRequestGet({ request, env }) {
   return json({ pending: await getArr(env, "pending") });
 }
 
-export async function onRequestPatch({ request, env }) {
+export async function onRequestPatch(ctx) {
+  const { request, env } = ctx;
   if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
@@ -66,6 +67,7 @@ export async function onRequestPatch({ request, env }) {
     store.updatedAt = ts;
     await env.SCOUT_KV.put("units", JSON.stringify(store));
     await appendLog(env, { ts, action: replaced ? "submission.correction" : "submission.approve", name: unit.name, ip: clientIp(request) });
+    cachePurge(ctx, "/api/units");  // approved place must appear on the public map promptly
     return json({ ok: true, approved: unit.id, replaced: replaced, count: store.units.length });
   }
   await appendLog(env, { ts, action: "submission.reject", name: item.unit && item.unit.name, ip: clientIp(request) });
