@@ -91,6 +91,7 @@ function buildDays(){
 }
 var DAYS = buildDays();
 var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
+var dcountApproved=[];   // 디데이 프로젝트(krjam-dcount) 승인 카드 — 캘린더 자동 연동
 
 /* ===== overlay state ===== */
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
@@ -582,6 +583,10 @@ function renderCalendar(){
       var pg=q&&(((p.activity||'')+' '+pw+' '+(p.role||'')).toLowerCase().indexOf(ql)<0);
       html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+pw+' · '+(p.activity||''))+'"><span class="prtag">의전</span>'+esc(p.time)+' · '+esc(p.activity||pw||p.role)+'</div>';
     });
+    // 디데이 프로젝트 승인 카드(자동 연동)
+    dcountApproved.filter(function(a){ return a.targetDate===rec.date; }).forEach(function(a){
+      html+='<div class="cline dcard" title="디데이 프로젝트 승인 카드 — 클릭하면 열림" style="cursor:pointer;border-left:3px solid #C8821C;background:#FBF3E6;color:#7a4d12;font-weight:700">★ 디데이 D-'+a.dNumber+(a.name?(' · '+esc(a.name)):'')+'</div>';
+    });
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
     cell.innerHTML=html;
     (function(rc){
@@ -596,6 +601,9 @@ function renderCalendar(){
       });
       cell.querySelectorAll('.citem-pr[data-pid]').forEach(function(el){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); setView('protocol'); });
+      });
+      cell.querySelectorAll('.cline.dcard').forEach(function(el){
+        el.addEventListener('click',function(ev){ ev.stopPropagation(); window.open('/krjam-dcount','_blank'); });
       });
       // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
       cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){
@@ -2151,6 +2159,8 @@ function init(){
   document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=icon(el.getAttribute('data-ic'), +(el.getAttribute('data-ic-size')||16)); });
   renderAll();
   setInterval(renderClock,1000);
+  // 디데이 프로젝트(krjam-dcount) 승인 카드 → 캘린더 자동 연동
+  fetch('/api/krjam-dcount').then(function(r){return r.json();}).then(function(j){ dcountApproved=(j&&j.approved)||[]; renderCalendar(); }).catch(function(){});
   // try server (shared board) — MERGE into local (never wipes local-only content)
   fetch('/api/jamboree-plan').then(function(r){return r.json();}).then(function(j){
     applyServer(j); mergeSeedMeetings(); saveLocal(); renderAll();

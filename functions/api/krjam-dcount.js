@@ -89,7 +89,9 @@ export async function onRequestGet({ request, env }) {
     else st = s.isOpen ? "신청가능" : "닫힘";
     return { dNumber: s.dNumber, targetDate: s.targetDate, isOpen: !!s.isOpen, occupied: !!occ[s.targetDate], slotStatus: st };
   });
-  return json({ eventDate: EVENT_DATE, today: t, slots: out, masterStyle });
+  // 승인(확정)된 디데이 카드 — krjam-planning 캘린더 연동용 공개 목록(이름은 게시용 카드라 공개 안전)
+  const approved = index.filter((e) => e.status === "승인").map((e) => ({ targetDate: e.targetDate, dNumber: e.dNumber, name: e.name || "" }));
+  return json({ eventDate: EVENT_DATE, today: t, slots: out, masterStyle, approved });
 }
 
 export async function onRequestPost({ request, env }) {
