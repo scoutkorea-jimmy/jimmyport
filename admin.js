@@ -26,10 +26,10 @@
   var EV_ORDER = ["national", "regional", "global"];  // display + toggle order (an event may have several at once)
   function normEvents(a) {
     return Array.isArray(a) ? a.map(function (e) {
-      var date = String((e && e.date) || "");
-      if (!date && e && e.year) { var y = String(e.year).replace(/\D/g, ""); if (y) date = y + "-01-01"; }  // migrate old year-only entries
+      var start = String((e && (e.start || e.date)) || "");
+      if (!start && e && e.year) { var y = String(e.year).replace(/\D/g, ""); if (y) start = y + "-01-01"; }  // migrate old year-only entries
       var raw = Array.isArray(e && e.scopes) ? e.scopes : ((e && EV_SCOPE[e.scope]) ? [e.scope] : []);  // migrate single scope → array
-      return { scopes: EV_ORDER.filter(function (k) { return raw.indexOf(k) >= 0; }), name: String((e && e.name) || ""), date: date };
+      return { scopes: EV_ORDER.filter(function (k) { return raw.indexOf(k) >= 0; }), name: String((e && e.name) || ""), start: start, end: String((e && e.end) || "") };
     }) : [];
   }
 
@@ -238,7 +238,9 @@
         '<span class="evgrip" draggable="true" data-idx="' + i + '" title="Drag to reorder" style="flex:none;cursor:grab;color:#c2bcce;display:flex;align-items:center;padding:0 1px;">' + grip + '</span>' +
         '<span style="flex:none;display:flex;gap:4px;">' + chips + '</span>' +
         '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="flex:1;min-width:0;" />' +
-        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="date" type="date" value="' + escAttr(e.date) + '" title="Event date" style="width:148px;flex:none;" />' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="start" type="date" value="' + escAttr(e.start) + '" title="Start date" style="width:138px;flex:none;" />' +
+        '<span style="flex:none;color:#b3adbd;font:600 12px \'Hanken Grotesk\';">~</span>' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="end" type="date" value="' + escAttr(e.end) + '" title="End date (optional)" style="width:138px;flex:none;" />' +
         '<button data-act="evdel" data-idx="' + i + '" title="Remove" style="flex:none;border:none;background:#f6eeee;color:#b4524e;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;">&times;</button>' +
         '</div>';
     }).join("");
@@ -297,7 +299,7 @@
             '</div>'
         )) +
 
-      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— National / Regional / Global · name · date</span>',
+      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— scope · name · start ~ end</span>',
         evRows(s) + '<div style="display:flex;gap:7px;margin-top:4px;flex-wrap:wrap;"><button data-act="evadd" style="' + BTN_SOFT + '">+ Add event</button>' +
         (s.events.length > 1 ? '<button data-act="evsort" style="' + BTN_SOFT + '">Sort by date ' + (state.evSortDir === "asc" ? "↑" : "↓") + '</button>' : "") + '</div>') +
 
@@ -678,8 +680,8 @@
       else if (act === "showcoord") { commitLatLng(); syncMarker(true); toast("Showing location on the map"); }
       else if (act === "namehelp") { state.nameHelp = !state.nameHelp; renderForm(); }
       else if (act === "evscope") { var se = sel(), ie = +b.getAttribute("data-idx"); if (se && se.events[ie]) { var arr = se.events[ie].scopes, p = arr.indexOf(val); if (p >= 0) arr.splice(p, 1); else arr.push(val); se.events[ie].scopes = EV_ORDER.filter(function (k) { return arr.indexOf(k) >= 0; }); touch(); renderForm(); } }
-      else if (act === "evadd") { var sa = sel(); if (sa) { sa.events.push({ scopes: ["national"], name: "", date: "" }); touch(); renderForm(); } }
-      else if (act === "evsort") { var so = sel(); if (so) { var dir = state.evSortDir || "desc"; so.events.sort(function (a, b) { var na = parseInt((a.date || "").replace(/-/g, ""), 10) || 0, nb = parseInt((b.date || "").replace(/-/g, ""), 10) || 0; return dir === "asc" ? na - nb : nb - na; }); state.evSortDir = dir === "asc" ? "desc" : "asc"; touch(); renderForm(); } }
+      else if (act === "evadd") { var sa = sel(); if (sa) { sa.events.push({ scopes: ["national"], name: "", start: "", end: "" }); touch(); renderForm(); } }
+      else if (act === "evsort") { var so = sel(); if (so) { var dir = state.evSortDir || "desc"; so.events.sort(function (a, b) { var na = parseInt((a.start || "").replace(/-/g, ""), 10) || 0, nb = parseInt((b.start || "").replace(/-/g, ""), 10) || 0; return dir === "asc" ? na - nb : nb - na; }); state.evSortDir = dir === "asc" ? "desc" : "asc"; touch(); renderForm(); } }
       else if (act === "evdel") { var sd = sel(), id2 = +b.getAttribute("data-idx"); if (sd) { sd.events.splice(id2, 1); touch(); renderForm(); } }
       else if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
       else if (act === "status") { set({ status: val }); renderRail(); renderForm(); }

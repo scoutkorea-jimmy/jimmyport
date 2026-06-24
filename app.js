@@ -25,24 +25,28 @@
   var EV_ORDER = ["national", "regional", "global"];  // display + toggle order
   function normEvents(a) {
     return Array.isArray(a) ? a.map(function (e) {
-      var date = String((e && e.date) || "");
-      if (!date && e && e.year) { var y = String(e.year).replace(/\D/g, ""); if (y) date = y + "-01-01"; }  // migrate old year-only entries
+      var start = String((e && (e.start || e.date)) || "");
+      if (!start && e && e.year) { var y = String(e.year).replace(/\D/g, ""); if (y) start = y + "-01-01"; }  // migrate old year-only entries
+      var end = String((e && e.end) || "");
       var raw = Array.isArray(e && e.scopes) ? e.scopes : ((e && EV_SCOPE[e.scope]) ? [e.scope] : []);  // migrate single scope → array
       var scopes = EV_ORDER.filter(function (k) { return raw.indexOf(k) >= 0; });
-      return { scopes: scopes, name: String((e && e.name) || ""), date: date };
-    }).filter(function (e) { return e.name || e.date; }) : [];
+      return { scopes: scopes, name: String((e && e.name) || ""), start: start, end: end };
+    }).filter(function (e) { return e.name || e.start; }) : [];
   }
   function evDateNum(d) { return d ? (parseInt(String(d).replace(/-/g, ""), 10) || 0) : 0; }
   function fmtEvDate(d) { return d ? String(d).split("-").join(".") : ""; }  // YYYY.MM.DD
-  function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return evDateNum(b.date) - evDateNum(a.date); }); }
+  function fmtEvRange(e) { if (!e.start) return ""; var s = fmtEvDate(e.start); return (e.end && e.end !== e.start) ? s + " – " + fmtEvDate(e.end) : s; }
+  function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return evDateNum(b.start) - evDateNum(a.start); }); }
   function eventsHtml(u) {
     var ev = sortedEvents(u); if (!ev.length) return "";
-    var rows = ev.map(function (e) {
-      var badges = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span style="font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + m.color + ';padding:2px 7px;border-radius:999px;">' + esc(m.label) + '</span>'; }).join("");
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
-        (badges ? '<span style="flex:none;display:flex;gap:4px;">' + badges + '</span>' : "") +
+    var rows = ev.map(function (e, i) {
+      var badges = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span style="font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + m.color + ';padding:2px 7px;border-radius:999px;white-space:nowrap;text-align:center;">' + esc(m.label) + '</span>'; }).join("");
+      var range = fmtEvRange(e);
+      var sep = i ? "border-top:1px solid #f1ece4;padding-top:7px;" : "";  // faint divider between events
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;' + sep + '">' +
+        (badges ? '<span style="flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:4px;">' + badges + '</span>' : "") +
         '<span style="flex:1;min-width:0;font:600 12px \'Hanken Grotesk\';color:#42394f;line-height:1.3;">' + esc(e.name) + '</span>' +
-        (e.date ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#8a8496;">' + esc(fmtEvDate(e.date)) + '</span>' : "") +
+        (range ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#8a8496;white-space:nowrap;">' + esc(range) + '</span>' : "") +
         '</div>';
     }).join("");
     return '<div style="margin-bottom:10px;">' +
