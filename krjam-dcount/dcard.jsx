@@ -31,7 +31,7 @@
     return THEMES[((n % THEMES.length) + THEMES.length) % THEMES.length];
   }
   function isDark(bg) { const s = window.CCStore; return (s && s.idealInk ? s.idealInk(bg) === '#fff' : true); }
-  function colsForBg(bg) { return isDark(bg) ? BRIGHT : DEEP; }   // 오브제 색을 배경색에 맞춤
+  function colsForBg(bg) { return isDark(bg) ? NAT_DARK : NAT_LIGHT; }   // 오브제 색을 배경색에 맞춤
 
   function wideScatter(cols, isDay) {
     const c0 = cols[0], c1 = cols[1], c2 = cols[2], c3 = cols[3] || cols[0];
@@ -48,7 +48,7 @@
   function scatterFor(sceneIdx, cols, isDay) {
     const has = sceneIdx != null && sceneIdx !== '' && window.SCENES && window.SCENES[sceneIdx];
     if (!has) return wideScatter(cols, isDay);
-    const c = cols && cols.length ? cols : BRIGHT;
+    const c = cols && cols.length ? cols : NAT_DARK;
     return window.SCENES[sceneIdx].build(1240, 890, 1.0, [c[0], c[1] || c[0], c[2] || c[0], c[3] || c[1] || c[0]]);
   }
   window.DCOUNT_SCENE_LABELS = window.SCENE_LABELS || [];
