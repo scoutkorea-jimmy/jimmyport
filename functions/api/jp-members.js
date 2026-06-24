@@ -44,6 +44,7 @@ export async function onRequestPost({ request, env }) {
     if (username.length < 3 || username.length > 24) return json({ ok: false, error: "bad_username" }, 400);
     if (!name) return json({ ok: false, error: "name_required" }, 400);
     if (password.length < 4) return json({ ok: false, error: "weak_password" }, 400);
+    if (body.consent !== true) return json({ ok: false, error: "consent_required" }, 400);
     if (await readUser(env, username)) return json({ ok: false, error: "username_taken" }, 409);
 
     // per-IP registration throttle (5 / 10 min)
@@ -54,8 +55,10 @@ export async function onRequestPost({ request, env }) {
     try { await env.SCOUT_KV.put(rlKey, String(regs + 1), { expirationTtl: 600 }); } catch {}
 
     const { salt, hash } = await hashPassword(password);
+    const nowIso = new Date().toISOString();
     const rec = { username, name, salt, hash, status: "pending",
-      createdAt: new Date().toISOString(), approvedAt: null, ip: maskIp(clientIp(request)) };
+      createdAt: nowIso, approvedAt: null, ip: maskIp(clientIp(request)),
+      consentAt: nowIso };   // 개인정보 수집·이용 동의 시각 (PIPA 동의 기록)
     await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
     await writeIndex(env, rec);
     await appendLog(env, { ts: rec.createdAt, action: "jpm.register", count: 0, ip: clientIp(request) });

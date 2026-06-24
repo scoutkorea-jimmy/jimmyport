@@ -1834,7 +1834,8 @@ function wireAuthGate(){
     return ({bad_username:'아이디는 영문·숫자·_ , 3~24자입니다.', name_required:'이름을 입력하세요.',
       weak_password:'비밀번호는 4자 이상이어야 합니다.', username_taken:'이미 사용 중인 아이디입니다.',
       too_many_attempts:'시도가 너무 많습니다. 잠시 후 다시 시도하세요.', invalid_login:'아이디 또는 비밀번호가 올바르지 않습니다.',
-      pending_approval:'아직 관리자 승인 대기 중입니다.', invalid_code:'인증코드가 올바르지 않습니다.',
+      pending_approval:'아직 승인 대기 중입니다. 홍보부 부장에게 확인하세요.', invalid_code:'인증코드가 올바르지 않습니다.',
+      consent_required:'개인정보 수집·이용 동의가 필요합니다.',
       totp_not_configured:'관리자 인증이 설정되지 않았습니다.'})[code] || '오류가 발생했습니다.';
   }
 
@@ -1851,12 +1852,14 @@ function wireAuthGate(){
 
   fReg.onsubmit=function(e){ e.preventDefault();
     var name=(document.getElementById('rg-name').value||'').trim(), u=(document.getElementById('rg-user').value||'').trim(), p=document.getElementById('rg-pw').value||'';
+    var consent=document.getElementById('rg-consent');
     if(!name||!u||!p){ setErr('이름·아이디·비밀번호를 모두 입력하세요.'); return; }
-    setErr('가입 신청 중…');
-    fetch('/api/jp-members',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'register',username:u,password:p,name:name})})
+    if(!consent||!consent.checked){ setErr('개인정보 수집·이용에 동의해야 신청할 수 있습니다.'); return; }
+    setErr('회원가입 신청 중…');
+    fetch('/api/jp-members',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'register',username:u,password:p,name:name,consent:true})})
       .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
       .then(function(res){ if(res.ok&&res.j.ok){ setErr(''); document.querySelector('.auth-tab[data-at="login"]').click();
-          var e2=document.getElementById('auth-err'); if(e2){ e2.style.color='var(--accent,#2f5d4a)'; e2.textContent='가입 신청 완료 — 관리자 승인 후 로그인할 수 있습니다.'; } }
+          var e2=document.getElementById('auth-err'); if(e2){ e2.style.color='var(--accent,#2f5d4a)'; e2.textContent='회원가입 신청 완료 — 홍보부 부장에게 확인하여 계정을 부여받으세요. 승인 후 로그인됩니다.'; } }
         else setErr(errMsg(res.j&&res.j.error)); })
       .catch(function(){ setErr('네트워크 오류'); });
   };
