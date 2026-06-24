@@ -234,13 +234,16 @@
         var m = EV_SCOPE[sk], on = e.scopes.indexOf(sk) >= 0;
         return '<button data-act="evscope" data-idx="' + i + '" data-val="' + sk + '" title="' + m.label + ' — click to toggle" style="flex:none;border:1px solid ' + (on ? m.color : "#e0dae6") + ';background:' + (on ? m.color : "#fff") + ';color:' + (on ? "#fff" : "#a99fb5") + ';font:700 10px \'Hanken Grotesk\';letter-spacing:.03em;padding:8px 7px;border-radius:8px;cursor:pointer;">' + m.label.slice(0, 3).toUpperCase() + '</button>';
       }).join("");
-      return '<div class="evrow" data-idx="' + i + '" style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">' +
-        '<span class="evgrip" draggable="true" data-idx="' + i + '" title="Drag to reorder" style="flex:none;cursor:grab;color:#c2bcce;display:flex;align-items:center;padding:0 1px;">' + grip + '</span>' +
-        '<span style="flex:none;display:flex;gap:4px;">' + chips + '</span>' +
-        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="flex:1;min-width:0;" />' +
-        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="start" type="date" value="' + escAttr(e.start) + '" title="Start date" style="width:138px;flex:none;" />' +
+      return '<div class="evrow" data-idx="' + i + '" style="display:flex;align-items:center;gap:9px;border:1px solid #f0ebe2;border-radius:11px;padding:9px;margin-bottom:8px;">' +
+        '<span class="evgrip" draggable="true" data-idx="' + i + '" title="Drag to reorder" style="flex:none;cursor:grab;color:#c2bcce;display:flex;align-items:center;">' + grip + '</span>' +
+        '<span style="flex:none;display:flex;flex-direction:column;gap:4px;">' + chips + '</span>' +
+        '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="width:100%;" />' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="start" type="date" value="' + escAttr(e.start) + '" title="Start date" style="flex:1;min-width:0;" />' +
         '<span style="flex:none;color:#b3adbd;font:600 12px \'Hanken Grotesk\';">~</span>' +
-        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="end" type="date" value="' + escAttr(e.end) + '" title="End date (optional)" style="width:138px;flex:none;" />' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="end" type="date" value="' + escAttr(e.end) + '" title="End date (optional)" style="flex:1;min-width:0;" />' +
+        '</div></div>' +
         '<button data-act="evdel" data-idx="' + i + '" title="Remove" style="flex:none;border:none;background:#f6eeee;color:#b4524e;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;">&times;</button>' +
         '</div>';
     }).join("");

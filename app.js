@@ -43,10 +43,10 @@
       var badges = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span style="font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + m.color + ';padding:2px 7px;border-radius:999px;white-space:nowrap;text-align:center;">' + esc(m.label) + '</span>'; }).join("");
       var range = fmtEvRange(e);
       var sep = i ? "border-top:1px solid #f1ece4;padding-top:7px;" : "";  // faint divider between events
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;' + sep + '">' +
-        (badges ? '<span style="flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:4px;">' + badges + '</span>' : "") +
+      return '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px;' + sep + '">' +  // order: date · name · scope
+        '<span style="flex:none;min-width:74px;font:700 11px \'Hanken Grotesk\';color:#8a8496;white-space:nowrap;">' + esc(range) + '</span>' +
         '<span style="flex:1;min-width:0;font:600 12px \'Hanken Grotesk\';color:#42394f;line-height:1.3;">' + esc(e.name) + '</span>' +
-        (range ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#8a8496;white-space:nowrap;">' + esc(range) + '</span>' : "") +
+        (badges ? '<span style="flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' + badges + '</span>' : "") +
         '</div>';
     }).join("");
     return '<div style="margin-bottom:10px;">' +
