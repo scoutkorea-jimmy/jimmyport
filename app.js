@@ -20,6 +20,24 @@
   // short labels for compact chips (list rows, map tooltips/popups) — keep the full name for forms
   var KIND_SHORT = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Site", regevent: "Regional Event", globevent: "Global Event" };
   function kindShort(k) { return KIND_SHORT[k] || KIND[k] || ""; }
+  // events held at a place: [{ scope: "regional"|"global", name, year }]
+  function normEvents(a) { return Array.isArray(a) ? a.map(function (e) { return { scope: (e && e.scope === "global") ? "global" : "regional", name: String((e && e.name) || ""), year: String((e && e.year) || "") }; }).filter(function (e) { return e.name || e.year; }) : []; }
+  function evColor(scope) { return scope === "global" ? "#B5408F" : "#1F9CA6"; }
+  function evScopeLabel(scope) { return scope === "global" ? "Global Event" : "Regional Event"; }
+  function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0); }); }
+  function eventsHtml(u) {
+    var ev = sortedEvents(u); if (!ev.length) return "";
+    var rows = ev.map(function (e) {
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
+        '<span style="flex:none;font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + evColor(e.scope) + ';padding:2px 7px;border-radius:999px;">' + esc(e.scope === "global" ? "Global" : "Regional") + '</span>' +
+        '<span style="flex:1;min-width:0;font:600 12px \'Hanken Grotesk\';color:#42394f;line-height:1.3;">' + esc(e.name) + '</span>' +
+        (e.year ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#8a8496;">' + esc(e.year) + '</span>' : "") +
+        '</div>';
+    }).join("");
+    return '<div style="margin-bottom:10px;">' +
+      '<div style="font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:#9a93a6;margin-bottom:6px;">Events held here</div>' +
+      rows + '</div>';
+  }
   var KIND_BADGE = { heritage: ["#C2872E", "★"], camp: ["#3E8E4F", "▲"], regevent: ["#1F9CA6", "◆"], globevent: ["#B5408F", "◆"] };
   var KIND_SHAPE = { office: "7px", camp: "4px" };  // marker corner radius; others default to a circle
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
@@ -66,7 +84,7 @@
       id: u.id, kind: pc.kind, name: u.name || "", subtitle: u.subtitle || "", country: u.country || "", city: u.city || "",
       nso: u.nso || "", region: region, lang: u.lang || "", lat: +u.lat, lng: +u.lng,
       address: u.address || u.place || "", sections: Array.isArray(u.sections) ? u.sections : [],
-      tags: pc.tags, desc: u.desc || u.note || "",
+      tags: pc.tags, desc: u.desc || u.note || "", events: normEvents(u.events),
       instagram: instagram, homepage: homepage, phone: phone, email: email, status: u.status || "published"
     };
   }
@@ -160,6 +178,7 @@
       addr +
       pdesc +
       '<div style="margin-bottom:2px;">' + chips + '</div>' +
+      (eventsHtml(u) ? '<div style="margin-top:9px;">' + eventsHtml(u) + '</div>' : "") +
       '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact +
       '<div style="display:flex;gap:7px;margin-top:11px;">' +
       '<button data-popcomments="' + escAttr(u.id) + '" style="flex:1;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 12px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
@@ -404,6 +423,7 @@
       (place ? '<div style="font-size:12px;color:#8a8496;margin-bottom:7px;line-height:1.35;">' + esc(place) + '</div>' : "") +
       descBlock +
       (chips ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">' + chips + '</div>' : "") +
+      eventsHtml(u) +
       '<div style="display:flex;align-items:center;gap:12px;">' + contact +
       '<div style="flex:1;"></div>' +
       '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
@@ -481,13 +501,18 @@
     var el = $("sort-row"); if (!el) return;
     var groupIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>';
     var groupBtn = '<button data-toggle="grouped" title="Group by Region › Country › place" style="display:inline-flex;align-items:center;gap:5px;border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (state.grouped ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + groupIcon + 'Grouped</button>';
+    var expandAll = '<button data-allgroups="expand" title="Expand all groups" style="display:inline-flex;align-items:center;border:1px solid #e7e1d8;background:#fff;color:#5b5366;padding:4px 7px;border-radius:999px;cursor:pointer;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 13 5 5 5-5"></path><path d="m7 6 5 5 5-5"></path></svg></button>';
+    var collapseAll = '<button data-allgroups="collapse" title="Collapse all groups" style="display:inline-flex;align-items:center;border:1px solid #e7e1d8;background:#fff;color:#5b5366;padding:4px 7px;border-radius:999px;cursor:pointer;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 11-5-5-5 5"></path><path d="m17 18-5-5-5 5"></path></svg></button>';
+    var allBtns = state.grouped ? collapseAll + expandAll : "";
     var opts = state.grouped ? [["distance", "Distance"], ["name", "Name"]] : [["distance", "Distance"], ["name", "Name"], ["region", "Region"]];
     var sort = '<span style="font:700 10px \'Hanken Grotesk\';color:#9a93a6;text-transform:uppercase;letter-spacing:.06em;margin:0 1px 0 4px;">Sort</span>' + opts.map(function (o) {
       var active = (state.sort || "distance") === o[0];
       return '<button data-sort="' + o[0] + '" style="border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + o[1] + '</button>';
     }).join("");
-    el.innerHTML = groupBtn + sort;
+    el.innerHTML = groupBtn + allBtns + sort;
   }
+  function allGroupKeys() { var keys = {}; sorted().forEach(function (u) { keys["r:" + u.region] = 1; keys["c:" + u.region + "|" + countryOf(u)] = 1; }); return Object.keys(keys); }
+  function setAllGroups(collapsed) { allGroupKeys().forEach(function (k) { state.collapsedGroups[k] = collapsed; }); renderList(); }
 
   function updateCounts() {
     var f = sorted();
@@ -741,6 +766,7 @@
     $("region-chips").addEventListener("click", function (e) { var b = e.target.closest("[data-region]"); if (!b) return; state.region = b.getAttribute("data-region"); state.country = "All"; state.countryQuery = ""; renderChips(); renderAll(); });
     $("sort-row").addEventListener("click", function (e) {
       var t = e.target.closest("[data-toggle]"); if (t) { state.grouped = !state.grouped; renderSort(); renderList(); return; }
+      var ag = e.target.closest("[data-allgroups]"); if (ag) { setAllGroups(ag.getAttribute("data-allgroups") === "collapse"); return; }
       var b = e.target.closest("[data-sort]"); if (!b) return; state.sort = b.getAttribute("data-sort"); renderSort(); renderList();
     });
 

@@ -21,6 +21,8 @@
   // legacy: "Camp Sites & Activity Centres" used to be a free-form tag — now promoted to its own place type.
   function isCampTag(t) { return /camp\s*site|activity\s*cent(re|er)/i.test(String(t || "")); }
   function promoteCamp(kind, tags) { tags = Array.isArray(tags) ? tags : []; if (kind !== "camp" && tags.some(isCampTag)) return { kind: "camp", tags: tags.filter(function (t) { return !isCampTag(t); }) }; return { kind: kind, tags: tags }; }
+  // events held at a place: [{ scope: "regional"|"global", name, year }]
+  function normEvents(a) { return Array.isArray(a) ? a.map(function (e) { return { scope: (e && e.scope === "global") ? "global" : "regional", name: String((e && e.name) || ""), year: String((e && e.year) || "") }; }) : []; }
 
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
   function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
@@ -31,7 +33,7 @@
 
   // ── state ──────────────────────────────────────────────────────────
   var units = [], comments = [], map, marker = null, saveTimer = null, savedTimer = null;
-  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false, editingComment: null };
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false, editingComment: null, nameHelp: false };
   // every distinct category/tag already used across places (for tag search/autocomplete)
   function allTags() { var set = {}; units.forEach(function (u) { (u.tags || []).forEach(function (t) { if (t) set[t] = 1; }); }); return Object.keys(set).sort(); }
 
@@ -63,7 +65,7 @@
       id: u.id, kind: pc.kind, name: u.name || "", subtitle: u.subtitle || "", country: u.country || "",
       nso: u.nso || "", region: regionCode(u.region), lang: u.lang || "",
       lat: +u.lat || 0, lng: +u.lng || 0, address: u.address || u.place || "",
-      sections: Array.isArray(u.sections) ? u.sections : [], tags: pc.tags,
+      sections: Array.isArray(u.sections) ? u.sections : [], tags: pc.tags, events: normEvents(u.events),
       desc: u.desc || u.note || "", instagram: instagram, homepage: homepage, phone: phone, email: email,
       status: u.status || "published"
     };
@@ -215,6 +217,21 @@
       '<span>' + title + '</span>' + chev + '</div>' +
       '<div data-body="' + key + '"' + (col ? ' style="display:none;"' : '') + '>' + body + '</div></div>';
   }
+  function evRows(s) {
+    if (!s.events.length) return '<div style="font-size:12px;color:#a39bb0;margin-bottom:8px;">No events recorded yet.</div>';
+    return s.events.map(function (e, i) {
+      var scopeSeg = [["regional", "Regional Event"], ["global", "Global Event"]].map(function (p) { return '<button data-act="evscope" data-idx="' + i + '" data-val="' + p[0] + '" style="' + seg((e.scope || "regional") === p[0]) + '">' + p[1] + '</button>'; }).join("");
+      return '<div style="border:1px solid #ece6db;border-radius:11px;padding:9px;margin-bottom:8px;">' +
+        '<div style="display:flex;gap:6px;margin-bottom:7px;align-items:center;">' +
+        '<div style="display:flex;gap:5px;flex:1;">' + scopeSeg + '</div>' +
+        '<button data-act="evdel" data-idx="' + i + '" title="Remove" style="border:none;background:#f6eeee;color:#b4524e;width:28px;height:28px;border-radius:8px;cursor:pointer;flex:none;font-size:15px;line-height:1;">&times;</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;">' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="flex:1;" />' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="year" value="' + escAttr(e.year) + '" placeholder="Year" inputmode="numeric" maxlength="4" style="width:78px;" />' +
+        '</div></div>';
+    }).join("");
+  }
 
   function renderForm() {
     var s = sel();
@@ -240,7 +257,9 @@
       '</div></div>' +
 
       card("basics", "Basics",
-        '<label style="' + LBL + '">Name</label><input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
+        '<label style="' + LBL + 'display:flex;align-items:center;gap:6px;">Name <button data-act="namehelp" title="Naming rule" style="border:none;background:#ece6db;color:#6b6577;width:16px;height:16px;border-radius:50%;cursor:pointer;font:700 10px \'Hanken Grotesk\';line-height:1;padding:0;flex:none;">?</button></label>' +
+        (state.nameHelp ? '<div style="margin-bottom:8px;background:#f6f3fa;border:1px solid #ece6db;border-radius:10px;padding:9px 11px;font:500 12px \'Hanken Grotesk\';color:#6b6577;line-height:1.5;">이름 규칙(내부용): 가장 최근에 이 장소에서 열린 행사명을 장소 이름으로 사용합니다. 이름은 자유롭게 바꿔도 됩니다.</div>' : "") +
+        '<input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
         '<label style="' + LBL + '">Subtitle <span style="color:#b3adbd;font-weight:500;">(shown smaller / grey on the map)</span></label><input id="f-subtitle" value="' + escAttr(s.subtitle) + '" class="sf-fld" placeholder="e.g. Gangnam · since 1971" />' +
         '<label style="' + LBL + '">Place type</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' + kindSeg + '</div>' +
         '<label style="' + LBL + '">Visibility</label><div style="display:flex;gap:6px;">' + statusSeg + '</div>') +
@@ -266,6 +285,9 @@
             '<div id="f-tag-menu" style="display:none;position:absolute;left:0;right:62px;top:calc(100% + 4px);z-index:50;background:#fff;border:1px solid #e7e1d8;border-radius:11px;box-shadow:0 12px 30px rgba(30,18,55,.18);max-height:200px;overflow-y:auto;"></div>' +
             '</div>'
         )) +
+
+      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— Regional / Global · name · year</span>',
+        evRows(s) + '<button data-act="evadd" style="' + BTN_SOFT + '">+ Add event</button>') +
 
       card("contact", 'Contact <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— all optional, leave blank if none</span>',
         '<label style="' + LBL + '">Instagram</label><input id="f-instagram" value="' + escAttr(s.instagram) + '" class="sf-fld" placeholder="https://instagram.com/… or @handle" />' +
@@ -362,7 +384,7 @@
   function selectUnit(id) { state.selectedId = id; state.addrQuery = ""; state.editingComment = null; renderRail(); renderForm(); syncMarker(true); }
   function addUnit() {
     var id = "unit-" + Date.now().toString(36);
-    var nu = { id: id, kind: "unit", name: "New scout place", subtitle: "", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], desc: "", instagram: "", homepage: "", phone: "", email: "", status: "draft" };
+    var nu = { id: id, kind: "unit", name: "New scout place", subtitle: "", country: "", nso: "", region: "APR", lang: "", lat: 20, lng: 0, address: "", sections: [], tags: [], events: [], desc: "", instagram: "", homepage: "", phone: "", email: "", status: "draft" };
     units.unshift(nu); state.selectedId = id; state.query = ""; state.kindFilter = "All"; state.addrQuery = "";
     $("rail-search").value = ""; renderFilters(); renderRail(); renderForm(); syncMarker(true); touch();
   }
@@ -642,6 +664,10 @@
       var act = b.getAttribute("data-act"), val = b.getAttribute("data-val");
       if (act === "save") { saveNow(); }
       else if (act === "showcoord") { commitLatLng(); syncMarker(true); toast("Showing location on the map"); }
+      else if (act === "namehelp") { state.nameHelp = !state.nameHelp; renderForm(); }
+      else if (act === "evscope") { var se = sel(), ie = +b.getAttribute("data-idx"); if (se && se.events[ie]) { se.events[ie].scope = val; touch(); renderForm(); } }
+      else if (act === "evadd") { var sa = sel(); if (sa) { sa.events.push({ scope: "regional", name: "", year: "" }); touch(); renderForm(); } }
+      else if (act === "evdel") { var sd = sel(), id2 = +b.getAttribute("data-idx"); if (sd) { sd.events.splice(id2, 1); touch(); renderForm(); } }
       else if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
       else if (act === "status") { set({ status: val }); renderRail(); renderForm(); }
       else if (act === "sec") { var s = sel(); var has = s.sections.indexOf(val) !== -1; s.sections = has ? s.sections.filter(function (x) { return x !== val; }) : s.sections.concat([val]); touch(); renderForm(); }
@@ -672,6 +698,7 @@
       else if (id === "f-tagdraft") { state.tagDraft = v; state.tagOpen = true; renderTagMenu(); }
       else if (id === "f-country-input") { state.countryQuery = v; state.countryOpen = true; renderCountryMenu(); }
       else if (id === "f-addr") { state.addrQuery = v; }
+      else if (e.target.classList && e.target.classList.contains("f-ev")) { var sv = sel(), iv = +e.target.getAttribute("data-idx"), fv = e.target.getAttribute("data-field"); if (sv && sv.events[iv]) { sv.events[iv][fv] = v; touch(); } }
     });
     $("form").addEventListener("focusin", function (e) {
       if (e.target.id === "f-country-input") { state.countryOpen = true; state.countryQuery = ""; renderCountryMenu(); }
