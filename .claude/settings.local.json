@@ -6,7 +6,9 @@
       "Bash(node --check /tmp/jp-check.js)",
       "Bash(node --check functions/api/jamboree-plan.js)",
       "Bash(node -e 'const fs=require\\(\"fs\"\\);const s=fs.readFileSync\\(\"functions/api/jamboree-plan.js\",\"utf8\"\\);new Function\\(s.replace\\(/import[^;]+;/g,\"\"\\).replace\\(/export /g,\"\"\\)\\);console.log\\(\"API parse OK \\(es module\\)\"\\)')",
-      "Bash(node --check jamboree-plan/app.js)"
+      "Bash(node --check jamboree-plan/app.js)",
+      "Bash(curl -s https://jimmypark.net/api/auth-config)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X PUT https://jimmypark.net/api/units -H \"Content-Type: application/json\" -d '{}')"
     ]
   }
 }
