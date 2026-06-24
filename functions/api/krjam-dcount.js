@@ -40,8 +40,13 @@ function cleanStyle(s) {
     pad: num(s.pad, 0, 16, 0), topAdj: num(s.topAdj, -80, 160, 0), botAdj: num(s.botAdj, -80, 160, 0),
     lead: num(s.lead, -40, 120, 0), gap: num(s.gap, -30, 100, 0), numScale: num(s.numScale, 0.7, 1.3, 1),
     logo: (typeof s.logo === "string" && ALLOWED_LOGOS.indexOf(s.logo) >= 0) ? s.logo : "",
+    notice: typeof s.notice === "string" ? s.notice.slice(0, 300) : "",
   };
 }
+
+// D-count 전용 기록(승인/반려/철회/신청 등) — 개발 로그와 분리. 초기화해도 '초기화' 기록은 남김.
+const DCLOG = "dcount:log", VISITS = "dcount:visits";
+async function dcLog(env, entry) { const a = await getArr(env, DCLOG); a.unshift(entry); await putArr(env, DCLOG, a.slice(0, 500)); }
 async function getStyle(env) { try { const r = await env.SCOUT_KV.get(STYLE); return r ? cleanStyle(JSON.parse(r)) : {}; } catch { return {}; } }
 
 function cleanCard(b) {
@@ -77,7 +82,7 @@ export async function onRequestGet({ request, env }) {
     if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
     const apps = [];
     for (const e of index) { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) { try { apps.push(JSON.parse(raw)); } catch {} } }
-    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps, log: (await getArr(env, "log")).slice(0, 100) });
+    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps, dclog: await getArr(env, DCLOG), visits: parseInt((await env.SCOUT_KV.get(VISITS)) || "0", 10) || 0 });
   }
 
   const occ = {};
@@ -104,6 +109,12 @@ export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const action = b.action;
   const ip = clientIp(request);
+
+  if (action === "visit") {   // 방문자 카운트(IP당 1일 1회)
+    const vk = "dc:visit:" + ip;
+    if (!(await env.SCOUT_KV.get(vk))) { try { const n = (parseInt((await env.SCOUT_KV.get(VISITS)) || "0", 10) || 0) + 1; await env.SCOUT_KV.put(VISITS, String(n)); await env.SCOUT_KV.put(vk, "1", { expirationTtl: 86400 }); } catch {} }
+    return json({ ok: true });
+  }
 
   if (action === "lookup" || action === "edit" || action === "withdraw" || action === "photos") {
     const no = String(b.applicationNo || "").trim().slice(0, 60);
@@ -145,6 +156,7 @@ export async function onRequestPost({ request, env }) {
     const idx = await getArr(env, INDEX); const e = idx.find((x) => x.applicationNo === no);
     if (e) { e.status = "철회"; await putArr(env, INDEX, idx); }
     await appendLog(env, { ts: rec.updatedAt, action: "dcount.withdraw", count: 0, ip: clientIp(request) });
+    await dcLog(env, { ts: rec.updatedAt, action: "철회", name: rec.name, dNumber: rec.dNumber, targetDate: rec.targetDate, ip: maskIp(clientIp(request)) });
     return json({ ok: true });
   }
 
@@ -184,6 +196,7 @@ export async function onRequestPost({ request, env }) {
     idx2.unshift({ applicationNo, targetDate, dNumber: slot.dNumber, name: c.name, status: "제출됨", createdAt: now });
     await putArr(env, INDEX, idx2.slice(0, 2000));
     await appendLog(env, { ts: now, action: "dcount.apply", count: 0, ip: clientIp(request) });
+    await dcLog(env, { ts: now, action: "신청", name: c.name, dNumber: slot.dNumber, targetDate, ip: maskIp(clientIp(request)) });
     return json({ ok: true, applicationNo, password, targetDate, dNumber: slot.dNumber });
   }
 
@@ -212,9 +225,9 @@ export async function onRequestPatch({ request, env }) {
   }
 
   if (action === "clearlog") {
-    // 로그 초기화 — 단, '초기화했다'는 기록은 무조건 남긴다(감사 추적).
-    const prev = await getArr(env, "log");
-    await putArr(env, "log", [{ ts: now, action: "log.cleared", count: prev.length, ip: clientIp(request) }]);
+    // 기록 초기화 — 단, '초기화했다'는 기록은 무조건 남긴다(감사 추적). 라이브 전 테스트용.
+    const prev = await getArr(env, DCLOG);
+    await putArr(env, DCLOG, [{ ts: now, action: "기록 초기화", count: prev.length, ip: maskIp(clientIp(request)) }]);
     return json({ ok: true, cleared: prev.length });
   }
 
@@ -232,6 +245,7 @@ export async function onRequestPatch({ request, env }) {
     const idx = await getArr(env, INDEX); const e = idx.find((x) => x.applicationNo === no);
     if (e) { e.status = rec.status; await putArr(env, INDEX, idx); }
     await appendLog(env, { ts: now, action: "dcount." + action, count: 0, ip: clientIp(request) });
+    await dcLog(env, { ts: now, action: rec.status, name: rec.name, dNumber: rec.dNumber, targetDate: rec.targetDate, reason: rec.rejectReason || "", ip: maskIp(clientIp(request)) });
     return json({ ok: true, application: publicApp(rec) });
   }
 

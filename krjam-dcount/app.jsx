@@ -242,7 +242,7 @@
             <ScaledCard dNumber={slot.dNumber} isDay={false} teaser={form.teaser || '카드 문구를 입력하세요'} bgColor={form.bgColor} inkColor={form.inkColor} sceneIdx={form.sceneIdx} />
             <div>
               <div className="dc-row">
-                <div className="dc-field"><label>신청자 이름 * (= 신청번호)</label><input className="dc-input" value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
+                <div className="dc-field"><label>신청자 이름 *</label><input className="dc-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="홍길동" /></div>
                 <div className="dc-field"><label>휴대전화 * (끝 4자리 = 비밀번호)</label><input className="dc-input" value={form.contact} onChange={(e) => set('contact', hyphenPhone(e.target.value))} placeholder="010-1234-5678" inputMode="numeric" maxLength={13} style={form.contact && !phoneOk(form.contact) ? { borderColor: 'var(--danger)' } : null} /></div>
                 <div className="dc-field"><label>소속대</label><input className="dc-input" value={form.org} onChange={(e) => set('org', e.target.value)} /></div>
               </div>
@@ -258,7 +258,7 @@
               ))}
               <div className="dc-err">{err}</div>
               <button className="dc-btn primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%', marginTop: 8 }}>{busy ? '신청 중…' : '신청 제출 (날짜 선점)'}</button>
-              <p className="dc-note" style={{ marginTop: 8 }}>제출 즉시 이 날짜가 선점되고, <b>신청번호(이름)·비밀번호(휴대전화 끝 4자리)</b>로 조회·수정할 수 있습니다. 관리자 검토 후 승인되면 A4로 출력할 수 있어요.</p>
+              <p className="dc-note" style={{ marginTop: 8 }}>제출 즉시 이 날짜가 선점되고, <b>신청자 이름·비밀번호(휴대전화 끝 4자리)</b>로 조회·수정할 수 있어요. 홍보부 확인 후 승인되면 사진을 올릴 수 있어요.</p>
             </div>
           </div>
         </div>
@@ -271,9 +271,12 @@
       <div className="dc-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div className="dc-modal" style={{ width: 'min(440px,100%)', textAlign: 'center' }} onMouseDown={(e) => e.stopPropagation()}>
           <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--accent)', marginBottom: 6 }}>신청 완료 ✓</div>
-          <p className="dc-note">D-{result.dNumber} ({result.targetDate}) 선점 완료. 조회·수정 시 아래 정보를 사용하세요.</p>
-          <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>신청번호 (이름)</div><div className="dc-mono">{result.applicationNo}</div></div>
-          <div style={{ margin: '12px 0 16px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>비밀번호 (휴대전화 끝 4자리)</div><div className="dc-mono">{result.password}</div></div>
+          <p className="dc-note">D-{result.dNumber} ({result.targetDate}) 선점 완료! 조회·사진 업로드 시 아래 정보를 사용하세요.</p>
+          <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>신청자 이름</div><div className="dc-mono">{result.applicationNo}</div></div>
+          <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>비밀번호 (휴대전화 끝 4자리)</div><div className="dc-mono">{result.password}</div></div>
+          <div style={{ background: 'var(--accent-soft)', borderRadius: 'var(--r-2)', padding: '11px 13px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55, textAlign: 'left', margin: '0 0 14px' }}>
+            홍보부에서 <b>빠르게 확인 후 승인</b> 처리할게요. 보통 <b>1시간 ~ 최대 6시간</b> 정도 걸려요. 급하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 연락주시면 빠르게 승인해 드릴게요.
+          </div>
           <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>확인</button>
         </div>
       </div>
@@ -300,8 +303,9 @@
       catch (ex) { setErr(ex.message || '업로드 실패'); setBusy(false); }
     }
     return (
-      <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 8 }}>사진 공유 (최대 3장 · 각 5MB)</div>
+      <div style={{ marginTop: 16, border: '2px solid var(--accent)', borderRadius: 'var(--r-2)', background: 'var(--accent-soft)', padding: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent-ink)', marginBottom: 4 }}>📷 D-day 카운트 사진 업로드하기</div>
+        <div style={{ fontSize: 12, color: 'var(--accent-ink)', opacity: .85, marginBottom: 10 }}>A4로 출력한 카드와 함께 촬영한 사진을 올려주세요. (최대 3장 · 각 5MB)</div>
         <div className="dc-photos">
           {photos.map((u, i) => (<div key={i} className="dc-photo"><img src={u} alt="" /><button className="rm" disabled={busy} onClick={() => save(photos.filter((_, k) => k !== i))}>×</button></div>))}
           {photos.length < 3 && <label className="dc-photo-add">{busy ? '업로드 중…' : '＋ 사진 추가'}<input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onFiles} /></label>}
@@ -343,7 +347,7 @@
     return (
       <div className="dc-card">
         <div className="dc-row" style={{ alignItems: 'flex-end' }}>
-          <div className="dc-field"><label>신청번호 (이름)</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
+          <div className="dc-field"><label>신청자 이름</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
           <div className="dc-field"><label>비밀번호 (휴대전화 끝 4자리)</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" /></div>
           <div className="dc-field" style={{ flex: '0 0 auto' }}><button className="dc-btn primary" disabled={busy || !no.trim() || pw.length < 4} onClick={lookup}>조회</button></div>
         </div>
@@ -395,7 +399,7 @@
         {!app ? (
           <div>
             <p className="dc-note" style={{ marginBottom: 12 }}><b>승인된 신청</b>만 사진을 올릴 수 있어요. 신청할 때 쓴 <b>이름</b>과 <b>휴대전화 끝 4자리</b>로 로그인하세요.</p>
-            <div className="dc-field"><label>이름 (신청번호)</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
+            <div className="dc-field"><label>신청자 이름</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
             <div className="dc-field"><label>휴대전화 끝 4자리 (비밀번호)</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" onKeyDown={(e) => { if (e.key === 'Enter') login(); }} /></div>
             <button className="dc-btn primary" style={{ width: '100%' }} disabled={busy || !no.trim() || pw.length < 4} onClick={login}>로그인</button>
             {msg && <div className="dc-err">{msg}</div>}
@@ -429,7 +433,9 @@
   }
 
   /* ── 마스터 스타일 편집(관리자) ── */
-  const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1, logo: '' };
+  const DEFAULT_NOTICE = '비속어·상업적 홍보·정치적 내용 등 잼버리 정신에 어긋나는 내용이 담기면 반려될 수 있어요.';
+  const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1, logo: '', notice: '' };
+  const REJECT_REASONS = ['비속어·부적절한 표현', '상업적 홍보', '정치적 내용', '저작권·초상권 우려', '잼버리 정신에 부합하지 않음', '중복·오신청', '카드 문구 미흡'];
   const SLIDERS = [
     { k: 'pad', label: '전체 여백', min: 0, max: 16, step: 1, unit: '%' },
     { k: 'topAdj', label: '위 여백', min: -80, max: 160, step: 4, unit: 'px' },
@@ -472,6 +478,10 @@
                   ))}
                 </div>
               </div>
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>상단 안내 문구 (신청 페이지)</div>
+                <textarea className="dc-input" rows={2} value={d.notice || ''} maxLength={300} onChange={(e) => set('notice', e.target.value)} placeholder={DEFAULT_NOTICE} style={{ resize: 'vertical', lineHeight: 1.5 }} />
+              </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button className="dc-btn primary" disabled={busy} onClick={save}>저장 (전체 적용)</button>
                 <button className="dc-btn ghost" onClick={() => setD(Object.assign({}, STYLE_DEFAULT))}>초기화</button>
@@ -487,12 +497,37 @@
     );
   }
 
+  /* ── 반려 다이얼로그(사유 체크 + 기타) ── */
+  function RejectDialog({ app, onClose, onConfirm }) {
+    const [sel, setSel] = useState({}); const [etcOn, setEtcOn] = useState(false); const [etc, setEtc] = useState('');
+    const reasons = REJECT_REASONS.filter((r) => sel[r]); if (etcOn && etc.trim()) reasons.push(etc.trim());
+    return (
+      <div className="dc-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="dc-modal" onMouseDown={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span className="dc-tag" style={{ background: 'var(--danger)' }}>반려</span>
+            <b>D-{app.dNumber} · {app.name || '—'}</b><span style={{ flex: 1 }} />
+            <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={onClose}>닫기</button>
+          </div>
+          <p className="dc-note" style={{ marginBottom: 8 }}>반려 사유를 선택하세요. (복수 선택 가능 · 신청자에게 안내됩니다)</p>
+          {REJECT_REASONS.map((r) => (
+            <label key={r} className="dc-consent"><input type="checkbox" checked={!!sel[r]} onChange={(e) => setSel((p) => Object.assign({}, p, { [r]: e.target.checked }))} /><span>{r}</span></label>
+          ))}
+          <label className="dc-consent"><input type="checkbox" checked={etcOn} onChange={(e) => setEtcOn(e.target.checked)} /><span>기타 사유</span></label>
+          {etcOn && <textarea className="dc-input" rows={2} value={etc} onChange={(e) => setEtc(e.target.value)} placeholder="기타 반려 사유를 입력하세요" style={{ marginTop: 6 }} />}
+          <button className="dc-btn danger" style={{ width: '100%', marginTop: 12 }} disabled={!reasons.length} onClick={() => onConfirm(reasons.join(', '))}>반려 처리</button>
+        </div>
+      </div>
+    );
+  }
+
   /* ── 관리자 ── */
   function Admin({ master, setMaster }) {
     const [authed, setAuthed] = useState(() => !!adminToken());
     const [code, setCode] = useState(''); const [data, setData] = useState(null);
     const [filter, setFilter] = useState('대기'); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
     const [idleLeft, setIdleLeft] = useState(600);
+    const [rejectFor, setRejectFor] = useState(null);
 
     const load = useCallback(async () => {
       const { ok, status, j } = await jget(API + '?admin=1', bearer());
@@ -531,9 +566,9 @@
       if (ok && j.ok) load(); else setMsg('처리 실패');
     }
     function act(a, action) {
-      let reason = '';
-      if (action === 'reject' || action === 'changes') { reason = window.prompt(action === 'reject' ? '반려 사유' : '수정요청 사유') || ''; if (reason === '' && !window.confirm('사유 없이 진행할까요?')) return; }
-      patch({ action, applicationNo: a.applicationNo, rejectReason: reason });
+      if (action === 'reject') { setRejectFor(a); return; }   // 반려는 모달(사유 체크)
+      if (action === 'changes') { const reason = window.prompt('수정요청 사유') || ''; patch({ action: 'changes', applicationNo: a.applicationNo, rejectReason: reason }); return; }
+      patch({ action, applicationNo: a.applicationNo });
     }
 
     if (!authed) return (
@@ -559,16 +594,20 @@
 
     return (
       <div>
-        <div className="dc-card" style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div className="dc-stats">
-            <div className="dc-stat"><b style={{ color: todoCount ? 'var(--st-draft)' : 'var(--ink)' }}>{todoCount}</b><span>검토 대기</span></div>
-            <div className="dc-stat"><b style={{ color: 'var(--st-ready)' }}>{counts['승인'] || 0}</b><span>승인</span></div>
-            <div className="dc-stat"><b>{apps.length}</b><span>전체</span></div>
+        <div className="dc-card" style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <b style={{ fontSize: 14 }}>대시보드</b>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: idleLeft < 60 ? '#fff' : 'var(--accent-ink)', background: idleLeft < 60 ? 'var(--danger)' : 'var(--accent-soft)', borderRadius: 'var(--pill)', padding: '4px 11px', fontVariantNumeric: 'tabular-nums' }} title="10분 유휴 시 자동 로그아웃">⏱ {Math.floor(idleLeft / 60)}:{pad2(idleLeft % 60)}</span>
+            <button className="dc-btn ghost" disabled={busy} onClick={load}>새로고침</button>
+            <button className="dc-btn ghost" onClick={() => { setAdmin(null); setAuthed(false); }}>로그아웃</button>
           </div>
-          <span style={{ flex: 1 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: idleLeft < 60 ? 'var(--danger)' : 'var(--muted)', fontVariantNumeric: 'tabular-nums' }} title="유휴 자동 로그아웃까지 남은 시간">⏱ {Math.floor(idleLeft / 60)}:{pad2(idleLeft % 60)}</span>
-          <button className="dc-btn ghost" disabled={busy} onClick={load}>새로고침</button>
-          <button className="dc-btn ghost" onClick={() => { setAdmin(null); setAuthed(false); }}>로그아웃</button>
+          <div className="dc-stats">
+            <div className="dc-stat"><b>{(data && data.visits) || 0}</b><span>방문자</span></div>
+            {[['대기', '검토 대기', todoCount, 'var(--st-draft)'], ['승인', '승인', counts['승인'] || 0, 'var(--st-ready)'], ['반려', '반려', counts['반려'] || 0, 'var(--danger)'], ['철회', '철회', counts['철회'] || 0, 'var(--faint)'], ['all', '전체', apps.length, 'var(--ink)']].map(([k, l, n, c]) => (
+              <button key={k} className={'dc-stat' + (filter === k ? ' on' : '')} onClick={() => setFilter(k)}><b style={{ color: c }}>{n}</b><span>{l}</span></button>
+            ))}
+          </div>
         </div>
 
         <MasterStyle master={master} busy={busy} setBusy={setBusy} onSaved={(ms) => setMaster(ms)} />
@@ -579,14 +618,15 @@
         </details>
 
         <details className="dc-sec">
-          <summary>변경 로그 ({((data && data.log) || []).length})</summary>
+          <summary>신청·승인·반려 기록 ({((data && data.dclog) || []).length})</summary>
           <div className="dc-secbody">
-            <button className="dc-btn danger" style={{ marginBottom: 10 }} disabled={busy} onClick={() => { if (window.confirm('로그를 초기화할까요?\n(초기화했다는 기록은 반드시 남습니다.)')) patch({ action: 'clearlog' }); }}>로그 초기화</button>
+            <p className="dc-note" style={{ margin: '0 0 8px', fontSize: 11.5 }}>신청·승인·반려·철회 전 기록입니다. 지금은 테스트 중이라 초기화할 수 있어요(라이브 후엔 보존). 초기화해도 ‘초기화했다’는 기록은 남아요.</p>
+            <button className="dc-btn danger" style={{ marginBottom: 10 }} disabled={busy} onClick={() => { if (window.confirm('기록을 초기화할까요?\n(초기화했다는 기록은 반드시 남습니다.)')) patch({ action: 'clearlog' }); }}>기록 초기화</button>
             <div className="dc-logbox">
-              {((data && data.log) || []).map((l, i) => (
-                <div key={i} className="dc-logrow"><span className="t">{(l.ts || '').slice(5, 16).replace('T', ' ')}</span><span>{l.action}{l.count ? ' (' + l.count + ')' : ''}</span><span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>{l.ip || ''}</span></div>
+              {((data && data.dclog) || []).map((l, i) => (
+                <div key={i} className="dc-logrow"><span className="t">{(l.ts || '').slice(5, 16).replace('T', ' ')}</span><span><b style={{ color: ST_COLOR[l.action] || 'var(--ink-2)' }}>{l.action}</b>{l.name ? (' · ' + l.name) : ''}{l.dNumber ? (' · D-' + l.dNumber) : ''}{l.reason ? (' — ' + l.reason) : ''}{(l.count != null && !l.name) ? (' (' + l.count + ')') : ''}</span><span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>{l.ip || ''}</span></div>
               ))}
-              {!((data && data.log) || []).length && <div style={{ padding: 12, color: 'var(--muted)', fontSize: 12 }}>기록 없음</div>}
+              {!((data && data.dclog) || []).length && <div style={{ padding: 12, color: 'var(--muted)', fontSize: 12 }}>기록 없음</div>}
             </div>
           </div>
         </details>
@@ -628,6 +668,7 @@
             ))}
           </div>
         </div>
+        {rejectFor && <RejectDialog app={rejectFor} onClose={() => setRejectFor(null)} onConfirm={(reason) => { patch({ action: 'reject', applicationNo: rejectFor.applicationNo, rejectReason: reason }); setRejectFor(null); }} />}
       </div>
     );
   }
@@ -648,6 +689,7 @@
 
     const load = useCallback(async () => { const { j } = await jget(API); setSlots(j.slots || []); setToday(j.today || null); if (j.masterStyle) setMaster(j.masterStyle); setLoading(false); }, [setMaster]);
     useEffect(() => { load(); }, [load]);
+    useEffect(() => { try { const k = 'dcount:visited', d = new Date().toISOString().slice(0, 10); if (localStorage.getItem(k) !== d) { localStorage.setItem(k, d); jsend('POST', { action: 'visit' }); } } catch (_) {} }, []);
     // 실시간: 캘린더 보고 있을 때 15초마다 갱신
     useEffect(() => {
       if (view !== 'cal') return;
@@ -674,8 +716,8 @@
           <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', fontSize: 11.5, color: 'var(--muted)', flexWrap: 'wrap' }}>
             {['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'].map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
           </div>
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8 }}>
-            🛡 비속어·상업적 홍보·정치적 내용 등 <b>잼버리 정신에 어긋나는 내용</b>이 담기면 <b style={{ color: 'var(--danger)' }}>반려</b>될 수 있어요.
+          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8, whiteSpace: 'pre-wrap' }}>
+            🛡 {(master && master.notice) || DEFAULT_NOTICE}
           </div>
           <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55 }}>
             ⚡ 더 빠른 확정을 원하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 문의주세요. 빠르게 도와드릴게요.
