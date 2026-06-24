@@ -13,9 +13,9 @@
     ARB: { full: "Arab", color: "#2E8B6B" },
     AFR: { full: "Africa", color: "#C26A2E" },
     IAR: { full: "Interamerican", color: "#C23E6E" },
-    WSB: { full: "WOSM Bureau", color: "#4B4E8A" }
+    WSB: { full: "Global Event", color: "#4B4E8A" }
   };
-  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
+  var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "Global Event": "WSB", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Sites & Activity Centres", regevent: "Regional Event Venue", globevent: "Global Event Venue" };
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
   // legacy: "Camp Sites & Activity Centres" used to be a free-form tag — now promoted to its own place type.
