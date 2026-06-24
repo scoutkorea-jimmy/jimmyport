@@ -55,8 +55,16 @@
       '<div style="max-height:208px;overflow-y:auto;margin-top:3px;">' + rows + '</div>' +
       '</details>';
   }
-  var KIND_BADGE = { heritage: ["#C2872E", "★"], camp: ["#3E8E4F", "▲"], regevent: ["#1F9CA6", "◆"], globevent: ["#B5408F", "◆"] };
-  var KIND_SHAPE = { office: "7px", camp: "4px" };  // marker corner radius; others default to a circle
+  // each place type gets its own distinct marker silhouette (legend + map + list all share this)
+  var KIND_SHAPE = {
+    unit: { radius: "50%" },                                                  // circle
+    office: { radius: "18%" },                                                // square
+    heritage: { clip: "polygon(50% 0,100% 50%,50% 100%,0 50%)" },            // diamond
+    camp: { clip: "polygon(50% 2%,98% 98%,2% 98%)" },                        // triangle (tent)
+    regevent: { clip: "polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%)" },   // pentagon
+    globevent: { clip: "polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)" }  // hexagon
+  };
+  function shapeCss(kind) { var d = KIND_SHAPE[kind] || KIND_SHAPE.unit; return d.clip ? "clip-path:" + d.clip + ";" : "border-radius:" + d.radius + ";"; }
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
   // legacy: "Camp Sites & Activity Centres" used to be a free-form tag — now promoted to its own place type.
@@ -148,13 +156,16 @@
   function pinHtml(rank, u, sel) {
     var c = REGION[u.region] ? REGION[u.region].color : "#6336B5";
     var sz = sel ? 36 : 30;
-    var shape = KIND_SHAPE[u.kind] || "50%";
-    var ring = sel ? "box-shadow:0 0 0 5px " + c + "33,0 6px 14px rgba(30,18,55,.4);" : "box-shadow:0 4px 11px rgba(30,18,55,.35);";
-    var bd = KIND_BADGE[u.kind];
-    var badge = bd ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:' + bd[0] + ';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px \'Hanken Grotesk\';">' + bd[1] + '</span>' : "";
-    return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;animation:sfpop .25s ease;">' +
-      '<div style="position:relative;width:' + sz + 'px;height:' + sz + 'px;border-radius:' + shape + ';background:' + c + ';border:2.5px solid #fff;' + ring + 'display:flex;align-items:center;justify-content:center;color:#fff;font:700 ' + (sel ? 14 : 12) + 'px \'Hanken Grotesk\';">' + rank + badge + '</div>' +
-      '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff;margin-top:-1px;filter:drop-shadow(0 2px 1px rgba(30,18,55,.25));"></div></div>';
+    var sc = shapeCss(u.kind);
+    // drop-shadow follows the clipped silhouette (box-shadow would be clipped away); a white inner
+    // inset gives the outline, since CSS borders don't follow clip-path.
+    var shadow = sel ? "filter:drop-shadow(0 3px 6px rgba(30,18,55,.45)) drop-shadow(0 0 5px " + c + "cc);" : "filter:drop-shadow(0 3px 5px rgba(30,18,55,.4));";
+    return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;animation:sfpop .25s ease;' + shadow + '">' +
+      '<div style="position:relative;width:' + sz + 'px;height:' + sz + 'px;">' +
+      '<div style="position:absolute;inset:0;' + sc + 'background:#fff;"></div>' +
+      '<div style="position:absolute;inset:2.4px;' + sc + 'background:' + c + ';display:flex;align-items:center;justify-content:center;color:#fff;font:700 ' + (sel ? 13 : 11) + 'px \'Hanken Grotesk\';">' + rank + '</div>' +
+      '</div>' +
+      '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff;margin-top:-2px;"></div></div>';
   }
   function anchorHtml() {
     return '<div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">' +
@@ -404,7 +415,7 @@
     var rc = REGION[u.region] || { color: "#6336B5" };
     var cs = commentsFor(u.id).length;
     var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
-    var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : (u.kind === "camp" ? "5px" : "50%")) + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";  // events use a circle
+    var badge = "width:28px;height:28px;" + shapeCss(u.kind) + "flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";  // shape = place type
     var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none;";
     var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
     var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
@@ -765,6 +776,9 @@
     map.on("zoomend", renderMarkers);
     map.on("moveend", declutterLabels);
     map.on("resize", fitMinZoom);
+    // while a place popup is open, the wheel scrolls the popup content only — don't zoom the map under it
+    map.on("popupopen", function () { map.scrollWheelZoom.disable(); });
+    map.on("popupclose", function () { map.scrollWheelZoom.enable(); });
     renderMarkers();
     fitMinZoom();
     setTimeout(function () { map.invalidateSize(); fitMinZoom(); }, 200);
