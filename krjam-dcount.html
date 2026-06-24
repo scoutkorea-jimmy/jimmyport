@@ -43,6 +43,43 @@
     .orgtag{ font-weight:700; color:var(--accent); font-size:13px; letter-spacing:-.01em; }
     .syncbar .st{ font-size:12px; color:var(--muted); }
     #__boot{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font:14px/1.4 'Hanken Grotesk',sans-serif; }
+
+    /* ── D-count 컴포넌트 ── */
+    .dc-wrap{ max-width:1000px; margin:0 auto; padding:0 22px 80px; }
+    .dc-nav{ display:flex; gap:6px; background:var(--surface-3); border:1px solid var(--line); border-radius:var(--pill); padding:4px; margin:18px 0 4px; width:max-content; }
+    .dc-nav button{ font:inherit; font-size:13px; font-weight:600; padding:8px 18px; border:none; background:none; color:var(--muted); border-radius:var(--pill); cursor:pointer; }
+    .dc-nav button.on{ background:var(--accent); color:#fff; box-shadow:var(--sh-1); }
+    .dc-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-3); padding:20px; box-shadow:var(--sh-1); }
+    .dc-cal{ display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; }
+    .dc-slot{ border:1px solid var(--line); border-radius:var(--r-2); padding:12px 8px; background:var(--surface); text-align:center; cursor:pointer; transition:var(--ease); }
+    .dc-slot:hover{ border-color:var(--accent); box-shadow:var(--sh-1); }
+    .dc-slot.dim{ opacity:.55; cursor:default; }
+    .dc-slot.dim:hover{ border-color:var(--line); box-shadow:none; }
+    .dc-slot .dn{ font:700 21px 'Bricolage Grotesque',sans-serif; color:var(--ink); letter-spacing:-.02em; }
+    .dc-slot .dt{ font-size:11px; color:var(--muted); margin:2px 0 7px; }
+    .dc-ss{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:var(--pill); color:#fff; }
+    .dc-field{ margin-bottom:13px; }
+    .dc-field>label{ display:block; font-size:12px; font-weight:700; color:var(--ink-2); margin:0 0 5px; }
+    .dc-input{ width:100%; border:1px solid var(--line); border-radius:var(--r-1); padding:10px 12px; font:inherit; font-size:14px; background:var(--surface); color:var(--ink); }
+    .dc-input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+    .dc-row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .dc-row>*{ flex:1 1 160px; }
+    .dc-btn{ font:inherit; font-size:14px; font-weight:700; padding:11px 18px; border-radius:var(--r-1); border:1px solid var(--line); background:var(--surface); color:var(--ink-2); cursor:pointer; }
+    .dc-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+    .dc-btn.primary:disabled{ opacity:.5; cursor:not-allowed; }
+    .dc-btn.danger{ color:var(--danger); border-color:var(--line); }
+    .dc-btn.ghost{ background:none; }
+    .dc-consent{ display:flex; gap:9px; align-items:flex-start; font-size:12.5px; line-height:1.5; color:var(--ink-2); padding:7px 0; cursor:pointer; }
+    .dc-consent input{ flex:none; margin-top:2px; width:16px; height:16px; accent-color:var(--accent); }
+    .dc-swatches{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .dc-sw{ width:24px; height:24px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; padding:0; }
+    .dc-scrim{ position:fixed; inset:0; background:rgba(20,28,22,.55); display:flex; align-items:flex-start; justify-content:center; padding:30px 16px; overflow:auto; z-index:200; }
+    .dc-modal{ background:var(--surface); border-radius:var(--r-3); box-shadow:var(--sh-3); width:min(940px,100%); padding:24px; }
+    .dc-tag{ display:inline-block; font-size:11.5px; font-weight:700; padding:3px 11px; border-radius:var(--pill); color:#fff; }
+    .dc-note{ font-size:12.5px; color:var(--muted); line-height:1.55; }
+    .dc-err{ color:var(--danger); font-size:13px; font-weight:600; min-height:18px; margin-top:8px; }
+    .dc-ok{ color:var(--accent); font-size:13px; font-weight:600; }
+    .dc-mono{ font-family:ui-monospace,Menlo,monospace; font-size:20px; font-weight:700; letter-spacing:.04em; color:var(--accent-ink); background:var(--accent-soft); border-radius:var(--r-1); padding:8px 14px; display:inline-block; }
   </style>
 
   <!-- 콘솔 정리: Babel in-browser advisory 경고만 필터 -->
