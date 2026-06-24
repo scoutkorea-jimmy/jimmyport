@@ -27,10 +27,15 @@ async function buildSlots(env) {
 const digits = (s) => String(s || "").replace(/\D/g, "");
 const isPhone = (s) => /^01\d{8,9}$/.test(digits(s));
 
+// ── 공격 내성: KV TTL 카운터 기반 레이트리밋(무차별 대입·폭주 방어) ──
+async function rlGet(env, k) { try { return parseInt((await env.SCOUT_KV.get(k)) || "0", 10) || 0; } catch { return 0; } }
+async function rlBump(env, k, ttl) { try { const n = await rlGet(env, k); await env.SCOUT_KV.put(k, String(n + 1), { expirationTtl: ttl }); } catch {} }
+async function rlClear(env, k) { try { await env.SCOUT_KV.delete(k); } catch {} }
+
 function cleanStyle(s) {
   s = s || {};
   const num = (v, lo, hi, d) => { v = parseFloat(v); return isNaN(v) ? d : Math.max(lo, Math.min(hi, v)); };
-  return { pad: num(s.pad, 0, 16, 0), topAdj: num(s.topAdj, -80, 160, 0), botAdj: num(s.botAdj, -80, 160, 0), gap: num(s.gap, -30, 100, 0), numScale: num(s.numScale, 0.7, 1.3, 1) };
+  return { pad: num(s.pad, 0, 16, 0), topAdj: num(s.topAdj, -80, 160, 0), botAdj: num(s.botAdj, -80, 160, 0), lead: num(s.lead, -40, 120, 0), gap: num(s.gap, -30, 100, 0), numScale: num(s.numScale, 0.7, 1.3, 1) };
 }
 async function getStyle(env) { try { const r = await env.SCOUT_KV.get(STYLE); return r ? cleanStyle(JSON.parse(r)) : {}; } catch { return {}; } }
 
@@ -84,13 +89,20 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPost({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const action = b.action;
+  const ip = clientIp(request);
 
   if (action === "lookup" || action === "edit" || action === "withdraw") {
-    const no = String(b.applicationNo || "").trim();
+    const no = String(b.applicationNo || "").trim().slice(0, 60);
+    // 무차별 대입 방지(4자리 비번): IP·신청번호별 실패 횟수 제한
+    const ipKey = "dc:rl:ip:" + ip, noKey = "dc:rl:no:" + no;
+    if ((await rlGet(env, ipKey)) >= 40 || (no && (await rlGet(env, noKey)) >= 7)) return json({ ok: false, error: "rate_limited" }, 429);
     const raw = no ? await env.SCOUT_KV.get(APP(no)) : null;
-    if (!raw) return json({ ok: false, error: "not_found" }, 404);
-    let rec; try { rec = JSON.parse(raw); } catch { return json({ ok: false, error: "corrupt" }, 500); }
-    if (!(await verifyPassword(digits(b.password), rec.salt, rec.hash))) return json({ ok: false, error: "bad_password" }, 401);
+    let rec = null; if (raw) { try { rec = JSON.parse(raw); } catch {} }
+    if (!rec || !(await verifyPassword(digits(b.password), rec.salt, rec.hash))) {
+      await rlBump(env, ipKey, 600); if (no) await rlBump(env, noKey, 1200);
+      return json({ ok: false, error: "bad_credentials" }, 401);   // 존재 여부 숨김(enumeration 방지)
+    }
+    await rlClear(env, noKey);
 
     if (action === "lookup") return json({ ok: true, application: publicApp(rec) });
 
@@ -113,6 +125,8 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (action === "apply") {
+    if ((await rlGet(env, "dc:rl:apply:" + ip)) >= 8) return json({ ok: false, error: "rate_limited" }, 429);
+    await rlBump(env, "dc:rl:apply:" + ip, 600);   // 신청 폭주·날짜 잠금 어뷰징 방지
     const targetDate = String(b.targetDate || "").trim();
     const slot = (await buildSlots(env)).find((s) => s.targetDate === targetDate);
     if (!slot) return json({ ok: false, error: "no_slot" }, 400);

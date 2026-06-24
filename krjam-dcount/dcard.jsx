@@ -69,7 +69,7 @@
     const kick = (kicker != null && kicker !== '') ? kicker : (isDay ? '2026. 8. 5 · 드디어!' : 'COUNTDOWN · ' + n + '일 전');
     // 마스터 스타일(여백/크기)
     const numScale = ms.numScale || 1;
-    const top = 150 + (ms.topAdj || 0), bottom = 210 + (ms.botAdj || 0), gap = 49 + (ms.gap || 0);
+    const top = 150 + (ms.topAdj || 0), bottom = 210 + (ms.botAdj || 0), gap = 49 + (ms.gap || 0), lead = (ms.lead || 0);
     const cardStyle = { '--cc-content-scale': 1 - (ms.pad || 0) / 100 };
     return (
       <window.Card bg={bg} color={ink} pad={0} style={cardStyle}>
@@ -80,7 +80,7 @@
         <div style={{ position: 'absolute', left: 84, top, bottom, width: 880, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             <div style={{ fontWeight: 700, fontSize: 156 * numScale, lineHeight: .84, color: num, letterSpacing: '.03em' }}>D-</div>
-            <div style={{ fontWeight: 700, fontSize: (isDay ? 320 : 372) * numScale, lineHeight: .9, color: num }}>{isDay ? 'DAY' : String(n)}</div>
+            <div style={{ fontWeight: 700, fontSize: (isDay ? 320 : 372) * numScale, lineHeight: .9, color: num, marginTop: lead }}>{isDay ? 'DAY' : String(n)}</div>
             <div style={{ fontSize: 54, fontWeight: 300, marginTop: gap, color: ink, whiteSpace: 'pre-wrap', lineHeight: 1.25 }}>{teaser}</div>
           </div>
         </div>

@@ -60,19 +60,21 @@
   /* 1480×1047 카드를 컨테이너 폭에 맞춰 축소 */
   function ScaledCard(props) {
     const ref = useRef(null);
-    const [scale, setScale] = useState(0.4);
+    const [w, setW] = useState(0);
     useEffect(() => {
-      function rc() { const el = ref.current; if (!el) return; setScale(Math.min(1, el.clientWidth / window.DCOUNT_WIDE.w)); }
-      rc(); window.addEventListener('resize', rc); const t = setTimeout(rc, 60);
-      return () => { window.removeEventListener('resize', rc); clearTimeout(t); };
+      const el = ref.current; if (!el) return;
+      const upd = () => setW(el.clientWidth || 0);
+      upd();
+      let ro; try { ro = new ResizeObserver(upd); ro.observe(el); } catch (_) { window.addEventListener('resize', upd); }
+      const t = setTimeout(upd, 80);
+      return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', upd); clearTimeout(t); };
     }, []);
     const W = window.DCOUNT_WIDE.w, H = window.DCOUNT_WIDE.h;
+    const scale = w ? w / W : 0;
     return (
-      <div ref={ref} style={{ width: '100%' }}>
-        <div style={{ width: W * scale, height: H * scale, maxWidth: '100%', margin: '0 auto', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
-          <div style={{ width: W, height: H, position: 'relative', transform: 'scale(' + scale + ')', transformOrigin: 'top left' }}>
-            <window.DCountCard {...props} />
-          </div>
+      <div ref={ref} style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', width: '100%', aspectRatio: W + ' / ' + H, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)', background: '#e9ece5' }}>
+          {scale > 0 && <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, transform: 'scale(' + scale + ')', transformOrigin: 'top left' }}><window.DCountCard {...props} /></div>}
         </div>
       </div>
     );
@@ -103,14 +105,14 @@
             if (mode === 'admin') return (
               <div key={i} className={'dc-day slot' + tcl + (slot.isOpen ? ' open' : ' dimmed')}>
                 <span className="dnum">{d}</span><div className="dd">D-{slot.dNumber}</div>
-                <button className="dc-ss" style={{ border: 'none', cursor: 'pointer', background: slot.isOpen ? 'var(--st-ready)' : 'var(--faint)' }} disabled={busy} onClick={() => onToggle(slot)}>{slot.isOpen ? '열림' : '닫힘'}</button>
+                <button className="dc-toggle" style={{ color: slot.isOpen ? 'var(--st-ready)' : 'var(--faint)' }} disabled={busy} onClick={() => onToggle(slot)}>{slot.isOpen ? '열림' : '닫힘'}</button>
               </div>
             );
             const open = slot.slotStatus === '신청가능';
             return (
-              <div key={i} className={'dc-day slot' + tcl + (open ? ' open' : ' dimmed')} onClick={() => open && onApply(slot)}>
+              <div key={i} className={'dc-day slot' + tcl + (open ? ' open' : ' dimmed')} onClick={() => open && onApply(slot)} title={'D-' + slot.dNumber + ' · ' + slot.slotStatus}>
                 <span className="dnum">{d}</span><div className="dd">D-{slot.dNumber}</div>
-                <SsTag s={slot.slotStatus} />
+                <i className="sdot" style={{ background: SS_COLOR[slot.slotStatus] || 'var(--faint)' }} />
               </div>
             );
           })}
@@ -191,7 +193,8 @@
       const { ok, j } = await jsend('POST', { action: 'apply', targetDate: slot.targetDate, name: form.name, contact: form.contact, org: form.org, teaser: form.teaser, bgColor: form.bgColor, inkColor: form.inkColor, sceneIdx: form.sceneIdx, consents: { privacy: true, portrait: true, thirdparty: true, license: true, age14: true } });
       setBusy(false);
       if (ok && j.ok) onDone(j);
-      else setErr(j.error === 'already_taken' ? '방금 이 날짜가 선점되었습니다. 다른 날짜를 선택하세요.'
+      else setErr(j.error === 'rate_limited' ? '신청이 너무 잦습니다. 잠시 후 다시 시도하세요.'
+        : j.error === 'already_taken' ? '방금 이 날짜가 선점되었습니다. 다른 날짜를 선택하세요.'
         : j.error === 'name_taken' ? '이미 같은 이름으로 신청된 건이 있습니다. (신청 조회에서 확인/철회하세요)'
           : j.error === 'bad_phone' ? '휴대전화 번호 형식을 확인하세요.'
             : j.error === 'name_required' ? '이름을 입력하세요.'
@@ -261,7 +264,7 @@
       const { ok, j } = await jsend('POST', { action: 'lookup', applicationNo: no.trim(), password: pw });
       setBusy(false);
       if (ok && j.ok) { setApp(j.application); setForm(Object.assign({}, j.application)); }
-      else { setApp(null); setMsg(j.error === 'bad_password' ? '이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.' : j.error === 'not_found' ? '신청을 찾을 수 없습니다.' : '조회 중 오류'); }
+      else { setApp(null); setMsg(j.error === 'rate_limited' ? '시도가 너무 많습니다. 잠시 후 다시 시도하세요.' : j.error === 'bad_credentials' ? '이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.' : '조회 중 오류'); }
     }
     async function save() {
       setBusy(true); setMsg('');
@@ -316,15 +319,17 @@
   }
 
   /* ── 마스터 스타일 편집(관리자) ── */
+  const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1 };
   const SLIDERS = [
     { k: 'pad', label: '전체 여백', min: 0, max: 16, step: 1, unit: '%' },
     { k: 'topAdj', label: '위 여백', min: -80, max: 160, step: 4, unit: 'px' },
     { k: 'botAdj', label: '아래 여백', min: -80, max: 160, step: 4, unit: 'px' },
-    { k: 'gap', label: '문구 간격', min: -30, max: 100, step: 2, unit: 'px' },
+    { k: 'lead', label: 'D-↔숫자 간격', min: -40, max: 120, step: 2, unit: 'px' },
+    { k: 'gap', label: '숫자↔문구 간격', min: -30, max: 100, step: 2, unit: 'px' },
     { k: 'numScale', label: '숫자 크기', min: 0.7, max: 1.3, step: 0.02, unit: '×' },
   ];
   function MasterStyle({ master, onSaved, busy, setBusy }) {
-    const [d, setD] = useState(() => Object.assign({ pad: 0, topAdj: 0, botAdj: 0, gap: 0, numScale: 1 }, master || {}));
+    const [d, setD] = useState(() => Object.assign({}, STYLE_DEFAULT, master || {}));
     const [msg, setMsg] = useState('');
     const set = (k, v) => setD((p) => Object.assign({}, p, { [k]: v }));
     async function save() {
@@ -348,7 +353,7 @@
               ))}
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                 <button className="dc-btn primary" disabled={busy} onClick={save}>저장 (전체 적용)</button>
-                <button className="dc-btn ghost" onClick={() => setD({ pad: 0, topAdj: 0, botAdj: 0, gap: 0, numScale: 1 })}>초기화</button>
+                <button className="dc-btn ghost" onClick={() => setD(Object.assign({}, STYLE_DEFAULT))}>초기화</button>
                 {msg && <span className={/실패/.test(msg) ? 'dc-err' : 'dc-ok'} style={{ alignSelf: 'center' }}>{msg}</span>}
               </div>
             </div>
@@ -373,6 +378,17 @@
       if (ok) { setData(j); if (j.masterStyle) setMaster(j.masterStyle); }
     }, [setMaster]);
     useEffect(() => { if (authed) load(); }, [authed, load]);
+    // 관리자 15분 유휴 자동 로그아웃
+    useEffect(() => {
+      if (!authed) return;
+      let t;
+      const logout = () => { setAdmin(null); setAuthed(false); setMsg('15분 동안 활동이 없어 자동 로그아웃되었습니다.'); };
+      const reset = () => { clearTimeout(t); t = setTimeout(logout, 15 * 60 * 1000); };
+      const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
+      evs.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+      reset();
+      return () => { clearTimeout(t); evs.forEach((e) => window.removeEventListener(e, reset)); };
+    }, [authed]);
 
     async function login() {
       const c = code.replace(/\D/g, ''); if (c.length !== 6) { setMsg('6자리 코드를 입력하세요.'); return; }
