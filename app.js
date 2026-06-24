@@ -17,6 +17,9 @@
   };
   var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
   var KIND = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Sites & Activity Centres", regevent: "Regional Event Venue", globevent: "Global Event Venue" };
+  // short labels for compact chips (list rows, map tooltips/popups) — keep the full name for forms
+  var KIND_SHORT = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Site", regevent: "Regional Event", globevent: "Global Event" };
+  function kindShort(k) { return KIND_SHORT[k] || KIND[k] || ""; }
   var KIND_BADGE = { heritage: ["#C2872E", "★"], camp: ["#3E8E4F", "▲"], regevent: ["#1F9CA6", "◆"], globevent: ["#B5408F", "◆"] };
   var KIND_SHAPE = { office: "7px", camp: "4px" };  // marker corner radius; others default to a circle
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
@@ -150,7 +153,7 @@
     }
     return '<div style="font-family:\'Hanken Grotesk\';max-width:250px;">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">' +
-      '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(KIND[u.kind] || "") + '</span>' + dist + '</div>' +
+      '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(kindShort(u.kind)) + '</span>' + dist + '</div>' +
       '<div style="font:700 16px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;line-height:1.15;margin-bottom:' + (u.subtitle ? "1px" : "3px") + ';">' + esc(u.name) + '</div>' +
       (u.subtitle ? '<div style="font:500 12px \'Hanken Grotesk\';color:#9a93a6;line-height:1.25;margin-bottom:7px;">' + esc(u.subtitle) + '</div>' : '') +
       (loc ? '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' : '') +
@@ -364,7 +367,7 @@
     var cs = commentsFor(u.id).length;
     var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
     var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : (u.kind === "camp" ? "5px" : "50%")) + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";  // events use a circle
-    var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;";
+    var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none;";
     var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
     var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
     // compact header (shared by collapsed + selected)
@@ -373,7 +376,7 @@
       '<div style="flex:1;min-width:0;">' +
       '<div style="font:700 13.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name) + '</div>' +
       (u.subtitle ? '<div style="font:500 11px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
-      '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(KIND[u.kind] || "") + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (!sel ? csBtn : "") + '</div>' +
+      '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(kindShort(u.kind)) + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (!sel ? csBtn : "") + '</div>' +
       '</div>' + dist + '</div>';
 
     if (!sel) {
