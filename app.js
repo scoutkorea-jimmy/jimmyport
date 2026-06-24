@@ -20,18 +20,29 @@
   // short labels for compact chips (list rows, map tooltips/popups) — keep the full name for forms
   var KIND_SHORT = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Site", regevent: "Regional Event", globevent: "Global Event" };
   function kindShort(k) { return KIND_SHORT[k] || KIND[k] || ""; }
-  // events held at a place: [{ scope: "regional"|"global", name, year }]
-  function normEvents(a) { return Array.isArray(a) ? a.map(function (e) { return { scope: (e && e.scope === "global") ? "global" : "regional", name: String((e && e.name) || ""), year: String((e && e.year) || "") }; }).filter(function (e) { return e.name || e.year; }) : []; }
-  function evColor(scope) { return scope === "global" ? "#B5408F" : "#1F9CA6"; }
-  function evScopeLabel(scope) { return scope === "global" ? "Global Event" : "Regional Event"; }
-  function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0); }); }
+  // events held at a place: [{ scope: "regional"|"global"|"national", name, year }]
+  var EV_SCOPE = { national: { label: "National", color: "#2E6FAE" }, regional: { label: "Regional", color: "#1F9CA6" }, global: { label: "Global", color: "#B5408F" } };
+  var EV_ORDER = ["national", "regional", "global"];  // display + toggle order
+  function normEvents(a) {
+    return Array.isArray(a) ? a.map(function (e) {
+      var date = String((e && e.date) || "");
+      if (!date && e && e.year) { var y = String(e.year).replace(/\D/g, ""); if (y) date = y + "-01-01"; }  // migrate old year-only entries
+      var raw = Array.isArray(e && e.scopes) ? e.scopes : ((e && EV_SCOPE[e.scope]) ? [e.scope] : []);  // migrate single scope → array
+      var scopes = EV_ORDER.filter(function (k) { return raw.indexOf(k) >= 0; });
+      return { scopes: scopes, name: String((e && e.name) || ""), date: date };
+    }).filter(function (e) { return e.name || e.date; }) : [];
+  }
+  function evDateNum(d) { return d ? (parseInt(String(d).replace(/-/g, ""), 10) || 0) : 0; }
+  function fmtEvDate(d) { return d ? String(d).split("-").join(".") : ""; }  // YYYY.MM.DD
+  function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return evDateNum(b.date) - evDateNum(a.date); }); }
   function eventsHtml(u) {
     var ev = sortedEvents(u); if (!ev.length) return "";
     var rows = ev.map(function (e) {
+      var badges = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span style="font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + m.color + ';padding:2px 7px;border-radius:999px;">' + esc(m.label) + '</span>'; }).join("");
       return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">' +
-        '<span style="flex:none;font:700 9px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + evColor(e.scope) + ';padding:2px 7px;border-radius:999px;">' + esc(e.scope === "global" ? "Global" : "Regional") + '</span>' +
+        (badges ? '<span style="flex:none;display:flex;gap:4px;">' + badges + '</span>' : "") +
         '<span style="flex:1;min-width:0;font:600 12px \'Hanken Grotesk\';color:#42394f;line-height:1.3;">' + esc(e.name) + '</span>' +
-        (e.year ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#8a8496;">' + esc(e.year) + '</span>' : "") +
+        (e.date ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#8a8496;">' + esc(fmtEvDate(e.date)) + '</span>' : "") +
         '</div>';
     }).join("");
     return '<div style="margin-bottom:10px;">' +
@@ -89,11 +100,13 @@
     };
   }
   function igUrl(v) { v = String(v || "").trim(); return /^https?:\/\//i.test(v) ? v : "https://instagram.com/" + v.replace(/^@/, ""); }
+  // a phone holding only a country/dialing code (e.g. "+82 ") has too few digits to be a real number
+  function realPhone(p) { var digits = String(p || "").replace(/\D/g, ""); return digits.length >= 5 ? String(p).trim() : ""; }
   function contactItems(u) {
     var items = [];
     if (u.instagram) items.push({ label: "Instagram", href: igUrl(u.instagram) });
     if (u.homepage) items.push({ label: "Homepage", href: /^https?:\/\//i.test(u.homepage) ? u.homepage : "https://" + u.homepage });
-    if (u.phone) items.push({ label: u.phone, href: "tel:" + u.phone.replace(/[^+\d]/g, "") });
+    var ph = realPhone(u.phone); if (ph) items.push({ label: ph, href: "tel:" + ph.replace(/[^+\d]/g, "") });
     if (u.email) items.push({ label: u.email, href: "mailto:" + u.email });
     return items;
   }

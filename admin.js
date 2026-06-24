@@ -21,8 +21,17 @@
   // legacy: "Camp Sites & Activity Centres" used to be a free-form tag — now promoted to its own place type.
   function isCampTag(t) { return /camp\s*site|activity\s*cent(re|er)/i.test(String(t || "")); }
   function promoteCamp(kind, tags) { tags = Array.isArray(tags) ? tags : []; if (kind !== "camp" && tags.some(isCampTag)) return { kind: "camp", tags: tags.filter(function (t) { return !isCampTag(t); }) }; return { kind: kind, tags: tags }; }
-  // events held at a place: [{ scope: "regional"|"global", name, year }]
-  function normEvents(a) { return Array.isArray(a) ? a.map(function (e) { return { scope: (e && e.scope === "global") ? "global" : "regional", name: String((e && e.name) || ""), year: String((e && e.year) || "") }; }) : []; }
+  // events held at a place: [{ scopes: ["national"|"regional"|"global"], name, date: "YYYY-MM-DD" }]
+  var EV_SCOPE = { national: { label: "National", color: "#2E6FAE" }, regional: { label: "Regional", color: "#1F9CA6" }, global: { label: "Global", color: "#B5408F" } };
+  var EV_ORDER = ["national", "regional", "global"];  // display + toggle order (an event may have several at once)
+  function normEvents(a) {
+    return Array.isArray(a) ? a.map(function (e) {
+      var date = String((e && e.date) || "");
+      if (!date && e && e.year) { var y = String(e.year).replace(/\D/g, ""); if (y) date = y + "-01-01"; }  // migrate old year-only entries
+      var raw = Array.isArray(e && e.scopes) ? e.scopes : ((e && EV_SCOPE[e.scope]) ? [e.scope] : []);  // migrate single scope → array
+      return { scopes: EV_ORDER.filter(function (k) { return raw.indexOf(k) >= 0; }), name: String((e && e.name) || ""), date: date };
+    }) : [];
+  }
 
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
   function regionCode(r) { return REGION[r] ? r : (REGION_FULL[r] || "APR"); }
@@ -33,7 +42,7 @@
 
   // ── state ──────────────────────────────────────────────────────────
   var units = [], comments = [], map, marker = null, saveTimer = null, savedTimer = null;
-  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false, editingComment: null, nameHelp: false };
+  var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false, editingComment: null, nameHelp: false, evSortDir: "desc" };
   // every distinct category/tag already used across places (for tag search/autocomplete)
   function allTags() { var set = {}; units.forEach(function (u) { (u.tags || []).forEach(function (t) { if (t) set[t] = 1; }); }); return Object.keys(set).sort(); }
 
@@ -219,17 +228,19 @@
   }
   function evRows(s) {
     if (!s.events.length) return '<div style="font-size:12px;color:#a39bb0;margin-bottom:8px;">No events recorded yet.</div>';
+    var grip = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
     return s.events.map(function (e, i) {
-      var scopeSeg = [["regional", "Regional Event"], ["global", "Global Event"]].map(function (p) { return '<button data-act="evscope" data-idx="' + i + '" data-val="' + p[0] + '" style="' + seg((e.scope || "regional") === p[0]) + '">' + p[1] + '</button>'; }).join("");
-      return '<div style="border:1px solid #ece6db;border-radius:11px;padding:9px;margin-bottom:8px;">' +
-        '<div style="display:flex;gap:6px;margin-bottom:7px;align-items:center;">' +
-        '<div style="display:flex;gap:5px;flex:1;">' + scopeSeg + '</div>' +
-        '<button data-act="evdel" data-idx="' + i + '" title="Remove" style="border:none;background:#f6eeee;color:#b4524e;width:28px;height:28px;border-radius:8px;cursor:pointer;flex:none;font-size:15px;line-height:1;">&times;</button>' +
-        '</div>' +
-        '<div style="display:flex;gap:6px;">' +
-        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="flex:1;" />' +
-        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="year" value="' + escAttr(e.year) + '" placeholder="Year" inputmode="numeric" maxlength="4" style="width:78px;" />' +
-        '</div></div>';
+      var chips = EV_ORDER.map(function (sk) {
+        var m = EV_SCOPE[sk], on = e.scopes.indexOf(sk) >= 0;
+        return '<button data-act="evscope" data-idx="' + i + '" data-val="' + sk + '" title="' + m.label + ' — click to toggle" style="flex:none;border:1px solid ' + (on ? m.color : "#e0dae6") + ';background:' + (on ? m.color : "#fff") + ';color:' + (on ? "#fff" : "#a99fb5") + ';font:700 10px \'Hanken Grotesk\';letter-spacing:.03em;padding:8px 7px;border-radius:8px;cursor:pointer;">' + m.label.slice(0, 3).toUpperCase() + '</button>';
+      }).join("");
+      return '<div class="evrow" data-idx="' + i + '" style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">' +
+        '<span class="evgrip" draggable="true" data-idx="' + i + '" title="Drag to reorder" style="flex:none;cursor:grab;color:#c2bcce;display:flex;align-items:center;padding:0 1px;">' + grip + '</span>' +
+        '<span style="flex:none;display:flex;gap:4px;">' + chips + '</span>' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="flex:1;min-width:0;" />' +
+        '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="date" type="date" value="' + escAttr(e.date) + '" title="Event date" style="width:148px;flex:none;" />' +
+        '<button data-act="evdel" data-idx="' + i + '" title="Remove" style="flex:none;border:none;background:#f6eeee;color:#b4524e;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;">&times;</button>' +
+        '</div>';
     }).join("");
   }
 
@@ -286,8 +297,9 @@
             '</div>'
         )) +
 
-      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— Regional / Global · name · year</span>',
-        evRows(s) + '<button data-act="evadd" style="' + BTN_SOFT + '">+ Add event</button>') +
+      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— National / Regional / Global · name · date</span>',
+        evRows(s) + '<div style="display:flex;gap:7px;margin-top:4px;flex-wrap:wrap;"><button data-act="evadd" style="' + BTN_SOFT + '">+ Add event</button>' +
+        (s.events.length > 1 ? '<button data-act="evsort" style="' + BTN_SOFT + '">Sort by date ' + (state.evSortDir === "asc" ? "↑" : "↓") + '</button>' : "") + '</div>') +
 
       card("contact", 'Contact <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— all optional, leave blank if none</span>',
         '<label style="' + LBL + '">Instagram</label><input id="f-instagram" value="' + escAttr(s.instagram) + '" class="sf-fld" placeholder="https://instagram.com/… or @handle" />' +
@@ -665,8 +677,9 @@
       if (act === "save") { saveNow(); }
       else if (act === "showcoord") { commitLatLng(); syncMarker(true); toast("Showing location on the map"); }
       else if (act === "namehelp") { state.nameHelp = !state.nameHelp; renderForm(); }
-      else if (act === "evscope") { var se = sel(), ie = +b.getAttribute("data-idx"); if (se && se.events[ie]) { se.events[ie].scope = val; touch(); renderForm(); } }
-      else if (act === "evadd") { var sa = sel(); if (sa) { sa.events.push({ scope: "regional", name: "", year: "" }); touch(); renderForm(); } }
+      else if (act === "evscope") { var se = sel(), ie = +b.getAttribute("data-idx"); if (se && se.events[ie]) { var arr = se.events[ie].scopes, p = arr.indexOf(val); if (p >= 0) arr.splice(p, 1); else arr.push(val); se.events[ie].scopes = EV_ORDER.filter(function (k) { return arr.indexOf(k) >= 0; }); touch(); renderForm(); } }
+      else if (act === "evadd") { var sa = sel(); if (sa) { sa.events.push({ scopes: ["national"], name: "", date: "" }); touch(); renderForm(); } }
+      else if (act === "evsort") { var so = sel(); if (so) { var dir = state.evSortDir || "desc"; so.events.sort(function (a, b) { var na = parseInt((a.date || "").replace(/-/g, ""), 10) || 0, nb = parseInt((b.date || "").replace(/-/g, ""), 10) || 0; return dir === "asc" ? na - nb : nb - na; }); state.evSortDir = dir === "asc" ? "desc" : "asc"; touch(); renderForm(); } }
       else if (act === "evdel") { var sd = sel(), id2 = +b.getAttribute("data-idx"); if (sd) { sd.events.splice(id2, 1); touch(); renderForm(); } }
       else if (act === "kind") { set({ kind: val }); renderRail(); renderForm(); syncMarker(false); }
       else if (act === "status") { set({ status: val }); renderRail(); renderForm(); }
@@ -721,7 +734,16 @@
     $("form").addEventListener("change", function (e) {
       if (e.target.id === "f-lat" || e.target.id === "f-lng") { commitLatLng(); }
       else if (e.target.id === "f-region") { set({ region: e.target.value }); renderRail(); renderForm(); syncMarker(false); }
+      else if (e.target.classList && e.target.classList.contains("f-ev")) { var sc = sel(), ic = +e.target.getAttribute("data-idx"), fc = e.target.getAttribute("data-field"); if (sc && sc.events[ic]) { sc.events[ic][fc] = e.target.value; touch(); } }
     });
+    // drag-to-reorder events (handle = .evgrip, drop target = .evrow)
+    var evDrag = null;
+    $("form").addEventListener("dragstart", function (e) { var g = e.target.closest(".evgrip"); if (!g) { return; } evDrag = +g.getAttribute("data-idx"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", String(evDrag)); } catch (_) {} });
+    $("form").addEventListener("dragover", function (e) { if (evDrag === null) return; var row = e.target.closest(".evrow"); if (!row) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; });
+    $("form").addEventListener("dragenter", function (e) { if (evDrag === null) return; var row = e.target.closest(".evrow"); if (row && +row.getAttribute("data-idx") !== evDrag) row.style.boxShadow = "0 0 0 2px #6336B5"; });
+    $("form").addEventListener("dragleave", function (e) { if (evDrag === null) return; var row = e.target.closest(".evrow"); if (row && !row.contains(e.relatedTarget)) row.style.boxShadow = ""; });
+    $("form").addEventListener("drop", function (e) { if (evDrag === null) return; var row = e.target.closest(".evrow"); if (!row) return; e.preventDefault(); var to = +row.getAttribute("data-idx"), s = sel(); if (s && evDrag !== to && s.events[evDrag]) { var moved = s.events.splice(evDrag, 1)[0]; s.events.splice(to, 0, moved); touch(); } evDrag = null; renderForm(); });
+    $("form").addEventListener("dragend", function () { if (evDrag !== null) { evDrag = null; renderForm(); } });
 
     loadUnits().then(function () { renderFilters(); renderRail(); renderForm(); syncMarker(true); setTimeout(function () { map.invalidateSize(); }, 200); fetchPending(); fetchComments().then(function () { renderForm(); }); });
   }
