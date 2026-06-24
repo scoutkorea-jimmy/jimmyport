@@ -236,7 +236,7 @@ export async function onRequestPatch({ request, env }) {
     const raw = no ? await env.SCOUT_KV.get(APP(no)) : null;
     if (!raw) return json({ ok: false, error: "not_found" }, 404);
     let rec; try { rec = JSON.parse(raw); } catch { return json({ ok: false, error: "corrupt" }, 500); }
-    if (action === "approve") rec.status = "승인";
+    if (action === "approve") { rec.status = "승인"; rec.approvedBy = String(b.by || "").slice(0, 40); }   // 승인자(관리자 전용 기록)
     else if (action === "changes") { rec.status = "수정요청"; rec.rejectReason = String(b.rejectReason || "").slice(0, 300); }
     else { rec.status = "반려"; rec.rejectReason = String(b.rejectReason || "").slice(0, 300); }
     rec.updatedAt = now;
@@ -245,7 +245,7 @@ export async function onRequestPatch({ request, env }) {
     const idx = await getArr(env, INDEX); const e = idx.find((x) => x.applicationNo === no);
     if (e) { e.status = rec.status; await putArr(env, INDEX, idx); }
     await appendLog(env, { ts: now, action: "dcount." + action, count: 0, ip: clientIp(request) });
-    await dcLog(env, { ts: now, action: rec.status, name: rec.name, dNumber: rec.dNumber, targetDate: rec.targetDate, reason: rec.rejectReason || "", ip: maskIp(clientIp(request)) });
+    await dcLog(env, { ts: now, action: rec.status, name: rec.name, dNumber: rec.dNumber, targetDate: rec.targetDate, reason: rec.rejectReason || "", by: action === "approve" ? (rec.approvedBy || "") : "", ip: maskIp(clientIp(request)) });
     return json({ ok: true, application: publicApp(rec) });
   }
 

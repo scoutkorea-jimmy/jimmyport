@@ -436,6 +436,7 @@
   const DEFAULT_NOTICE = '비속어·상업적 홍보·정치적 내용 등 잼버리 정신에 어긋나는 내용이 담기면 반려될 수 있어요.';
   const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1, logo: '', notice: '' };
   const REJECT_REASONS = ['비속어·부적절한 표현', '상업적 홍보', '정치적 내용', '저작권·초상권 우려', '잼버리 정신에 부합하지 않음', '중복·오신청', '카드 문구 미흡'];
+  const APPROVERS = ['박지민', '이종근', '현진석', '그 외'];
   const SLIDERS = [
     { k: 'pad', label: '전체 여백', min: 0, max: 16, step: 1, unit: '%' },
     { k: 'topAdj', label: '위 여백', min: -80, max: 160, step: 4, unit: 'px' },
@@ -521,6 +522,29 @@
     );
   }
 
+  /* ── 승인자 선택 다이얼로그 (박지민/이종근/현진석/그 외 → 본인 이름) ── */
+  function ApproveDialog({ app, onClose, onConfirm }) {
+    const [who, setWho] = useState(''); const [etc, setEtc] = useState('');
+    const name = who === '그 외' ? etc.trim() : who;
+    return (
+      <div className="dc-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="dc-modal" style={{ width: 'min(420px,100%)' }} onMouseDown={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span className="dc-tag" style={{ background: 'var(--st-ready)' }}>승인</span>
+            <b>D-{app.dNumber} · {app.name || '—'}</b><span style={{ flex: 1 }} />
+            <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={onClose}>닫기</button>
+          </div>
+          <p className="dc-note" style={{ marginBottom: 8 }}>누가 승인하나요? <b>(관리자 페이지에서만 표시)</b></p>
+          {APPROVERS.map((o) => (
+            <label key={o} className="dc-consent"><input type="radio" name="dc-approver" checked={who === o} onChange={() => setWho(o)} /><span>{o}</span></label>
+          ))}
+          {who === '그 외' && <input className="dc-input" value={etc} onChange={(e) => setEtc(e.target.value)} placeholder="본인 이름 입력" style={{ marginTop: 6 }} />}
+          <button className="dc-btn primary" style={{ width: '100%', marginTop: 12 }} disabled={!name} onClick={() => onConfirm(name)}>승인 처리</button>
+        </div>
+      </div>
+    );
+  }
+
   /* ── 관리자 ── */
   function Admin({ master, setMaster }) {
     const [authed, setAuthed] = useState(() => !!adminToken());
@@ -528,6 +552,7 @@
     const [filter, setFilter] = useState('대기'); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
     const [idleLeft, setIdleLeft] = useState(600);
     const [rejectFor, setRejectFor] = useState(null);
+    const [approveFor, setApproveFor] = useState(null);
 
     const load = useCallback(async () => {
       const { ok, status, j } = await jget(API + '?admin=1', bearer());
@@ -566,6 +591,7 @@
       if (ok && j.ok) load(); else setMsg('처리 실패');
     }
     function act(a, action) {
+      if (action === 'approve') { setApproveFor(a); return; }   // 승인은 모달(승인자 선택)
       if (action === 'reject') { setRejectFor(a); return; }   // 반려는 모달(사유 체크)
       if (action === 'changes') { const reason = window.prompt('수정요청 사유') || ''; patch({ action: 'changes', applicationNo: a.applicationNo, rejectReason: reason }); return; }
       patch({ action, applicationNo: a.applicationNo });
@@ -624,7 +650,7 @@
             <button className="dc-btn danger" style={{ marginBottom: 10 }} disabled={busy} onClick={() => { if (window.confirm('기록을 초기화할까요?\n(초기화했다는 기록은 반드시 남습니다.)')) patch({ action: 'clearlog' }); }}>기록 초기화</button>
             <div className="dc-logbox">
               {((data && data.dclog) || []).map((l, i) => (
-                <div key={i} className="dc-logrow"><span className="t">{(l.ts || '').slice(5, 16).replace('T', ' ')}</span><span><b style={{ color: ST_COLOR[l.action] || 'var(--ink-2)' }}>{l.action}</b>{l.name ? (' · ' + l.name) : ''}{l.dNumber ? (' · D-' + l.dNumber) : ''}{l.reason ? (' — ' + l.reason) : ''}{(l.count != null && !l.name) ? (' (' + l.count + ')') : ''}</span><span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>{l.ip || ''}</span></div>
+                <div key={i} className="dc-logrow"><span className="t">{(l.ts || '').slice(5, 16).replace('T', ' ')}</span><span><b style={{ color: ST_COLOR[l.action] || 'var(--ink-2)' }}>{l.action}</b>{l.name ? (' · ' + l.name) : ''}{l.dNumber ? (' · D-' + l.dNumber) : ''}{l.by ? (' · 승인자 ' + l.by) : ''}{l.reason ? (' — ' + l.reason) : ''}{(l.count != null && !l.name) ? (' (' + l.count + ')') : ''}</span><span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>{l.ip || ''}</span></div>
               ))}
               {!((data && data.dclog) || []).length && <div style={{ padding: 12, color: 'var(--muted)', fontSize: 12 }}>기록 없음</div>}
             </div>
@@ -654,6 +680,7 @@
                     <div><b>{a.name || '—'}</b>{a.org ? ' · ' + a.org : ''}</div>
                     <div style={{ color: 'var(--muted)' }}>{a.contact || '—'}</div>
                     <div style={{ color: 'var(--faint)', fontSize: 12 }}>IP {a.ip || '—'}</div>
+                    {a.status === '승인' && a.approvedBy && <div style={{ color: 'var(--st-ready)', fontWeight: 600, marginTop: 2 }}>승인자: {a.approvedBy}</div>}
                     {a.photos && a.photos.length > 0 && <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>{a.photos.map((u, i) => <a key={i} href={u} target="_blank" rel="noopener"><img src={u} alt="" style={{ width: 46, height: 46, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)' }} /></a>)}</div>}
                     {a.rejectReason && <div style={{ color: 'var(--danger)', marginTop: 4 }}>사유: {a.rejectReason}</div>}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
@@ -668,6 +695,7 @@
             ))}
           </div>
         </div>
+        {approveFor && <ApproveDialog app={approveFor} onClose={() => setApproveFor(null)} onConfirm={(by) => { patch({ action: 'approve', applicationNo: approveFor.applicationNo, by }); setApproveFor(null); }} />}
         {rejectFor && <RejectDialog app={rejectFor} onClose={() => setRejectFor(null)} onConfirm={(reason) => { patch({ action: 'reject', applicationNo: rejectFor.applicationNo, rejectReason: reason }); setRejectFor(null); }} />}
       </div>
     );
