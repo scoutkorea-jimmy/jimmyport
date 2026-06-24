@@ -16,7 +16,9 @@
     WSB: { full: "WOSM Bureau", color: "#4B4E8A" }
   };
   var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
-  var KIND = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Sites & Activity Centres" };
+  var KIND = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Sites & Activity Centres", regevent: "Regional Event Venue", globevent: "Global Event Venue" };
+  var KIND_BADGE = { heritage: ["#C2872E", "★"], camp: ["#3E8E4F", "▲"], regevent: ["#1F9CA6", "◆"], globevent: ["#B5408F", "◆"] };
+  var KIND_SHAPE = { office: "7px", camp: "4px" };  // marker corner radius; others default to a circle
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
   var NSOS = Array.isArray(window.SCOUT_NSOS) ? window.SCOUT_NSOS : [];
   // legacy: "Camp Sites & Activity Centres" used to be a free-form tag — now promoted to its own place type.
@@ -106,10 +108,10 @@
   function pinHtml(rank, u, sel) {
     var c = REGION[u.region] ? REGION[u.region].color : "#6336B5";
     var sz = sel ? 36 : 30;
-    var shape = u.kind === "office" ? "7px" : (u.kind === "camp" ? "4px" : "50%");
+    var shape = KIND_SHAPE[u.kind] || "50%";
     var ring = sel ? "box-shadow:0 0 0 5px " + c + "33,0 6px 14px rgba(30,18,55,.4);" : "box-shadow:0 4px 11px rgba(30,18,55,.35);";
-    var badge = u.kind === "heritage" ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:#C2872E;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px \'Hanken Grotesk\';">★</span>'
-      : (u.kind === "camp" ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:#3E8E4F;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px \'Hanken Grotesk\';">▲</span>' : "");
+    var bd = KIND_BADGE[u.kind];
+    var badge = bd ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:' + bd[0] + ';border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px \'Hanken Grotesk\';">' + bd[1] + '</span>' : "";
     return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;animation:sfpop .25s ease;">' +
       '<div style="position:relative;width:' + sz + 'px;height:' + sz + 'px;border-radius:' + shape + ';background:' + c + ';border:2.5px solid #fff;' + ring + 'display:flex;align-items:center;justify-content:center;color:#fff;font:700 ' + (sel ? 14 : 12) + 'px \'Hanken Grotesk\';">' + rank + badge + '</div>' +
       '<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff;margin-top:-1px;filter:drop-shadow(0 2px 1px rgba(30,18,55,.25));"></div></div>';
@@ -286,7 +288,7 @@
   function chipStyle(active) { return "display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';border:1px solid;cursor:pointer;white-space:nowrap;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
 
   function renderChips() {
-    var kinds = [{ key: "All", label: "All", dot: "#b8b2a6" }, { key: "unit", label: "Units", dot: "#6336B5" }, { key: "office", label: "Offices", dot: "#3A57B0" }, { key: "heritage", label: "Heritage", dot: "#C2872E" }, { key: "camp", label: "Camp Sites", dot: "#3E8E4F" }];
+    var kinds = [{ key: "All", label: "All", dot: "#b8b2a6" }, { key: "unit", label: "Units", dot: "#6336B5" }, { key: "office", label: "Offices", dot: "#3A57B0" }, { key: "heritage", label: "Heritage", dot: "#C2872E" }, { key: "camp", label: "Camp Sites", dot: "#3E8E4F" }, { key: "regevent", label: "Regional Event", dot: "#1F9CA6" }, { key: "globevent", label: "Global Event", dot: "#B5408F" }];
     $("kind-chips").innerHTML = kinds.map(function (k) {
       return '<button data-kind="' + k.key + '" style="' + chipStyle(state.kind === k.key) + '"><span style="width:8px;height:8px;border-radius:50%;background:' + k.dot + ';display:inline-block;flex:none;"></span>' + k.label + '</button>';
     }).join("");
@@ -361,7 +363,7 @@
     var rc = REGION[u.region] || { color: "#6336B5" };
     var cs = commentsFor(u.id).length;
     var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
-    var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : (u.kind === "camp" ? "5px" : "50%")) + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";
+    var badge = "width:28px;height:28px;border-radius:" + (u.kind === "office" ? "8px" : (u.kind === "camp" ? "5px" : "50%")) + ";flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";  // events use a circle
     var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;";
     var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
     var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
@@ -607,7 +609,7 @@
   var rep = { kind: "unit", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
   function rSeg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
   function rChip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
-  function renderRKind() { $("r-kind-seg").innerHTML = ["unit", "office", "heritage", "camp"].map(function (k) { return '<button data-rkind="' + k + '" style="' + rSeg(rep.kind === k) + '">' + KIND[k] + '</button>'; }).join(""); $("r-sections-wrap").style.display = rep.kind === "unit" ? "block" : "none"; }
+  function renderRKind() { $("r-kind-seg").innerHTML = ["unit", "office", "heritage", "camp", "regevent", "globevent"].map(function (k) { return '<button data-rkind="' + k + '" style="' + rSeg(rep.kind === k) + '">' + KIND[k] + '</button>'; }).join(""); $("r-sections-wrap").style.display = rep.kind === "unit" ? "block" : "none"; }
   function renderRSections() { $("r-sections").innerHTML = ALL_SECTIONS.map(function (s) { return '<button data-rsec="' + s + '" style="' + rChip(rep.sections.indexOf(s) !== -1) + '">' + s + '</button>'; }).join(""); }
   function renderRCountry() { $("r-country").innerHTML = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === rep.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join(""); }
   function updateRAuto() {

@@ -16,7 +16,7 @@
     WSB: { full: "WOSM Bureau", color: "#4B4E8A" }
   };
   var REGION_FULL = { "Asia-Pacific": "APR", "European": "EUR", "Arab": "ARB", "Africa": "AFR", "Interamerican": "IAR", "WOSM Bureau": "WSB", "World Bureau": "WSB", "World Scout Bureau": "WSB" };
-  var KIND = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Sites & Activity Centres" };
+  var KIND = { unit: "Unit", office: "Office", heritage: "Heritage", camp: "Camp Sites & Activity Centres", regevent: "Regional Event Venue", globevent: "Global Event Venue" };
   var ALL_SECTIONS = ["Beaver", "Cub", "Scout", "Venture", "Rover", "Leader"];
   // legacy: "Camp Sites & Activity Centres" used to be a free-form tag — now promoted to its own place type.
   function isCampTag(t) { return /camp\s*site|activity\s*cent(re|er)/i.test(String(t || "")); }
@@ -169,8 +169,9 @@
   // ── rail ───────────────────────────────────────────────────────────
   function filt(active) { return "flex:1;border:none;padding:6px 4px;border-radius:8px;font:600 11.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;" : "background:#f1ece4;color:#8a8496;"); }
   function renderFilters() {
-    $("rail-filters").innerHTML = ["All", "unit", "office", "heritage", "camp"].map(function (k) {
-      return '<button data-filter="' + k + '" style="' + filt(state.kindFilter === k) + '">' + (k === "All" ? "All" : (k === "camp" ? "Camp" : KIND[k])) + '</button>';
+    $("rail-filters").innerHTML = ["All", "unit", "office", "heritage", "camp", "regevent", "globevent"].map(function (k) {
+      var short = { camp: "Camp", regevent: "Reg. Event", globevent: "Global Event" };
+      return '<button data-filter="' + k + '" style="' + filt(state.kindFilter === k) + '">' + (k === "All" ? "All" : (short[k] || KIND[k])) + '</button>';
     }).join("");
   }
   function railList() {
@@ -224,7 +225,7 @@
     var autoLine = (s.nso || "—") + " · " + (rc.full || s.region) + " (" + (s.lang || "—") + ")";
     var subline = KIND[s.kind] + " · " + (s.country || "No country") + " · " + s.region;
 
-    var kindSeg = ["unit", "office", "heritage", "camp"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
+    var kindSeg = ["unit", "office", "heritage", "camp", "regevent", "globevent"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
     var regionOpts = Object.keys(REGION).map(function (code) { return '<option value="' + code + '"' + (code === s.region ? " selected" : "") + ">" + code + " · " + esc(REGION[code].full) + "</option>"; }).join("");
     var sectionChips = ALL_SECTIONS.map(function (x) { return '<button data-act="sec" data-val="' + x + '" style="' + chip(s.sections.indexOf(x) !== -1) + '">' + x + '</button>'; }).join("");
     var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:5px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:5px 7px 5px 10px;border-radius:999px;">' + '<button data-act="tagedit" data-val="' + escAttr(t) + '" title="Click to edit this category" style="border:none;background:transparent;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';cursor:pointer;padding:0;">' + esc(t) + '</button>' + '<button data-act="tagdel" data-val="' + escAttr(t) + '" title="Remove" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
