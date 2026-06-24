@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles.css?v=0.9.98" />
+  <link rel="stylesheet" href="/styles.css?v=0.9.107" />
 
   <!-- Admin access is TOTP-only (Google Authenticator 6-digit code, verified server-side). -->
   <style>
@@ -41,7 +41,7 @@
         <button id="otp-submit" type="submit">Sign in</button>
       </form>
       <div id="auth-msg"></div>
-      <p class="auth-foot"><a href="/">&larr; Back to site</a></p>
+      <p class="auth-foot"><a href="/tour">&larr; Back to site</a></p>
     </div>
   </div>
 
@@ -57,7 +57,7 @@
       <div class="sf-admin-spacer" style="flex:1;"></div>
       <span id="admin-who" style="font:600 12px 'Hanken Grotesk';color:#8a8496;"></span>
       <button id="signout-btn" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;">Sign out</button>
-      <a href="/" style="color:#6b6577;font:600 12.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin:0 4px;">
+      <a href="/tour" style="color:#6b6577;font:600 12.5px 'Hanken Grotesk';text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin:0 4px;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Back to site
       </a>
       <button id="pending-btn" style="position:relative;border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12.5px 'Hanken Grotesk';padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;">Suggestions <span id="pending-count" style="display:none;margin-left:4px;background:#FF5655;color:#fff;font:700 10px 'Hanken Grotesk';padding:1px 6px;border-radius:999px;vertical-align:middle;">0</span></button>
@@ -155,8 +155,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data.js?v=0.9.98"></script>
-  <script src="admin.js?v=0.9.98"></script>
-  <script src="version-watch.js?v=0.9.98"></script>
+  <script src="/data.js?v=0.9.107"></script>
+  <script src="/admin.js?v=0.9.107"></script>
+  <script src="/version-watch.js?v=0.9.107"></script>
 </body>
 </html>

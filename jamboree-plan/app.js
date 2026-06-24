@@ -179,7 +179,7 @@ function ttList(){ if(!state.timetable) state.timetable=defaultTimetable(); retu
 function defaultRoster(){ return [
   {id:mkid(),name:'',role:'홍보부장',duty:'홍보 전략 총괄 · 대외 협력 · 최종 승인',contact:'',channel:''},
   {id:mkid(),name:'',role:'콘텐츠 기획',duty:'카드뉴스/영상 기획 · 운영 캘린더 관리 · 일정 조율',contact:'',channel:'페이스북'},
-  {id:mkid(),name:'',role:'디자인',duty:'카드뉴스 · 웹포스터 제작 (/jamboree 제작기)',contact:'',channel:'인스타그램'},
+  {id:mkid(),name:'',role:'디자인',duty:'카드뉴스 · 웹포스터 제작 (/krjam-cardnews 제작기)',contact:'',channel:'인스타그램'},
   {id:mkid(),name:'',role:'영상 · 촬영',duty:'현장 촬영 · 편집 · 릴스/숏폼',contact:'',channel:'유튜브·인스타'},
   {id:mkid(),name:'',role:'채널 운영',duty:'SNS 업로드 · 댓글/DM 응대 · 통계',contact:'',channel:'페이스북·인스타·유튜브'},
   {id:mkid(),name:'',role:'사진 · 아카이브',duty:'현장 사진 · 자료 정리 · 보도자료 지원',contact:'',channel:'블로그'}
@@ -908,7 +908,7 @@ function slotEl(rec,s,e){
   }
   imgFld.appendChild(grid);
   var hint=document.createElement('div'); hint.className='note'; hint.style.marginTop='6px';
-  hint.innerHTML='최대 '+MAX_IMG+'장 · 자동 축소(1600px) 후 서버 저장 · <a href="/jamboree" target="_blank" rel="noopener">'+icon('image',13)+' 카드뉴스 제작기 열기</a>';
+  hint.innerHTML='최대 '+MAX_IMG+'장 · 자동 축소(1600px) 후 서버 저장 · <a href="/krjam-cardnews" target="_blank" rel="noopener">'+icon('image',13)+' 카드뉴스 제작기 열기</a>';
   imgFld.appendChild(hint);
   wrap.appendChild(imgFld);
 

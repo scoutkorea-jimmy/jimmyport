@@ -1,0 +1,8 @@
+# Old paths -> new routing (301). The old .html files were renamed/moved, so
+# these paths have no static asset and the redirect applies.
+/jamboree            /krjam-cardnews   301
+/jamboree.html       /krjam-cardnews   301
+/jamboree-plan       /krjam-planning   301
+/jamboree-plan.html  /krjam-planning   301
+/admin               /tour/admin       301
+/admin.html          /tour/admin       301
