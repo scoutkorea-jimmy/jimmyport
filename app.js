@@ -27,7 +27,7 @@
   var state = { query: "", region: "All", country: "All", kind: "All", selectedId: null, anchor: null, geoMsg: "", panelOpen: true, commentsFor: null, replyTo: null, descExpanded: {}, sort: "distance", grouped: true, countryOpen: false, countryQuery: "", collapsedGroups: {}, radiusKm: RADIUS_MAX };
 
   // Country bucket for filtering + grouping (falls back to NSO, then "WOSM Bureau" for placeless regional/world offices).
-  function countryOf(u) { return u.country || u.nso || "WOSM Bureau"; }
+  function countryOf(u) { var c = u.country || u.nso || "WOSM Bureau"; return (c === "World Scout Bureau" || c === "World Bureau") ? "WOSM Bureau" : c; }
 
   // "Browse" = no active search/filter/anchor. In browse mode, tree groups start collapsed
   // (compact list); when searching/filtering/anchored, groups start expanded so results show.
