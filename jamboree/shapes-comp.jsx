@@ -130,7 +130,7 @@ const MOTIF = {
   },
   /* 텐트 — 오두막 도형 + 어두운 입구 삼각형 */
   tent(cx, by, s, c, door) {
-    c = _nat(c, PAL.orange, PAL.red); door = door || PAL.midnight;   // 텐트=따뜻한 색(주황/빨강)
+    c = _nat(c, PAL.orange, PAL.red); door = PAL.midnight;   // 텐트=따뜻한 색(주황/빨강), 입구=어두운 그늘
     const w = _W('08', 120 * s), dh = 48 * s, dw = _W('09', dh);
     return [
       { n: '08', fill: c, h: 120 * s, left: cx - w / 2, top: by - 120 * s },
