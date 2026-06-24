@@ -1,11 +1,12 @@
-/* D-Count 카드 (D-가로 1480×1047) — krjam-cardnews 의 DDayWide 를 prop 기반 독립 모듈로 추출.
- * 편집 스토어/Editable 미사용: 순수 props 로만 렌더한다. krjam-dcount 의 신청 미리보기·출력 공용.
- * 의존: shapes.js · store.js · base.jsx(Card·Logo·PAL) · shapes-comp.jsx(ShapeScatter·MOTIF·scene·SCENES) · lib.jsx(Kicker·FooterBand)
- * 커스터마이즈 props: bgColor(배경색)·inkColor(글씨색)·sceneIdx(오른쪽 오브제 베리에이션)·teaser/kicker(문구)
- * ⚠️ Babel standalone 공유 스코프 → IIFE 필수. */
+/* D-Count 카드 (D-가로 1480×1047 = A4 가로 비율) — krjam-cardnews 의 DDayWide 를 prop 기반 독립 모듈로 추출.
+ * 편집 스토어/Editable 미사용. 신청 미리보기·A4 출력 공용.
+ * props: dNumber·isDay·teaser(두 줄 가능)·bgColor·inkColor·sceneIdx·footLeft·footRight
+ * 마스터 스타일(전역 여백/크기) = window.DCMasterCtx (관리자가 정함). 오브제 색은 배경색에 맞춰 자동.
+ * 의존: shapes.js · store.js · base.jsx · shapes-comp.jsx · lib.jsx.  ⚠️ IIFE 필수. */
 (function () {
   const M = window.MOTIF, sc = window.scene, P = window.PAL;
   window.GContentCtx = window.GContentCtx || React.createContext({});
+  window.DCMasterCtx = window.DCMasterCtx || React.createContext({});   // 마스터 스타일(여백/크기)
 
   const WIDE_W = 1480, WIDE_H = 1047;
 
@@ -20,14 +21,17 @@
     { bg: P.midnight, ink: '#fff',     num: P.orange,   kicker: P.river,    fill: P.orange, track: 'rgba(255,255,255,.18)', cols: [P.pink, P.leaf, P.river, P.orange] }
   ];
   const DAY_THEME = { bg: '#ffffff', ink: P.midnight, num: P.purple, kicker: P.purple, fill: P.purple, track: 'rgba(77,0,110,.16)', cols: [P.purple, P.ocean, P.forest, P.red] };
+  const BRIGHT = [P.leaf, P.river, P.pink, P.orange];   // 어두운 배경용 오브제 색
+  const DEEP = [P.purple, P.ocean, P.forest, P.red];    // 밝은 배경용 오브제 색
 
   function themeFor(dNumber, isDay) {
     if (isDay) return DAY_THEME;
     const n = parseInt(dNumber, 10) || 0;
     return THEMES[((n % THEMES.length) + THEMES.length) % THEMES.length];
   }
+  function isDark(bg) { const s = window.CCStore; return (s && s.idealInk ? s.idealInk(bg) === '#fff' : true); }
+  function colsForBg(bg) { return isDark(bg) ? BRIGHT : DEEP; }   // 오브제 색을 배경색에 맞춤
 
-  /* 우측 컬럼 캠프 장면 — dday.jsx fmt==='wide' 분기를 그대로 포팅 (sceneIdx 미지정 시 기본) */
   function wideScatter(cols, isDay) {
     const c0 = cols[0], c1 = cols[1], c2 = cols[2], c3 = cols[3] || cols[0];
     if (isDay) return sc(
@@ -40,43 +44,44 @@
       M.hills(1380, 870, 1.0, [c3, c1])
     );
   }
-
-  /* 오른쪽 오브제: sceneIdx 지정 시 SCENES[idx] 를 우측 컬럼에 배치, 아니면 기본 wideScatter */
   function scatterFor(sceneIdx, cols, isDay) {
     const has = sceneIdx != null && sceneIdx !== '' && window.SCENES && window.SCENES[sceneIdx];
     if (!has) return wideScatter(cols, isDay);
-    const c = cols && cols.length ? cols : [P.orange, P.river, P.pink, P.leaf];
+    const c = cols && cols.length ? cols : BRIGHT;
     return window.SCENES[sceneIdx].build(1240, 890, 1.0, [c[0], c[1] || c[0], c[2] || c[0], c[3] || c[1] || c[0]]);
   }
   window.DCOUNT_SCENE_LABELS = window.SCENE_LABELS || [];
 
-  /* D-가로 카드 — props 만으로 렌더.
-   * props: { dNumber(5~40), isDay, teaser, kicker?, bgColor?, inkColor?, sceneIdx?, theme?, footLeft?, footRight? } */
-  function DCountCard({ dNumber, isDay, kicker, teaser, theme, bgColor, inkColor, sceneIdx, footLeft, footRight }) {
-    const store = window.CCStore;
+  function DCountCard(props) {
+    const { dNumber, isDay, kicker, teaser, theme, bgColor, inkColor, sceneIdx, footLeft, footRight } = props;
+    const ms = props.ms || React.useContext(window.DCMasterCtx) || {};
     const base = theme || themeFor(dNumber, isDay);
     const n = parseInt(dNumber, 10) || 0;
     const bg = bgColor || base.bg;
     const themed = !!(bgColor || inkColor);
-    const autoInk = store && store.idealInk ? store.idealInk(bg) : '#fff';
-    const ink = inkColor || (bgColor ? autoInk : base.ink);
+    const ink = inkColor || (bgColor ? (isDark(bg) ? '#fff' : P.midnight) : base.ink);
     const num = themed ? ink : base.num;
     const kickerCol = themed ? ink : base.kicker;
     const fill = themed ? ink : base.fill;
-    const track = themed ? (autoInk === '#fff' ? 'rgba(255,255,255,.2)' : 'rgba(77,0,110,.16)') : base.track;
+    const track = themed ? (isDark(bg) ? 'rgba(255,255,255,.2)' : 'rgba(77,0,110,.16)') : base.track;
+    const cols = bgColor ? colsForBg(bg) : base.cols;          // 오브제 색 = 배경색에 맞춤
     const prog = isDay ? 100 : Math.max(0, Math.min(100, Math.round((50 - n) / 50 * 100)));
     const kick = (kicker != null && kicker !== '') ? kicker : (isDay ? '2026. 8. 5 · 드디어!' : 'COUNTDOWN · ' + n + '일 전');
+    // 마스터 스타일(여백/크기)
+    const numScale = ms.numScale || 1;
+    const top = 150 + (ms.topAdj || 0), bottom = 210 + (ms.botAdj || 0), gap = 49 + (ms.gap || 0);
+    const cardStyle = { '--cc-content-scale': 1 - (ms.pad || 0) / 100 };
     return (
-      <window.Card bg={bg} color={ink} pad={0}>
-        <window.ShapeScatter items={scatterFor(sceneIdx, base.cols, isDay)} />
+      <window.Card bg={bg} color={ink} pad={0} style={cardStyle}>
+        <window.ShapeScatter items={scatterFor(sceneIdx, cols, isDay)} />
         <div style={{ position: 'absolute', top: 64, left: 84 }}><window.Kicker c={kickerCol}>{kick}</window.Kicker></div>
         {!isDay && <window.Logo size={120} style={{ position: 'absolute', top: 58, right: 96 }} />}
         {isDay && <window.Logo size={360} style={{ position: 'absolute', right: 130, top: 300 }} />}
-        <div style={{ position: 'absolute', left: 84, top: 150, bottom: 210, width: 880, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', left: 84, top, bottom, width: 880, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div className="hi" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <div style={{ fontWeight: 700, fontSize: 156, lineHeight: .84, color: num, letterSpacing: '.03em' }}>D-</div>
-            <div style={{ fontWeight: 700, fontSize: (isDay ? 320 : 372), lineHeight: .9, color: num }}>{isDay ? 'DAY' : String(n)}</div>
-            <div style={{ fontSize: 54, fontWeight: 300, marginTop: 49, color: ink, whiteSpace: 'pre-wrap' }}>{teaser}</div>
+            <div style={{ fontWeight: 700, fontSize: 156 * numScale, lineHeight: .84, color: num, letterSpacing: '.03em' }}>D-</div>
+            <div style={{ fontWeight: 700, fontSize: (isDay ? 320 : 372) * numScale, lineHeight: .9, color: num }}>{isDay ? 'DAY' : String(n)}</div>
+            <div style={{ fontSize: 54, fontWeight: 300, marginTop: gap, color: ink, whiteSpace: 'pre-wrap', lineHeight: 1.25 }}>{teaser}</div>
           </div>
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 154, height: 16, background: track }}>

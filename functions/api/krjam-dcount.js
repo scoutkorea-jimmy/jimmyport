@@ -1,44 +1,45 @@
-/* D-Count 신청 시스템 백엔드 (KV) — 선점(하루 한 팀)·5종 동의·신청번호+비번 발급·관리자(TOTP).
- * 마감 버퍼 없음: 슬롯은 target_date 까지 신청 가능, 지나면 마감.
- * 카드 = krjam-cardnews D-가로(텍스트/그래픽) → 사진 업로드 없음(R2 불필요).
- * KV: dcount:slots(배열) · dcount:index(배열) · dcount:app:<no> · dcount:lock:<date>
- *  - GET  /api/krjam-dcount            → 공개: { eventDate, today, slots:[{dNumber,targetDate,isOpen,occupied,slotStatus}] }
- *  - GET  /api/krjam-dcount?admin=1    → 관리자(Bearer): { slots, applications:[전체 레코드] }
- *  - POST { action:apply, ... }        → 공개: 신청 → { applicationNo, password }(1회)
- *  - POST { action:lookup|edit|withdraw, applicationNo, password, ... } → 공개(비번 검증)
- *  - PATCH { action:seed|slot|approve|reject|changes, ... } → 관리자(Bearer) */
+/* D-Count 신청 시스템 백엔드 (KV) — 선점(하루 한 팀)·5종 동의·관리자(TOTP).
+ *  신청번호 = 신청자 이름, 비밀번호 = 전화번호 끝 4자리.  (이름 1건 활성 + 날짜 1건 선점)
+ *  슬롯 D-40~D-5 자동 생성(시딩 불필요), 관리자가 닫은 dNumber 만 CLOSED 에 저장. 마감 버퍼 없음.
+ *  카드 = krjam-cardnews D-가로(텍스트/그래픽) → 사진 업로드 없음.
+ *  마스터 스타일(전역 여백/크기) = 관리자 편집(dcount:style).
+ *  KV: dcount:closed · dcount:index · dcount:style · dcount:app:<이름> · dcount:lock:<date> */
 import { json, hashPassword, verifyPassword, isAdmin, getArr, putArr, clientIp, maskIp, appendLog } from "./_lib.js";
 
 const EVENT_DATE = "2026-08-05";
-const SLOTS = "dcount:slots", INDEX = "dcount:index";
+const SLOT_HI = 40, SLOT_LO = 5;
+const CLOSED = "dcount:closed", INDEX = "dcount:index", STYLE = "dcount:style";
 const APP = (no) => "dcount:app:" + no;
 const LOCK = (d) => "dcount:lock:" + d;
-const ACTIVE = ["제출됨", "수정요청", "승인"];   // 슬롯을 점유하는 상태
+const ACTIVE = ["제출됨", "수정요청", "승인"];
 const EDITABLE = ["제출됨", "수정요청"];
 
 function ymd(d) { return d.toISOString().slice(0, 10); }
-function dateForDNumber(n) {
-  const ev = new Date(EVENT_DATE + "T00:00:00Z");
-  ev.setUTCDate(ev.getUTCDate() - n);
-  return ymd(ev);
-}
+function dateForDNumber(n) { const ev = new Date(EVENT_DATE + "T00:00:00Z"); ev.setUTCDate(ev.getUTCDate() - n); return ymd(ev); }
 function today() { return ymd(new Date()); }
-
-function randCode(len, chars) {
-  const a = new Uint8Array(len); crypto.getRandomValues(a);
-  let s = ""; for (let i = 0; i < len; i++) s += chars[a[i] % chars.length];
-  return s;
+async function buildSlots(env) {
+  const closed = new Set((await getArr(env, CLOSED)).map((n) => parseInt(n, 10)));
+  const out = [];
+  for (let n = SLOT_HI; n >= SLOT_LO; n--) out.push({ dNumber: n, targetDate: dateForDNumber(n), isOpen: !closed.has(n) });
+  return out;
 }
-const genAppNo = () => "DC-" + randCode(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
-const genPassword = () => randCode(8, "abcdefghjkmnpqrstuvwxyz23456789");
+
+const digits = (s) => String(s || "").replace(/\D/g, "");
+const isPhone = (s) => /^01\d{8,9}$/.test(digits(s));
+
+function cleanStyle(s) {
+  s = s || {};
+  const num = (v, lo, hi, d) => { v = parseFloat(v); return isNaN(v) ? d : Math.max(lo, Math.min(hi, v)); };
+  return { pad: num(s.pad, 0, 16, 0), topAdj: num(s.topAdj, -80, 160, 0), botAdj: num(s.botAdj, -80, 160, 0), gap: num(s.gap, -30, 100, 0), numScale: num(s.numScale, 0.7, 1.3, 1) };
+}
+async function getStyle(env) { try { const r = await env.SCOUT_KV.get(STYLE); return r ? cleanStyle(JSON.parse(r)) : {}; } catch { return {}; } }
 
 function cleanCard(b) {
   const clip = (s, n) => String(s == null ? "" : s).slice(0, n);
-  let si = b.sceneIdx;
-  si = (si === "" || si == null) ? "" : (parseInt(si, 10) || 0);
+  let si = b.sceneIdx; si = (si === "" || si == null) ? "" : (parseInt(si, 10) || 0);
   return {
-    name: clip(b.name, 40), contact: clip(b.contact, 60), org: clip(b.org, 60),
-    teaser: clip(b.teaser, 120), kicker: clip(b.kicker, 60),
+    name: clip(b.name, 40).trim(), contact: clip(b.contact, 60), org: clip(b.org, 60),
+    teaser: clip(b.teaser, 160),   // 두 줄 허용
     bgColor: /^#[0-9a-fA-F]{3,8}$/.test(b.bgColor || "") ? b.bgColor : "",
     inkColor: /^#[0-9a-fA-F]{3,8}$/.test(b.inkColor || "") ? b.inkColor : "",
     sceneIdx: si,
@@ -48,7 +49,7 @@ function publicApp(rec) {
   return {
     applicationNo: rec.applicationNo, targetDate: rec.targetDate, dNumber: rec.dNumber,
     name: rec.name, contact: rec.contact, org: rec.org,
-    teaser: rec.teaser, kicker: rec.kicker, bgColor: rec.bgColor, inkColor: rec.inkColor, sceneIdx: rec.sceneIdx,
+    teaser: rec.teaser, bgColor: rec.bgColor, inkColor: rec.inkColor, sceneIdx: rec.sceneIdx,
     status: rec.status, rejectReason: rec.rejectReason || "",
     editable: EDITABLE.indexOf(rec.status) >= 0, createdAt: rec.createdAt, updatedAt: rec.updatedAt,
   };
@@ -56,30 +57,28 @@ function publicApp(rec) {
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
-  const slots = await getArr(env, SLOTS);
+  const slots = await buildSlots(env);
   const index = await getArr(env, INDEX);
+  const masterStyle = await getStyle(env);
   const t = today();
 
   if (url.searchParams.get("admin")) {
     if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
     const apps = [];
-    for (const e of index) {
-      const raw = await env.SCOUT_KV.get(APP(e.applicationNo));
-      if (raw) { try { apps.push(JSON.parse(raw)); } catch {} }
-    }
-    return json({ eventDate: EVENT_DATE, today: t, slots, applications: apps });
+    for (const e of index) { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) { try { apps.push(JSON.parse(raw)); } catch {} } }
+    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps });
   }
 
   const occ = {};
   for (const e of index) if (ACTIVE.indexOf(e.status) >= 0) occ[e.targetDate] = e.status;
   const out = slots.map((s) => {
+    // 마감(날짜 경과) 개념 없음 — 점유/관리자 닫힘만 반영
     let st;
-    if (s.targetDate < t) st = "마감";
-    else if (occ[s.targetDate]) st = occ[s.targetDate] === "승인" ? "확정" : "검토중";
-    else st = s.isOpen ? "신청가능" : "마감";
+    if (occ[s.targetDate]) st = occ[s.targetDate] === "승인" ? "확정" : "검토중";
+    else st = s.isOpen ? "신청가능" : "닫힘";
     return { dNumber: s.dNumber, targetDate: s.targetDate, isOpen: !!s.isOpen, occupied: !!occ[s.targetDate], slotStatus: st };
   });
-  return json({ eventDate: EVENT_DATE, today: t, slots: out });
+  return json({ eventDate: EVENT_DATE, today: t, slots: out, masterStyle });
 }
 
 export async function onRequestPost({ request, env }) {
@@ -87,26 +86,24 @@ export async function onRequestPost({ request, env }) {
   const action = b.action;
 
   if (action === "lookup" || action === "edit" || action === "withdraw") {
-    const no = String(b.applicationNo || "").trim().toUpperCase();
+    const no = String(b.applicationNo || "").trim();
     const raw = no ? await env.SCOUT_KV.get(APP(no)) : null;
     if (!raw) return json({ ok: false, error: "not_found" }, 404);
     let rec; try { rec = JSON.parse(raw); } catch { return json({ ok: false, error: "corrupt" }, 500); }
-    if (!(await verifyPassword(String(b.password || ""), rec.salt, rec.hash)))
-      return json({ ok: false, error: "bad_password" }, 401);
+    if (!(await verifyPassword(digits(b.password), rec.salt, rec.hash))) return json({ ok: false, error: "bad_password" }, 401);
 
     if (action === "lookup") return json({ ok: true, application: publicApp(rec) });
 
     if (action === "edit") {
       if (EDITABLE.indexOf(rec.status) < 0) return json({ ok: false, error: "not_editable" }, 409);
-      Object.assign(rec, cleanCard(b), { updatedAt: new Date().toISOString() });
+      const c = cleanCard(b);   // 카드 내용만 수정(이름·연락처는 식별자라 고정)
+      Object.assign(rec, { org: c.org, teaser: c.teaser, bgColor: c.bgColor, inkColor: c.inkColor, sceneIdx: c.sceneIdx, updatedAt: new Date().toISOString() });
       await env.SCOUT_KV.put(APP(no), JSON.stringify(rec));
-      const idx = await getArr(env, INDEX); const e = idx.find((x) => x.applicationNo === no);
-      if (e) { e.name = rec.name; await putArr(env, INDEX, idx); }
       await appendLog(env, { ts: rec.updatedAt, action: "dcount.edit", count: 0, ip: clientIp(request) });
       return json({ ok: true, application: publicApp(rec) });
     }
 
-    rec.status = "철회"; rec.updatedAt = new Date().toISOString();           // withdraw
+    rec.status = "철회"; rec.updatedAt = new Date().toISOString();   // withdraw
     await env.SCOUT_KV.put(APP(no), JSON.stringify(rec));
     await env.SCOUT_KV.delete(LOCK(rec.targetDate));
     const idx = await getArr(env, INDEX); const e = idx.find((x) => x.applicationNo === no);
@@ -117,34 +114,37 @@ export async function onRequestPost({ request, env }) {
 
   if (action === "apply") {
     const targetDate = String(b.targetDate || "").trim();
-    const slots = await getArr(env, SLOTS);
-    const slot = slots.find((s) => s.targetDate === targetDate);
+    const slot = (await buildSlots(env)).find((s) => s.targetDate === targetDate);
     if (!slot) return json({ ok: false, error: "no_slot" }, 400);
     if (!slot.isOpen) return json({ ok: false, error: "slot_closed" }, 409);
-    if (targetDate < today()) return json({ ok: false, error: "slot_passed" }, 409);
     const co = b.consents || {};
-    if (!["privacy", "portrait", "thirdparty", "license", "age14"].every((k) => co[k] === true))
-      return json({ ok: false, error: "consent_required" }, 400);
+    if (!["privacy", "portrait", "thirdparty", "license", "age14"].every((k) => co[k] === true)) return json({ ok: false, error: "consent_required" }, 400);
+    const c = cleanCard(b);
+    if (!c.name) return json({ ok: false, error: "name_required" }, 400);
+    if (!isPhone(c.contact)) return json({ ok: false, error: "bad_phone" }, 400);
+
+    const applicationNo = c.name;   // 신청번호 = 이름
+    const exRaw = await env.SCOUT_KV.get(APP(applicationNo));
+    if (exRaw) { try { const ex = JSON.parse(exRaw); if (ACTIVE.indexOf(ex.status) >= 0) return json({ ok: false, error: "name_taken" }, 409); } catch {} }
     if (await env.SCOUT_KV.get(LOCK(targetDate))) return json({ ok: false, error: "already_taken" }, 409);
     const idx = await getArr(env, INDEX);
-    if (idx.some((e) => e.targetDate === targetDate && ACTIVE.indexOf(e.status) >= 0))
-      return json({ ok: false, error: "already_taken" }, 409);
+    if (idx.some((e) => e.targetDate === targetDate && ACTIVE.indexOf(e.status) >= 0)) return json({ ok: false, error: "already_taken" }, 409);
 
-    const c = cleanCard(b);
-    if (!c.name || !c.contact) return json({ ok: false, error: "missing_fields" }, 400);
-    const applicationNo = genAppNo(), password = genPassword();
+    const password = digits(c.contact).slice(-4);   // 비밀번호 = 전화 끝 4자리
     const { salt, hash } = await hashPassword(password);
     const now = new Date().toISOString();
     const rec = {
-      applicationNo, salt, hash, targetDate, dNumber: slot.dNumber, ...c,
+      applicationNo, salt, hash, targetDate, dNumber: slot.dNumber,
+      name: c.name, contact: c.contact, org: c.org, teaser: c.teaser, bgColor: c.bgColor, inkColor: c.inkColor, sceneIdx: c.sceneIdx,
       status: "제출됨", rejectReason: "",
       consents: { privacy: true, portrait: true, thirdparty: true, license: true, age14: true },
       consentAt: now, createdAt: now, updatedAt: now, ip: maskIp(clientIp(request)),
     };
     await env.SCOUT_KV.put(LOCK(targetDate), applicationNo);
     await env.SCOUT_KV.put(APP(applicationNo), JSON.stringify(rec));
-    idx.unshift({ applicationNo, targetDate, dNumber: slot.dNumber, name: c.name, status: "제출됨", createdAt: now });
-    await putArr(env, INDEX, idx.slice(0, 2000));
+    const idx2 = idx.filter((e) => e.applicationNo !== applicationNo);   // 같은 이름 옛(철회/반려) 항목 제거
+    idx2.unshift({ applicationNo, targetDate, dNumber: slot.dNumber, name: c.name, status: "제출됨", createdAt: now });
+    await putArr(env, INDEX, idx2.slice(0, 2000));
     await appendLog(env, { ts: now, action: "dcount.apply", count: 0, ip: clientIp(request) });
     return json({ ok: true, applicationNo, password, targetDate, dNumber: slot.dNumber });
   }
@@ -157,27 +157,24 @@ export async function onRequestPatch({ request, env }) {
   let b; try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const action = b.action, now = new Date().toISOString();
 
-  if (action === "seed") {
-    const slots = await getArr(env, SLOTS);
-    const have = new Set(slots.map((s) => s.dNumber));
-    for (let n = 40; n >= 5; n--) if (!have.has(n)) slots.push({ dNumber: n, targetDate: dateForDNumber(n), isOpen: true });
-    slots.sort((a, z) => z.dNumber - a.dNumber);
-    await putArr(env, SLOTS, slots);
-    await appendLog(env, { ts: now, action: "dcount.seed", count: slots.length, ip: clientIp(request) });
-    return json({ ok: true, slots });
+  if (action === "slot") {
+    const dn = parseInt(b.dNumber, 10); if (!dn) return json({ ok: false, error: "no_slot" }, 404);
+    const closed = new Set((await getArr(env, CLOSED)).map((n) => parseInt(n, 10)));
+    if (b.isOpen) closed.delete(dn); else closed.add(dn);
+    await putArr(env, CLOSED, [...closed]);
+    await appendLog(env, { ts: now, action: "dcount.slot", count: closed.size, ip: clientIp(request) });
+    return json({ ok: true, slots: await buildSlots(env) });
   }
 
-  if (action === "slot") {
-    const slots = await getArr(env, SLOTS);
-    const s = slots.find((x) => x.dNumber === b.dNumber || x.targetDate === b.targetDate);
-    if (!s) return json({ ok: false, error: "no_slot" }, 404);
-    s.isOpen = !!b.isOpen;
-    await putArr(env, SLOTS, slots);
-    return json({ ok: true, slots });
+  if (action === "style") {
+    const st = cleanStyle(b.style);
+    await env.SCOUT_KV.put(STYLE, JSON.stringify(st));
+    await appendLog(env, { ts: now, action: "dcount.style", count: 0, ip: clientIp(request) });
+    return json({ ok: true, masterStyle: st });
   }
 
   if (action === "approve" || action === "reject" || action === "changes") {
-    const no = String(b.applicationNo || "").trim().toUpperCase();
+    const no = String(b.applicationNo || "").trim();
     const raw = no ? await env.SCOUT_KV.get(APP(no)) : null;
     if (!raw) return json({ ok: false, error: "not_found" }, 404);
     let rec; try { rec = JSON.parse(raw); } catch { return json({ ok: false, error: "corrupt" }, 500); }
@@ -186,7 +183,7 @@ export async function onRequestPatch({ request, env }) {
     else { rec.status = "반려"; rec.rejectReason = String(b.rejectReason || "").slice(0, 300); }
     rec.updatedAt = now;
     await env.SCOUT_KV.put(APP(no), JSON.stringify(rec));
-    if (action === "reject") await env.SCOUT_KV.delete(LOCK(rec.targetDate));   // 반려 → 날짜 해제
+    if (action === "reject") await env.SCOUT_KV.delete(LOCK(rec.targetDate));
     const idx = await getArr(env, INDEX); const e = idx.find((x) => x.applicationNo === no);
     if (e) { e.status = rec.status; await putArr(env, INDEX, idx); }
     await appendLog(env, { ts: now, action: "dcount." + action, count: 0, ip: clientIp(request) });

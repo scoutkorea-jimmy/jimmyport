@@ -45,7 +45,8 @@
     #__boot{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font:14px/1.4 'Hanken Grotesk',sans-serif; }
 
     /* ── D-count 컴포넌트 ── */
-    .dc-wrap{ max-width:1000px; margin:0 auto; padding:0 22px 80px; }
+    /* 모바일 최적화 고정폭 — PC에서는 좌우 여백만 커짐(반응형 리플로우 없음) */
+    .dc-wrap{ max-width:480px; margin:0 auto; padding:0 18px 80px; }
     .dc-nav{ display:flex; gap:6px; background:var(--surface-3); border:1px solid var(--line); border-radius:var(--pill); padding:4px; margin:18px 0 4px; width:max-content; }
     .dc-nav button{ font:inherit; font-size:13px; font-weight:600; padding:8px 18px; border:none; background:none; color:var(--muted); border-radius:var(--pill); cursor:pointer; }
     .dc-nav button.on{ background:var(--accent); color:#fff; box-shadow:var(--sh-1); }
@@ -74,12 +75,48 @@
     .dc-swatches{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
     .dc-sw{ width:24px; height:24px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; padding:0; }
     .dc-scrim{ position:fixed; inset:0; background:rgba(20,28,22,.55); display:flex; align-items:flex-start; justify-content:center; padding:30px 16px; overflow:auto; z-index:200; }
-    .dc-modal{ background:var(--surface); border-radius:var(--r-3); box-shadow:var(--sh-3); width:min(940px,100%); padding:24px; }
+    .dc-modal{ background:var(--surface); border-radius:var(--r-3); box-shadow:var(--sh-3); width:min(480px,100%); padding:22px; }
     .dc-tag{ display:inline-block; font-size:11.5px; font-weight:700; padding:3px 11px; border-radius:var(--pill); color:#fff; }
     .dc-note{ font-size:12.5px; color:var(--muted); line-height:1.55; }
     .dc-err{ color:var(--danger); font-size:13px; font-weight:600; min-height:18px; margin-top:8px; }
     .dc-ok{ color:var(--accent); font-size:13px; font-weight:600; }
     .dc-mono{ font-family:ui-monospace,Menlo,monospace; font-size:20px; font-weight:700; letter-spacing:.04em; color:var(--accent-ink); background:var(--accent-soft); border-radius:var(--r-1); padding:8px 14px; display:inline-block; }
+
+    /* 달력형(월 그리드) */
+    .dc-months{ display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:22px; }
+    .dc-mtitle{ font:700 15px 'Bricolage Grotesque',sans-serif; margin:0 0 10px; color:var(--ink); letter-spacing:-.01em; }
+    .dc-dow{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:5px; }
+    .dc-dow span{ text-align:center; font-size:11px; font-weight:700; color:var(--muted); }
+    .dc-dow span.sun{ color:var(--danger); }
+    .dc-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+    .dc-day{ min-height:54px; border:1px solid transparent; border-radius:9px; padding:4px; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .dc-day .dnum{ position:absolute; top:4px; left:6px; font-size:10px; color:var(--faint); }
+    .dc-day.slot{ border-color:var(--line); background:var(--surface-2); }
+    .dc-day.slot .dd{ font:700 15px 'Bricolage Grotesque',sans-serif; color:var(--ink); line-height:1; margin-top:6px; }
+    .dc-day.slot .sst{ font-size:9px; font-weight:700; padding:1px 6px; border-radius:var(--pill); color:#fff; margin-top:4px; }
+    .dc-day.slot.open{ cursor:pointer; }
+    .dc-day.slot.open:hover{ border-color:var(--accent); box-shadow:var(--sh-1); }
+    .dc-day.slot.dimmed{ opacity:.55; }
+    .dc-day.today{ outline:2px solid var(--accent); outline-offset:-1px; }
+
+    /* 관리자 */
+    .dc-stats{ display:flex; gap:8px; flex-wrap:wrap; }
+    .dc-stat{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-2); padding:9px 14px; text-align:center; min-width:74px; }
+    .dc-stat b{ display:block; font:700 19px 'Bricolage Grotesque',sans-serif; color:var(--ink); }
+    .dc-stat span{ font-size:11px; color:var(--muted); }
+    .dc-sec{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-3); box-shadow:var(--sh-1); margin-bottom:14px; overflow:hidden; }
+    .dc-sec>summary{ list-style:none; cursor:pointer; padding:14px 18px; font-weight:700; font-size:14px; color:var(--ink); display:flex; align-items:center; gap:8px; }
+    .dc-sec>summary::-webkit-details-marker{ display:none; }
+    .dc-sec>summary::before{ content:'▸'; color:var(--accent); font-size:12px; transition:var(--ease); }
+    .dc-sec[open]>summary::before{ transform:rotate(90deg); }
+    .dc-sec .dc-secbody{ padding:0 18px 18px; }
+    .dc-slider{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .dc-slider label{ flex:0 0 130px; font-size:12.5px; font-weight:600; color:var(--ink-2); }
+    .dc-slider input[type=range]{ flex:1; accent-color:var(--accent); }
+    .dc-slider .val{ flex:0 0 52px; text-align:right; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .dc-app{ border:1px solid var(--line); border-radius:var(--r-2); padding:14px; margin-bottom:10px; }
+    .dc-app.todo{ border-color:var(--st-draft); background:var(--st-draft-bg); }
+    .dc-applist{ display:grid; gap:10px; }
   </style>
 
   <!-- 콘솔 정리: Babel in-browser advisory 경고만 필터 -->
@@ -93,9 +130,10 @@
       };
     })();
   </script>
-  <!-- React + Babel (CDN) -->
+  <!-- React + Babel + html-to-image (A4 출력) (CDN) -->
   <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
 </head>
 <body>
