@@ -141,11 +141,41 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
   const store = useCCStore();
   const register = React.useContext(window.CCRegisterPhotoCtx);
   React.useEffect(() => { if (slot && register) register(slot, slotLabel || label || slot); }, [slot]);
+  const [editing, setEditing] = React.useState(false);
+  const [live, setLive] = React.useState(null);
+  const ref = React.useRef(null);
   const img = slot ? store.getImage(slot) : null;
   if (img) {
+    // 더블클릭 → 이동/크기 편집. 트랜스폼(dx·dy·sc)은 store에 저장 → 프리뷰·PNG 공용.
+    const saved = store.getProps('imgxf-' + slot);
+    const xf = live || { dx: saved.dx || 0, dy: saved.dy || 0, sc: saved.sc || 1 };
+    const startDrag = (e, mode) => {
+      if (!editing) return;
+      e.preventDefault(); e.stopPropagation();
+      const el = ref.current, r = el.getBoundingClientRect();
+      const conv = ((r.width / (el.offsetWidth || 1)) || 1) / (xf.sc || 1);   // 화면px→카드px (프리뷰 스케일만)
+      const s = { x: e.clientX, y: e.clientY, dx: xf.dx, dy: xf.dy, sc: xf.sc };
+      const onMove = (ev) => {
+        const ddx = (ev.clientX - s.x) / conv, ddy = (ev.clientY - s.y) / conv;
+        if (mode === 'move') setLive({ dx: s.dx + ddx, dy: s.dy + ddy, sc: s.sc });
+        else { const k = 1 + (ddx + ddy) / (el.offsetWidth || 400); setLive({ dx: s.dx, dy: s.dy, sc: Math.max(0.25, Math.min(4, s.sc * k)) }); }
+      };
+      const onUp = () => {
+        window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp);
+        setLive((cur) => { if (cur) { store.setProp('imgxf-' + slot, 'dx', Math.round(cur.dx)); store.setProp('imgxf-' + slot, 'dy', Math.round(cur.dy)); store.setProp('imgxf-' + slot, 'sc', Math.round(cur.sc * 1000) / 1000); } return null; });
+      };
+      window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
+    };
+    const tf = [(style && style.transform) || '', `translate(${xf.dx}px, ${xf.dy}px)`, `scale(${xf.sc})`].filter(Boolean).join(' ');
     return (
-      <div style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style }}>
-        <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      <div ref={ref} onDoubleClick={(e) => { e.stopPropagation(); setEditing((v) => !v); }} onPointerDown={(e) => startDrag(e, 'move')}
+        style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style, transform: tf,
+          cursor: editing ? 'move' : 'default', outline: editing ? '3px solid #6336B5' : 'none', outlineOffset: -1, zIndex: editing ? 6 : (style && style.zIndex) }}>
+        <img src={img} alt="" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
+        {editing && <div onPointerDown={(e) => startDrag(e, 'resize')} title="크기 조절"
+          style={{ position: 'absolute', right: -11, bottom: -11, width: 34, height: 34, background: '#6336B5', border: '3px solid #fff', borderRadius: '50%', cursor: 'nwse-resize', boxShadow: '0 2px 8px rgba(0,0,0,.35)' }} />}
+        {editing && <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setEditing(false); }}
+          style={{ position: 'absolute', left: 8, top: 8, background: 'rgba(99,54,181,.95)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '5px 11px', borderRadius: 7, fontFamily: 'sans-serif', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>드래그=이동 · 모서리=크기 · ✓ 완료</button>}
       </div>
     );
   }

@@ -94,6 +94,16 @@
       const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
       return lum > 0.62 ? '#4D006E' : '#fff';
     },
+    /* 배경색 농도 — density(0~100%)만큼 색을 흰색으로 희석(100=원색, 낮을수록 옅음) */
+    dilute(hex, density) {
+      const d = density == null ? 100 : +density;
+      const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+      if (!m || d >= 100) return hex;
+      const n = parseInt(m[1], 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      const t = (100 - Math.max(0, Math.min(100, d))) / 100;
+      r = Math.round(r + (255 - r) * t); g = Math.round(g + (255 - g) * t); b = Math.round(b + (255 - b) * t);
+      return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    },
   };
 
   window.CCStore = store;

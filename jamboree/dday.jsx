@@ -75,8 +75,9 @@ function ddScatter(i, isDay, cols, bleed, fmt, gfx) {
 function useDDeff(c) {
   const store = useCCStore();
   const ov = store.getProps(c.ek);
-  const themed = !!ov.bg;
-  const bg = ov.bg || c.bg;
+  const dens = ov.bgDensity != null ? +ov.bgDensity : 100;   // 배경색 농도(100=원색)
+  const themed = !!ov.bg || dens < 100;
+  const bg = store.dilute(ov.bg || c.bg, dens);
   const ink = themed ? store.idealInk(bg) : c.ink;
   const numColor = themed ? store.idealInk(bg) : c.num;
   const kickerColor = themed ? numColor : c.kickerColor;

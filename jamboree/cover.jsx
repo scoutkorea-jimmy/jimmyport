@@ -8,8 +8,9 @@ function CoverThemed(props) {
   const gc = React.useContext(window.GContentCtx) || {};
   const store = useCCStore();
   const ov = store.getProps('cover-' + id);
-  const BG = ov.bg || bg;
-  const INKC = ov.bg ? store.idealInk(ov.bg) : ink;   // 배경색 바꾸면 본문 잉크 자동 대비
+  const dens = ov.bgDensity != null ? +ov.bgDensity : 100;   // 배경색 농도(100=원색)
+  const BG = store.dilute(ov.bg || bg, dens);
+  const INKC = (ov.bg || dens < 100) ? store.idealInk(BG) : ink;   // 배경색/농도 바꾸면 본문 잉크 자동 대비
   const catColor = cat && (ov.catColor || cat.color);
   const align = ov.align || 'left';   // 제목·부제 블록 정렬 오버라이드
   const ek = 'cover-' + id;

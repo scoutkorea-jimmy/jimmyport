@@ -120,7 +120,7 @@ function AutoFooter() {
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, background: f.color, color: f.ink,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 64px', boxSizing: 'border-box' }}>
       <span style={{ fontSize: 25, fontWeight: 500, letterSpacing: '.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '78%' }}>{f.title}</span>
-      {f.page ? <span className="hi" style={{ fontSize: 25, fontWeight: 700, fontVariantNumeric: 'tabular-nums', opacity: .96 }}>{f.page} / {f.total}</span> : null}
+      {f.page ? <span style={{ fontSize: 25, fontWeight: 500, letterSpacing: '.01em', fontVariantNumeric: 'tabular-nums', opacity: .96 }}>{f.page} / {f.total}</span> : null}
     </div>
   );
 }

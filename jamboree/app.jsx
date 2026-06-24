@@ -706,6 +706,7 @@ function App() {
               )}
               <span style={fieldLabel}>배경색</span>
               <Swatches value={store.getProp(coverScope || ddScope, 'bg', '')} onPick={(c) => store.setProp(coverScope || ddScope, 'bg', c)} clearable />
+              <Slider label="배경색 농도" value={+store.getProp(coverScope || ddScope, 'bgDensity', 100)} min={30} max={100} step={5} unit="%" onChange={(v) => store.setProp(coverScope || ddScope, 'bgDensity', v)} />
               {familyKey === 'dday' && !ddIsDay && (() => {
                 const N = window.FEED_GFX_COUNT || 1;
                 const defIdx = ((cards.findIndex((c) => card && c.id === card.id) % N) + N) % N;
@@ -760,6 +761,9 @@ function App() {
                   {(window.SCENE_LABELS || []).map((l, i) => <option key={i} value={i}>{(i + 1) + ' · ' + l}</option>)}
                 </select>
               </label>
+              <span style={{ ...fieldLabel, marginTop: 10 }}>오브제 위치 (텍스트 가림 방지)</span>
+              <Slider label="좌우" value={+store.getProp(scenes[0].scope, 'ox', 0) || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp(scenes[0].scope, 'ox', v)} />
+              <Slider label="상하" value={+store.getProp(scenes[0].scope, 'oy', 0) || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp(scenes[0].scope, 'oy', v)} />
             </div>
           )}
 

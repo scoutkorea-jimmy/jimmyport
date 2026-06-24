@@ -235,10 +235,13 @@ function SceneScatter({ scope, cx, by, s = 1, cols, fallback }) {
   const register = React.useContext(window.CCRegisterSceneCtx);
   React.useEffect(() => { if (scope && register) register(scope); }, [scope]); // eslint-disable-line
   const sel = scope ? store.getProp(scope, 'scene', '') : '';
-  if (sel === '' || sel == null) return <ShapeScatter items={fallback || []} />;
+  const ox = scope ? (+store.getProp(scope, 'ox', 0) || 0) : 0;   // 오브제 위치(좌우)
+  const oy = scope ? (+store.getProp(scope, 'oy', 0) || 0) : 0;   // 오브제 위치(상하)
+  const xfStyle = (ox || oy) ? { transform: `translate(${ox}px, ${oy}px)` } : undefined;
+  if (sel === '' || sel == null) return <ShapeScatter items={fallback || []} style={xfStyle} />;
   const idx = (((parseInt(sel, 10) || 0) % SCENES.length) + SCENES.length) % SCENES.length;
   const c = cols && cols.length ? cols : [PAL.orange, PAL.river, PAL.pink, PAL.leaf];
-  return <ShapeScatter items={SCENES[idx].build(cx, by, s, [c[0], c[1] || c[0], c[2] || c[0], c[3] || c[1] || c[0]])} />;
+  return <ShapeScatter items={SCENES[idx].build(cx, by, s, [c[0], c[1] || c[0], c[2] || c[0], c[3] || c[1] || c[0]])} style={xfStyle} />;
 }
 window.SCENE_LABELS = SCENE_LABELS;
 
