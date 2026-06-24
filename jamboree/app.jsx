@@ -255,16 +255,24 @@ function App() {
   const [author, setAuthorState] = useState(() => { try { return localStorage.getItem(AUTHOR_KEY) || ''; } catch (_) { return ''; } });
   const setAuthor = useCallback((v) => { setAuthorState(v); try { if (v) localStorage.setItem(AUTHOR_KEY, v); else localStorage.removeItem(AUTHOR_KEY); } catch (_) {} }, []);
 
-  /* ── 서버 백업(선택): 비밀번호 scout1922 입력 시 활성. 기본 저장은 로컬(브라우저) ── */
-  const SERVER_PW = 'scout1922';
-  const [serverOpen, setServerOpen] = useState(() => { try { return localStorage.getItem('jamboree:server-ok') === '1'; } catch (_) { return false; } });
-  const [serverPw, setServerPw] = useState('');
+  /* ── 서버 백업(선택): 관리자 인증앱(TOTP) 6자리 코드로 활성. 기본 저장은 로컬(브라우저) ── */
+  const SESSION_KEY = 'jamboree:session';
+  const readSession = () => { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); return (s && s.token && s.exp > Date.now()) ? s : null; } catch (_) { return null; } };
+  const [session, setSessionState] = useState(readSession);
+  const setSession = useCallback((s) => { setSessionState(s); try { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); } catch (_) {} }, []);
+  const serverOpen = !!session;
+  const [serverCode, setServerCode] = useState('');
   const [serverItems, setServerItems] = useState(null);
   const [serverMsg, setServerMsg] = useState('');
+  const authHeaders = useCallback((extra) => Object.assign({}, extra || {}, session ? { Authorization: 'Bearer ' + session.token } : {}), [session]);
+  const onAuthFail = useCallback(() => { setSession(null); setServerItems(null); setServerMsg('세션이 만료되었습니다. 인증 코드를 다시 입력하세요.'); }, [setSession]);
   const serverRefresh = useCallback(async () => {
-    try { const r = await fetch('/api/jamboree?list=1'); const d = await r.json(); setServerItems(Array.isArray(d.items) ? d.items : []); }
-    catch (_) { setServerItems([]); setServerMsg('서버 목록을 불러오지 못했어요'); }
-  }, []);
+    try {
+      const r = await fetch('/api/jamboree?list=1', { headers: authHeaders() });
+      if (r.status === 401) { onAuthFail(); return; }
+      const d = await r.json(); setServerItems(Array.isArray(d.items) ? d.items : []);
+    } catch (_) { setServerItems([]); setServerMsg('서버 목록을 불러오지 못했어요'); }
+  }, [authHeaders, onAuthFail]);
 
   const family = famOf(familyKey);
   const cards = family.sec() || [];
@@ -424,41 +432,52 @@ function App() {
     setRemount((n) => n + 1); setListMsg('새 카드뉴스 시작됨'); flash('새 카드뉴스 ✓');
   }, []);
 
-  /* ── 서버 백업 액션 (비밀번호 scout1922 잠금 해제 후) ── */
-  const unlockServer = useCallback(() => {
-    if (serverPw !== SERVER_PW) { setServerMsg('비밀번호가 올바르지 않습니다'); return; }
-    setServerOpen(true); setServerMsg(''); try { localStorage.setItem('jamboree:server-ok', '1'); } catch (_) {}
-    setServerItems(null); serverRefresh();
-  }, [serverPw, serverRefresh]);
+  /* ── 서버 백업 액션 (관리자 인증앱 6자리 코드로 잠금 해제 후) ── */
+  const unlockServer = useCallback(async () => {
+    const code = serverCode.replace(/\D/g, '');
+    if (code.length !== 6) { setServerMsg('인증앱 6자리 코드를 입력하세요'); return; }
+    setServerMsg('확인 중…');
+    try {
+      const r = await fetch('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok || !d.token) { setServerMsg(r.status === 429 ? '시도가 너무 많습니다. 잠시 후 다시 시도하세요.' : '인증 코드가 올바르지 않습니다'); return; }
+      setSession({ token: d.token, exp: d.exp || (Date.now() + 12 * 3600 * 1000) });
+      setServerCode(''); setServerMsg(''); setServerItems(null);   // serverOpen→true 이펙트가 목록 새로고침
+    } catch (_) { setServerMsg('네트워크 오류'); }
+  }, [serverCode, setSession]);
   const serverSave = useCallback(async () => {
     setServerMsg('서버 저장 중…');
     try {
       const state = Object.assign(window.CCStore.collect(), { brand });
       const name = (currentName || saveName || brand.brand || '카드뉴스').trim();
-      const r = await fetch('/api/jamboree', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, author: author || '익명', state }) });
+      const r = await fetch('/api/jamboree', { method: 'POST', headers: authHeaders({ 'content-type': 'application/json' }), body: JSON.stringify({ name, author: author || '익명', state }) });
+      if (r.status === 401) { onAuthFail(); return; }
       if (!r.ok) { setServerMsg('서버 저장 실패 (' + r.status + ')'); return; }
       setServerMsg('서버에 저장됨 ✓'); flash('서버 저장 ✓'); serverRefresh();
     } catch (_) { setServerMsg('네트워크 오류'); }
-  }, [brand, currentName, saveName, author, serverRefresh]);
+  }, [brand, currentName, saveName, author, serverRefresh, authHeaders, onAuthFail]);
   const serverLoad = useCallback(async (it) => {
     setServerMsg('불러오는 중…');
     try {
-      const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id)); const d = await r.json();
+      const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { headers: authHeaders() });
+      if (r.status === 401) { onAuthFail(); return; }
+      const d = await r.json();
       if (!d || !d.state) { setServerMsg('불러오기 실패'); return; }
       window.CCStore.hydrate(d.state);
       if (d.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, d.state.brand));
       setCurrentId(null); setCurrentName(it.name || '');   // 서버본은 로컬 자동저장 대상 아님
       setRemount((n) => n + 1); setListOpen(false); flash('서버에서 불러옴 ✓');
     } catch (_) { setServerMsg('네트워크 오류'); }
-  }, []);
+  }, [authHeaders, onAuthFail]);
   const serverDelete = useCallback(async (it) => {
     if (!window.confirm('서버에서 "' + it.name + '" 삭제할까요?')) return;
     try {
-      const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE' });
+      const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE', headers: authHeaders() });
+      if (r.status === 401) { onAuthFail(); return; }
       if (!r.ok) { setServerMsg('삭제 실패'); return; }
       setServerItems((p) => Array.isArray(p) ? p.filter((x) => x.id !== it.id) : p);
     } catch (_) { setServerMsg('네트워크 오류'); }
-  }, []);
+  }, [authHeaders, onAuthFail]);
 
   /* ── 자동 저장: 불러온/저장한 항목이 있으면 그 항목을 갱신(작성자 이름 필요) ── */
   const brandRef = useRef(brand);
@@ -911,17 +930,17 @@ function App() {
                 ))}
               </div>
 
-              {/* 서버 백업 (선택 · 비밀번호 scout1922) */}
+              {/* 서버 백업 (선택 · 관리자 인증앱 코드) */}
               <div style={{ padding: '14px 20px', borderTop: '1px solid '+UI.line, background: UI.surface2 }}>
-                <div style={{ ...secLabel, marginBottom: 8 }}>서버 백업 (선택 · 비밀번호 필요)</div>
+                <div style={{ ...secLabel, marginBottom: 8 }}>서버 백업 (선택 · 관리자 인증 필요)</div>
                 {!serverOpen ? (
                   <div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <input type="password" value={serverPw} placeholder="비밀번호" onChange={(e) => setServerPw(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') unlockServer(); }} style={{ ...inputStyle, flex: 1 }} />
+                      <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={serverCode} placeholder="인증앱 6자리 코드" onChange={(e) => setServerCode(e.target.value.replace(/\D/g, ''))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') unlockServer(); }} style={{ ...inputStyle, flex: 1, letterSpacing: '0.25em' }} />
                       <button onClick={unlockServer} style={{ flex: '0 0 auto', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>잠금 해제</button>
                     </div>
-                    <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. 다른 기기와 공유하려면 비밀번호로 서버 백업을 켜세요.</p>
+                    <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. 다른 기기와 공유하려면 관리자 인증앱(Authenticator)의 6자리 코드로 서버 백업을 켜세요.</p>
                   </div>
                 ) : (
                   <div>
@@ -940,7 +959,7 @@ function App() {
                     ))}
                   </div>
                 )}
-                {serverMsg && <div style={{ fontSize: 12.5, color: /실패|오류|올바르/.test(serverMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 8 }}>{serverMsg}</div>}
+                {serverMsg && <div style={{ fontSize: 12.5, color: /실패|오류|올바르|만료|입력하세요|너무/.test(serverMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 8 }}>{serverMsg}</div>}
               </div>
             </div>
           </div>

@@ -11,7 +11,13 @@
  *  - POST /api/jamboree            → 새 항목 {name, author, state} → {id}
  *  - DELETE /api/jamboree?id=<id>  → 삭제
  *  state = { text, props, images, brand }  (Phase 1 editKeys 호환) */
-import { json, clientIp, appendLog } from "./_lib.js";
+import { json, clientIp, appendLog, isAdmin } from "./_lib.js";
+
+// Server backup is admin-only (gated by the same TOTP session as /admin).
+// The card-news app saves locally by default; the server slot is opt-in and
+// must not be readable/writable without a valid admin session.
+const requireAdmin = async (request, env) =>
+  (await isAdmin(request, env)) ? null : json({ error: "unauthorized" }, 401);
 
 const KEY = "jamboree";
 const KEY_INDEX = "jamboree:index";
@@ -25,6 +31,7 @@ async function readIndex(env) {
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 
 export async function onRequestGet({ request, env }) {
+  const deny = await requireAdmin(request, env); if (deny) return deny;
   const url = new URL(request.url);
   if (url.searchParams.get("list")) {
     return json({ items: await readIndex(env) });
@@ -42,6 +49,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
+  const deny = await requireAdmin(request, env); if (deny) return deny;
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const state = body && typeof body.state === "object" && body.state ? body.state : null;
@@ -72,6 +80,7 @@ export async function onRequestPut({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const deny = await requireAdmin(request, env); if (deny) return deny;
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const state = body && typeof body.state === "object" && body.state ? body.state : null;
@@ -89,6 +98,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
+  const deny = await requireAdmin(request, env); if (deny) return deny;
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "id required" }, 400);
   await env.SCOUT_KV.delete(ITEM(id));
