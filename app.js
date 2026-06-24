@@ -33,12 +33,10 @@
       return { scopes: scopes, name: String((e && e.name) || ""), start: start, end: end };
     }).filter(function (e) { return e.name || e.start; }) : [];
   }
-  function evDateNum(d) { return d ? (parseInt(String(d).replace(/-/g, ""), 10) || 0) : 0; }
   function fmtEvDate(d) { return d ? String(d).split("-").join(".") : ""; }  // YYYY.MM.DD
   function fmtEvRange(e) { if (!e.start) return ""; var s = fmtEvDate(e.start); return (e.end && e.end !== e.start) ? s + " – " + fmtEvDate(e.end) : s; }
-  function sortedEvents(u) { return (u.events || []).slice().sort(function (a, b) { return evDateNum(b.start) - evDateNum(a.start); }); }
   function eventsHtml(u) {
-    var ev = sortedEvents(u); if (!ev.length) return "";
+    var ev = u.events || []; if (!ev.length) return "";  // keep the admin's arranged order (drag / sort), don't re-sort here
     // public view: date (small, grey) above the event name; scope chips are admin-only
     var rows = ev.map(function (e, i) {
       var range = fmtEvRange(e);
