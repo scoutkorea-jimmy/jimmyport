@@ -728,3 +728,8 @@ WOSM Region → 국가(NSO) → 단위대
 - **로그**: 관리자 GET `log`(최근 100) + 접이식 뷰어 + **로그 초기화**(`PATCH action:clearlog` — 초기화 자체는 `log.cleared` 감사 기록을 **무조건** 남김).
 - 표지(landing): 카드 제목 풀네임(카드뉴스 제작기/홍보부 통합 관리 플랫폼/디데이 신청홈페이지) + 하단 **BP MEDIA(bpmedia.net)** 링크. version-watch.js = 자체 스타일 **우측 상단 토스트**(국문).
 - 검증: node --check+Babel + CDP(PC1280): 5일그룹 캘린더·헤더 엠블럼 원형·**오버플로우 0·콘솔 0** + 스크린샷(캘린더·표지). 사진/로그/엠블럼/승인흐름은 관리자 TOTP·실데이터라 사용자 QA.
+
+### 18.10 v0.9.115–0.9.117 — 디데이 프로젝트 크래시 수정·리네임·세부라우팅·planning 연동
+- **v0.9.115 크래시 핫픽스**: dcard.jsx에서 `BRIGHT/DEEP`를 `NAT_DARK/NAT_LIGHT`로 개명하며 `colsForBg`·`scatterFor` 참조를 안 고쳐 `ReferenceError: BRIGHT is not defined`(커스텀 배경색 카드 렌더 시 페이지 다운). 참조 수정. (CDP로 흰배경 lookup 렌더 navOk·에러 0 확인)
+- **v0.9.116**: 'D-COUNT 카드' → **'디데이 프로젝트'** 전면 리네임(타이틀·헤더·syncbar·탭·랜딩 카드) + **스카우트 톤** 카피. 상단 **반려 안내**(비속어·상업·정치 → 반려) 배너를 빠른확정 배너 위에. **해시 세부라우팅**(`#/lookup`·`#/admin`, hashchange 동기화). 캘린더에서 '실시간·5일단위' 라벨 + 그룹 헤더(D-40~D-36 …) 텍스트 제거(5개씩 행 그룹은 유지).
+- **v0.9.117 planning 연동**: dcount 공개 GET에 `approved`[{targetDate,dNumber,name}] 추가(게시용 카드라 이름 공개 안전). `jamboree-plan/app.js`가 init에서 `/api/krjam-dcount` fetch → `dcountApproved` → 캘린더 셀에 **★ 디데이 D-NN · 이름** 칩(클릭 시 `/krjam-dcount` 새 탭). 검증: 공개 GET `approved` 반환 확인.
