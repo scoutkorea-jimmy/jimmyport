@@ -697,3 +697,13 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 18.5 문서 현행화
 - 본 §18 추가 + §3 파일구조 재작성(랜딩/tour/krjam-*/_middleware/_redirects 반영, 옛 manage.html 잔재 제거) + §8 운영규칙(도메인 2개·라우팅·누수차단) 갱신. KMS.md·FEATURES.md·README.md 의 라이브 URL·호스팅·경로도 scoutingapp.net + 신 라우팅으로 갱신.
+
+### 18.7 v0.9.109–0.9.111 — /krjam-dcount D-COUNT 신청 시스템 + D-가로 모듈 추출
+- **v0.9.109 버그픽스**: 홍보부 회원가입 동의 체크박스가 세로로 깨짐 — `.auth-box input{width:100%}`가 체크박스까지 늘려 라벨 텍스트를 0폭으로 밀었음 → `:not([type=checkbox])` 제외 + `.auth-consent` flex 규칙. 로그인 힌트 `<br>` 두 줄 처리.
+- **v0.9.110 D-가로 모듈 추출**: krjam-cardnews `DDayWide`(1480×1047)를 편집 스토어/Editable 의존 없이 **prop만 받는 독립 모듈** `krjam-dcount/dcard.jsx`(`window.DCountCard`)로. 공유 프리미티브(Card/Logo/Kicker/ShapeScatter/MOTIF/scene/PAL)만 재사용. `krjam-dcount.html`(React, 카드용 자체호스트 폰트 + krjam-planning 그린 크롬). 커스터마이즈 props: 문구(teaser)·상단문구(kicker)·**배경색·글씨색·오른쪽 오브제(SCENES 12종)**. 글씨색 지정 시 숫자/키커/푸터 동일 색, 배경만 지정 시 `idealInk` 자동 대비.
+- **v0.9.111 신청 시스템 전체**(사용자: "모든 기능 한 번에 개발, 나중에 일괄 검수"). `functions/api/krjam-dcount.js`(KV): 슬롯 `dcount:slots`(D-40~D-5, **관리자 수동 시딩**, 자동생성 X)·신청 `dcount:app:<no>`(PBKDF2 비번)·**선점잠금** `dcount:lock:<date>`(ACTIVE 상태가 점유)·인덱스 `dcount:index`. **마감 버퍼 없음**(target_date까지 신청). 카드=D-가로 텍스트/그래픽 → **사진 업로드·R2 없음**(초상권 동의는 사진 포함 시 적용 문구).
+  - 공개: `GET`(슬롯+점유상태 색) · `POST apply`(5종 동의 필수→**신청번호+비번 1회 발급**+날짜 잠금) · `lookup`/`edit`(검토중만)/`withdraw`(날짜 해제).
+  - 관리자(기존 TOTP `/api/login`): `GET ?admin=1`(전체+IP) · `PATCH seed`/`slot`(개폐)/`approve`/`reject`(사유)/`changes`.
+  - 프런트 `krjam-dcount/app.jsx`: 캘린더(상태색)·신청 폼(커스터마이저+라이브 미리보기+5종 동의)·발급 모달·조회/수정/철회·관리자(목록·필터·승인/반려·슬롯 시딩/개폐).
+- 미결정(O-1~O-5) 기본값: **버퍼 0** · 통지=조회페이지(번호+비번) · 승인본=내부목록(자동 SNS X) · O-2=문구+커스터마이즈(사진 없음).
+- 검증: `node --check`(API) + Babel 컴파일(dcard·app) + 헤드리스 부팅(그린 톤·탭·빈 캘린더 안내, 콘솔 에러 0) + API(공개 GET 200·admin 401·apply 검증 400·**KV 쓰기 0**). ⚠️ 슬롯 시딩·신청·승인 실데이터 흐름은 관리자 TOTP 필요 → **사용자 일괄 QA**. 운영 KV 파괴적 쓰기 금지(§16.6) 준수.
