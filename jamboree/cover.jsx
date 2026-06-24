@@ -18,13 +18,15 @@ function CoverThemed(props) {
   const dark = INKC !== '#fff' ? PAL.midnight : PAL.midnight;
   const palAll = [PAL.leaf, PAL.orange, PAL.river, PAL.ocean, PAL.pink, PAL.red, PAL.forest].filter((c) => c !== BG);
   const k0 = palAll[0], k1 = palAll[1], k2 = palAll[2], k3 = palAll[3];
+  // 캠프 풍경 — 겹침 없이 넓게(뒤→앞 레이어): 해·구름 / 산·언덕(배경) / 나무·텐트·모닥불(전경)
   const genScatter = scatter || window.scene(
-    M.sun(880, 360, 1.1, k1),
-    M.mountain(560, 735, 1.4, PAL.forest === BG ? k2 : PAL.forest, k2),  // 뒤 배경(먼저)
-    M.tree(285, 735, 1.45, PAL.leaf === BG ? k0 : PAL.leaf),
-    M.tent(445, 735, 1.3, k1, dark),
-    M.campfire(640, 735, 1.2, [k1, k0, k3]),
-    M.backpack(820, 735, 1.05, k2, dark)
+    M.sun(872, 352, 1.05, k1),
+    M.cloud(682, 344, 0.78, k2),
+    M.mountain(706, 760, 1.5, PAL.forest === BG ? k2 : PAL.forest, k2),  // 뒤 배경(먼저)
+    M.hills(540, 760, 1.35, [k3, k1]),
+    M.tree(252, 760, 1.5, PAL.leaf === BG ? k0 : PAL.leaf),
+    M.tent(452, 760, 1.28, k1, dark),
+    M.campfire(626, 760, 1.15, [k1, k0, k3])
   );
   return (
     <Card bg={BG} color={INKC} pad={0}>
