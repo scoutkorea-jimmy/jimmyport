@@ -37,13 +37,14 @@
   function fmtEvRange(e) { if (!e.start) return ""; var s = fmtEvDate(e.start); return (e.end && e.end !== e.start) ? s + " – " + fmtEvDate(e.end) : s; }
   function eventsHtml(u) {
     var ev = u.events || []; if (!ev.length) return "";  // keep the admin's arranged order (drag / sort), don't re-sort here
-    // public view: date (small, grey) above the event name; scope chips are admin-only
+    // public view: date (small, grey) above the event name, with small N/R/G scope initials before the title
     var rows = ev.map(function (e, i) {
       var range = fmtEvRange(e);
       var sep = i ? "border-top:1px solid #f1ece4;" : "";
+      var inits = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span title="' + m.label + '" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:5px;background:' + m.color + ';color:#fff;font:700 9px \'Hanken Grotesk\';vertical-align:middle;margin:-2px 4px 0 0;">' + esc(m.label.charAt(0)) + '</span>'; }).join("");
       return '<div style="padding:7px 0;' + sep + '">' +
         (range ? '<div style="font:700 10.5px \'Hanken Grotesk\';color:#9a93a6;letter-spacing:.01em;margin-bottom:1px;">' + esc(range) + '</div>' : "") +
-        '<div style="font:600 12.5px \'Hanken Grotesk\';color:#3a3447;line-height:1.35;">' + esc(e.name) + '</div>' +
+        '<div style="font:600 12.5px \'Hanken Grotesk\';color:#3a3447;line-height:1.35;">' + inits + esc(e.name) + '</div>' +
         '</div>';
     }).join("");
     return '<details class="sf-events" data-stop="1" open style="margin-bottom:10px;">' +
