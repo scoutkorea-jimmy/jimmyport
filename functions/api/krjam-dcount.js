@@ -89,8 +89,14 @@ export async function onRequestGet({ request, env }) {
     else st = s.isOpen ? "신청가능" : "닫힘";
     return { dNumber: s.dNumber, targetDate: s.targetDate, isOpen: !!s.isOpen, occupied: !!occ[s.targetDate], slotStatus: st };
   });
-  // 승인(확정)된 디데이 카드 — krjam-planning 캘린더 연동용 공개 목록(이름은 게시용 카드라 공개 안전)
-  const approved = index.filter((e) => e.status === "승인").map((e) => ({ targetDate: e.targetDate, dNumber: e.dNumber, name: e.name || "" }));
+  // 승인(확정)된 디데이 카드 — krjam-planning 캘린더 연동용 공개 목록(게시용 카드+사진이라 공개 안전).
+  // 홍보부가 SNS 카드뉴스를 준비하도록 사진·문구 포함.
+  const approved = [];
+  for (const e of index) {
+    if (e.status !== "승인") continue;
+    let rec = null; try { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) rec = JSON.parse(raw); } catch {}
+    approved.push({ targetDate: e.targetDate, dNumber: e.dNumber, name: e.name || "", teaser: rec ? (rec.teaser || "") : "", org: rec ? (rec.org || "") : "", photos: rec ? (rec.photos || []) : [] });
+  }
   return json({ eventDate: EVENT_DATE, today: t, slots: out, masterStyle, approved });
 }
 

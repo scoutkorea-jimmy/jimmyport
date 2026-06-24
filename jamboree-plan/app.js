@@ -583,9 +583,14 @@ function renderCalendar(){
       var pg=q&&(((p.activity||'')+' '+pw+' '+(p.role||'')).toLowerCase().indexOf(ql)<0);
       html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+pw+' · '+(p.activity||''))+'"><span class="prtag">의전</span>'+esc(p.time)+' · '+esc(p.activity||pw||p.role)+'</div>';
     });
-    // 디데이 프로젝트 승인 카드(자동 연동)
+    // 디데이 프로젝트 승인 카드(자동 연동) — 사진·문구 표시(홍보부 SNS 카드뉴스 준비용)
     dcountApproved.filter(function(a){ return a.targetDate===rec.date; }).forEach(function(a){
-      html+='<div class="cline dcard" title="디데이 프로젝트 승인 카드 — 클릭하면 열림" style="cursor:pointer;border-left:3px solid #C8821C;background:#FBF3E6;color:#7a4d12;font-weight:700">★ 디데이 D-'+a.dNumber+(a.name?(' · '+esc(a.name)):'')+'</div>';
+      var ph=(a.photos||[]).slice(0,3).map(function(u){ return '<img src="'+u+'" data-img="'+u+'" class="dcph" alt="">'; }).join('');
+      html+='<div class="cline dcard" title="'+esc('디데이 카드 D-'+a.dNumber+(a.name?(' · '+a.name):'')+(a.teaser?(' — '+a.teaser):''))+'" style="cursor:pointer;border-left:3px solid #C8821C;background:#FBF3E6;color:#7a4d12;font-weight:700">'
+        +'★ 디데이 D-'+a.dNumber+(a.name?(' · '+esc(a.name)):'')
+        +(a.teaser?('<div style="font-weight:400;font-size:11px;color:#8a5a1a;white-space:normal;margin-top:2px">'+esc(a.teaser)+'</div>'):'')
+        +(ph?('<div class="dcphs">'+ph+'</div>'):'<div style="font-weight:400;font-size:10px;color:#a9762a;margin-top:2px">사진 업로드 대기</div>')
+        +'</div>';
     });
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
     cell.innerHTML=html;
@@ -603,7 +608,7 @@ function renderCalendar(){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); setView('protocol'); });
       });
       cell.querySelectorAll('.cline.dcard').forEach(function(el){
-        el.addEventListener('click',function(ev){ ev.stopPropagation(); window.open('/krjam-dcount','_blank'); });
+        el.addEventListener('click',function(ev){ ev.stopPropagation(); var im=ev.target.closest('.dcph'); if(im&&im.getAttribute('data-img')){ window.open(im.getAttribute('data-img'),'_blank'); } else { window.open('/krjam-dcount','_blank'); } });
       });
       // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
       cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){

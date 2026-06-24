@@ -359,8 +359,7 @@
             </div>
             {app.rejectReason && <p className="dc-note" style={{ color: 'var(--danger)', marginBottom: 12 }}><b>사유:</b> {app.rejectReason}</p>}
             <ScaledCard dNumber={app.dNumber} isDay={false} teaser={(form || app).teaser} bgColor={(form || app).bgColor} inkColor={(form || app).inkColor} sceneIdx={(form || app).sceneIdx} />
-            {app.status === '승인' && <p className="dc-note" style={{ marginTop: 8, color: 'var(--accent)' }}>✓ 승인된 카드입니다. 위 <b>A4 PNG 출력</b> 버튼으로 A4(가로) 이미지를 내려받으세요.</p>}
-            {app.status === '승인' && <PhotoUploader no={no.trim()} pw={pw} app={app} onUpdate={(a) => { setApp(a); setForm(Object.assign({}, a)); }} />}
+            {app.status === '승인' && <p className="dc-note" style={{ marginTop: 8, color: 'var(--accent)' }}>✓ 승인됐어요! <b>사진 올리기</b> 탭에서 카드를 A4로 출력하고, 촬영한 사진을 올려주세요.</p>}
 
             {app.editable && (
               <div style={{ marginTop: 16 }}>
@@ -373,6 +372,56 @@
                 </div>
               </div>
             )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ── 사진 올리기 (승인 후 신청정보로 로그인 → A4 출력·사진 업로드) ── */
+  function PhotoView() {
+    const [no, setNo] = useState(''); const [pw, setPw] = useState('');
+    const [app, setApp] = useState(null); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+    async function login() {
+      setBusy(true); setMsg('');
+      const { ok, j } = await jsend('POST', { action: 'lookup', applicationNo: no.trim(), password: pw });
+      setBusy(false);
+      if (ok && j.ok) setApp(j.application);
+      else { setApp(null); setMsg(j.error === 'rate_limited' ? '시도가 너무 많습니다. 잠시 후 다시 시도하세요.' : '이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.'); }
+    }
+    function reset() { setApp(null); setNo(''); setPw(''); setMsg(''); }
+    return (
+      <div className="dc-card">
+        {!app ? (
+          <div>
+            <p className="dc-note" style={{ marginBottom: 12 }}><b>승인된 신청</b>만 사진을 올릴 수 있어요. 신청할 때 쓴 <b>이름</b>과 <b>휴대전화 끝 4자리</b>로 로그인하세요.</p>
+            <div className="dc-field"><label>이름 (신청번호)</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
+            <div className="dc-field"><label>휴대전화 끝 4자리 (비밀번호)</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" onKeyDown={(e) => { if (e.key === 'Enter') login(); }} /></div>
+            <button className="dc-btn primary" style={{ width: '100%' }} disabled={busy || !no.trim() || pw.length < 4} onClick={login}>로그인</button>
+            {msg && <div className="dc-err">{msg}</div>}
+          </div>
+        ) : app.status === '승인' ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <span className="dc-tag" style={{ background: 'var(--accent)' }}>D-{app.dNumber}</span>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>{app.targetDate}</span><StTag s={app.status} />
+              <span style={{ flex: 1 }} />
+              <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={reset}>다른 신청</button>
+            </div>
+            <ScaledCard dNumber={app.dNumber} isDay={false} teaser={app.teaser} bgColor={app.bgColor} inkColor={app.inkColor} sceneIdx={app.sceneIdx} />
+            <button className="dc-btn primary" style={{ width: '100%', marginTop: 10 }} onClick={() => exportA4(cardProps(app), fileFor(app))}>A4 출력</button>
+            <p className="dc-note" style={{ marginTop: 8 }}>위 <b>A4 출력</b>으로 카드를 인쇄해 현장에서 사진을 촬영한 뒤, 아래에 올려주세요!</p>
+            <PhotoUploader no={no.trim()} pw={pw} app={app} onUpdate={setApp} />
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <StTag s={app.status} />
+            <p className="dc-note" style={{ marginTop: 10 }}>
+              {(app.status === '제출됨' || app.status === '수정요청') ? '아직 홍보부 확인(승인) 전이에요. 승인되면 이 화면에서 사진을 올릴 수 있어요.'
+                : app.status === '반려' ? ('반려된 신청입니다.' + (app.rejectReason ? (' 사유: ' + app.rejectReason) : ''))
+                  : '철회된 신청입니다.'}
+            </p>
+            <button className="dc-btn ghost" style={{ marginTop: 8 }} onClick={reset}>다시</button>
           </div>
         )}
       </div>
@@ -443,6 +492,7 @@
     const [authed, setAuthed] = useState(() => !!adminToken());
     const [code, setCode] = useState(''); const [data, setData] = useState(null);
     const [filter, setFilter] = useState('대기'); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+    const [idleLeft, setIdleLeft] = useState(600);
 
     const load = useCallback(async () => {
       const { ok, status, j } = await jget(API + '?admin=1', bearer());
@@ -450,16 +500,19 @@
       if (ok) { setData(j); if (j.masterStyle) setMaster(j.masterStyle); }
     }, [setMaster]);
     useEffect(() => { if (authed) load(); }, [authed, load]);
-    // 관리자 15분 유휴 자동 로그아웃
+    // 관리자 10분 유휴 자동 로그아웃 (+ 남은 시간 카운트다운)
     useEffect(() => {
       if (!authed) return;
-      let t;
-      const logout = () => { setAdmin(null); setAuthed(false); setMsg('15분 동안 활동이 없어 자동 로그아웃되었습니다.'); };
-      const reset = () => { clearTimeout(t); t = setTimeout(logout, 15 * 60 * 1000); };
+      let expire = Date.now() + 10 * 60 * 1000;
+      const reset = () => { expire = Date.now() + 10 * 60 * 1000; };
       const evs = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
       evs.forEach((e) => window.addEventListener(e, reset, { passive: true }));
-      reset();
-      return () => { clearTimeout(t); evs.forEach((e) => window.removeEventListener(e, reset)); };
+      const tick = setInterval(() => {
+        const left = Math.max(0, Math.round((expire - Date.now()) / 1000));
+        setIdleLeft(left);
+        if (left <= 0) { setAdmin(null); setAuthed(false); setMsg('10분 동안 활동이 없어 자동 로그아웃되었습니다.'); }
+      }, 1000);
+      return () => { clearInterval(tick); evs.forEach((e) => window.removeEventListener(e, reset)); };
     }, [authed]);
 
     async function login() {
@@ -513,6 +566,7 @@
             <div className="dc-stat"><b>{apps.length}</b><span>전체</span></div>
           </div>
           <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: idleLeft < 60 ? 'var(--danger)' : 'var(--muted)', fontVariantNumeric: 'tabular-nums' }} title="유휴 자동 로그아웃까지 남은 시간">⏱ {Math.floor(idleLeft / 60)}:{pad2(idleLeft % 60)}</span>
           <button className="dc-btn ghost" disabled={busy} onClick={load}>새로고침</button>
           <button className="dc-btn ghost" onClick={() => { setAdmin(null); setAuthed(false); }}>로그아웃</button>
         </div>
@@ -579,7 +633,7 @@
   }
 
   /* ── 앱 셸 (해시 세부라우팅: #/lookup · #/admin) ── */
-  const VIEWS = ['cal', 'lookup', 'admin'];
+  const VIEWS = ['cal', 'lookup', 'photo', 'admin'];
   const viewFromHash = () => { try { const h = (location.hash || '').replace(/^#\/?/, ''); return VIEWS.indexOf(h) >= 0 ? h : 'cal'; } catch (_) { return 'cal'; } };
   function App() {
     const [view, setViewState] = useState(viewFromHash);
@@ -604,19 +658,22 @@
     }, [view, load]);
     useEffect(() => { const onH = () => setViewState(viewFromHash()); window.addEventListener('hashchange', onH); return () => window.removeEventListener('hashchange', onH); }, []);
 
-    const tabs = [['cal', '디데이 달력'], ['lookup', '신청 조회'], ['admin', '관리자']];
+    const tabs = [['cal', '디데이 달력'], ['lookup', '신청 조회'], ['photo', '사진 올리기']];
     return (
       <window.DCMasterCtx.Provider value={master}>
         <div className="dc-wrap">
-          <div className="syncbar"><span className="orgtag">제16회 한국잼버리 · 디데이 프로젝트</span><span style={{ flex: 1 }} /><span className="st">대원과 함께 채우는 카운트다운</span></div>
-          <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 18px' }}>
+          <div className="syncbar"><span className="orgtag">제16회 한국잼버리 · 디데이 프로젝트</span><span style={{ flex: 1 }} /><button onClick={() => setView('admin')} style={{ border: 'none', background: 'none', color: 'var(--faint)', font: 'inherit', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}>관리자</button></div>
+          <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 16px' }}>
             <img src="/jamboree/assets/logo.png" width="68" height="68" alt="엠블럼" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
             <div>
-              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>제16회 한국잼버리 홍보부</p>
+              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>제16회 한국잼버리 기획조정본부 홍보부</p>
               <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>디데이 프로젝트</h1>
-              <p className="dc-note" style={{ marginTop: 6 }}>전 세계 대원과 함께 잼버리를 향한 <b>디데이 카운트다운</b>을 채워가요. 날짜를 고르면 그 날은 한 대(隊)가 맡고, 홍보부 확인을 받으면 A4로 출력해 함께 나눌 수 있어요.</p>
+              <p className="dc-note" style={{ marginTop: 6 }}>스카우트 가족이 <b>함께 준비하는 잼버리</b> — 날짜를 골라 디데이 카드를 신청하고, 홍보부를 통해 신청이 정상 확인되면 <b>A4로 출력해 사진을 촬영</b>한 뒤 그 사진을 올려주세요!</p>
             </div>
           </header>
+          <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', fontSize: 11.5, color: 'var(--muted)', flexWrap: 'wrap' }}>
+            {['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'].map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
+          </div>
           <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8 }}>
             🛡 비속어·상업적 홍보·정치적 내용 등 <b>잼버리 정신에 어긋나는 내용</b>이 담기면 <b style={{ color: 'var(--danger)' }}>반려</b>될 수 있어요.
           </div>
@@ -627,6 +684,7 @@
           <div style={{ marginTop: 16 }}>
             {view === 'cal' && <Calendar slots={slots} today={today} loading={loading} onApply={(s) => setApplySlot(s)} />}
             {view === 'lookup' && <Lookup />}
+            {view === 'photo' && <PhotoView />}
             {view === 'admin' && <Admin master={master} setMaster={setMaster} />}
           </div>
           {applySlot && <ApplyModal slot={applySlot} onClose={() => setApplySlot(null)} onDone={(j) => { setApplySlot(null); setResult(j); load(); }} />}
