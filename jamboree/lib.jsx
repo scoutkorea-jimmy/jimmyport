@@ -21,10 +21,15 @@ const CHIP_LIGHT = ['#FFAE80', '#9FED8F', '#82E6DE', '#FF8DFF'];
 function CategoryChip({ label, color, top, right, bottom, left, dot, ek }) {
   const tw = React.useContext(window.DDayTweakCtx) || {};
   const gBg = tw.chipBg || '', gInk = tw.chipInk || '', gText = tw.chipText || '';
-  const ds = { fontSize: 26, fontWeight: 700, color: gInk || INK, letterSpacing: '.01em' };
+  // 기본: 흰 알약 + 칩 색 점 + 칩 색 글씨(글씨색=칩 색). 표지(dot): 글씨/배경 역배색(칩 색 알약 + 흰 글씨).
+  const inv = !!dot;
+  const pillBg = gBg || (inv ? color : '#fff');
+  const ink = gInk || (inv ? '#fff' : color);
+  const dotC = inv ? (gInk || '#fff') : color;
+  const ds = { fontSize: 26, fontWeight: 700, color: ink, letterSpacing: '.01em' };
   return (
-    <span style={{ position: 'absolute', top, right, bottom, left, display: 'inline-flex', alignItems: 'center', gap: 11, background: gBg || '#fff', border: '1px solid rgba(0,0,0,.06)', borderRadius: 999, padding: '10px 22px 10px 14px', boxShadow: '0 3px 12px rgba(40,30,50,.12)' }}>
-      <span style={{ width: 18, height: 18, borderRadius: '50%', background: color, flex: '0 0 auto' }} />
+    <span style={{ position: 'absolute', top, right, bottom, left, display: 'inline-flex', alignItems: 'center', gap: 11, background: pillBg, border: inv ? 'none' : '1px solid rgba(0,0,0,.06)', borderRadius: 999, padding: '10px 22px 10px 14px', boxShadow: '0 3px 12px rgba(40,30,50,.12)' }}>
+      <span style={{ width: 18, height: 18, borderRadius: '50%', background: dotC, flex: '0 0 auto' }} />
       {gText ? <span className="hi" style={ds}>{gText}</span>
         : (ek ? <Editable ekey={ek} flabel="카테고리" tag="span" className="hi" nowrap style={ds}>{label}</Editable>
              : <span className="hi" style={ds}>{label}</span>)}

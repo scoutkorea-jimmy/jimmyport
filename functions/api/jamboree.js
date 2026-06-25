@@ -13,11 +13,14 @@
  *  state = { text, props, images, brand }  (Phase 1 editKeys 호환) */
 import { json, clientIp, appendLog, isAdmin } from "./_lib.js";
 
-// Server backup is admin-only (gated by the same TOTP session as /admin).
-// The card-news app saves locally by default; the server slot is opt-in and
-// must not be readable/writable without a valid admin session.
-const requireAdmin = async (request, env) =>
-  (await isAdmin(request, env)) ? null : json({ error: "unauthorized" }, 401);
+// 인증: 관리자 세션(TOTP) 또는 공유 비밀번호(헤더 X-CC-Pass, env.CC_PASS 기본 scout1922).
+// 비밀번호를 알면 다른 곳에서도 같은 카드뉴스를 저장/불러올 수 있다(팀 공유용 게이트).
+const requireAuth = async (request, env) => {
+  if (await isAdmin(request, env)) return null;
+  const pass = (request.headers.get("X-CC-Pass") || "").trim();
+  if (pass && pass === (env.CC_PASS || "scout1922")) return null;
+  return json({ error: "unauthorized" }, 401);
+};
 
 const KEY = "jamboree";
 const KEY_INDEX = "jamboree:index";

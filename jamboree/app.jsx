@@ -771,7 +771,7 @@ function App() {
           <div style={secLabel}>이 카드 편집 · {card ? card.label : ''}</div>
 
           {(coverScope || ddScope) && (
-            <div style={{ marginBottom: 14 }}>
+            <Section title="배경 · 색" open>
               {ddScope && !ddIsDay && (
                 <label style={{ display: 'block', marginBottom: 10 }}>
                   <span style={fieldLabel}>D-숫자 (진행바·문구 자동 반영)</span>
@@ -809,7 +809,7 @@ function App() {
                   <Swatches value={store.getProp(coverScope, 'catColor', '')} onPick={(c) => store.setProp(coverScope, 'catColor', c)} clearable />
                 </div>
               )}
-            </div>
+            </Section>
           )}
 
           {familyKey === 'dday' && (
@@ -827,17 +827,16 @@ function App() {
           )}
 
           {alignScope && (
-            <div style={{ marginBottom: 14 }}>
-              <span style={fieldLabel}>텍스트 정렬</span>
+            <Section title="텍스트 정렬" open>
               <Seg value={store.getProp(alignScope, 'align', '')} onPick={(v) => store.setProp(alignScope, 'align', v)}
                 options={[['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽'], ['', '기본']]} />
-            </div>
+            </Section>
           )}
 
           {scenes.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
+            <Section title="가운데 오브제 (캠프 풍경)">
               <label style={{ display: 'block' }}>
-                <span style={fieldLabel}>가운데 오브제 (캠프 풍경)</span>
+                <span style={fieldLabel}>장면</span>
                 <select value={store.getProp(scenes[0].scope, 'scene', '')} onChange={(e) => store.setProp(scenes[0].scope, 'scene', e.target.value)} style={inputStyle}>
                   <option value="">기본 (현재 디자인)</option>
                   {(window.SCENE_LABELS || []).map((l, i) => <option key={i} value={i}>{(i + 1) + ' · ' + l}</option>)}
@@ -846,21 +845,19 @@ function App() {
               <span style={{ ...fieldLabel, marginTop: 10 }}>오브제 위치 (텍스트 가림 방지)</span>
               <Slider label="좌우" value={+store.getProp(scenes[0].scope, 'ox', 0) || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp(scenes[0].scope, 'ox', v)} />
               <Slider label="상하" value={+store.getProp(scenes[0].scope, 'oy', 0) || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp(scenes[0].scope, 'oy', v)} />
-            </div>
+            </Section>
           )}
 
           {fields.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <span style={fieldLabel}>텍스트</span>
+            <Section title="텍스트" open>
               {fields.map((f) => <FieldInput key={f.ekey} field={f} />)}
-            </div>
+            </Section>
           )}
 
           {photos.length > 0 && (
-            <div style={{ marginBottom: 6 }}>
-              <span style={fieldLabel}>사진 (업로드 시 플레이스홀더 교체)</span>
+            <Section title="사진" open>
               {photos.map((p) => <PhotoRow key={p.slot} slot={p.slot} label={p.label} />)}
-            </div>
+            </Section>
           )}
 
           {/* ═══ 세트 공통 (모든 카드에 한 번에 적용) ═══ */}
