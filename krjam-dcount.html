@@ -144,8 +144,11 @@
     .dc-grp-d{ font:400 11.5px 'Hanken Grotesk',sans-serif; color:var(--muted); }
     .dc-grp-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
     .dc-slot2{ border:1px solid var(--line); border-radius:9px; padding:8px 3px; text-align:center; background:var(--surface-2); }
-    .dc-slot2.open{ cursor:pointer; }
-    .dc-slot2.open:hover{ border-color:var(--accent); box-shadow:var(--sh-1); }
+    .dc-slot2.open{ cursor:pointer; background:var(--st-ready); border-color:var(--st-ready); box-shadow:0 1px 3px rgba(47,143,107,.22); }
+    .dc-slot2.open:hover{ background:#27815f; border-color:#27815f; box-shadow:0 4px 12px rgba(47,143,107,.32); transform:translateY(-1px); }
+    .dc-slot2.open .d2-dn{ color:#fff; }
+    .dc-slot2.open .d2-dt{ color:rgba(255,255,255,.82); }
+    .dc-slot2.open .dc-ss2{ background:rgba(255,255,255,.24)!important; color:#fff; }
     .dc-slot2.dim{ opacity:.5; }
     .d2-dn{ font:700 14px 'Bricolage Grotesque',sans-serif; color:var(--ink); line-height:1; }
     .d2-dt{ font-size:10px; color:var(--muted); margin:3px 0 5px; }

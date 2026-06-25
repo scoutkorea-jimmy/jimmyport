@@ -871,6 +871,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **카드 푸터 장소**(dcard.jsx): `Gangwon, Korea` → **`Goseong, Gangwon`**(공식 엠블럼 영문 표기 고성·강원에 맞춤).
 - **홍보부**: `PR Team` → **`Media Team`**(AskUserQuestion으로 사용자 확정 — 초기 미디어부 취지·SNS/콘텐츠 제작 강조). 헤더 에이브로우·4단계·안내문·결과/대기 메시지 6곳 일괄(트레일링 스페이스 유지 확인).
 - 적절 판정·유지: Korea Scout Association(공식 NSO)·16th Korea National Jamboree·Scout family·Jamboree·상태 라벨(Submitted/Approved/…). 검증: EN 재렌더(에이브로우 Media Team·"once the Media team confirms it, " 띄어쓰기 정상)·콘솔 에러 0.
+
+### 18.25 v0.9.149 — D-count 달력 가시성: 신청가능 셀 초록 채움
+- 사용자: 달력이 가시성 떨어짐(흰 카드+작은 신청가능 pill이 다 비슷) → "신청가능한 날은 초록색으로 셀을 채우자."
+- **CSS만 변경**(krjam-dcount.html): `.dc-slot2.open` = `--st-ready`(#2F8F6B) 솔리드 배경+테두리, D번호·날짜 흰색, 내부 pill 흰색 반투명(`rgba(255,255,255,.24)!important`로 인라인 초록 배경 오버라이드). hover=진한 초록+살짝 떠오름. 점유(확정/검토중)·닫힘은 기존 `.dim`(opacity .5) 유지 → 가능=초록 채움 vs 불가=흐림 대비.
+- 검증: CDP로 `/api/krjam-dcount` 목킹(36슬롯, 확정/검토중/닫힘 섞음) 후 렌더 — 신청가능 초록 채움·확정/검토중/닫힘 흐림 구분 명확, 콘솔 정상.
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-06-25 — krjam-dcount D-Count 신청 데이터 전체 초기화 (사용자 지시)
