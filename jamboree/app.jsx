@@ -608,7 +608,9 @@ function App() {
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
                 <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>
-                  <window.CCScope.Provider value={deck[i].k || ''}>{r.card.node}</window.CCScope.Provider>
+                  <div style={{ width: r.fam.w, height: r.fam.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
+                    <window.CCScope.Provider value={deck[i].k || ''}>{r.card.node}</window.CCScope.Provider>
+                  </div>
                 </window.CCFooterCtx.Provider>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
@@ -648,7 +650,9 @@ function App() {
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
                 <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>
-                  <window.CCScope.Provider value={deck[i].k || ''}>{r.card.node}</window.CCScope.Provider>
+                  <div style={{ width: r.fam.w, height: r.fam.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
+                    <window.CCScope.Provider value={deck[i].k || ''}>{r.card.node}</window.CCScope.Provider>
+                  </div>
                 </window.CCFooterCtx.Provider>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
