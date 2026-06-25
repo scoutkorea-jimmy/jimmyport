@@ -787,3 +787,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **v0.9.129 디데이 승인 문구**: krjam-dcount 제출완료 모달 '빠르게 1~6시간' → **'매일 오후 12시·오후 6시경 일괄 검토·승인'**.
 - **v0.9.130 덱 카드 독립 인스턴스**(사용자: 같은 폼 3장이 연동됨): 같은 템플릿을 덱에 여러 번 담으면 같은 편집키 공유 → 한 장 수정이 전부 반영되던 문제. **`window.CCScope` 컨텍스트**(인스턴스 접두사)를 모든 per-card 키에 prepend: Editable(텍스트·색·그림자)·Placeholder(이미지·imgxf)·SceneScatter(장면·오브제위치)·cover/dday(자체 prop scope). 덱 프리뷰/썸네일/export는 `CCScope.Provider value={it.k}`로 래핑, 에디터는 `instKey` 상태로 현재 인스턴스 추적(우측 패널 scope·cardKey·footer 인덱스 동기화). **'현재 카드 담기'=현재 카드 내용 스냅샷 복사 → 새 독립 인스턴스**(fields/photos/scenes/scope 키 복사). **1회 마이그레이션**: 키 없는 기존 덱 중복 엔트리는 독립화(첫 장은 내용 유지, 중복은 템플릿 기본값으로 리셋). Logo/tweaks/brand는 전역(스코프 제외). 검증: 로컬+라이브 — 같은 06 템플릿 2장이 서로 다른 키로 독립 렌더(INST_ONE/INST_TWO 각각), 콘솔 에러 0.
   ⚠️ 기존에 만든 연동된 중복 카드: 첫 장만 내용 유지, 2번째부터는 기본값으로 초기화되니 다시 채워야 함.
+
+### 18.19 v0.9.131–0.9.133 — 사진 트윅 재설계(가장자리별 영역 확장 + 빈틈없는 크롭)
+- **v0.9.131**: 사진 확대/이동 슬라이더가 `{cur}` 게이트로 사진 없을 때 사라지던 것 → 항상 표시(없으면 흐리게+안내).
+- **v0.9.132**(되돌림): 균일 '영역 크기(배율)' + 위치 — 사용자가 "가장자리별로"를 원해 폐기.
+- **v0.9.133 가장자리별 영역 확장 + object-position 크롭**: 사용자 2건 — (1) 영역을 상/하/좌/우 **가장자리별로** 키우기, (2) 사진 이동 시 translate라 틀 밖으로 나가 빈 틈 생김 → 보이는 부분만 이동해야.
+  - **Placeholder 재구성**(`base.jsx`): outer(슬롯 위치, overflow visible) + **inner div(음수 inset `left:-el/right:-er/top:-et/bottom:-eb`, overflow hidden)** → anchor 스타일 무관하게 가장자리별 확장. 사진은 inner 안에서 `objectFit:cover` + `objectPosition:px% py%`(크롭 위치) + `transform:scale(sc)`(확대). translate 폐기 → **빈 틈 없음**.
+  - 우측 패널 PhotoRow: '영역(틀) 가장자리 확장' 위/아래/왼쪽/오른쪽(px, 음수=축소) + '사진 확대·크롭 위치' 줌(1~5×)·크롭 좌우/상하(0~100%). 더블클릭 드래그=크롭 이동, 모서리=확대. 빈 플레이스홀더에도 확장 적용. imgxf 스코프(덱 인스턴스별·deckAdd 복사) 유지.
+  - 검증: 헤드리스 — er140·et80 → inner right -140px·top -80px, img objectFit cover·objectPosition 10% 50%, 에러 0 + 스크린샷(영역 우/상 확장·빈틈없이 크롭).
+- 글로벌 vs per-card: 행사명·날짜·장소·주최·폰트·본문색·엠블럼·푸터=전역(공통), 카테고리칩·제목·본문·사진=카드별 독립(덱 인스턴스). 사용자 질문(상단 칩 글로벌?)에 답: 카테고리는 카드마다 달라 per-card 유지가 맞고, 특정 요소 전역화 원하면 별도 지정.
