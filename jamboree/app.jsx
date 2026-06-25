@@ -222,6 +222,7 @@ function FieldInput({ field }) {
   const long = (field.def || '').length > 14 || cur.indexOf('\n') >= 0;   // 줄바꿈 있으면/길면 textarea
   const common = { value: cur, placeholder: field.def || '', onChange: (e) => store.setText(field.ekey, e.target.value), style: { ...inputStyle, ...(long ? { resize: 'vertical', minHeight: 56, lineHeight: 1.4, whiteSpace: 'pre-wrap' } : null) } };
   const colOv = store.getProp('txtcol', field.ekey, '');
+  const shOv = store.getProp('txtsh', field.ekey, '');
   return (
     <label style={{ display: 'block', marginBottom: 10 }}>
       <span style={{ ...fieldLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -230,6 +231,8 @@ function FieldInput({ field }) {
           style={{ width: 20, height: 16, padding: 0, border: '1px solid ' + UI.line, borderRadius: 3, background: 'none', cursor: 'pointer' }} />
         {colOv && <button type="button" onClick={() => store.setProp('txtcol', field.ekey, '')} title="기본색"
           style={{ fontSize: 11, color: UI.muted, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>✕</button>}
+        <button type="button" onClick={() => store.setProp('txtsh', field.ekey, shOv === '1' ? '' : '1')} title="사진 위 그림자"
+          style={{ fontSize: 10, color: shOv === '1' ? '#fff' : UI.muted, background: shOv === '1' ? UI.accent : 'none', border: '1px solid ' + (shOv === '1' ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>그림자</button>
       </span>
       {long ? <textarea rows={2} {...common} /> : <input {...common} />}
       {long && <span style={{ fontSize: 10.5, color: '#a9a2b3', display: 'block', marginTop: 2 }}>줄바꿈(Enter) 가능</span>}

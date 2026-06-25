@@ -36,7 +36,7 @@ function CategoryChip({ label, color, top, right, bottom, left, dot, ek }) {
 
 /* 더블클릭 인라인 편집 + 우측 폼 자동등록 (둘 다 CCStore 텍스트로 공유)
  * flabel: 우측 폼 라벨(짧게). 없으면 기본 텍스트를 라벨로 사용. */
-function Editable({ ekey, tag = 'span', flabel, className, style, children, nowrap }) {
+function Editable({ ekey, tag = 'span', flabel, className, style, children, nowrap, shadow }) {
   const Tag = tag;
   const store = useCCStore();
   const register = React.useContext(window.CCRegisterFieldCtx);
@@ -45,6 +45,7 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children, nowr
   const stored = store.getText(ekey);
   const display = stored != null ? stored : children;
   const colOv = store.getProp('txtcol', ekey, '');   // 글자색 오버라이드(사진 위 텍스트 등)
+  const shOn = shadow || store.getProp('txtsh', ekey, '') === '1';   // 드롭섀도(사진 위 가독성)
   React.useEffect(() => {
     if (register) register(ekey, flabel || textOf(children), textOf(children));
   }, [ekey]); // eslint-disable-line
@@ -52,7 +53,7 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children, nowr
   const fz = (style && typeof style.fontSize === 'number') ? `calc(${style.fontSize}px * var(--cc-fz, 1))` : (style ? style.fontSize : undefined);
   return (
     <Tag ref={ref} className={className} title="더블클릭하여 수정"
-      style={{ ...style, color: colOv || (style && style.color), fontSize: fz, whiteSpace: nowrap ? 'pre' : 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
+      style={{ ...style, color: colOv || (style && style.color), textShadow: shOn ? '0 2px 10px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.5)' : (style && style.textShadow), fontSize: fz, whiteSpace: nowrap ? 'pre' : 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
       onBlur={(e) => { store.setText(ekey, e.currentTarget.innerText.replace(/\n$/, '')); setEditing(false); }}

@@ -88,7 +88,7 @@ function T_FullImage({ ek }) {
       <CategoryChip ek={ek + '-cat'} label="메인" color={P.purple} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, bottom: S }}>
         <Kicker ek={ek + '-kicker'} c={P.river}>IMAGE · 풀이미지형</Kicker>
-        <Editable ekey={ek + '-t'} tag="div" className="hi" style={{ marginTop: 12, fontWeight: 700, fontSize: 106, lineHeight: 1.0, color: '#fff' }}>강원의 여름,<br /><span style={{ color: P.leaf }}>지금 시작</span></Editable>
+        <Editable ekey={ek + '-t'} tag="div" className="hi" shadow style={{ marginTop: 12, fontWeight: 700, fontSize: 106, lineHeight: 1.0, color: '#fff' }}>강원의 여름,<br /><span style={{ color: P.leaf }}>지금 시작</span></Editable>
       </div>
       <AutoFooter />
     </Card>
@@ -152,8 +152,8 @@ function T_BigNumImage({ ek }) {
       <CategoryChip ek={ek + '-cat'} label="규모" color={'#fff'} top={S} right={S} />
       <div style={{ position: 'absolute', left: S, right: S, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <Kicker ek={ek + '-kicker'} c="#fff" style={{ marginBottom: 30 }}>IMAGE · 빅넘버형</Kicker>
-        <Editable ekey={ek + '-n'} tag="div" className="hi" style={{ fontWeight: 700, fontSize: 230, lineHeight: 1, color: '#fff', letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>3,000</Editable>
-        <Editable ekey={ek + '-s'} tag="div" style={{ fontSize: 46, fontWeight: 300, color: '#fff', marginTop: 26 }}>20개국이 함께하는 글로벌 캠프</Editable>
+        <Editable ekey={ek + '-n'} tag="div" className="hi" shadow style={{ fontWeight: 700, fontSize: 230, lineHeight: 1, color: '#fff', letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>3,000</Editable>
+        <Editable ekey={ek + '-s'} tag="div" shadow style={{ fontSize: 46, fontWeight: 300, color: '#fff', marginTop: 26 }}>20개국이 함께하는 글로벌 캠프</Editable>
       </div>
       <AutoFooter />
     </Card>
@@ -190,7 +190,7 @@ function T_ImageGrid({ ek }) {
           <div key={i} style={{ position: 'relative', borderRadius: 22, overflow: 'hidden' }}>
             <Placeholder tone="light" label="" slot={ek + '-img' + i} slotLabel={x.t} radius={22} style={{ position: 'absolute', inset: 0 }} />
             <span style={{ position: 'absolute', left: 14, top: 14, width: 16, height: 16, borderRadius: '50%', background: x.c }} />
-            <Editable ekey={ek + '-i' + i} tag="div" nowrap style={{ position: 'absolute', left: 22, bottom: 18, fontSize: 36, fontWeight: 500, color: INK }}>{x.t}</Editable>
+            <Editable ekey={ek + '-i' + i} tag="div" nowrap shadow style={{ position: 'absolute', left: 22, bottom: 18, fontSize: 36, fontWeight: 500, color: INK }}>{x.t}</Editable>
           </div>
         ))}
       </div>
