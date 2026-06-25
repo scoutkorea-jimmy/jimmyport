@@ -2021,6 +2021,15 @@ function saveMemberTypes(rerender){
     .then(function(j){ if(j&&j.ok){ memberTypes=j.types||memberTypes; toast('유형 저장됨'); if(rerender) renderMembers(); } })
     .catch(function(){ toast('네트워크 오류'); });
 }
+function renameType(from, to){
+  to=(to||'').trim();
+  if(!to || to===from){ renderMembers(); return; }
+  if(memberTypes[to]!=null){ toast('이미 있는 유형 이름입니다'); renderMembers(); return; }
+  fetch('/api/jp-members',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify({action:'rename_type',from:from,to:to})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok){ toast('유형 이름 변경됨'); openMembers(); } else { toast('변경 실패'); renderMembers(); } })
+    .catch(function(){ toast('네트워크 오류'); });
+}
 function closeMembers(){ document.getElementById('members-scrim').classList.remove('show'); }
 function renderMembers(msg){
   var b=document.getElementById('members-body'); if(!b) return;
@@ -2040,7 +2049,7 @@ function renderMembers(msg){
   var typesHtml='';
   Object.keys(memberTypes).forEach(function(tn){
     var tabs=memberTypes[tn]||[];
-    typesHtml+='<div class="mtype-row"><div class="mtype-h"><b>'+esc(tn)+'</b>'+((tn==='일반')?'':'<button class="btn xs ghost danger" data-type-del="'+esc(tn)+'">삭제</button>')+'</div><div class="mtype-tabs">'+
+    typesHtml+='<div class="mtype-row"><div class="mtype-h"><input class="mtype-name" data-type-rename="'+esc(tn)+'" value="'+esc(tn)+'" maxlength="20" title="유형 이름 — 수정 후 칸 밖을 클릭하면 적용(회원 일괄 이전)"><button class="btn xs ghost danger" data-type-del="'+esc(tn)+'">삭제</button></div><div class="mtype-tabs">'+
       TAB_LABELS.map(function(p){ return '<label class="mtype-tab"><input type="checkbox" data-type-tab="'+esc(tn)+'" data-tab="'+p[0]+'"'+(tabs.indexOf(p[0])>=0?' checked':'')+'> '+esc(p[1])+'</label>'; }).join('')+'</div></div>';
   });
   b.innerHTML=
@@ -2268,6 +2277,7 @@ function init(){
   });
   document.getElementById('members-body').addEventListener('change',function(e){
     var s=e.target.closest('[data-mem-type]'); if(s){ setMemberType(s.getAttribute('data-mem-type'), s.value); return; }
+    var rn=e.target.closest('[data-type-rename]'); if(rn){ renameType(rn.getAttribute('data-type-rename'), rn.value); return; }
     var tt=e.target.closest('[data-type-tab]'); if(tt){ var tn=tt.getAttribute('data-type-tab'), tab=tt.getAttribute('data-tab'); var arr=memberTypes[tn]||(memberTypes[tn]=[]); var ix=arr.indexOf(tab); if(tt.checked){ if(ix<0) arr.push(tab); } else if(ix>=0) arr.splice(ix,1); saveMemberTypes(false); return; }
   });
   var dvAdd=document.getElementById('div-add'); if(dvAdd) dvAdd.onclick=addDivision;

@@ -33,8 +33,7 @@ function cleanTypes(t) {
     const tabs = Array.isArray(t[k]) ? t[k].filter((x) => ALL_TABS.indexOf(x) >= 0) : [];
     out[name] = tabs.length ? tabs : ["dashboard"];
   }
-  if (!out["일반"]) out["일반"] = CONTENT_TABS.slice();
-  return out;
+  return Object.keys(out).length ? out : JSON.parse(JSON.stringify(DEFAULT_TYPES));
 }
 
 function normUser(s) {
@@ -107,7 +106,7 @@ export async function onRequestPost({ request, env }) {
     try { await env.SCOUT_KV.delete(rlKey); } catch {}
     const s = await issueMemberSession(env, { username });
     const types = await readTypes(env);
-    const tabs = types[rec.type] || types["일반"] || CONTENT_TABS;
+    const tabs = types[rec.type] || types[Object.keys(types)[0]] || CONTENT_TABS;
     return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반", tabs });
   }
 
@@ -145,6 +144,21 @@ export async function onRequestPatch({ request, env }) {
   if (action === "types") {   // 유형 설정 추가/편집(회원 무관)
     await env.SCOUT_KV.put(TYPES_KEY, JSON.stringify(cleanTypes(body.types)));
     await appendLog(env, { ts: new Date().toISOString(), action: "jpm.types", count: 0, ip: clientIp(request) });
+    return json({ ok: true, types: await readTypes(env) });
+  }
+  if (action === "rename_type") {   // 유형 이름 변경 + 해당 유형 회원 일괄 이전
+    const from = String(body.from || "").trim(), to = String(body.to || "").trim().slice(0, 20);
+    if (!from || !to) return json({ ok: false, error: "bad_name" }, 400);
+    const types = await readTypes(env);
+    if (types[from] != null && to !== from) {
+      if (types[to] == null) types[to] = types[from];
+      delete types[from];
+      await env.SCOUT_KV.put(TYPES_KEY, JSON.stringify(cleanTypes(types)));
+      const idx = await getArr(env, INDEX); let changed = false;
+      for (const r of idx) if (r.type === from) { r.type = to; changed = true; const rec = await readUser(env, r.username); if (rec) { rec.type = to; await env.SCOUT_KV.put(USER(r.username), JSON.stringify(rec)); } }
+      if (changed) await putArr(env, INDEX, idx);
+    }
+    await appendLog(env, { ts: new Date().toISOString(), action: "jpm.rename_type", count: 0, ip: clientIp(request) });
     return json({ ok: true, types: await readTypes(env) });
   }
   const rec = await readUser(env, username);
