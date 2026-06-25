@@ -836,3 +836,10 @@ WOSM Region → 국가(NSO) → 단위대
 ### 16.41 v0.9.144 — 홍보부 기사 ↔ 카드뉴스 제작기 연결 (+ 기사 수정 확인)
 - 기사 수정은 기존 구현(작성자/관리자 `canEditNews`+PUT `/api/jp-news`, 카드 '수정' 버튼). 유지.
 - **기사 → 카드뉴스 연결**: 기사 카드에 '카드뉴스 만들기' 버튼 → `localStorage['cc-import']={title,body,images,at}` 저장 후 `/krjam-cardnews` 새 탭. 제작기(`jamboree/app.jsx`)가 마운트 시 cc-import(30분 내) 감지 → 헤더 아래 '📰 기사 가져오기' 배너 → '현재 카드에 채우기'가 현재 카드 `fields`(첫 필드=제목·긴 def=본문)·`photos` 슬롯에 기사 내용/사진 주입 후 cc-import 제거. 검증: 배너 표시·채우기 시 제목 카드 반영·배너 닫힘·콘솔 에러 0.
+
+### 16.42 v0.9.145 — 홍보부 관리 기능 3종: 자료실 + 게시 현황 대시보드 + 검수 코멘트
+- 사용자 선택(AskUserQuestion): 자료 라이브러리·게시 현황 통계·검수 코멘트.
+- **자료실(아카이브)** — 신규 탭 `library`(항상 접근, canSee 특례) + `functions/api/jp-assets.js`(KV `jpa:<id>`, GET 공개·POST/PATCH/DELETE 회원·작성자/관리자). 사진·완성 카드뉴스 PNG를 `/api/image`(downscale/uploadBlob 재사용)로 올리고 **태그·검색·필터·받기·삭제**. HTML 섹션 + `.libgrid/.libcard` CSS. setView/savedView/배선 추가.
+- **게시 현황 대시보드** — `renderDashboard` 집계 확장: 콘텐츠 슬롯에서 게시(posted)/전체, 채널별(게시/전체), 담당자별 건수, 마감 임박(3일 내 미게시) → '게시 완료' 통계카드 + '게시 현황·통계' 패널(`.pubgrid`). 마감 임박 클릭→슬롯 모달.
+- **검수 코멘트(기사)** — `jp-news` POST `action:comment`/`comment_delete`(article.comments[], 본인/관리자 삭제). 기사 카드에 '검수 N' 토글 → 코멘트 스레드(작성·삭제·Enter) `.ac-box`. (기사 수정은 기존 `canEditNews`+PUT 유지.)
+- 검증: node --check(app·jp-assets·jp-news) + 라이브 GET jp-assets/jp-news 200 + 헤드리스(자료실 탭·섹션·함수 존재·콘솔 에러 0). ⚠️ 업로드·코멘트·대시보드 실데이터 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
