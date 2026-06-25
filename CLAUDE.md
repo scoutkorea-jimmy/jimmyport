@@ -821,3 +821,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **2줄 메뉴**(`krjam-planning.html` + `styles.css`): 1행 콘텐츠(대시보드·기사·캘린더·리스트·일정표) / 2행 '홍보부 운영'(인원·협조연락처·분단·의전, `#tabrow-manage`, 점선 구분 + 라벨). 일반 회원에겐 2행 숨김.
 - **회원관리**(`openMembers`): 승인 회원마다 유형 select(일반/홍보부) → `setMemberType`(change 위임). '승인된 회원'·'홍보부원 기사' 등 명칭 변경(마케팅 시드 '대원 모집'은 유지). 안내: 유형 변경은 회원 재로그인 시 적용.
 - 검증: 헤드리스 — 게이트·2줄 메뉴·관리행 4탭·'홍보부 운영' 라벨·명칭 변경·콘솔 에러 0. ⚠️ 유형 지정·접근 차단 실흐름은 관리자 TOTP + 회원계정 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지 준수).
+
+### 16.39 v0.9.142 — 관리자 정의 회원 유형 + 유형별 탭 접근 + 개인 비번 변경 + 관리자 15분 유휴
+- **회원 유형 관리자 정의**(`jp-members.js` KV `jpm:types`={유형명:[탭키…]}, 기본 일반/홍보부): GET이 types 반환, PATCH `action:'types'`로 관리자가 유형 추가/탭 지정/삭제(`cleanTypes` 유효 탭만, '일반' 보존). 로그인이 `member.type→types[type]`로 접근 가능 `tabs` 배열을 응답.
+- **유형별 탭 접근**(`app.js`): `Auth.tabs`(로그인 저장)·`canSee(v)=admin||tabs.includes(v)`(tabs 비면 콘텐츠 탭 폴백—구버전 세션 잠금 방지)·`isStaff`(관리탭 보유 여부). `reflectAuthUI`/`setView`가 탭/관리행 가시성·접근 차단.
+- **회원관리 UI**(`openMembers/renderMembers`): '회원 유형·접근 탭' 섹션 — 유형별 9탭 체크박스(즉시 저장)·삭제·`+ 유형 추가`. 회원 유형 드롭다운=유형 목록(고정 2개 아님). `saveMemberTypes`(PATCH types)·data-type-tab/data-type-del 위임.
+- **개인 비밀번호 변경**: POST `action:'change_password'`(memberOrAdmin로 본인 세션 인증→현재 비번 검증→새 비번). 헤더 '비밀번호 변경' 버튼(비관리자 노출)→prompt 흐름.
+- **관리자 15분 유휴 자동 로그아웃**: `resetAdminIdle`(pointer/key/wheel/touch/input/change 활동마다 리셋)·`startIdleWatch`(init)·onAuthed에서 시작. admin일 때만.
+- 검증: `node --check`(app·api) + 헤드리스(부팅·게이트·changepw 버튼·유휴/비번 함수·콘솔 에러 0) + API no-auth 401. ⚠️ 유형 추가·탭 지정·접근 차단·15분 유휴 실흐름은 관리자 TOTP+회원계정 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
