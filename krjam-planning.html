@@ -56,7 +56,7 @@
     <span class="orgtag">제16회 한국잼버리 기획조정본부 홍보부</span>
     <span class="spacer"></span>
     <span class="whoami" id="whoami"></span>
-    <button class="btn sm ghost" id="members-btn" style="display:none"><span data-ic="users" data-ic-size="14"></span> 대원 계정</button>
+    <button class="btn sm ghost" id="members-btn" style="display:none"><span data-ic="users" data-ic-size="14"></span> 홍보부원 회원</button>
     <button class="btn sm ghost" id="logout" style="display:none"><span data-ic="logout" data-ic-size="14"></span> 로그아웃</button>
     <button class="btn sm ghost" id="reload"><span data-ic="refresh" data-ic-size="14"></span> 새로고침</button>
     <span class="st" id="syncst">자동 저장</span>
@@ -73,12 +73,15 @@
     </div>
   </header>
 
-  <div class="viewtabs" role="tablist">
+  <div class="viewtabs" role="tablist" aria-label="콘텐츠">
     <button class="vtab active" data-v="dashboard" role="tab"><span data-ic="grid"></span> 대시보드</button>
     <button class="vtab" data-v="news" role="tab"><span data-ic="fileText"></span> 기사</button>
     <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더 보기</button>
     <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 리스트 보기</button>
     <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
+  </div>
+  <div class="viewtabs viewtabs-manage" id="tabrow-manage" role="tablist" aria-label="홍보부 운영">
+    <span class="tabrow-label">홍보부 운영</span>
     <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 홍보부 인원 관리</button>
     <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
     <button class="vtab" data-v="orginfo" role="tab"><span data-ic="users"></span> 분단 연락망</button>
@@ -96,10 +99,10 @@
 
   <section id="news" style="display:none">
     <div class="sec-head">
-      <h2><span data-ic="fileText" data-ic-size="17" style="vertical-align:-3px"></span> 대원 기사</h2>
+      <h2><span data-ic="fileText" data-ic-size="17" style="vertical-align:-3px"></span> 홍보부원 기사</h2>
       <button class="btn sm solid" id="news-add"><span data-ic="plus" data-ic-size="14"></span> 기사 작성</button>
     </div>
-    <p class="note">대원 누구나 <b>사진 2~3장과 기사</b>를 올릴 수 있습니다. 올린 기사는 바로 게시되며, <b>작성자 본인</b>이 자유롭게 수정할 수 있습니다. (삭제는 관리자) 이 보드는 내부용이며 연맹 SNS로 자동 게시되지 않습니다.</p>
+    <p class="note">홍보부원 누구나 <b>사진 2~3장과 기사</b>를 올릴 수 있습니다. 올린 기사는 바로 게시되며, <b>작성자 본인</b>이 자유롭게 수정할 수 있습니다. (삭제는 관리자) 이 보드는 내부용이며 연맹 SNS로 자동 게시되지 않습니다.</p>
     <div class="newsgrid" id="news-list"></div>
   </section>
 
@@ -347,11 +350,11 @@
   </div>
 </div>
 
-<!-- 관리자: 대원 계정 승인 모달 -->
+<!-- 관리자: 홍보부원 회원 관리 모달 -->
 <div class="scrim" id="members-scrim">
   <div class="modal" style="max-width:560px" role="dialog" aria-modal="true">
     <div class="mhead">
-      <div class="mt">대원 계정 관리</div>
+      <div class="mt">홍보부원 회원 관리</div>
       <button class="x" id="members-close" aria-label="닫기"><span data-ic="x" data-ic-size="17"></span></button>
     </div>
     <div class="mbody" id="members-body"></div>

@@ -59,7 +59,9 @@ h1{font-size:25px;font-weight:680;margin:0 0 5px;letter-spacing:-.02em;line-heig
 .clock .sub{color:rgba(255,255,255,.82);font-size:12px}
 
 /* ---- view tabs ---- */
-.viewtabs{display:flex;gap:7px;margin-bottom:6px}
+.viewtabs{display:flex;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.viewtabs-manage{margin-top:2px;padding-top:9px;border-top:1px dashed var(--line);align-items:center}
+.tabrow-label{font-size:11.5px;font-weight:800;color:var(--muted);padding:0 7px 0 2px;align-self:center;white-space:nowrap}
 .vtab{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;padding:9px 17px;
   border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--r-2);cursor:pointer;transition:var(--ease)}
 .vtab:hover{border-color:var(--accent);color:var(--accent)}

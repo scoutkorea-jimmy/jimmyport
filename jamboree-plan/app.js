@@ -1801,17 +1801,21 @@ function renderProtocol(){
 
 /* ===== auth (개별 ID/PW 로그인 · 관리자=TOTP) ===== */
 var SESSION_KEY='jamboree-plan:session';
-var Auth={ token:null, exp:0, role:null, name:'', username:'' };
+// 홍보부 운영·관리 탭(유형 '홍보부' 또는 관리자만 접근) vs 콘텐츠 탭(모든 회원)
+var MANAGE_TABS=['staff','contacts','orginfo','protocol'];
+var Auth={ token:null, exp:0, role:null, name:'', username:'', type:'' };
 Auth.load=function(){
   try{ var s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
-    if(s&&s.token&&s.exp&&s.exp>Date.now()){ this.token=s.token; this.exp=s.exp; this.role=s.role||'member'; this.name=s.name||''; this.username=s.username||''; return true; }
+    if(s&&s.token&&s.exp&&s.exp>Date.now()){ this.token=s.token; this.exp=s.exp; this.role=s.role||'member'; this.name=s.name||''; this.username=s.username||''; this.type=s.type||'일반'; return true; }
   }catch(e){}
   return false;
 };
-Auth.save=function(){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify({token:this.token,exp:this.exp,role:this.role,name:this.name,username:this.username})); }catch(e){} };
-Auth.clear=function(){ this.token=null; this.exp=0; this.role=null; this.name=''; this.username=''; try{ localStorage.removeItem(SESSION_KEY); }catch(e){} };
+Auth.save=function(){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify({token:this.token,exp:this.exp,role:this.role,name:this.name,username:this.username,type:this.type})); }catch(e){} };
+Auth.clear=function(){ this.token=null; this.exp=0; this.role=null; this.name=''; this.username=''; this.type=''; try{ localStorage.removeItem(SESSION_KEY); }catch(e){} };
 Auth.authed=function(){ return !!(this.token && this.exp>Date.now()); };
 Auth.isAdmin=function(){ return this.role==='admin'; };
+Auth.isStaff=function(){ return this.isAdmin() || this.type==='홍보부'; };   // 홍보부(관리 탭 접근)
+Auth.canSee=function(v){ return this.isStaff() || MANAGE_TABS.indexOf(v)<0; };
 function authHeader(){ return Auth.token ? {'Authorization':'Bearer '+Auth.token} : {}; }
 function authJsonHeaders(){ var h={'content-type':'application/json'}; if(Auth.token) h['Authorization']='Bearer '+Auth.token; return h; }
 // 쓰기 응답이 401이면 세션 만료 — 게이트 다시 표시
@@ -1820,12 +1824,18 @@ function authExpired(){ Auth.clear(); document.documentElement.classList.remove(
 function reflectAuthUI(){
   var who=document.getElementById('whoami'), out=document.getElementById('logout'), mb=document.getElementById('members-btn');
   if(Auth.authed()){
-    if(who) who.textContent = Auth.isAdmin()? '관리자' : ('로그인: '+(Auth.name||Auth.username));
+    if(who) who.textContent = Auth.isAdmin()? '관리자' : ('로그인: '+(Auth.name||Auth.username)+(Auth.type==='홍보부'?' · 홍보부':''));
     if(out) out.style.display='';
     if(mb) mb.style.display = Auth.isAdmin()? '' : 'none';
   } else {
     if(who) who.textContent=''; if(out) out.style.display='none'; if(mb) mb.style.display='none';
   }
+  // 탭 접근: 관리 탭(홍보부 운영)은 홍보부 유형/관리자만 노출
+  document.querySelectorAll('.vtab[data-v]').forEach(function(b){
+    var v=b.getAttribute('data-v');
+    b.style.display=(Auth.authed() && Auth.canSee(v))?'':'none';
+  });
+  var mrow=document.getElementById('tabrow-manage'); if(mrow) mrow.style.display=(Auth.authed()&&Auth.isStaff())?'':'none';
 }
 function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); }
 
@@ -1858,7 +1868,7 @@ function wireAuthGate(){
     setErr('로그인 중…');
     fetch('/api/jp-members',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'login',username:u,password:p})})
       .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
-      .then(function(res){ if(res.ok&&res.j.ok){ Auth.token=res.j.token; Auth.exp=res.j.exp; Auth.role='member'; Auth.name=res.j.name||''; Auth.username=res.j.username||u; Auth.save(); setErr(''); onAuthed(); }
+      .then(function(res){ if(res.ok&&res.j.ok){ Auth.token=res.j.token; Auth.exp=res.j.exp; Auth.role='member'; Auth.name=res.j.name||''; Auth.username=res.j.username||u; Auth.type=res.j.type||'일반'; Auth.save(); setErr(''); onAuthed(); }
         else setErr(errMsg(res.j&&res.j.error)); })
       .catch(function(){ setErr('네트워크 오류'); });
   };
@@ -1893,7 +1903,7 @@ function wireAuthGate(){
 
 function doLogout(){ Auth.clear(); try{ location.reload(); }catch(e){ document.documentElement.classList.remove('pw-ok'); } }
 
-/* ===== 대원 기사 (news) ===== */
+/* ===== 홍보부원 기사 (news) ===== */
 var newsItems=[], newsLoaded=false, newsEdit=null; // newsEdit: {id?, title, body, images[]}
 function loadNews(){
   fetch('/api/jp-news').then(function(r){return r.json();}).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; if(curViewMode==='news') renderNews(); })
@@ -1915,7 +1925,7 @@ function renderNews(){
       (imgs?('<div class="news-photos n'+(a.images||[]).length+'">'+imgs+'</div>'):'')+
       '<div class="news-main">'+
         '<h3 class="news-title">'+esc(a.title||'(제목 없음)')+'</h3>'+
-        '<div class="news-meta"><span class="news-author">'+icon('user',13)+' '+esc(a.authorName||a.author||'대원')+'</span><span class="news-date">'+esc(fmtNewsTime(a.createdAt))+edited+'</span></div>'+
+        '<div class="news-meta"><span class="news-author">'+icon('user',13)+' '+esc(a.authorName||a.author||'홍보부원')+'</span><span class="news-date">'+esc(fmtNewsTime(a.createdAt))+edited+'</span></div>'+
         (a.body?('<div class="news-text">'+esc(a.body).replace(/\n/g,'<br>')+'</div>'):'')+
         (tools?('<div class="news-tools">'+tools+'</div>'):'')+
       '</div></article>';
@@ -1977,7 +1987,7 @@ function deleteNews(id){
     .catch(function(){ toast('네트워크 오류'); });
 }
 
-/* ===== 관리자: 대원 계정 관리 ===== */
+/* ===== 관리자: 홍보부원 회원 관리 ===== */
 var membersList=[];
 function openMembers(){
   if(!Auth.isAdmin()) return;
@@ -1997,6 +2007,7 @@ function renderMembers(msg){
   function row(m){
     var tools='';
     if(m.status!=='approved') tools+='<button class="btn xs solid" data-mem-approve="'+esc(m.username)+'">'+icon('check',13)+' 승인</button>';
+    if(m.status==='approved') tools+='<select class="mem-type" data-mem-type="'+esc(m.username)+'" title="회원 유형 (접근 권한)"><option value="일반"'+(m.type==='홍보부'?'':' selected')+'>일반</option><option value="홍보부"'+(m.type==='홍보부'?' selected':'')+'>홍보부</option></select>';
     tools+='<button class="btn xs ghost" data-mem-reset="'+esc(m.username)+'">PW 초기화</button>';
     tools+='<button class="btn xs ghost danger" data-mem-reject="'+esc(m.username)+'">'+icon('trash',13)+' 삭제</button>';
     return '<div class="mem-row"><div class="mem-id"><b>'+esc(m.name||'')+'</b><span>@'+esc(m.username)+'</span></div>'+
@@ -2005,16 +2016,20 @@ function renderMembers(msg){
   }
   b.innerHTML=
     '<div class="mem-sec"><h4>승인 대기 ('+pend.length+')</h4>'+(pend.length?pend.map(row).join(''):'<div class="news-empty">대기 중인 신청이 없습니다.</div>')+'</div>'+
-    '<div class="mem-sec"><h4>승인된 대원 ('+appr.length+')</h4>'+(appr.length?appr.map(row).join(''):'<div class="news-empty">아직 없습니다.</div>')+'</div>';
+    '<div class="mem-sec"><h4>승인된 회원 ('+appr.length+')</h4>'+(appr.length?appr.map(row).join(''):'<div class="news-empty">아직 없습니다.</div>')+'</div>'+
+    '<p class="news-empty" style="text-align:left;margin:8px 2px 0;line-height:1.6">유형 <b>일반</b> = 콘텐츠 탭(대시보드·캘린더·리스트·기사·일정표)만 · <b>홍보부</b> = 관리 탭(인원·협조연락처·분단·의전)까지. 유형 변경은 해당 회원이 <b>다시 로그인</b>하면 적용됩니다.</p>';
 }
-function patchMember(username, action, password){
-  var body={username:username, action:action}; if(password) body.password=password;
+function patchMember(username, action, val){
+  var body={username:username, action:action};
+  if(action==='reset'&&val) body.password=val;
+  if(action==='type'&&val) body.type=val;
   return fetch('/api/jp-members',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify(body)})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); });
 }
 function approveMember(u){ patchMember(u,'approve').then(function(j){ if(j&&j.ok){ toast('승인했습니다'); openMembers(); } }); }
 function rejectMember(u){ if(!confirm('@'+u+' 계정을 삭제할까요?')) return; patchMember(u,'reject').then(function(j){ if(j&&j.ok){ toast('삭제했습니다'); openMembers(); } }); }
 function resetMemberPw(u){ var p=prompt('@'+u+' 의 새 비밀번호 (4자 이상)'); if(!p) return; if(p.length<4){ toast('4자 이상'); return; } patchMember(u,'reset',p).then(function(j){ if(j&&j.ok) toast('비밀번호를 초기화했습니다'); }); }
+function setMemberType(u,t){ patchMember(u,'type',t).then(function(j){ if(j&&j.ok){ toast('@'+u+' 유형: '+t); var m=membersList.filter(function(x){return x.username===u;})[0]; if(m) m.type=t; } }); }
 
 /* ===== weather (Open-Meteo · 강원 고성 토성면 잼버리로 244 인근) ===== */
 var WX_LAT=38.286, WX_LON=128.520;
@@ -2131,6 +2146,7 @@ function renderDashboard(){
 /* ===== view tabs ===== */
 var curViewMode='calendar';
 function setView(v){
+  if(!Auth.canSee(v)) v='dashboard';   // 관리 탭은 홍보부 유형/관리자만
   curViewMode=v;
   var db=document.getElementById('dashboard'); if(db) db.style.display = v==='dashboard'?'':'none';
   var nw=document.getElementById('news'); if(nw) nw.style.display = v==='news'?'':'none';
@@ -2187,7 +2203,7 @@ function init(){
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
   setView(['dashboard','news','calendar','list','timetable','staff','contacts','orginfo','protocol'].indexOf(savedView)>=0?savedView:'dashboard');
-  // 인증 · 기사 · 대원 계정 배선
+  // 인증 · 기사 · 홍보부원 회원 배선
   reflectAuthUI();
   var lo=document.getElementById('logout'); if(lo) lo.onclick=doLogout;
   var na=document.getElementById('news-add'); if(na) na.onclick=function(){ openNewsEditor(null); };
@@ -2209,11 +2225,14 @@ function init(){
   document.getElementById('news-body').addEventListener('click',function(e){
     var x=e.target.closest('[data-news-img-del]'); if(x&&newsEdit){ newsEdit.images.splice(+x.getAttribute('data-news-img-del'),1); renderNewsEditor(); }
   });
-  // 대원 계정 모달 위임
+  // 홍보부원 회원 모달 위임
   document.getElementById('members-body').addEventListener('click',function(e){
     var a=e.target.closest('[data-mem-approve]'); if(a){ approveMember(a.getAttribute('data-mem-approve')); return; }
     var r=e.target.closest('[data-mem-reject]'); if(r){ rejectMember(r.getAttribute('data-mem-reject')); return; }
     var p=e.target.closest('[data-mem-reset]'); if(p){ resetMemberPw(p.getAttribute('data-mem-reset')); return; }
+  });
+  document.getElementById('members-body').addEventListener('change',function(e){
+    var s=e.target.closest('[data-mem-type]'); if(s){ setMemberType(s.getAttribute('data-mem-type'), s.value); }
   });
   var dvAdd=document.getElementById('div-add'); if(dvAdd) dvAdd.onclick=addDivision;
   var dvSe=document.getElementById('div-search'); if(dvSe) dvSe.addEventListener('input',function(){ var v=this.value; if(divSearchTimer)clearTimeout(divSearchTimer); divSearchTimer=setTimeout(function(){ divSearchQ=v; renderDivisions(); },120); });

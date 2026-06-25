@@ -26,7 +26,7 @@ async function readUser(env, username) {
 async function writeIndex(env, rec) {
   const idx = await getArr(env, INDEX);
   const i = idx.findIndex((m) => m.username === rec.username);
-  const row = { username: rec.username, name: rec.name, status: rec.status, createdAt: rec.createdAt };
+  const row = { username: rec.username, name: rec.name, status: rec.status, createdAt: rec.createdAt, type: rec.type || "일반" };
   if (i >= 0) idx[i] = row; else idx.push(row);
   await putArr(env, INDEX, idx);
 }
@@ -56,9 +56,9 @@ export async function onRequestPost({ request, env }) {
 
     const { salt, hash } = await hashPassword(password);
     const nowIso = new Date().toISOString();
-    const rec = { username, name, salt, hash, status: "pending",
+    const rec = { username, name, salt, hash, status: "pending", type: "일반",
       createdAt: nowIso, approvedAt: null, ip: maskIp(clientIp(request)),
-      consentAt: nowIso };   // 개인정보 수집·이용 동의 시각 (PIPA 동의 기록)
+      consentAt: nowIso };   // type: 회원 유형(관리자가 지정) · consentAt: 개인정보 동의 시각
     await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
     await writeIndex(env, rec);
     await appendLog(env, { ts: rec.createdAt, action: "jpm.register", count: 0, ip: clientIp(request) });
@@ -84,7 +84,7 @@ export async function onRequestPost({ request, env }) {
 
     try { await env.SCOUT_KV.delete(rlKey); } catch {}
     const s = await issueMemberSession(env, { username });
-    return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username });
+    return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반" });
   }
 
   return json({ ok: false, error: "bad_action" }, 400);
@@ -121,6 +121,10 @@ export async function onRequestPatch({ request, env }) {
     const { salt, hash } = await hashPassword(password);
     rec.salt = salt; rec.hash = hash;
     await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
+  } else if (action === "type") {
+    rec.type = (String(body.type || "").trim()) || "일반";   // 회원 유형 지정(관리자)
+    await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
+    await writeIndex(env, rec);
   } else {
     return json({ ok: false, error: "bad_action" }, 400);
   }
