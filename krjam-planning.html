@@ -80,6 +80,7 @@
     <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더 보기</button>
     <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 리스트 보기</button>
     <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
+    <button class="vtab" data-v="library" role="tab"><span data-ic="image"></span> 자료실</button>
   </div>
   <div class="viewtabs viewtabs-manage" id="tabrow-manage" role="tablist" aria-label="홍보부 운영">
     <span class="tabrow-label">홍보부 운영</span>
@@ -105,6 +106,16 @@
     </div>
     <p class="note">홍보부원 누구나 <b>사진 2~3장과 기사</b>를 올릴 수 있습니다. 올린 기사는 바로 게시되며, <b>작성자 본인</b>이 자유롭게 수정할 수 있습니다. (삭제는 관리자) 이 보드는 내부용이며 연맹 SNS로 자동 게시되지 않습니다.</p>
     <div class="newsgrid" id="news-list"></div>
+  </section>
+
+  <section id="library" style="display:none">
+    <div class="sec-head">
+      <h2><span data-ic="image" data-ic-size="17" style="vertical-align:-3px"></span> 자료실 (사진 · 카드뉴스 아카이브)</h2>
+      <label class="btn sm solid" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 자료 올리기<input type="file" id="lib-file" accept="image/*" multiple hidden></label>
+    </div>
+    <p class="note">완성한 <b>카드뉴스 PNG</b>나 <b>현장 사진</b>을 올려두고 태그로 찾아 재사용하세요. 사진은 서버에 저장됩니다. (삭제는 올린 사람·관리자)</p>
+    <div class="lib-bar"><div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="lib-search" type="search" placeholder="이름·태그 검색"></div><div class="lib-tags" id="lib-tags"></div></div>
+    <div class="libgrid" id="lib-grid"></div>
   </section>
 
   <section id="calendar">

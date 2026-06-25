@@ -1815,7 +1815,7 @@ Auth.clear=function(){ this.token=null; this.exp=0; this.role=null; this.name=''
 Auth.authed=function(){ return !!(this.token && this.exp>Date.now()); };
 Auth.isAdmin=function(){ return this.role==='admin'; };
 // 유형(type)이 가진 탭만. tabs 비어있으면(구버전 세션) 콘텐츠 탭만 폴백 → 잠금 방지.
-Auth.canSee=function(v){ return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
+Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news') return true; return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
 Auth.isStaff=function(){ var me=this; return this.isAdmin() || ((this.tabs&&this.tabs.length) ? MANAGE_TABS.some(function(t){ return me.tabs.indexOf(t)>=0; }) : false); };
 function authHeader(){ return Auth.token ? {'Authorization':'Bearer '+Auth.token} : {}; }
 function authJsonHeaders(){ var h={'content-type':'application/json'}; if(Auth.token) h['Authorization']='Bearer '+Auth.token; return h; }
@@ -1934,6 +1934,81 @@ function articleToCardnews(id){
   window.open('/krjam-cardnews','_blank','noopener');
   toast('카드뉴스 제작기에서 상단 “기사 가져오기”를 눌러 채우세요');
 }
+// ── 기사 검수 코멘트 ──
+var openComments={};
+function renderArticleComments(a){
+  var list=(a.comments||[]).map(function(c){
+    var del=(Auth.isAdmin()||(Auth.username&&c.username===Auth.username))?'<button class="ac-del" data-ac-del="'+esc(a.id)+'~'+esc(c.id)+'" aria-label="삭제">'+icon('x',12)+'</button>':'';
+    return '<div class="ac-item"><div class="ac-h"><b>'+esc(c.author||'')+'</b><span>'+esc(fmtNewsTime(c.ts))+'</span>'+del+'</div><div class="ac-t">'+esc(c.text||'').replace(/\n/g,'<br>')+'</div></div>';
+  }).join('');
+  return '<div class="ac-box">'+(list||'<div class="ac-empty">아직 검수 코멘트가 없습니다.</div>')+
+    (Auth.authed()?('<div class="ac-add"><input class="ac-input" data-ac-input="'+esc(a.id)+'" placeholder="검수 의견·수정 요청…" maxlength="1000"><button class="btn xs solid" data-ac-send="'+esc(a.id)+'">등록</button></div>'):'')+'</div>';
+}
+function toggleNewsComments(id){ openComments[id]=!openComments[id]; renderNews(); }
+function addNewsComment(id){
+  var inp=document.querySelector('[data-ac-input="'+id+'"]'); if(!inp) return; var text=(inp.value||'').trim(); if(!text) return;
+  fetch('/api/jp-news',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'comment',id:id,text:text,authorName:Auth.name||Auth.username})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok&&j.article){ var i=newsItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) newsItems[i]=j.article; openComments[id]=true; renderNews(); } else toast('등록 실패'); })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+function deleteNewsComment(id, cid){
+  fetch('/api/jp-news',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'comment_delete',id:id,commentId:cid})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok&&j.article){ var i=newsItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) newsItems[i]=j.article; renderNews(); } })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+
+/* ===== 자료 라이브러리 (아카이브) ===== */
+var libItems=[], libLoaded=false, libSearch='', libTag='';
+function loadLibrary(){
+  fetch('/api/jp-assets').then(function(r){return r.json();}).then(function(j){ libItems=(j&&j.assets)||[]; libLoaded=true; if(curViewMode==='library') renderLibrary(); })
+    .catch(function(){ libLoaded=true; if(curViewMode==='library') renderLibrary(); });
+}
+function libAllTags(){ var s={}; libItems.forEach(function(a){ (a.tags||[]).forEach(function(t){ s[t]=(s[t]||0)+1; }); }); return Object.keys(s).sort(); }
+function renderLibrary(){
+  var grid=document.getElementById('lib-grid'); if(!grid) return;
+  var tagBar=document.getElementById('lib-tags');
+  if(tagBar){ var tags=libAllTags(); tagBar.innerHTML=(libTag?'<button class="libtag on" data-libtag="">전체</button>':'')+tags.map(function(t){ return '<button class="libtag'+(libTag===t?' on':'')+'" data-libtag="'+esc(t)+'">#'+esc(t)+'</button>'; }).join(''); }
+  if(!libLoaded){ grid.innerHTML='<div class="news-empty">불러오는 중…</div>'; return; }
+  var q=libSearch.trim().toLowerCase();
+  var items=libItems.filter(function(a){
+    if(libTag && (a.tags||[]).indexOf(libTag)<0) return false;
+    if(q){ var hay=[(a.name||''),(a.tags||[]).join(' '),(a.authorName||'')].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    return true;
+  });
+  if(!items.length){ grid.innerHTML='<div class="news-empty">자료가 없습니다. 우측 상단 <b>자료 올리기</b>로 추가하세요.</div>'; return; }
+  grid.innerHTML=items.map(function(a){
+    var canDel=Auth.isAdmin()||(Auth.username&&a.author===Auth.username);
+    return '<div class="libcard">'+
+      '<a class="libimg" href="'+esc(a.url)+'" target="_blank" rel="noopener"><img src="'+esc(a.url)+'" alt="" loading="lazy"></a>'+
+      '<div class="libmeta"><div class="libname">'+esc(a.name||'(이름 없음)')+'</div>'+
+        ((a.tags&&a.tags.length)?('<div class="libtags">'+a.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>'):'')+
+        '<div class="libsub">'+esc(a.authorName||'')+' · '+esc(fmtNewsTime(a.createdAt))+'</div>'+
+        '<div class="libtools"><a class="btn xs ghost" href="'+esc(a.url)+'" download target="_blank" rel="noopener">'+icon('image',12)+' 받기</a>'+(canDel?'<button class="btn xs ghost danger" data-lib-del="'+esc(a.id)+'">'+icon('trash',12)+' 삭제</button>':'')+'</div>'+
+      '</div></div>';
+  }).join('');
+}
+function uploadAssets(files){
+  if(!Auth.authed()){ toast('로그인 후 올릴 수 있습니다'); return; }
+  var arr=Array.prototype.slice.call(files||[]); if(!arr.length) return;
+  var tagStr=prompt('태그 (쉼표로 구분 · 선택) — 예: 개영식, 카드뉴스'); if(tagStr===null) return;
+  var tags=(tagStr||'').split(',').map(function(t){return t.trim();}).filter(Boolean);
+  toast('업로드 중…'); var done=0, ok=0;
+  arr.forEach(function(f){
+    downscale(f,1600,0.85).then(function(blob){ return uploadBlob(blob).then(function(r){return r.json();}); })
+      .then(function(d){ if(d&&d.url){ return fetch('/api/jp-assets',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({url:d.url,name:(f.name||'').replace(/\.[a-z0-9]+$/i,''),type:(/png$/i.test(f.name||'')?'cardnews':'photo'),tags:tags,authorName:Auth.name||Auth.username})}).then(function(r){return r.json();}); } })
+      .then(function(j){ if(j&&j.ok&&j.asset){ libItems.unshift(j.asset); ok++; } done++; if(done===arr.length){ renderLibrary(); toast('자료 '+ok+'개 추가됨'); } })
+      .catch(function(){ done++; if(done===arr.length){ renderLibrary(); } });
+  });
+}
+function deleteAsset(id){
+  if(!confirm('이 자료를 삭제할까요?')) return;
+  fetch('/api/jp-assets?id='+encodeURIComponent(id),{method:'DELETE',headers:authHeader()})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok){ libItems=libItems.filter(function(x){return x.id!==id;}); renderLibrary(); toast('삭제됨'); } else if(j) toast('삭제 권한 없음'); })
+    .catch(function(){ toast('네트워크 오류'); });
+}
 function renderNews(){
   var box=document.getElementById('news-list'); if(!box) return;
   if(!newsLoaded){ box.innerHTML='<div class="news-empty">기사 불러오는 중…</div>'; return; }
@@ -1943,6 +2018,7 @@ function renderNews(){
     var tools='';
     if(canEditNews(a)) tools+='<button class="btn xs ghost" data-news-edit="'+esc(a.id)+'">'+icon('edit',13)+' 수정</button>';
     tools+='<button class="btn xs ghost" data-news-tocard="'+esc(a.id)+'" title="이 기사 내용·사진으로 카드뉴스 제작기 채우기">'+icon('image',13)+' 카드뉴스 만들기</button>';
+    tools+='<button class="btn xs ghost" data-news-comments="'+esc(a.id)+'">'+icon('fileText',13)+' 검수 '+((a.comments||[]).length||0)+'</button>';
     if(Auth.isAdmin()) tools+='<button class="btn xs ghost danger" data-news-del="'+esc(a.id)+'">'+icon('trash',13)+' 삭제</button>';
     var edited=(a.updatedAt&&a.updatedAt!==a.createdAt)?' · 수정됨':'';
     return '<article class="news-card">'+
@@ -1952,6 +2028,7 @@ function renderNews(){
         '<div class="news-meta"><span class="news-author">'+icon('user',13)+' '+esc(a.authorName||a.author||'홍보부원')+'</span><span class="news-date">'+esc(fmtNewsTime(a.createdAt))+edited+'</span></div>'+
         (a.body?('<div class="news-text">'+esc(a.body).replace(/\n/g,'<br>')+'</div>'):'')+
         (tools?('<div class="news-tools">'+tools+'</div>'):'')+
+        (openComments[a.id]?renderArticleComments(a):'')+
       '</div></article>';
   }).join('');
 }
@@ -2141,14 +2218,25 @@ function renderDashboard(){
   loadWeather();
   var box=document.getElementById('dash-stats'); if(!box) return;
   var total=0, planned=0, draft=0, ready=0, meetings=0, today=todayISO(), upcoming=[];
+  var posted=0, titled=0, byCh={}, byOwner={}, dueSoon=[];
   DAYS.forEach(function(d){
     daySlots(d).forEach(function(s){
       var e=peek(s.k), st=e.status||'planned';
       if(isMeeting(e)){ meetings++; }
-      else { total++; if(st==='ready')ready++; else if(st==='draft')draft++; else planned++; }
+      else {
+        total++; if(st==='ready')ready++; else if(st==='draft')draft++; else planned++;
+        if(e.title){
+          titled++; if(e.posted) posted++;
+          (e.channels||[]).forEach(function(c){ if(!byCh[c])byCh[c]={t:0,p:0}; byCh[c].t++; if(e.posted)byCh[c].p++; });
+          var ow=(e.owner||'').trim()||'(미지정)'; byOwner[ow]=(byOwner[ow]||0)+1;
+          var dl=dayDiff(d.date, today);
+          if(!e.posted && dl>=0 && dl<=3) dueSoon.push({d:d,s:s,e:e,dl:dl});
+        }
+      }
       if(e.title && d.date>=today){ upcoming.push({d:d,s:s,e:e}); }
     });
   });
+  dueSoon.sort(function(a,b){ return a.dl-b.dl; });
   upcoming.sort(function(a,b){ return a.d.date<b.d.date?-1:a.d.date>b.d.date?1:0; });
   var pct= total? Math.round(ready/total*100):0;
   var evs=eventList().filter(function(ev){ return ev.title && (ev.end||ev.start||'')>=today; }).sort(function(a,b){ return (a.start||'')<(b.start||'')?-1:1; });
@@ -2162,6 +2250,7 @@ function renderDashboard(){
   var html='<div class="dashgrid">';
   html+=statCard('개영까지', dd>0?('D-'+dd):(dd===0?'D-DAY':('D+'+(-dd))), '2026-08-05 개영', 'var(--c-fin)');
   html+=statCard('콘텐츠 진행', ready+' / '+total, '완료 '+pct+'% · 작성중 '+draft+' · 기획 '+planned, 'var(--st-ready)');
+  html+=statCard('게시 완료', posted+' / '+titled, titled?(Math.round(posted/titled*100)+'% 게시'):'게시할 콘텐츠 없음', 'var(--c-intl)');
   html+=statCard('운영 일정', evs.length+'건', '다가오는 회의 · 공모전 · 행사', 'var(--c-intl)');
   html+=statCard('시간 일정', ttN+'건', '잼버리 일정표 (8/2~8/9)', 'var(--accent)');
   html+=statCard('인원 · 연락처', rosterN+' · '+conN, 'R&R 인원 · 취재 연락처', 'var(--ink-2)');
@@ -2186,8 +2275,15 @@ function renderDashboard(){
       '<span class="dp-t"><span class="dp-kind" style="background:'+ek+'">'+esc(ev.kind||'')+'</span> '+esc(ev.title)+'</span></button>';
   }); html+='</div>'; }
   html+='</div></div>';
+  // 게시 현황 · 통계 (채널별 · 담당자별 · 마감 임박)
+  var owners=Object.keys(byOwner).sort(function(a,b){return byOwner[b]-byOwner[a];});
+  html+='<div class="dashpanel" style="margin-top:14px"><div class="dp-h">게시 현황 · 통계</div><div class="pubgrid">';
+  html+='<div class="pubcol"><div class="pubcol-h">채널별 (게시/전체)</div>'+CHANNELS.map(function(c){ var x=byCh[c]||{t:0,p:0}; return '<div class="pubrow"><span>'+esc(c)+'</span><b>'+x.p+' / '+x.t+'</b></div>'; }).join('')+'</div>';
+  html+='<div class="pubcol"><div class="pubcol-h">담당자별 콘텐츠</div>'+(owners.length?owners.slice(0,8).map(function(o){ return '<div class="pubrow"><span>'+esc(o)+'</span><b>'+byOwner[o]+'건</b></div>'; }).join(''):'<div class="dp-empty">담당자 지정된 콘텐츠 없음</div>')+'</div>';
+  html+='<div class="pubcol"><div class="pubcol-h">마감 임박 · 미게시 (3일 내)</div>'+(dueSoon.length?dueSoon.slice(0,8).map(function(it){ return '<button class="pubrow due" data-date="'+it.d.date+'" data-sk="'+esc(it.s.k)+'"><span>'+it.d.label+' '+(it.dl===0?'오늘':('D-'+it.dl))+'</span><b>'+esc(it.e.title)+'</b></button>'; }).join(''):'<div class="dp-empty">임박한 미게시 콘텐츠 없음</div>')+'</div>';
+  html+='</div></div>';
   box.innerHTML=html;
-  box.querySelectorAll('.dp-item[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
+  box.querySelectorAll('.dp-item[data-sk],.pubrow[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
   box.querySelectorAll('.dp-item[data-eid]').forEach(function(b){ b.onclick=function(){ openEvent(b.getAttribute('data-eid')); }; });
 }
 
@@ -2206,12 +2302,14 @@ function setView(v){
   var cn=document.getElementById('contacts'); if(cn) cn.style.display = v==='contacts'?'':'none';
   var oi=document.getElementById('orginfo'); if(oi) oi.style.display = v==='orginfo'?'':'none';
   var pr=document.getElementById('protocol'); if(pr) pr.style.display = v==='protocol'?'':'none';
+  var lib=document.getElementById('library'); if(lib) lib.style.display = v==='library'?'':'none';
   // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
   try{localStorage.setItem('jamboree-plan:view',v);}catch(e){}
   if(v==='dashboard') renderDashboard();
   if(v==='news') renderNews();
+  if(v==='library'){ if(!libLoaded) loadLibrary(); else renderLibrary(); }
   if(v==='list') renderBoard();
   if(v==='timetable') renderTimetable();
   if(v==='staff') renderStaff();
@@ -2251,7 +2349,7 @@ function init(){
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
-  setView(['dashboard','news','calendar','list','timetable','staff','contacts','orginfo','protocol'].indexOf(savedView)>=0?savedView:'dashboard');
+  setView(['dashboard','news','calendar','list','timetable','library','staff','contacts','orginfo','protocol'].indexOf(savedView)>=0?savedView:'dashboard');
   // 인증 · 기사 · 홍보부원 회원 배선
   reflectAuthUI();
   var lo=document.getElementById('logout'); if(lo) lo.onclick=doLogout;
@@ -2272,7 +2370,18 @@ function init(){
     var ed=e.target.closest('[data-news-edit]'); if(ed){ openNewsEditor(ed.getAttribute('data-news-edit')); return; }
     var dl=e.target.closest('[data-news-del]'); if(dl){ deleteNews(dl.getAttribute('data-news-del')); return; }
     var tc=e.target.closest('[data-news-tocard]'); if(tc){ articleToCardnews(tc.getAttribute('data-news-tocard')); return; }
+    var nc=e.target.closest('[data-news-comments]'); if(nc){ toggleNewsComments(nc.getAttribute('data-news-comments')); return; }
+    var as=e.target.closest('[data-ac-send]'); if(as){ addNewsComment(as.getAttribute('data-ac-send')); return; }
+    var ad=e.target.closest('[data-ac-del]'); if(ad){ var pr=ad.getAttribute('data-ac-del').split('~'); deleteNewsComment(pr[0],pr[1]); return; }
   });
+  document.getElementById('news-list').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } }
+  });
+  // 자료실(라이브러리) 배선
+  var lf=document.getElementById('lib-file'); if(lf) lf.addEventListener('change',function(){ uploadAssets(this.files); this.value=''; });
+  var ls=document.getElementById('lib-search'); if(ls) ls.addEventListener('input',function(){ libSearch=this.value; renderLibrary(); });
+  var lt=document.getElementById('lib-tags'); if(lt) lt.addEventListener('click',function(e){ var b=e.target.closest('[data-libtag]'); if(b){ libTag=b.getAttribute('data-libtag'); renderLibrary(); } });
+  var lg=document.getElementById('lib-grid'); if(lg) lg.addEventListener('click',function(e){ var d=e.target.closest('[data-lib-del]'); if(d){ e.preventDefault(); deleteAsset(d.getAttribute('data-lib-del')); } });
   // news 편집 모달 위임 (사진 삭제)
   document.getElementById('news-body').addEventListener('click',function(e){
     var x=e.target.closest('[data-news-img-del]'); if(x&&newsEdit){ newsEdit.images.splice(+x.getAttribute('data-news-img-del'),1); renderNewsEditor(); }

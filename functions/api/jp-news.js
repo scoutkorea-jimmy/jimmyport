@@ -47,6 +47,28 @@ export async function onRequestPost({ request, env }) {
   if (!who) return json({ ok: false, error: "unauthorized" }, 401);
   let body = {};
   try { body = await request.json(); } catch {}
+  if (body.action === "comment") {   // 검수 코멘트 추가
+    const rec = await readArticle(env, String(body.id || ""));
+    if (!rec) return json({ ok: false, error: "not_found" }, 404);
+    const ctext = String(body.text || "").trim().slice(0, 1000);
+    if (!ctext) return json({ ok: false, error: "empty" }, 400);
+    if (!Array.isArray(rec.comments)) rec.comments = [];
+    rec.comments.push({ id: newId(), text: ctext, author: who.admin ? "관리자" : (String(body.authorName || who.username).slice(0, 40)), username: who.admin ? "admin" : who.username, ts: new Date().toISOString(), ip: maskIp(clientIp(request)) });
+    rec.comments = rec.comments.slice(-200);
+    await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
+    await appendLog(env, { ts: new Date().toISOString(), action: "jpn.comment", count: 0, ip: clientIp(request) });
+    return json({ ok: true, article: rec });
+  }
+  if (body.action === "comment_delete") {   // 코멘트 삭제(본인 또는 관리자)
+    const rec = await readArticle(env, String(body.id || ""));
+    if (!rec || !Array.isArray(rec.comments)) return json({ ok: false, error: "not_found" }, 404);
+    const c = rec.comments.find((x) => x.id === body.commentId);
+    if (!c) return json({ ok: false, error: "not_found" }, 404);
+    if (!who.admin && c.username !== who.username) return json({ ok: false, error: "forbidden" }, 403);
+    rec.comments = rec.comments.filter((x) => x.id !== body.commentId);
+    await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
+    return json({ ok: true, article: rec });
+  }
   const title = String(body.title || "").trim().slice(0, 160);
   const text = String(body.body || "").trim().slice(0, 8000);
   if (!title && !text) return json({ ok: false, error: "empty" }, 400);
