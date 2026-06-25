@@ -40,15 +40,16 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children, nowr
   const Tag = tag;
   const store = useCCStore();
   const register = React.useContext(window.CCRegisterFieldCtx);
+  const K = React.useContext(window.CCScope) + ekey;   // 덱 인스턴스 접두사
   const ref = React.useRef(null);
   const [editing, setEditing] = React.useState(false);
-  const stored = store.getText(ekey);
+  const stored = store.getText(K);
   const display = stored != null ? stored : children;
-  const colOv = store.getProp('txtcol', ekey, '');   // 글자색 오버라이드(사진 위 텍스트 등)
-  const shOn = shadow || store.getProp('txtsh', ekey, '') === '1';   // 드롭섀도(사진 위 가독성)
+  const colOv = store.getProp('txtcol', K, '');   // 글자색 오버라이드(사진 위 텍스트 등)
+  const shOn = shadow || store.getProp('txtsh', K, '') === '1';   // 드롭섀도(사진 위 가독성)
   React.useEffect(() => {
-    if (register) register(ekey, flabel || textOf(children), textOf(children));
-  }, [ekey]); // eslint-disable-line
+    if (register) register(K, flabel || textOf(children), textOf(children));
+  }, [K]); // eslint-disable-line
   // 글자크기 일괄 트윅: 숫자 px → calc(px * --cc-fz)로 변환 (내용 텍스트 전체 스케일)
   const fz = (style && typeof style.fontSize === 'number') ? `calc(${style.fontSize}px * var(--cc-fz, 1))` : (style ? style.fontSize : undefined);
   return (
@@ -56,7 +57,7 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children, nowr
       style={{ ...style, color: colOv || (style && style.color), textShadow: shOn ? '0 2px 10px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.5)' : (style && style.textShadow), fontSize: fz, whiteSpace: nowrap ? 'pre' : 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
-      onBlur={(e) => { store.setText(ekey, e.currentTarget.innerText.replace(/\n$/, '')); setEditing(false); }}
+      onBlur={(e) => { store.setText(K, e.currentTarget.innerText.replace(/\n$/, '')); setEditing(false); }}
       onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); e.currentTarget.blur(); } }}
     >{display}</Tag>
   );

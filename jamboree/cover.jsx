@@ -7,10 +7,11 @@ function CoverThemed(props) {
   const { id, bg, ink = '#fff', eyebrow, eyebrowColor, t1, t2, t2Color, sub, subColor, stitchFill, scatter, footEng, main, cat } = props;
   const gc = React.useContext(window.GContentCtx) || {};
   const store = useCCStore();
-  const ov = store.getProps('cover-' + id);
+  const sc = React.useContext(window.CCScope);   // 덱 인스턴스 접두사
+  const ov = store.getProps(sc + 'cover-' + id);
   const rawBG = ov.bg || bg;
   const dens = ov.bgDensity != null ? +ov.bgDensity : 100;   // 배경색 농도(100=원색)
-  const hasBgPhoto = !!store.getImage('cover-' + id + '-bg');
+  const hasBgPhoto = !!store.getImage(sc + 'cover-' + id + '-bg');
   // 배경사진 있으면: 농도=색 오버레이 투명도(낮출수록 사진이 비침). 없으면: 색을 흰색으로 희석.
   const BG = hasBgPhoto ? '#ffffff' : store.dilute(rawBG, dens);
   const overlayOp = hasBgPhoto ? Math.max(0, Math.min(1, dens / 100)) : 0;

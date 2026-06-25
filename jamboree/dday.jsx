@@ -74,7 +74,7 @@ function ddScatter(i, isDay, cols, bleed, fmt, gfx) {
 /* 오버라이드(배경색·D숫자) 반영한 유효값 — 3비율 컴포넌트가 공유 */
 function useDDeff(c) {
   const store = useCCStore();
-  const ov = store.getProps(c.ek);
+  const ov = store.getProps(React.useContext(window.CCScope) + c.ek);   // 덱 인스턴스 접두사
   const dens = ov.bgDensity != null ? +ov.bgDensity : 100;   // 배경색 농도(100=원색)
   const themed = !!ov.bg || dens < 100;
   const bg = store.dilute(ov.bg || c.bg, dens);

@@ -259,6 +259,7 @@ function App() {
   const store = useCCStore();
   const [familyKey, setFamilyKey] = useState('cover');
   const [variationId, setVariationId] = useState(null);
+  const [instKey, setInstKey] = useState('');   // 덱 인스턴스 접두사 ('' = 라이브러리/스크래치)
   const [brand, setBrand] = useState(DEFAULT_BRAND);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -295,7 +296,7 @@ function App() {
   const family = famOf(familyKey);
   const cards = family.sec() || [];
   const card = cards.find((c) => c.id === variationId) || cards[0];
-  const cardKey = familyKey + '|' + (card ? card.id : '');
+  const cardKey = familyKey + '|' + (card ? card.id : '') + '|' + instKey;
 
   /* ── 트윅 (스토어 cc-prop:_tweaks — 서버 저장에 자동 포함) ── */
   const tweaks = { ...TWEAK_DEFAULTS, ...store.getProps('_tweaks') };
@@ -321,7 +322,27 @@ function App() {
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
   const deck = store.getProp('_deck', 'cards', []);
   const setDeck = (arr) => store.setProp('_deck', 'cards', arr.length ? arr : '');
-  const deckAdd = () => { if (card) setDeck([...deck, { f: familyKey, id: card.id }]); };
+  // 현재 카드를 '독립 인스턴스'로 덱에 담기(내용 스냅샷 복사) → 같은 템플릿을 여러 장 독립 편집
+  const deckAdd = () => {
+    if (!card) return;
+    const src = instKey;
+    const newK = 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) + ':';
+    const cpScope = (s) => { if (!s) return; const pp = store.getProps(s); const d = newK + s.slice(src.length); Object.keys(pp).forEach((kk) => store.setProp(d, kk, pp[kk])); };
+    fields.forEach((f) => {
+      const dk = newK + f.ekey.slice(src.length);
+      const tv = store.getText(f.ekey); if (tv != null) store.setText(dk, tv);
+      const cv = store.getProp('txtcol', f.ekey, ''); if (cv) store.setProp('txtcol', dk, cv);
+      const sv = store.getProp('txtsh', f.ekey, ''); if (sv) store.setProp('txtsh', dk, sv);
+    });
+    photos.forEach((p) => {
+      const dk = newK + p.slot.slice(src.length);
+      const iv = store.getImage(p.slot); if (iv) store.setImage(dk, iv);
+      const xf = store.getProps('imgxf-' + p.slot); Object.keys(xf).forEach((kk) => store.setProp('imgxf-' + dk, kk, xf[kk]));
+    });
+    scenes.forEach((s) => cpScope(s.scope));
+    cpScope(coverScope); cpScope(ddScope); cpScope(newsScope);
+    setDeck([...deck, { f: familyKey, id: card.id, k: newK }]);
+  };
   const deckMove = (i, d) => { const a = deck.slice(); const j = i + d; if (j < 0 || j >= a.length) return; const t = a[i]; a[i] = a[j]; a[j] = t; setDeck(a); };
   const deckRemove = (i) => { const a = deck.slice(); a.splice(i, 1); setDeck(a); };
   const deckResolve = (it) => {
@@ -329,6 +350,21 @@ function App() {
     const c = (f.sec() || []).find((x) => x.id === it.id);
     return c ? { fam: f, card: c } : null;
   };
+  // 마이그레이션: 키 없는 기존 덱 엔트리 → 같은 템플릿 중복은 독립 인스턴스로(첫 장은 라이브러리 유지)
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current || !deck.length) return;
+    if (deck.every((it) => it.k != null)) { migratedRef.current = true; return; }
+    migratedRef.current = true;
+    const seen = {}; let changed = false;
+    const m = deck.map((it, i) => {
+      if (it.k != null) return it;
+      const key = it.f + '|' + it.id;
+      if (!seen[key]) { seen[key] = true; return { ...it, k: '' }; }
+      changed = true; return { ...it, k: 'm' + i + Date.now().toString(36) + ':' };
+    });
+    if (changed) setDeck(m);
+  }, [deck.length]); // eslint-disable-line
 
   /* ── 콘텐츠 자동 푸터: 덱의 표지 기준 제목·색 + 페이지번호 ── */
   const footerOn = String(tweaks.footer == null ? 1 : tweaks.footer) !== '0';
@@ -337,7 +373,7 @@ function App() {
       const it = deck[i];
       if (it.f === 'cover') {
         const r = deckResolve(it);
-        if (r) { const ov = store.getProp('cover-' + it.id, 'bg', ''); return ov || (r.card.node && r.card.node.props && r.card.node.props.bg) || P.midnight; }
+        if (r) { const ov = store.getProp((it.k || '') + 'cover-' + it.id, 'bg', ''); return ov || (r.card.node && r.card.node.props && r.card.node.props.bg) || P.midnight; }
       }
     }
     return null;
@@ -347,7 +383,7 @@ function App() {
     const color = deckCoverColor() || P.midnight;
     return { title: (brand.brand || '제16회 한국잼버리'), color, ink: store.idealInk(color), page: page || '', total: total || '' };
   };
-  const myDeckIdx = deck.findIndex((it) => card && it.f === familyKey && it.id === card.id);
+  const myDeckIdx = deck.findIndex((it) => card && it.f === familyKey && it.id === card.id && (it.k || '') === instKey);
   const previewFooter = footerCtxFor(myDeckIdx >= 0 ? myDeckIdx + 1 : '', deck.length);
 
   /* ── 카드별 폼 자동등록 ── */
@@ -372,9 +408,9 @@ function App() {
   const photos = Array.from(reg.current.photo.values()).filter((p) => p.cardKey === cardKey);
   const scenes = Array.from(reg.current.scene.values()).filter((s) => s.cardKey === cardKey);
 
-  const coverScope = familyKey === 'cover' && card ? 'cover-' + card.id : null;
-  const ddScope = DD_FMT[familyKey] && card ? DD_FMT[familyKey] + '-' + card.id : null;
-  const newsScope = familyKey === 'news' && card ? 'news-' + card.id : null;
+  const coverScope = familyKey === 'cover' && card ? instKey + 'cover-' + card.id : null;
+  const ddScope = DD_FMT[familyKey] && card ? instKey + DD_FMT[familyKey] + '-' + card.id : null;
+  const newsScope = familyKey === 'news' && card ? instKey + 'news-' + card.id : null;
   const alignScope = coverScope || ddScope || newsScope;
   const ddIsDay = !!ddScope && card && card.id === 'dday';
   const ddDefaultN = ddScope && card && !ddIsDay ? card.id.replace(/^d/, '') : '';
@@ -392,7 +428,7 @@ function App() {
 
   const scale = box.w && box.h ? Math.min(box.w / family.w, box.h / family.h, 1) : 0.3;
 
-  useEffect(() => { setVariationId(cards[0] ? cards[0].id : null); /* eslint-disable-next-line */ }, [familyKey]);
+  useEffect(() => { setVariationId(cards[0] ? cards[0].id : null); setInstKey(''); /* eslint-disable-next-line */ }, [familyKey]);
 
   const flash = (msg) => { setStatus(msg); window.clearTimeout(flash._t); flash._t = window.setTimeout(() => setStatus(''), 3500); };
 
@@ -563,7 +599,7 @@ function App() {
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
                 <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>
-                  {r.card.node}
+                  <window.CCScope.Provider value={deck[i].k || ''}>{r.card.node}</window.CCScope.Provider>
                 </window.CCFooterCtx.Provider>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
@@ -603,7 +639,7 @@ function App() {
             <window.DDayTweakCtx.Provider value={tweaks}>
               <window.GContentCtx.Provider value={brand}>
                 <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}>
-                  {r.card.node}
+                  <window.CCScope.Provider value={deck[i].k || ''}>{r.card.node}</window.CCScope.Provider>
                 </window.CCFooterCtx.Provider>
               </window.GContentCtx.Provider>
             </window.DDayTweakCtx.Provider>
@@ -658,7 +694,7 @@ function App() {
             <div style={secLabel}>템플릿 종류</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
               {FAMILIES.map((f) => (
-                <button key={f.key} onClick={() => setFamilyKey(f.key)} style={{
+                <button key={f.key} onClick={() => { setFamilyKey(f.key); setInstKey(''); }} style={{
                   border: '1px solid', borderColor: f.key === familyKey ? UI.accent : UI.line,
                   background: f.key === familyKey ? UI.accent : '#fff', color: f.key === familyKey ? '#fff' : UI.ink,
                   borderRadius: 999, padding: '6px 13px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -667,7 +703,7 @@ function App() {
             </div>
             <div style={secLabel}>베리에이션 · {family.w}×{family.h}</div>
             {cards.map((c) => (
-              <button key={c.id} onClick={() => setVariationId(c.id)} style={sideBtn(card && c.id === card.id)}>{c.label}</button>
+              <button key={c.id} onClick={() => { setVariationId(c.id); setInstKey(''); }} style={sideBtn(card && c.id === card.id && !instKey)}>{c.label}</button>
             ))}
           </div>
         </aside>
@@ -686,7 +722,7 @@ function App() {
                             <div ref={nativeRef} style={{ width: family.w, height: family.h, position: 'relative', background: '#fff', overflow: 'hidden' }}>
                               <div style={{ position: 'absolute', inset: 0 }}>
                                 <ErrorBoundary key={'pv:' + cardKey} fallback={<div style={cardErr}>이 카드를 그리는 중 문제가 발생했어요.<br />다른 카드를 고르거나 새로고침 해주세요.</div>}>
-                                  {card ? card.node : null}
+                                  {card ? <window.CCScope.Provider value={instKey}>{card.node}</window.CCScope.Provider> : null}
                                 </ErrorBoundary>
                               </div>
                             </div>
@@ -875,18 +911,18 @@ function App() {
           {deck.length === 0 && <div style={{ color: UI.faint, fontSize: 12.5, alignSelf: 'center' }}>표지 → 본문 → 엔딩 순서로 카드를 담아 한 편을 구성하세요. 상단 ZIP / 한 편 PNG로 내보냅니다.</div>}
           {deck.map((it, i) => {
             const r = deckResolve(it);
-            const active = card && it.f === familyKey && it.id === card.id;
+            const active = card && it.f === familyKey && it.id === card.id && (it.k || '') === instKey;
             const fw = r ? r.fam.w : 1080, fh = r ? r.fam.h : 1350;
             const tW = 116, tH = Math.round(tW * fh / fw), tS = tW / fw;
             return (
               <div key={i} style={{ flex: '0 0 auto', width: tW + 16, border: '1px solid ' + (active ? UI.accent : UI.line), borderRadius: 10, background: active ? UI.soft : '#fff', padding: 7, display: 'flex', flexDirection: 'column', gap: 5, boxShadow: UI.sh1 }}>
                 {/* 썸네일 미리보기 (클릭=편집) */}
-                <div onClick={() => { setFamilyKey(it.f); setVariationId(it.id); }} title="이 카드 편집" style={{ position: 'relative', width: tW, height: tH, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#fff', border: '1px solid '+UI.line }}>
+                <div onClick={() => { setFamilyKey(it.f); setVariationId(it.id); setInstKey(it.k || ''); }} title="이 카드 편집" style={{ position: 'relative', width: tW, height: tH, borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#fff', border: '1px solid '+UI.line }}>
                   {r ? (
                     <div style={{ position: 'absolute', top: 0, left: 0, width: fw, height: fh, transform: `scale(${tS})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
                       <window.DDayTweakCtx.Provider value={tweaks}>
                         <window.GContentCtx.Provider value={brand}>
-                          <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}><ErrorBoundary key={'th:' + i} fallback={null}>{r.card.node}</ErrorBoundary></window.CCFooterCtx.Provider>
+                          <window.CCFooterCtx.Provider value={footerCtxFor(i + 1, deck.length)}><ErrorBoundary key={'th:' + i} fallback={null}><window.CCScope.Provider value={it.k || ''}>{r.card.node}</window.CCScope.Provider></ErrorBoundary></window.CCFooterCtx.Provider>
                         </window.GContentCtx.Provider>
                       </window.DDayTweakCtx.Provider>
                     </div>

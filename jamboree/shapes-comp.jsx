@@ -233,10 +233,12 @@ const SCENE_LABELS = SCENES.map((s) => s.label);
 function SceneScatter({ scope, cx, by, s = 1, cols, fallback }) {
   const store = window.useCCStore();
   const register = React.useContext(window.CCRegisterSceneCtx);
-  React.useEffect(() => { if (scope && register) register(scope); }, [scope]); // eslint-disable-line
-  const sel = scope ? store.getProp(scope, 'scene', '') : '';
-  const ox = scope ? (+store.getProp(scope, 'ox', 0) || 0) : 0;   // 오브제 위치(좌우)
-  const oy = scope ? (+store.getProp(scope, 'oy', 0) || 0) : 0;   // 오브제 위치(상하)
+  const sp = React.useContext(window.CCScope);
+  const SC = scope ? sp + scope : scope;   // 덱 인스턴스 접두사
+  React.useEffect(() => { if (scope && register) register(SC); }, [SC]); // eslint-disable-line
+  const sel = scope ? store.getProp(SC, 'scene', '') : '';
+  const ox = scope ? (+store.getProp(SC, 'ox', 0) || 0) : 0;   // 오브제 위치(좌우)
+  const oy = scope ? (+store.getProp(SC, 'oy', 0) || 0) : 0;   // 오브제 위치(상하)
   const xfStyle = (ox || oy) ? { transform: `translate(${ox}px, ${oy}px)` } : undefined;
   if (sel === '' || sel == null) return <ShapeScatter items={fallback || []} style={xfStyle} />;
   const idx = (((parseInt(sel, 10) || 0) % SCENES.length) + SCENES.length) % SCENES.length;
