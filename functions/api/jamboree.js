@@ -34,7 +34,7 @@ async function readIndex(env) {
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
 
 export async function onRequestGet({ request, env }) {
-  const deny = await requireAdmin(request, env); if (deny) return deny;
+  const deny = await requireAuth(request, env); if (deny) return deny;
   const url = new URL(request.url);
   if (url.searchParams.get("list")) {
     return json({ items: await readIndex(env) });
@@ -52,7 +52,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  const deny = await requireAdmin(request, env); if (deny) return deny;
+  const deny = await requireAuth(request, env); if (deny) return deny;
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const state = body && typeof body.state === "object" && body.state ? body.state : null;
@@ -83,7 +83,7 @@ export async function onRequestPut({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const deny = await requireAdmin(request, env); if (deny) return deny;
+  const deny = await requireAuth(request, env); if (deny) return deny;
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const state = body && typeof body.state === "object" && body.state ? body.state : null;
@@ -101,7 +101,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  const deny = await requireAdmin(request, env); if (deny) return deny;
+  const deny = await requireAuth(request, env); if (deny) return deny;
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ error: "id required" }, 400);
   await env.SCOUT_KV.delete(ITEM(id));
