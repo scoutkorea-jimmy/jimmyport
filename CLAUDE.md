@@ -843,3 +843,33 @@ WOSM Region → 국가(NSO) → 단위대
 - **게시 현황 대시보드** — `renderDashboard` 집계 확장: 콘텐츠 슬롯에서 게시(posted)/전체, 채널별(게시/전체), 담당자별 건수, 마감 임박(3일 내 미게시) → '게시 완료' 통계카드 + '게시 현황·통계' 패널(`.pubgrid`). 마감 임박 클릭→슬롯 모달.
 - **검수 코멘트(기사)** — `jp-news` POST `action:comment`/`comment_delete`(article.comments[], 본인/관리자 삭제). 기사 카드에 '검수 N' 토글 → 코멘트 스레드(작성·삭제·Enter) `.ac-box`. (기사 수정은 기존 `canEditNews`+PUT 유지.)
 - 검증: node --check(app·jp-assets·jp-news) + 라이브 GET jp-assets/jp-news 200 + 헤드리스(자료실 탭·섹션·함수 존재·콘솔 에러 0). ⚠️ 업로드·코멘트·대시보드 실데이터 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
+
+### 18.22 v0.9.146 — 페이지별 OG 이미지 4종 신설(랜딩·Tour·홍보부보드·디데이)
+- 기존엔 카드뉴스(`krjam-cardnews`, `jamboree/assets/og.png`)에만 OG가 있었음. 사용자: "카드뉴스처럼 다른 페이지들도 OG 이미지 적절히 만들어줘. 잼버리 관련은 잼버리 OG로."
+- **생성 방식**(기존 og.png와 동일): HTML 템플릿 → 헤드리스 Chrome(`--headless=new --screenshot --window-size=1200,630 --virtual-time-budget`) 1200×630 PNG 렌더. 엠블럼은 base64 임베드, 폰트는 Pretendard(CDN)·Bricolage/Hanken(Google Fonts).
+- **잼버리 톤**(기존 og.png와 동일 레이아웃: 라벤더 그라데이션 + 좌측 공식 엠블럼 + 우측 행사명/제목/부제/메타):
+  - `jamboree/assets/og-planning.png` → krjam-planning("홍보부 통합 관리 플랫폼").
+  - `jamboree/assets/og-dcount.png` → krjam-dcount("디데이 프로젝트").
+- **자체 브랜드 톤**(보라 #6336B5):
+  - `assets/og-landing.png`(루트 신규 `assets/`) → index 랜딩("Scouting App" 보라 그라데이션 마크 + 도구 칩 4종).
+  - `assets/og-tour.png` → tour("Scout Tour Assistant" + 맵핀 모티프, EN).
+- **메타 배선**: 4개 HTML `<head>`에 og:type/site_name/title/description/image(절대 URL `https://scoutingapp.net/...`)/image:width·height/url + twitter:card(summary_large_image) 추가. 카드뉴스 메타 블록 패턴 준용.
+- 스킵(의도): `privacy.html`(법적 하위 페이지·저가치)·`tour/admin.html`(noindex 관리자). 루트 `assets/*.png`는 `_middleware` BLOCKED(.md·config류)에 안 걸려 정상 서빙.
+- 검증: 4종 모두 1200×630 렌더 + 시각 확인(폰트 로드·레이아웃 정상). 배포 후 라이브 og:image 200 확인 예정.
+
+---
+
+## 19. 운영 작업 로그 (Operations Log — 코드 변경 없는 데이터/운영 조치)
+> 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
+
+### OPS 2026-06-25 — krjam-dcount D-Count 신청 데이터 전체 초기화 (사용자 지시)
+- 지시: "dcount 기존 등록된거 모두 삭제하고 전체 신규 받을 준비해줘." 코드/버전 변경 없음, 라이브 KV(`SCOUT_KV`)만 조치.
+- 전(前) 상태: 신청 1건 `dcount:app:홍길동`(D-27/2026-07-09, status 반려, 테스트 데이터) · `dcount:index` 1건 · `dcount:log` 3건(신청·승인·반려) · 활성 lock 없음 · 닫힌 슬롯 없음.
+- 조치(`wrangler kv ... --remote`): ① `dcount:app:홍길동` **삭제** ② `dcount:index` → `[]` ③ `dcount:log` → 초기화 마커 1건(`{action:"기록 초기화",count:3}`, 내장 clearlog 방식·감사추적). `dcount:style`(디자인 설정)·`dcount:visits`(방문카운터) 유지.
+- 후(後)/검증: KV `dcount:index=[]`·`app:홍길동` 부재 + 라이브 `GET /api/krjam-dcount` → `approved:[]`, 슬롯 **36/36 신청가능**(D-40~D-5), 점유 0. 신규 신청 수신 준비 완료.
+
+### OPS 2026-06-25 — krjam-dcount 신청 기록(dcount:log) 완전 비움 (사용자 지시 "다시 로그 밀어줘")
+- 지시: 잘못 들어간 테스트 정리 차원에서 dcount 기록을 다시 밀어달라. 코드/버전 변경 없음.
+- 전(前): `dcount:index=[]`·`dcount:app:*` 없음(이미 비어 있음) · `dcount:log` = 초기화 마커 1건(`기록 초기화`). 새 등록 데이터는 없었음.
+- 조치: `dcount:log` → `[]` (마커까지 제거, 완전 비움). 그 외 키 변경 없음.
+- 후(後)/검증: KV `dcount:log=[]`·`dcount:index=[]` + 라이브 `GET /api/krjam-dcount` → `approved:[]`, 슬롯 36/36 신청가능.
