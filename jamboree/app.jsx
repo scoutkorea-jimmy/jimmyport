@@ -186,16 +186,17 @@ function PhotoRow({ slot, label, png }) {
       <input ref={inputRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
     </div>
     <div style={{ marginTop: 5 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '2px 0' }}>영역(틀) 크기·위치</div>
-      <Slider label="영역 크기" value={ax.area != null ? ax.area : 1} min={0.3} max={2.5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'area', v)} />
-      <Slider label="영역 좌우" value={ax.fx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'fx', v)} />
-      <Slider label="영역 상하" value={ax.fy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'fy', v)} />
-      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '6px 0 2px' }}>사진(틀 안) 확대·이동</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '2px 0' }}>영역(틀) 가장자리 확장</div>
+      <Slider label="위로" value={ax.et || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'et', v)} />
+      <Slider label="아래로" value={ax.eb || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'eb', v)} />
+      <Slider label="왼쪽" value={ax.el || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'el', v)} />
+      <Slider label="오른쪽" value={ax.er || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'er', v)} />
+      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '6px 0 2px' }}>사진(틀 안) 확대·크롭 위치</div>
       <div style={{ opacity: cur ? 1 : .5 }}>
         <Slider label="사진 확대(줌)" value={ax.sc != null ? ax.sc : 1} min={1} max={5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
-        <Slider label="사진 좌우" value={ax.dx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
-        <Slider label="사진 상하" value={ax.dy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
-        {!cur && <div style={{ fontSize: 11, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·이동이 적용돼요.</div>}
+        <Slider label="크롭 좌우" value={ax.px != null ? ax.px : 50} min={0} max={100} step={1} unit="%" onChange={(v) => store.setProp('imgxf-' + slot, 'px', v)} />
+        <Slider label="크롭 상하" value={ax.py != null ? ax.py : 50} min={0} max={100} step={1} unit="%" onChange={(v) => store.setProp('imgxf-' + slot, 'py', v)} />
+        {!cur && <div style={{ fontSize: 11, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·크롭이 적용돼요.</div>}
       </div>
     </div>
     </div>

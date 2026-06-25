@@ -148,56 +148,57 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
   const [live, setLive] = React.useState(null);
   const ref = React.useRef(null);
   const img = slot ? store.getImage(sslot) : null;
-  // 프레임(영역) 트랜스폼: 크기(area)·위치(fx,fy) — 틀 안 사진 확대/이동(dx,dy,sc)과 별개
+  // 영역(틀) 가장자리별 확장: 위(et)·아래(eb)·왼쪽(el)·오른쪽(er) px (음수=축소). 내부 div를 음수 inset으로 키움(anchor 무관).
   const fxf = slot ? store.getProps('imgxf-' + sslot) : {};
-  const frameArea = fxf.area != null ? +fxf.area : 1;
-  const frameTf = [(style && style.transform) || '', (frameArea !== 1 || fxf.fx || fxf.fy) ? `translate(${fxf.fx || 0}px, ${fxf.fy || 0}px) scale(${frameArea})` : ''].filter(Boolean).join(' ') || undefined;
+  const inner = { position: 'absolute', left: -(+fxf.el || 0), right: -(+fxf.er || 0), top: -(+fxf.et || 0), bottom: -(+fxf.eb || 0), overflow: 'hidden', borderRadius: radius };
+  const outer = { position: 'relative', ...style, overflow: 'visible' };
   if (img) {
-    // 사진은 프레임(overflow:hidden) 안에서 확대(sc)·이동(dx,dy) — objectFit:cover 자동 크롭을 직접 조절.
+    // 사진은 틀 안에서 확대(sc) + 크롭위치(px·py %) — object-position이라 빈 틈 없이 보이는 부분만 이동.
     const saved = store.getProps('imgxf-' + sslot);
-    const xf = live || { dx: saved.dx || 0, dy: saved.dy || 0, sc: saved.sc != null ? +saved.sc : 1 };
+    const clamp = (v) => Math.max(0, Math.min(100, v));
+    const xf = live || { px: saved.px != null ? +saved.px : 50, py: saved.py != null ? +saved.py : 50, sc: saved.sc != null ? +saved.sc : 1 };
     const startDrag = (e, mode) => {
       if (!editing) return;
       e.preventDefault(); e.stopPropagation();
       const el = ref.current, r = el.getBoundingClientRect();
-      const conv = (r.width / (el.offsetWidth || 1)) || 1;   // 화면px→카드px (프레임은 스케일 없음)
-      const s = { x: e.clientX, y: e.clientY, dx: xf.dx, dy: xf.dy, sc: xf.sc };
+      const conv = (r.width / (el.offsetWidth || 1)) || 1;   // 화면px→카드px
+      const fw = el.offsetWidth || 400, fh = el.offsetHeight || 400;
+      const s = { x: e.clientX, y: e.clientY, px: xf.px, py: xf.py, sc: xf.sc };
       const onMove = (ev) => {
         const ddx = (ev.clientX - s.x) / conv, ddy = (ev.clientY - s.y) / conv;
-        if (mode === 'move') setLive({ dx: s.dx + ddx, dy: s.dy + ddy, sc: s.sc });
-        else { const k = 1 + (ddx + ddy) / (el.offsetWidth || 400); setLive({ dx: s.dx, dy: s.dy, sc: Math.max(1, Math.min(6, s.sc * k)) }); }
+        if (mode === 'move') setLive({ px: clamp(s.px - ddx / fw * 100), py: clamp(s.py - ddy / fh * 100), sc: s.sc });
+        else { const k = 1 + (ddx + ddy) / fw; setLive({ px: s.px, py: s.py, sc: Math.max(1, Math.min(6, s.sc * k)) }); }
       };
       const onUp = () => {
         window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp);
-        setLive((cur) => { if (cur) { store.setProp('imgxf-' + sslot, 'dx', Math.round(cur.dx)); store.setProp('imgxf-' + sslot, 'dy', Math.round(cur.dy)); store.setProp('imgxf-' + sslot, 'sc', Math.round(cur.sc * 1000) / 1000); } return null; });
+        setLive((cur) => { if (cur) { store.setProp('imgxf-' + sslot, 'px', Math.round(cur.px)); store.setProp('imgxf-' + sslot, 'py', Math.round(cur.py)); store.setProp('imgxf-' + sslot, 'sc', Math.round(cur.sc * 1000) / 1000); } return null; });
       };
       window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
     };
     return (
-      <div ref={ref} onDoubleClick={(e) => { e.stopPropagation(); setEditing((v) => !v); }} onPointerDown={(e) => startDrag(e, 'move')}
-        style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style, transform: frameTf,
-          cursor: editing ? 'move' : 'default', outline: editing ? '3px solid #6336B5' : 'none', outlineOffset: -1, zIndex: editing ? 6 : (style && style.zIndex) }}>
-        <img src={img} alt="" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', transform: `translate(${xf.dx}px, ${xf.dy}px) scale(${xf.sc})`, transformOrigin: 'center' }} />
-        {editing && <div onPointerDown={(e) => startDrag(e, 'resize')} title="사진 확대"
-          style={{ position: 'absolute', right: -11, bottom: -11, width: 34, height: 34, background: '#6336B5', border: '3px solid #fff', borderRadius: '50%', cursor: 'nwse-resize', boxShadow: '0 2px 8px rgba(0,0,0,.35)' }} />}
-        {editing && <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setEditing(false); }}
-          style={{ position: 'absolute', left: 8, top: 8, background: 'rgba(99,54,181,.95)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '5px 11px', borderRadius: 7, fontFamily: 'sans-serif', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>드래그=이동 · 모서리=확대 · ✓ 완료</button>}
+      <div style={{ ...outer, zIndex: editing ? 6 : (style && style.zIndex) }}>
+        <div ref={ref} onDoubleClick={(e) => { e.stopPropagation(); setEditing((v) => !v); }} onPointerDown={(e) => startDrag(e, 'move')}
+          style={{ ...inner, cursor: editing ? 'move' : 'default', outline: editing ? '3px solid #6336B5' : 'none', outlineOffset: -1 }}>
+          <img src={img} alt="" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${xf.px}% ${xf.py}%`, display: 'block', pointerEvents: 'none', transform: `scale(${xf.sc})`, transformOrigin: `${xf.px}% ${xf.py}%` }} />
+          {editing && <div onPointerDown={(e) => startDrag(e, 'resize')} title="사진 확대"
+            style={{ position: 'absolute', right: 7, bottom: 7, width: 30, height: 30, background: '#6336B5', border: '3px solid #fff', borderRadius: '50%', cursor: 'nwse-resize', boxShadow: '0 2px 8px rgba(0,0,0,.35)' }} />}
+          {editing && <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setEditing(false); }}
+            style={{ position: 'absolute', left: 7, top: 7, background: 'rgba(99,54,181,.95)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 9px', borderRadius: 7, fontFamily: 'sans-serif', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>드래그=이동·모서리=확대 · ✓완료</button>}
+        </div>
       </div>
     );
   }
-  if (bare) return <div ref={ref} aria-hidden="true" style={{ borderRadius: radius, ...style, pointerEvents: 'none' }} />;
+  if (bare) return <div aria-hidden="true" style={{ ...style, overflow: 'visible', pointerEvents: 'none' }}><div style={inner} /></div>;
   const dark = tone === 'dark';
   const a = dark ? 'rgba(255,255,255,.12)' : 'rgba(98,37,153,.10)';
   const b = dark ? 'rgba(255,255,255,.04)' : 'rgba(98,37,153,.035)';
   const ink = dark ? 'rgba(255,255,255,.74)' : 'rgba(77,0,110,.62)';
   const brd = dark ? 'rgba(255,255,255,.4)' : 'rgba(98,37,153,.32)';
   return (
-    <div ref={ref} style={{
-      position: 'relative', borderRadius: radius, overflow: 'hidden',
-      background: `repeating-linear-gradient(45deg, ${a} 0 16px, ${b} 16px 32px)`,
-      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style, transform: frameTf
-    }}>
-      {label ? <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span> : null}
+    <div style={outer}>
+      <div style={{ ...inner, background: `repeating-linear-gradient(45deg, ${a} 0 16px, ${b} 16px 32px)`, border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {label ? <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span> : null}
+      </div>
     </div>
   );
 }
