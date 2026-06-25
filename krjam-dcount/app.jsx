@@ -258,7 +258,7 @@
               ))}
               <div className="dc-err">{err}</div>
               <button className="dc-btn primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%', marginTop: 8 }}>{busy ? '신청 중…' : '신청 제출 (날짜 선점)'}</button>
-              <p className="dc-note" style={{ marginTop: 8 }}>제출 즉시 이 날짜가 선점되고, <b>신청자 이름·비밀번호(휴대전화 끝 4자리)</b>로 조회·수정할 수 있어요. 홍보부 확인 후 승인되면 사진을 올릴 수 있어요.</p>
+              <p className="dc-note" style={{ marginTop: 8 }}>제출 즉시 이 날짜가 선점되고, <b>신청자 이름·비밀번호(휴대전화 끝 4자리)</b>로 조회·수정할 수 있어요. 홍보부에서 <b>매일 오후 12시·오후 6시경 일괄 승인</b>하며, 승인되면 사진을 올릴 수 있어요.</p>
             </div>
           </div>
         </div>
@@ -421,7 +421,7 @@
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <StTag s={app.status} />
             <p className="dc-note" style={{ marginTop: 10 }}>
-              {(app.status === '제출됨' || app.status === '수정요청') ? '아직 홍보부 확인(승인) 전이에요. 승인되면 이 화면에서 사진을 올릴 수 있어요.'
+              {(app.status === '제출됨' || app.status === '수정요청') ? '아직 승인 전이에요. 홍보부에서 매일 오후 12시·오후 6시경 일괄 승인하며, 승인되면 이 화면에서 사진을 올릴 수 있어요.'
                 : app.status === '반려' ? ('반려된 신청입니다.' + (app.rejectReason ? (' 사유: ' + app.rejectReason) : ''))
                   : '철회된 신청입니다.'}
             </p>
@@ -433,7 +433,7 @@
   }
 
   /* ── 마스터 스타일 편집(관리자) ── */
-  const DEFAULT_NOTICE = '비속어·상업적 홍보·정치적 내용 등 잼버리 정신에 어긋나는 내용이 담기면 반려될 수 있어요.';
+  const DEFAULT_NOTICE = '비속어·상업적 홍보·정치적 내용 등 잼버리 정신에 어긋나는 내용이 담기면 반려될 수 있어요. 승인은 매일 오후 12시·오후 6시경 일괄 진행돼요.';
   const STYLE_DEFAULT = { pad: 0, topAdj: 0, botAdj: 0, lead: 0, gap: 0, numScale: 1, logo: '', notice: '' };
   const REJECT_REASONS = ['비속어·부적절한 표현', '상업적 홍보', '정치적 내용', '저작권·초상권 우려', '잼버리 정신에 부합하지 않음', '중복·오신청', '카드 문구 미흡'];
   const APPROVERS = ['박지민', '이종근', '현진석', '그 외'];
