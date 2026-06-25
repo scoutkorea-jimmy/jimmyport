@@ -185,11 +185,12 @@ function PhotoRow({ slot, label, png }) {
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
     </div>
-    {cur && <div style={{ marginTop: 4 }}>
+    <div style={{ marginTop: 4, opacity: cur ? 1 : .5 }}>
       <Slider label="사진 확대(줌)" value={ax.sc != null ? ax.sc : 1} min={1} max={5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
       <Slider label="사진 좌우" value={ax.dx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
       <Slider label="사진 상하" value={ax.dy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
-    </div>}
+      {!cur && <div style={{ fontSize: 11, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·이동이 적용돼요.</div>}
+    </div>
     </div>
   );
 }
