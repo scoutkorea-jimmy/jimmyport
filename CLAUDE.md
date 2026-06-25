@@ -767,3 +767,10 @@ WOSM Region → 국가(NSO) → 단위대
 - **오브제 위치**(`shapes-comp.jsx` SceneScatter): scope의 `ox`/`oy`로 ShapeScatter에 `translate` 적용(fallback·SCENES 모두). 우측 패널 '오브제 위치(좌우/상하)' 슬라이더(±500px) — 장면 등록 카드(표지·콘텐츠 01/03/08/09/13·소식C).
 - **배경색 농도**(`store.js` `dilute(hex,density)` 흰색 희석 추가): cover·dday가 `bgDensity`(기본100) 적용, 잉크 자동 재대비(idealInk on diluted). 우측 패널 '배경색 농도' 슬라이더(30~100%, cover/dday 배경 섹션).
 - 검증: 6모듈 babel 컴파일 OK + 헤드리스 — 패널에 배경색농도·오브제위치 노출, 표지 density40→옅은 보라+오브제 우상단 이동, 소개형 푸터·자연 오브제 정상, **콘솔 에러 0**.
+
+### 18.16 v0.9.125–0.9.126 — 배경농도(사진 비침)·에이브로우 한줄·이미지영역 슬라이더·모든 텍스트 더블클릭
+- 사용자 라이브 피드백 다건 일괄.
+- **배경색 농도 = 사진 비침**(`cover.jsx`): 기존 dilute(흰색 혼합)은 배경사진을 더 가렸음. → 배경사진 있으면 농도=**색 오버레이 투명도**(낮출수록 사진이 비침), 없으면 기존 흰색 희석 유지. 배경사진 Placeholder는 `bare`(빈 영역 줄무늬 제거). 검증: 초록 사진 + 농도35%→사진 그대로 비침.
+- **에이브로우/헤드라인 한 줄**(`lib.jsx` Editable `nowrap` 옵션 → `whiteSpace:pre`): Enter 없으면 자동 줄바꿈 안 함(한 줄), Enter만 줄바꿈. cover 에이브로우·제목 1·2행에 적용. 검증: 긴 에이브로우 clientH 33px(1줄)·whiteSpace pre.
+- **이미지 영역 크기/위치**(`base.jsx` Placeholder + `app.jsx` PhotoRow): imgxf 트랜스폼을 **빈 플레이스홀더에도** 적용 + PhotoRow에 '영역 크기/좌우/상하' 슬라이더. (더블클릭 드래그는 사진 업로드 후, 슬라이더는 빈 영역 포함 항상.)
+- **모든 텍스트 더블클릭 인라인 편집**: Editable 인라인 편집은 원래 작동(제목·본문·에이브로우 — 헤드리스로 contentEditable 확인). 추가로 **Kicker·CategoryChip에 `ek` 옵션** 추가 → Editable 렌더(더블클릭+우측 패널 자동 필드). THead(대부분 콘텐츠 카드 공통) + 직접 사용처(04·05·06·08·09 kicker/카테고리) + 03 인용출처 + 05 캡션부제 + 11·12 그리드 라벨 배선. cover 카테고리는 기존 중첩 Editable 유지. 검증: 06 카드 'MEALS'·'식사' 더블클릭→contentEditable, 레이아웃 무결·콘솔 에러 0.
