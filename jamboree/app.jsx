@@ -307,6 +307,7 @@ function App() {
   const [familyKey, setFamilyKey] = useState('cover');
   const [variationId, setVariationId] = useState(null);
   const [instKey, setInstKey] = useState('');   // 덱 인스턴스 접두사 ('' = 라이브러리/스크래치)
+  const [imp, setImp] = useState(() => { try { const s = JSON.parse(localStorage.getItem('cc-import') || 'null'); return (s && s.at && Date.now() - s.at < 30 * 60 * 1000) ? s : null; } catch (_) { return null; } });   // 홍보부 기사에서 가져온 내용
   const [brand, setBrand] = useState(DEFAULT_BRAND);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -454,6 +455,17 @@ function App() {
   const fields = Array.from(reg.current.field.values()).filter((f) => f.cardKey === cardKey);
   const photos = Array.from(reg.current.photo.values()).filter((p) => p.cardKey === cardKey);
   const scenes = Array.from(reg.current.scene.values()).filter((s) => s.cardKey === cardKey);
+  // 홍보부 기사 → 현재 카드에 제목·본문·사진 채우기
+  const importArticle = () => {
+    if (!imp) return;
+    const fs = fields.slice();
+    if (fs[0] && imp.title) store.setText(fs[0].ekey, imp.title);
+    const bodyF = fs.find((f) => (f.def || '').length > 20) || fs[1];
+    if (bodyF && imp.body) store.setText(bodyF.ekey, imp.body);
+    (imp.images || []).forEach((url, i) => { if (photos[i]) store.setImage(photos[i].slot, url); });
+    try { localStorage.removeItem('cc-import'); } catch (_) {}
+    setImp(null); flash('기사 내용을 현재 카드에 채웠어요 ✓');
+  };
 
   const coverScope = familyKey === 'cover' && card ? instKey + 'cover-' + card.id : null;
   const ddScope = DD_FMT[familyKey] && card ? instKey + DD_FMT[familyKey] + '-' + card.id : null;
@@ -738,6 +750,15 @@ function App() {
         </div>
         <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onList={openList} onNew={newProject} status={status} busy={busy} zipCount={deck.length} />
       </header>
+
+      {imp && (
+        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 12, padding: '9px 18px', background: '#FFF3E0', borderBottom: '1px solid ' + UI.line, fontSize: 13 }}>
+          <span style={{ fontWeight: 700, color: UI.accentInk }}>📰 홍보부 기사 가져오기</span>
+          <span style={{ color: UI.muted, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>“{imp.title || '(제목 없음)'}” {(imp.images && imp.images.length) ? '· 사진 ' + imp.images.length + '장' : ''} — 원하는 콘텐츠 카드를 고른 뒤 채우세요.</span>
+          <button type="button" onClick={importArticle} style={{ border: 'none', background: UI.accentInk, color: '#fff', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>현재 카드에 채우기</button>
+          <button type="button" onClick={() => { try { localStorage.removeItem('cc-import'); } catch (_) {} setImp(null); }} style={{ border: '1px solid ' + UI.line, background: '#fff', color: UI.muted, borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>닫기</button>
+        </div>
+      )}
 
       <div className="cc-body" style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* 좌: 패밀리 + 베리에이션 + 덱 */}

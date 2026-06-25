@@ -1927,6 +1927,13 @@ function loadNews(){
 }
 function fmtNewsTime(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }catch(e){ return ''; } }
 function canEditNews(a){ return Auth.isAdmin() || (Auth.username && a.author===Auth.username); }
+// 이 기사 내용·사진을 카드뉴스 제작기로 가져가기(localStorage 전달 → 제작기가 현재 카드에 채움)
+function articleToCardnews(id){
+  var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
+  try{ localStorage.setItem('cc-import', JSON.stringify({title:a.title||'', body:a.body||'', images:(a.images||[]).slice(0,3), at:Date.now()})); }catch(e){}
+  window.open('/krjam-cardnews','_blank','noopener');
+  toast('카드뉴스 제작기에서 상단 “기사 가져오기”를 눌러 채우세요');
+}
 function renderNews(){
   var box=document.getElementById('news-list'); if(!box) return;
   if(!newsLoaded){ box.innerHTML='<div class="news-empty">기사 불러오는 중…</div>'; return; }
@@ -1935,6 +1942,7 @@ function renderNews(){
     var imgs=(a.images||[]).slice(0,3).map(function(u){ return '<img class="news-thumb" src="'+esc(u)+'" data-lb="'+esc(u)+'" alt="">'; }).join('');
     var tools='';
     if(canEditNews(a)) tools+='<button class="btn xs ghost" data-news-edit="'+esc(a.id)+'">'+icon('edit',13)+' 수정</button>';
+    tools+='<button class="btn xs ghost" data-news-tocard="'+esc(a.id)+'" title="이 기사 내용·사진으로 카드뉴스 제작기 채우기">'+icon('image',13)+' 카드뉴스 만들기</button>';
     if(Auth.isAdmin()) tools+='<button class="btn xs ghost danger" data-news-del="'+esc(a.id)+'">'+icon('trash',13)+' 삭제</button>';
     var edited=(a.updatedAt&&a.updatedAt!==a.createdAt)?' · 수정됨':'';
     return '<article class="news-card">'+
@@ -2263,6 +2271,7 @@ function init(){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }
     var ed=e.target.closest('[data-news-edit]'); if(ed){ openNewsEditor(ed.getAttribute('data-news-edit')); return; }
     var dl=e.target.closest('[data-news-del]'); if(dl){ deleteNews(dl.getAttribute('data-news-del')); return; }
+    var tc=e.target.closest('[data-news-tocard]'); if(tc){ articleToCardnews(tc.getAttribute('data-news-tocard')); return; }
   });
   // news 편집 모달 위임 (사진 삭제)
   document.getElementById('news-body').addEventListener('click',function(e){
