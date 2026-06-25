@@ -145,21 +145,20 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
   const [live, setLive] = React.useState(null);
   const ref = React.useRef(null);
   const img = slot ? store.getImage(slot) : null;
-  // 이미지 영역 트랜스폼(dx·dy·sc) — 더블클릭 드래그 또는 우측 패널 슬라이더로 조정. 빈 영역에도 적용.
-  const saved = slot ? store.getProps('imgxf-' + slot) : {};
-  const xf = (img && live) || { dx: saved.dx || 0, dy: saved.dy || 0, sc: saved.sc || 1 };
-  const tf = [(style && style.transform) || '', `translate(${xf.dx}px, ${xf.dy}px)`, `scale(${xf.sc})`].filter(Boolean).join(' ');
   if (img) {
+    // 사진은 프레임(overflow:hidden) 안에서 확대(sc)·이동(dx,dy) — objectFit:cover 자동 크롭을 직접 조절.
+    const saved = store.getProps('imgxf-' + slot);
+    const xf = live || { dx: saved.dx || 0, dy: saved.dy || 0, sc: saved.sc != null ? +saved.sc : 1 };
     const startDrag = (e, mode) => {
       if (!editing) return;
       e.preventDefault(); e.stopPropagation();
       const el = ref.current, r = el.getBoundingClientRect();
-      const conv = ((r.width / (el.offsetWidth || 1)) || 1) / (xf.sc || 1);   // 화면px→카드px (프리뷰 스케일만)
+      const conv = (r.width / (el.offsetWidth || 1)) || 1;   // 화면px→카드px (프레임은 스케일 없음)
       const s = { x: e.clientX, y: e.clientY, dx: xf.dx, dy: xf.dy, sc: xf.sc };
       const onMove = (ev) => {
         const ddx = (ev.clientX - s.x) / conv, ddy = (ev.clientY - s.y) / conv;
         if (mode === 'move') setLive({ dx: s.dx + ddx, dy: s.dy + ddy, sc: s.sc });
-        else { const k = 1 + (ddx + ddy) / (el.offsetWidth || 400); setLive({ dx: s.dx, dy: s.dy, sc: Math.max(0.25, Math.min(4, s.sc * k)) }); }
+        else { const k = 1 + (ddx + ddy) / (el.offsetWidth || 400); setLive({ dx: s.dx, dy: s.dy, sc: Math.max(1, Math.min(6, s.sc * k)) }); }
       };
       const onUp = () => {
         window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp);
@@ -169,17 +168,17 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
     };
     return (
       <div ref={ref} onDoubleClick={(e) => { e.stopPropagation(); setEditing((v) => !v); }} onPointerDown={(e) => startDrag(e, 'move')}
-        style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style, transform: tf,
+        style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style,
           cursor: editing ? 'move' : 'default', outline: editing ? '3px solid #6336B5' : 'none', outlineOffset: -1, zIndex: editing ? 6 : (style && style.zIndex) }}>
-        <img src={img} alt="" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
-        {editing && <div onPointerDown={(e) => startDrag(e, 'resize')} title="크기 조절"
+        <img src={img} alt="" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', transform: `translate(${xf.dx}px, ${xf.dy}px) scale(${xf.sc})`, transformOrigin: 'center' }} />
+        {editing && <div onPointerDown={(e) => startDrag(e, 'resize')} title="사진 확대"
           style={{ position: 'absolute', right: -11, bottom: -11, width: 34, height: 34, background: '#6336B5', border: '3px solid #fff', borderRadius: '50%', cursor: 'nwse-resize', boxShadow: '0 2px 8px rgba(0,0,0,.35)' }} />}
         {editing && <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setEditing(false); }}
-          style={{ position: 'absolute', left: 8, top: 8, background: 'rgba(99,54,181,.95)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '5px 11px', borderRadius: 7, fontFamily: 'sans-serif', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>드래그=이동 · 모서리=크기 · ✓ 완료</button>}
+          style={{ position: 'absolute', left: 8, top: 8, background: 'rgba(99,54,181,.95)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '5px 11px', borderRadius: 7, fontFamily: 'sans-serif', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>드래그=이동 · 모서리=확대 · ✓ 완료</button>}
       </div>
     );
   }
-  if (bare) return <div ref={ref} aria-hidden="true" style={{ borderRadius: radius, ...style, transform: tf, pointerEvents: 'none' }} />;
+  if (bare) return <div ref={ref} aria-hidden="true" style={{ borderRadius: radius, ...style, pointerEvents: 'none' }} />;
   const dark = tone === 'dark';
   const a = dark ? 'rgba(255,255,255,.12)' : 'rgba(98,37,153,.10)';
   const b = dark ? 'rgba(255,255,255,.04)' : 'rgba(98,37,153,.035)';
@@ -189,7 +188,7 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
     <div ref={ref} style={{
       position: 'relative', borderRadius: radius, overflow: 'hidden',
       background: `repeating-linear-gradient(45deg, ${a} 0 16px, ${b} 16px 32px)`,
-      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style, transform: tf
+      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style
     }}>
       {label ? <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span> : null}
     </div>

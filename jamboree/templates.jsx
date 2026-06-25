@@ -190,7 +190,7 @@ function T_ImageGrid({ ek }) {
           <div key={i} style={{ position: 'relative', borderRadius: 22, overflow: 'hidden' }}>
             <Placeholder tone="light" label="" slot={ek + '-img' + i} slotLabel={x.t} radius={22} style={{ position: 'absolute', inset: 0 }} />
             <span style={{ position: 'absolute', left: 14, top: 14, width: 16, height: 16, borderRadius: '50%', background: x.c }} />
-            <Editable ekey={ek + '-i' + i} tag="div" className="hi" style={{ position: 'absolute', left: 22, bottom: 18, fontSize: 36, fontWeight: 700, color: INK }}>{x.t}</Editable>
+            <Editable ekey={ek + '-i' + i} tag="div" nowrap style={{ position: 'absolute', left: 22, bottom: 18, fontSize: 36, fontWeight: 500, color: INK }}>{x.t}</Editable>
           </div>
         ))}
       </div>

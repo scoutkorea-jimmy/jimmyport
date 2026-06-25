@@ -185,11 +185,11 @@ function PhotoRow({ slot, label, png }) {
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
     </div>
-    <div style={{ marginTop: 4 }}>
-      <Slider label="영역 크기" value={ax.sc != null ? ax.sc : 1} min={0.3} max={2.5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
-      <Slider label="영역 좌우" value={ax.dx || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
-      <Slider label="영역 상하" value={ax.dy || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
-    </div>
+    {cur && <div style={{ marginTop: 4 }}>
+      <Slider label="사진 확대(줌)" value={ax.sc != null ? ax.sc : 1} min={1} max={5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
+      <Slider label="사진 좌우" value={ax.dx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
+      <Slider label="사진 상하" value={ax.dy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
+    </div>}
     </div>
   );
 }
@@ -221,9 +221,16 @@ function FieldInput({ field }) {
   const cur = v != null ? v : (field.def || '');
   const long = (field.def || '').length > 14 || cur.indexOf('\n') >= 0;   // 줄바꿈 있으면/길면 textarea
   const common = { value: cur, placeholder: field.def || '', onChange: (e) => store.setText(field.ekey, e.target.value), style: { ...inputStyle, ...(long ? { resize: 'vertical', minHeight: 56, lineHeight: 1.4, whiteSpace: 'pre-wrap' } : null) } };
+  const colOv = store.getProp('txtcol', field.ekey, '');
   return (
     <label style={{ display: 'block', marginBottom: 10 }}>
-      <span style={fieldLabel}>{(field.label || '항목').slice(0, 22)}</span>
+      <span style={{ ...fieldLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {(field.label || '항목').slice(0, 22)}
+        <input type="color" value={colOv || '#000000'} onChange={(e) => store.setProp('txtcol', field.ekey, e.target.value)} title="글자색"
+          style={{ width: 20, height: 16, padding: 0, border: '1px solid ' + UI.line, borderRadius: 3, background: 'none', cursor: 'pointer' }} />
+        {colOv && <button type="button" onClick={() => store.setProp('txtcol', field.ekey, '')} title="기본색"
+          style={{ fontSize: 11, color: UI.muted, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>✕</button>}
+      </span>
       {long ? <textarea rows={2} {...common} /> : <input {...common} />}
       {long && <span style={{ fontSize: 10.5, color: '#a9a2b3', display: 'block', marginTop: 2 }}>줄바꿈(Enter) 가능</span>}
     </label>
