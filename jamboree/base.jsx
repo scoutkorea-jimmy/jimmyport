@@ -137,7 +137,7 @@ function Pill({ children, bg, color, style }) {
 /* Striped photo placeholder with monospace label.
  * slot 지정 시: (1) 업로드된 사진이 있으면 그 사진을 cover로 렌더,
  *              (2) 우측 패널 '사진' 목록에 자기 자신을 등록한다. */
-function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot, slotLabel, style }) {
+function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot, slotLabel, style, bare }) {
   const store = useCCStore();
   const register = React.useContext(window.CCRegisterPhotoCtx);
   React.useEffect(() => { if (slot && register) register(slot, slotLabel || label || slot); }, [slot]);
@@ -145,10 +145,11 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
   const [live, setLive] = React.useState(null);
   const ref = React.useRef(null);
   const img = slot ? store.getImage(slot) : null;
+  // 이미지 영역 트랜스폼(dx·dy·sc) — 더블클릭 드래그 또는 우측 패널 슬라이더로 조정. 빈 영역에도 적용.
+  const saved = slot ? store.getProps('imgxf-' + slot) : {};
+  const xf = (img && live) || { dx: saved.dx || 0, dy: saved.dy || 0, sc: saved.sc || 1 };
+  const tf = [(style && style.transform) || '', `translate(${xf.dx}px, ${xf.dy}px)`, `scale(${xf.sc})`].filter(Boolean).join(' ');
   if (img) {
-    // 더블클릭 → 이동/크기 편집. 트랜스폼(dx·dy·sc)은 store에 저장 → 프리뷰·PNG 공용.
-    const saved = store.getProps('imgxf-' + slot);
-    const xf = live || { dx: saved.dx || 0, dy: saved.dy || 0, sc: saved.sc || 1 };
     const startDrag = (e, mode) => {
       if (!editing) return;
       e.preventDefault(); e.stopPropagation();
@@ -166,7 +167,6 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
       };
       window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
     };
-    const tf = [(style && style.transform) || '', `translate(${xf.dx}px, ${xf.dy}px)`, `scale(${xf.sc})`].filter(Boolean).join(' ');
     return (
       <div ref={ref} onDoubleClick={(e) => { e.stopPropagation(); setEditing((v) => !v); }} onPointerDown={(e) => startDrag(e, 'move')}
         style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style, transform: tf,
@@ -179,16 +179,17 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
       </div>
     );
   }
+  if (bare) return <div ref={ref} aria-hidden="true" style={{ borderRadius: radius, ...style, transform: tf, pointerEvents: 'none' }} />;
   const dark = tone === 'dark';
   const a = dark ? 'rgba(255,255,255,.12)' : 'rgba(98,37,153,.10)';
   const b = dark ? 'rgba(255,255,255,.04)' : 'rgba(98,37,153,.035)';
   const ink = dark ? 'rgba(255,255,255,.74)' : 'rgba(77,0,110,.62)';
   const brd = dark ? 'rgba(255,255,255,.4)' : 'rgba(98,37,153,.32)';
   return (
-    <div style={{
+    <div ref={ref} style={{
       position: 'relative', borderRadius: radius, overflow: 'hidden',
       background: `repeating-linear-gradient(45deg, ${a} 0 16px, ${b} 16px 32px)`,
-      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style
+      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style, transform: tf
     }}>
       {label ? <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span> : null}
     </div>

@@ -30,7 +30,7 @@ function CategoryChip({ label, color, top, right, bottom, left, dot }) {
 
 /* 더블클릭 인라인 편집 + 우측 폼 자동등록 (둘 다 CCStore 텍스트로 공유)
  * flabel: 우측 폼 라벨(짧게). 없으면 기본 텍스트를 라벨로 사용. */
-function Editable({ ekey, tag = 'span', flabel, className, style, children }) {
+function Editable({ ekey, tag = 'span', flabel, className, style, children, nowrap }) {
   const Tag = tag;
   const store = useCCStore();
   const register = React.useContext(window.CCRegisterFieldCtx);
@@ -45,7 +45,7 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children }) {
   const fz = (style && typeof style.fontSize === 'number') ? `calc(${style.fontSize}px * var(--cc-fz, 1))` : (style ? style.fontSize : undefined);
   return (
     <Tag ref={ref} className={className} title="더블클릭하여 수정"
-      style={{ ...style, fontSize: fz, whiteSpace: 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
+      style={{ ...style, fontSize: fz, whiteSpace: nowrap ? 'pre' : 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
       onBlur={(e) => { store.setText(ekey, e.currentTarget.innerText.replace(/\n$/, '')); setEditing(false); }}

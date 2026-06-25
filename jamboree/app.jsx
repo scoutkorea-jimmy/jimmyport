@@ -169,8 +169,10 @@ function PhotoRow({ slot, label, png }) {
     if (f) { try { store.setImage(slot, await imageFileToDataUrl(f, png ? { mime: 'image/png', maxDim: 1024 } : {})); } catch (_) {} }
     e.target.value = '';
   };
+  const ax = store.getProps('imgxf-' + slot);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+    <div style={{ marginBottom: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ width: 44, height: 44, flex: '0 0 auto', borderRadius: 8, overflow: 'hidden', border: '1px solid '+UI.line, display: 'flex', alignItems: 'center', justifyContent: 'center', background: cur ? '#fff' : 'repeating-linear-gradient(45deg,#eef0ec 0 8px,#f6f7f4 8px 16px)' }}>
         {cur ? <img src={cur} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 16, color: UI.faint }}>◳</span>}
       </div>
@@ -182,6 +184,12 @@ function PhotoRow({ slot, label, png }) {
         </div>
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
+    </div>
+    <div style={{ marginTop: 4 }}>
+      <Slider label="영역 크기" value={ax.sc != null ? ax.sc : 1} min={0.3} max={2.5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
+      <Slider label="영역 좌우" value={ax.dx || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
+      <Slider label="영역 상하" value={ax.dy || 0} min={-500} max={500} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
+    </div>
     </div>
   );
 }
