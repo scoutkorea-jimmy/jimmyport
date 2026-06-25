@@ -38,6 +38,7 @@ const DEFAULT_BRAND = {
 
 const AUTHOR_KEY = 'jamboree:author';
 const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.pink, P.river, P.leaf];
+const CHIP_SW = ['#ffffff'].concat(SWATCHES);   // 칩 색 — 흰색 포함
 
 /* 트윅 기본값 + 폰트 옵션 (원본 시안 Tweaks 복원 + 자간/글자크기/여백 일괄) */
 const TWEAK_DEFAULTS = { ink: '#2b2630', fontMain: 'cafe24', fontHi: 'aggravo', fz: 1, track: 0, pad: 0, topAdj: 0, botAdj: 0, gapAdj: 0, lineAdj: 0, numScale: 1, logoScale: 1, logoDX: 0, logoDY: 0, wmScale: 1, wmDX: 0, wmDY: 0, wmRot: 0, wmOpacity: 1, dx1: 0, dx2: 0, footer: 1 };
@@ -84,15 +85,26 @@ class ErrorBoundary extends React.Component {
   render() { return this.state.err ? (this.props.fallback != null ? this.props.fallback : null) : this.props.children; }
 }
 
-function Swatches({ value, onPick, colors = SWATCHES, clearable }) {
+function Swatches({ value, onPick, colors = SWATCHES, clearable, custom = true }) {
   const v = (value || '').toLowerCase();
+  const isCustom = !!value && !colors.some((c) => c.toLowerCase() === v) && /^#[0-9a-f]{6}$/i.test(value);
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2, alignItems: 'center' }}>
       {colors.map((c) => (
         <button key={c} type="button" title={c} onClick={() => onPick(c)}
           style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: 'pointer', padding: 0,
             border: v === c.toLowerCase() ? '3px solid #2b2630' : '1px solid '+UI.line }} />
       ))}
+      {custom && (
+        <label title="직접 색 선택" style={{ position: 'relative', width: 26, height: 26, borderRadius: 6, cursor: 'pointer',
+          border: isCustom ? '3px solid #2b2630' : '1px solid '+UI.line,
+          background: isCustom ? value : 'conic-gradient(from .25turn, #f44, #fa3, #fd3, #4c4, #39f, #93f, #f44)',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <input type="color" value={isCustom ? value : '#622599'} onChange={(e) => onPick(e.target.value)}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+          {!isCustom && <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,.6)', pointerEvents: 'none' }}>+</span>}
+        </label>
+      )}
       {clearable && (
         <button type="button" onClick={() => onPick('')}
           style={{ height: 26, padding: '0 10px', borderRadius: 6, border: '1px solid '+UI.line, background: '#fff', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', color: UI.muted, fontFamily: 'inherit' }}>기본</button>
@@ -775,7 +787,6 @@ function App() {
               </window.CCRegisterSceneCtx.Provider>
             </window.CCRegisterPhotoCtx.Provider>
           </window.CCRegisterFieldCtx.Provider>
-          <div style={pillHint}>텍스트 <b>더블클릭</b> 또는 오른쪽 패널에서 편집</div>
         </main>
 
         {/* 우: 카드 편집 + 트윅 + 브랜드 */}
@@ -783,7 +794,7 @@ function App() {
           <div style={secLabel}>이 카드 편집 · {card ? card.label : ''}</div>
 
           {(coverScope || ddScope) && (
-            <Section title="배경 · 색" open>
+            <Section title="배경 · 색">
               {ddScope && !ddIsDay && (
                 <label style={{ display: 'block', marginBottom: 10 }}>
                   <span style={fieldLabel}>D-숫자 (진행바·문구 자동 반영)</span>
@@ -839,7 +850,7 @@ function App() {
           )}
 
           {alignScope && (
-            <Section title="텍스트 정렬" open>
+            <Section title="텍스트 정렬">
               <Seg value={store.getProp(alignScope, 'align', '')} onPick={(v) => store.setProp(alignScope, 'align', v)}
                 options={[['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽'], ['', '기본']]} />
             </Section>
@@ -861,13 +872,13 @@ function App() {
           )}
 
           {fields.length > 0 && (
-            <Section title="텍스트" open>
+            <Section title="텍스트">
               {fields.map((f) => <FieldInput key={f.ekey} field={f} />)}
             </Section>
           )}
 
           {photos.length > 0 && (
-            <Section title="사진" open>
+            <Section title="사진">
               {photos.map((p) => <PhotoRow key={p.slot} slot={p.slot} label={p.label} />)}
             </Section>
           )}
@@ -875,7 +886,7 @@ function App() {
           {/* ═══ 세트 공통 (모든 카드에 한 번에 적용) ═══ */}
           <div style={{ ...secLabel, marginTop: 18, marginBottom: 2, color: UI.accent, borderTop: '2px solid '+UI.line, paddingTop: 14 }}>⚙ 세트 공통 · 모든 카드에 적용</div>
 
-          <Section title="브랜드 정보 (행사명·날짜·장소)" open>
+          <Section title="브랜드 정보 (행사명·날짜·장소)">
             <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>표지 푸터·하단 띠 등 <b>모든 카드에 한 번에</b> 반영됩니다.</p>
             {BRAND_FIELDS.map((f) => (
               <label key={f.k} style={{ display: 'block', marginBottom: 10 }}>
@@ -891,9 +902,9 @@ function App() {
             <span style={fieldLabel}>칩 내용 (공통)</span>
             <input value={tweaks.chipText || ''} placeholder="비우면 카드별" onChange={(e) => setTweak('chipText', e.target.value)} style={inputStyle} />
             <span style={{ ...fieldLabel, marginTop: 10 }}>칩 배경색</span>
-            <Swatches value={tweaks.chipBg || ''} onPick={(c) => setTweak('chipBg', c || '')} clearable />
-            <span style={{ ...fieldLabel, marginTop: 10 }}>칩 글씨색</span>
-            <Swatches value={tweaks.chipInk || ''} onPick={(c) => setTweak('chipInk', c || '')} clearable />
+            <Swatches value={tweaks.chipBg || ''} colors={CHIP_SW} onPick={(c) => setTweak('chipBg', c || '')} clearable />
+            <span style={{ ...fieldLabel, marginTop: 10 }}>칩 글씨색(=점 색)</span>
+            <Swatches value={tweaks.chipInk || ''} colors={CHIP_SW} onPick={(c) => setTweak('chipInk', c || '')} clearable />
           </Section>
 
           <Section title="글꼴 · 글자색 · 본문 영역">
@@ -1064,6 +1075,16 @@ function App() {
                 {serverMsg && <div style={{ fontSize: 12.5, color: /실패|오류|올바르|만료|입력하세요|너무/.test(serverMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 8 }}>{serverMsg}</div>}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {busy && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,25,22,.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <style>{`@keyframes cc-spin{to{transform:rotate(360deg)}}`}</style>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '26px 40px', boxShadow: '0 14px 44px rgba(0,0,0,.32)', textAlign: 'center', minWidth: 230 }}>
+            <div style={{ width: 38, height: 38, margin: '0 auto 14px', border: '4px solid '+UI.line, borderTopColor: UI.accent, borderRadius: '50%', animation: 'cc-spin .8s linear infinite' }} />
+            <div style={{ fontSize: 16, fontWeight: 800, color: UI.ink }}>{status || '처리 중…'}</div>
+            <div style={{ fontSize: 12.5, color: UI.muted, marginTop: 5 }}>잠시만 기다려 주세요 · 창을 닫지 마세요</div>
           </div>
         </div>
       )}

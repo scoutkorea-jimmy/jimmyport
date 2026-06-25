@@ -25,7 +25,7 @@ function CategoryChip({ label, color, top, right, bottom, left, dot, ek }) {
   const inv = !!dot;
   const pillBg = gBg || (inv ? color : '#fff');
   const ink = gInk || (inv ? '#fff' : color);
-  const dotC = inv ? (gInk || '#fff') : color;
+  const dotC = ink;   // 점 색 = 글씨 색 (항상 일치)
   const ds = { fontSize: 26, fontWeight: 700, color: ink, letterSpacing: '.01em' };
   return (
     <span style={{ position: 'absolute', top, right, bottom, left, display: 'inline-flex', alignItems: 'center', gap: 11, background: pillBg, border: inv ? 'none' : '1px solid rgba(0,0,0,.06)', borderRadius: 999, padding: '10px 22px 10px 14px', boxShadow: '0 3px 12px rgba(40,30,50,.12)' }}>
