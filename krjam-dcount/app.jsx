@@ -275,7 +275,7 @@
           <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>신청자 이름</div><div className="dc-mono">{result.applicationNo}</div></div>
           <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>비밀번호 (휴대전화 끝 4자리)</div><div className="dc-mono">{result.password}</div></div>
           <div style={{ background: 'var(--accent-soft)', borderRadius: 'var(--r-2)', padding: '11px 13px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55, textAlign: 'left', margin: '0 0 14px' }}>
-            홍보부에서 <b>빠르게 확인 후 승인</b> 처리할게요. 보통 <b>1시간 ~ 최대 6시간</b> 정도 걸려요. 급하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 연락주시면 빠르게 승인해 드릴게요.
+            홍보부에서 <b>매일 오후 12시·오후 6시경에 일괄 검토·승인</b>합니다. 신청 시점에 따라 다음 승인 시간에 처리돼요. 급하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 연락주세요.
           </div>
           <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>확인</button>
         </div>
