@@ -1803,32 +1803,34 @@ function renderProtocol(){
 var SESSION_KEY='jamboree-plan:session';
 // 홍보부 운영·관리 탭(유형 '홍보부' 또는 관리자만 접근) vs 콘텐츠 탭(모든 회원)
 var MANAGE_TABS=['staff','contacts','orginfo','protocol'];
-var Auth={ token:null, exp:0, role:null, name:'', username:'', type:'' };
+var Auth={ token:null, exp:0, role:null, name:'', username:'', type:'', tabs:[] };
 Auth.load=function(){
   try{ var s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
-    if(s&&s.token&&s.exp&&s.exp>Date.now()){ this.token=s.token; this.exp=s.exp; this.role=s.role||'member'; this.name=s.name||''; this.username=s.username||''; this.type=s.type||'일반'; return true; }
+    if(s&&s.token&&s.exp&&s.exp>Date.now()){ this.token=s.token; this.exp=s.exp; this.role=s.role||'member'; this.name=s.name||''; this.username=s.username||''; this.type=s.type||'일반'; this.tabs=Array.isArray(s.tabs)?s.tabs:[]; return true; }
   }catch(e){}
   return false;
 };
-Auth.save=function(){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify({token:this.token,exp:this.exp,role:this.role,name:this.name,username:this.username,type:this.type})); }catch(e){} };
-Auth.clear=function(){ this.token=null; this.exp=0; this.role=null; this.name=''; this.username=''; this.type=''; try{ localStorage.removeItem(SESSION_KEY); }catch(e){} };
+Auth.save=function(){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify({token:this.token,exp:this.exp,role:this.role,name:this.name,username:this.username,type:this.type,tabs:this.tabs})); }catch(e){} };
+Auth.clear=function(){ this.token=null; this.exp=0; this.role=null; this.name=''; this.username=''; this.type=''; this.tabs=[]; try{ localStorage.removeItem(SESSION_KEY); }catch(e){} };
 Auth.authed=function(){ return !!(this.token && this.exp>Date.now()); };
 Auth.isAdmin=function(){ return this.role==='admin'; };
-Auth.isStaff=function(){ return this.isAdmin() || this.type==='홍보부'; };   // 홍보부(관리 탭 접근)
-Auth.canSee=function(v){ return this.isStaff() || MANAGE_TABS.indexOf(v)<0; };
+// 유형(type)이 가진 탭만. tabs 비어있으면(구버전 세션) 콘텐츠 탭만 폴백 → 잠금 방지.
+Auth.canSee=function(v){ return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
+Auth.isStaff=function(){ var me=this; return this.isAdmin() || ((this.tabs&&this.tabs.length) ? MANAGE_TABS.some(function(t){ return me.tabs.indexOf(t)>=0; }) : false); };
 function authHeader(){ return Auth.token ? {'Authorization':'Bearer '+Auth.token} : {}; }
 function authJsonHeaders(){ var h={'content-type':'application/json'}; if(Auth.token) h['Authorization']='Bearer '+Auth.token; return h; }
 // 쓰기 응답이 401이면 세션 만료 — 게이트 다시 표시
 function authExpired(){ Auth.clear(); document.documentElement.classList.remove('pw-ok'); reflectAuthUI(); var e=document.getElementById('auth-err'); if(e) e.textContent='세션이 만료되었습니다. 다시 로그인하세요.'; }
 
 function reflectAuthUI(){
-  var who=document.getElementById('whoami'), out=document.getElementById('logout'), mb=document.getElementById('members-btn');
+  var who=document.getElementById('whoami'), out=document.getElementById('logout'), mb=document.getElementById('members-btn'), cp=document.getElementById('changepw-btn');
   if(Auth.authed()){
-    if(who) who.textContent = Auth.isAdmin()? '관리자' : ('로그인: '+(Auth.name||Auth.username)+(Auth.type==='홍보부'?' · 홍보부':''));
+    if(who) who.textContent = Auth.isAdmin()? '관리자' : ('로그인: '+(Auth.name||Auth.username)+(Auth.type&&Auth.type!=='일반'?' · '+Auth.type:''));
     if(out) out.style.display='';
     if(mb) mb.style.display = Auth.isAdmin()? '' : 'none';
+    if(cp) cp.style.display = Auth.isAdmin()? 'none' : '';
   } else {
-    if(who) who.textContent=''; if(out) out.style.display='none'; if(mb) mb.style.display='none';
+    if(who) who.textContent=''; if(out) out.style.display='none'; if(mb) mb.style.display='none'; if(cp) cp.style.display='none';
   }
   // 탭 접근: 관리 탭(홍보부 운영)은 홍보부 유형/관리자만 노출
   document.querySelectorAll('.vtab[data-v]').forEach(function(b){
@@ -1837,7 +1839,7 @@ function reflectAuthUI(){
   });
   var mrow=document.getElementById('tabrow-manage'); if(mrow) mrow.style.display=(Auth.authed()&&Auth.isStaff())?'':'none';
 }
-function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); }
+function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); resetAdminIdle(); }
 
 function wireAuthGate(){
   var gate=document.getElementById('auth-gate'); if(!gate) return;
@@ -1868,7 +1870,7 @@ function wireAuthGate(){
     setErr('로그인 중…');
     fetch('/api/jp-members',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'login',username:u,password:p})})
       .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
-      .then(function(res){ if(res.ok&&res.j.ok){ Auth.token=res.j.token; Auth.exp=res.j.exp; Auth.role='member'; Auth.name=res.j.name||''; Auth.username=res.j.username||u; Auth.type=res.j.type||'일반'; Auth.save(); setErr(''); onAuthed(); }
+      .then(function(res){ if(res.ok&&res.j.ok){ Auth.token=res.j.token; Auth.exp=res.j.exp; Auth.role='member'; Auth.name=res.j.name||''; Auth.username=res.j.username||u; Auth.type=res.j.type||'일반'; Auth.tabs=res.j.tabs||[]; Auth.save(); setErr(''); onAuthed(); }
         else setErr(errMsg(res.j&&res.j.error)); })
       .catch(function(){ setErr('네트워크 오류'); });
   };
@@ -1902,6 +1904,20 @@ function wireAuthGate(){
 }
 
 function doLogout(){ Auth.clear(); try{ location.reload(); }catch(e){ document.documentElement.classList.remove('pw-ok'); } }
+// 관리자 15분 유휴 자동 로그아웃
+var adminIdleT=0;
+function resetAdminIdle(){ if(adminIdleT){ clearTimeout(adminIdleT); adminIdleT=0; } if(Auth.authed()&&Auth.isAdmin()){ adminIdleT=setTimeout(function(){ alert('15분 동안 활동이 없어 관리자에서 로그아웃됩니다.'); doLogout(); }, 15*60*1000); } }
+function startIdleWatch(){ ['pointerdown','keydown','wheel','touchstart','input','change'].forEach(function(ev){ document.addEventListener(ev, resetAdminIdle, {passive:true,capture:true}); }); }
+// 본인 비밀번호 변경(로그인 회원)
+function changeMyPassword(){
+  if(!Auth.authed()||Auth.isAdmin()) return;
+  var oldp=prompt('현재 비밀번호'); if(oldp===null) return;
+  var np=prompt('새 비밀번호 (4자 이상)'); if(np===null) return; if(np.length<4){ toast('4자 이상'); return; }
+  fetch('/api/jp-members',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'change_password',oldPassword:oldp,newPassword:np})})
+    .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+    .then(function(res){ if(res.ok&&res.j.ok){ toast('비밀번호를 변경했습니다'); } else { toast(res.j&&res.j.error==='wrong_password'?'현재 비밀번호가 틀립니다':(res.j&&res.j.error==='weak_password'?'4자 이상이어야 합니다':'변경 실패')); } })
+    .catch(function(){ toast('네트워크 오류'); });
+}
 
 /* ===== 홍보부원 기사 (news) ===== */
 var newsItems=[], newsLoaded=false, newsEdit=null; // newsEdit: {id?, title, body, images[]}
@@ -1988,15 +2004,22 @@ function deleteNews(id){
 }
 
 /* ===== 관리자: 홍보부원 회원 관리 ===== */
-var membersList=[];
+var membersList=[], memberTypes={};
+var TAB_LABELS=[['dashboard','대시보드'],['news','기사'],['calendar','캘린더'],['list','리스트'],['timetable','일정표'],['staff','인원관리'],['contacts','협조연락처'],['orginfo','분단연락망'],['protocol','의전']];
 function openMembers(){
   if(!Auth.isAdmin()) return;
   document.getElementById('members-scrim').classList.add('show');
   renderMembers('불러오는 중…');
   fetch('/api/jp-members',{headers:authHeader()})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
-    .then(function(j){ if(!j) return; membersList=(j&&j.members)||[]; renderMembers(); })
+    .then(function(j){ if(!j) return; membersList=(j&&j.members)||[]; memberTypes=(j&&j.types)||{}; renderMembers(); })
     .catch(function(){ renderMembers('불러오기 실패'); });
+}
+function saveMemberTypes(rerender){
+  fetch('/api/jp-members',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify({action:'types',types:memberTypes})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok){ memberTypes=j.types||memberTypes; toast('유형 저장됨'); if(rerender) renderMembers(); } })
+    .catch(function(){ toast('네트워크 오류'); });
 }
 function closeMembers(){ document.getElementById('members-scrim').classList.remove('show'); }
 function renderMembers(msg){
@@ -2007,17 +2030,26 @@ function renderMembers(msg){
   function row(m){
     var tools='';
     if(m.status!=='approved') tools+='<button class="btn xs solid" data-mem-approve="'+esc(m.username)+'">'+icon('check',13)+' 승인</button>';
-    if(m.status==='approved') tools+='<select class="mem-type" data-mem-type="'+esc(m.username)+'" title="회원 유형 (접근 권한)"><option value="일반"'+(m.type==='홍보부'?'':' selected')+'>일반</option><option value="홍보부"'+(m.type==='홍보부'?' selected':'')+'>홍보부</option></select>';
+    if(m.status==='approved'){ var topts=Object.keys(memberTypes).length?Object.keys(memberTypes):['일반','홍보부']; if(m.type&&topts.indexOf(m.type)<0) topts=topts.concat([m.type]); tools+='<select class="mem-type" data-mem-type="'+esc(m.username)+'" title="회원 유형 (접근 권한)">'+topts.map(function(tn){return '<option value="'+esc(tn)+'"'+((m.type||'일반')===tn?' selected':'')+'>'+esc(tn)+'</option>';}).join('')+'</select>'; }
     tools+='<button class="btn xs ghost" data-mem-reset="'+esc(m.username)+'">PW 초기화</button>';
     tools+='<button class="btn xs ghost danger" data-mem-reject="'+esc(m.username)+'">'+icon('trash',13)+' 삭제</button>';
     return '<div class="mem-row"><div class="mem-id"><b>'+esc(m.name||'')+'</b><span>@'+esc(m.username)+'</span></div>'+
       '<span class="mem-status '+(m.status==='approved'?'ok':'pend')+'">'+(m.status==='approved'?'승인됨':'승인 대기')+'</span>'+
       '<div class="mem-tools">'+tools+'</div></div>';
   }
+  var typesHtml='';
+  Object.keys(memberTypes).forEach(function(tn){
+    var tabs=memberTypes[tn]||[];
+    typesHtml+='<div class="mtype-row"><div class="mtype-h"><b>'+esc(tn)+'</b>'+((tn==='일반')?'':'<button class="btn xs ghost danger" data-type-del="'+esc(tn)+'">삭제</button>')+'</div><div class="mtype-tabs">'+
+      TAB_LABELS.map(function(p){ return '<label class="mtype-tab"><input type="checkbox" data-type-tab="'+esc(tn)+'" data-tab="'+p[0]+'"'+(tabs.indexOf(p[0])>=0?' checked':'')+'> '+esc(p[1])+'</label>'; }).join('')+'</div></div>';
+  });
   b.innerHTML=
+    '<div class="mem-sec"><h4>회원 유형 · 접근 탭</h4>'+typesHtml+
+      '<div class="mtype-add"><input id="newtype-name" placeholder="새 유형 이름" maxlength="20"><button class="btn xs solid" id="newtype-add">+ 유형 추가</button></div>'+
+      '<p class="news-empty" style="text-align:left;margin:6px 2px 0;line-height:1.6">유형마다 접근할 탭을 체크하세요. 변경은 즉시 저장되고, 회원은 <b>다시 로그인</b>하면 적용됩니다.</p></div>'+
     '<div class="mem-sec"><h4>승인 대기 ('+pend.length+')</h4>'+(pend.length?pend.map(row).join(''):'<div class="news-empty">대기 중인 신청이 없습니다.</div>')+'</div>'+
-    '<div class="mem-sec"><h4>승인된 회원 ('+appr.length+')</h4>'+(appr.length?appr.map(row).join(''):'<div class="news-empty">아직 없습니다.</div>')+'</div>'+
-    '<p class="news-empty" style="text-align:left;margin:8px 2px 0;line-height:1.6">유형 <b>일반</b> = 콘텐츠 탭(대시보드·캘린더·리스트·기사·일정표)만 · <b>홍보부</b> = 관리 탭(인원·협조연락처·분단·의전)까지. 유형 변경은 해당 회원이 <b>다시 로그인</b>하면 적용됩니다.</p>';
+    '<div class="mem-sec"><h4>승인된 회원 ('+appr.length+')</h4>'+(appr.length?appr.map(row).join(''):'<div class="news-empty">아직 없습니다.</div>')+'</div>';
+  var na=document.getElementById('newtype-add'); if(na) na.onclick=function(){ var nm=(document.getElementById('newtype-name').value||'').trim(); if(!nm){ toast('유형 이름 입력'); return; } if(memberTypes[nm]){ toast('이미 있는 유형'); return; } memberTypes[nm]=['dashboard','news','calendar','list','timetable']; saveMemberTypes(true); };
 }
 function patchMember(username, action, val){
   var body={username:username, action:action};
@@ -2215,6 +2247,8 @@ function init(){
   document.getElementById('members-cancel').onclick=closeMembers;
   document.getElementById('members-scrim').addEventListener('click',function(e){ if(e.target===this) closeMembers(); });
   var mb=document.getElementById('members-btn'); if(mb) mb.onclick=openMembers;
+  var cpb=document.getElementById('changepw-btn'); if(cpb) cpb.onclick=changeMyPassword;
+  startIdleWatch();
   // news 목록 위임 (썸네일 라이트박스 · 수정 · 삭제)
   document.getElementById('news-list').addEventListener('click',function(e){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }
@@ -2230,9 +2264,11 @@ function init(){
     var a=e.target.closest('[data-mem-approve]'); if(a){ approveMember(a.getAttribute('data-mem-approve')); return; }
     var r=e.target.closest('[data-mem-reject]'); if(r){ rejectMember(r.getAttribute('data-mem-reject')); return; }
     var p=e.target.closest('[data-mem-reset]'); if(p){ resetMemberPw(p.getAttribute('data-mem-reset')); return; }
+    var td=e.target.closest('[data-type-del]'); if(td){ var dtn=td.getAttribute('data-type-del'); if(confirm('유형 "'+dtn+'" 을 삭제할까요? (이 유형 회원은 다음 로그인 시 일반으로 처리)')){ delete memberTypes[dtn]; saveMemberTypes(true); } return; }
   });
   document.getElementById('members-body').addEventListener('change',function(e){
-    var s=e.target.closest('[data-mem-type]'); if(s){ setMemberType(s.getAttribute('data-mem-type'), s.value); }
+    var s=e.target.closest('[data-mem-type]'); if(s){ setMemberType(s.getAttribute('data-mem-type'), s.value); return; }
+    var tt=e.target.closest('[data-type-tab]'); if(tt){ var tn=tt.getAttribute('data-type-tab'), tab=tt.getAttribute('data-tab'); var arr=memberTypes[tn]||(memberTypes[tn]=[]); var ix=arr.indexOf(tab); if(tt.checked){ if(ix<0) arr.push(tab); } else if(ix>=0) arr.splice(ix,1); saveMemberTypes(false); return; }
   });
   var dvAdd=document.getElementById('div-add'); if(dvAdd) dvAdd.onclick=addDivision;
   var dvSe=document.getElementById('div-search'); if(dvSe) dvSe.addEventListener('input',function(){ var v=this.value; if(divSearchTimer)clearTimeout(divSearchTimer); divSearchTimer=setTimeout(function(){ divSearchQ=v; renderDivisions(); },120); });

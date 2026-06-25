@@ -9,11 +9,33 @@
  * KV: 인덱스 "jpm:index" = [{username,name,status,createdAt}]
  *     레코드 "jpm:user:<username>" = {username,name,salt,hash,status,createdAt,approvedAt,ip}
  */
-import { json, hashPassword, verifyPassword, issueMemberSession, adminUser,
+import { json, hashPassword, verifyPassword, issueMemberSession, adminUser, memberOrAdmin,
          getArr, putArr, clientIp, maskIp, appendLog } from "./_lib.js";
 
 const INDEX = "jpm:index";
 const USER = (u) => "jpm:user:" + u;
+const TYPES_KEY = "jpm:types";
+
+// 회원 유형별 접근 가능한 탭. 관리자가 유형을 추가/편집(jpm:types)할 수 있다.
+const ALL_TABS = ["dashboard", "news", "calendar", "list", "timetable", "staff", "contacts", "orginfo", "protocol"];
+const CONTENT_TABS = ["dashboard", "news", "calendar", "list", "timetable"];
+const DEFAULT_TYPES = { "일반": CONTENT_TABS.slice(), "홍보부": ALL_TABS.slice() };
+async function readTypes(env) {
+  const raw = await env.SCOUT_KV.get(TYPES_KEY);
+  if (!raw) return JSON.parse(JSON.stringify(DEFAULT_TYPES));
+  try { const o = JSON.parse(raw); return (o && typeof o === "object" && !Array.isArray(o)) ? o : JSON.parse(JSON.stringify(DEFAULT_TYPES)); }
+  catch { return JSON.parse(JSON.stringify(DEFAULT_TYPES)); }
+}
+function cleanTypes(t) {
+  const out = {};
+  if (t && typeof t === "object") for (const k of Object.keys(t)) {
+    const name = String(k).trim().slice(0, 20); if (!name) continue;
+    const tabs = Array.isArray(t[k]) ? t[k].filter((x) => ALL_TABS.indexOf(x) >= 0) : [];
+    out[name] = tabs.length ? tabs : ["dashboard"];
+  }
+  if (!out["일반"]) out["일반"] = CONTENT_TABS.slice();
+  return out;
+}
 
 function normUser(s) {
   return String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]/g, "");
@@ -84,7 +106,24 @@ export async function onRequestPost({ request, env }) {
 
     try { await env.SCOUT_KV.delete(rlKey); } catch {}
     const s = await issueMemberSession(env, { username });
-    return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반" });
+    const types = await readTypes(env);
+    const tabs = types[rec.type] || types["일반"] || CONTENT_TABS;
+    return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반", tabs });
+  }
+
+  if (action === "change_password") {   // 본인 비밀번호 변경 (로그인 회원)
+    const who = await memberOrAdmin(request, env);
+    if (!who || who.admin || !who.username) return json({ ok: false, error: "unauthorized" }, 401);
+    const rec = await readUser(env, who.username);
+    if (!rec || rec.status !== "approved") return json({ ok: false, error: "invalid" }, 400);
+    if (!(await verifyPassword(String(body.oldPassword || ""), rec.salt, rec.hash))) return json({ ok: false, error: "wrong_password" }, 403);
+    const np = String(body.newPassword || "");
+    if (np.length < 4) return json({ ok: false, error: "weak_password" }, 400);
+    const h = await hashPassword(np);
+    rec.salt = h.salt; rec.hash = h.hash;
+    await env.SCOUT_KV.put(USER(who.username), JSON.stringify(rec));
+    await appendLog(env, { ts: new Date().toISOString(), action: "jpm.changepw", count: 0, ip: clientIp(request) });
+    return json({ ok: true });
   }
 
   return json({ ok: false, error: "bad_action" }, 400);
@@ -94,7 +133,7 @@ export async function onRequestGet({ request, env }) {
   if (!(await adminUser(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
   const idx = await getArr(env, INDEX);
   idx.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-  return json({ ok: true, members: idx });
+  return json({ ok: true, members: idx, types: await readTypes(env) });
 }
 
 export async function onRequestPatch({ request, env }) {
@@ -103,6 +142,11 @@ export async function onRequestPatch({ request, env }) {
   try { body = await request.json(); } catch {}
   const username = normUser(body.username);
   const action = body.action;
+  if (action === "types") {   // 유형 설정 추가/편집(회원 무관)
+    await env.SCOUT_KV.put(TYPES_KEY, JSON.stringify(cleanTypes(body.types)));
+    await appendLog(env, { ts: new Date().toISOString(), action: "jpm.types", count: 0, ip: clientIp(request) });
+    return json({ ok: true, types: await readTypes(env) });
+  }
   const rec = await readUser(env, username);
   if (!rec) return json({ ok: false, error: "not_found" }, 404);
   const now = new Date().toISOString();
