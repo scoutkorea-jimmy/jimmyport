@@ -67,7 +67,8 @@
     const track = themed ? (isDark(bg) ? 'rgba(255,255,255,.2)' : 'rgba(77,0,110,.16)') : base.track;
     const cols = bgColor ? colsForBg(bg) : base.cols;          // 오브제 색 = 배경색에 맞춤
     const prog = isDay ? 100 : Math.max(0, Math.min(100, Math.round((50 - n) / 50 * 100)));
-    const kick = (kicker != null && kicker !== '') ? kicker : (isDay ? '2026. 8. 5 · 드디어!' : 'COUNTDOWN · ' + n + '일 전');
+    const enL = (typeof window !== 'undefined' && window.__dcLang === 'en');
+    const kick = (kicker != null && kicker !== '') ? kicker : (isDay ? (enL ? '2026. 8. 5 · At last!' : '2026. 8. 5 · 드디어!') : 'COUNTDOWN · ' + n + (enL ? ' days to go' : '일 전'));
     // 마스터 스타일(여백/크기)
     const numScale = ms.numScale || 1;
     const top = 150 + (ms.topAdj || 0), bottom = 210 + (ms.botAdj || 0), gap = 49 + (ms.gap || 0), lead = (ms.lead || 0);
@@ -92,7 +93,7 @@
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 154, height: 16, background: track }}>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: prog + '%', background: fill }} />
         </div>
-        <window.FooterBand bg="transparent" color={ink} h={130} left={footLeft || '제16회 한국잼버리'} right={footRight || '2026.8.5–8.9 · 강원 고성'} />
+        <window.FooterBand bg="transparent" color={ink} h={130} left={footLeft || (enL ? 'KOREA NATIONAL JAMBOREE' : '제16회 한국잼버리')} right={footRight || (enL ? '2026.8.5–8.9 · Gangwon, Korea' : '2026.8.5–8.9 · 강원 고성')} />
       </window.Card>
     );
   }

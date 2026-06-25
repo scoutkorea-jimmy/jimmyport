@@ -857,9 +857,13 @@ WOSM Region → 국가(NSO) → 단위대
 - 스킵(의도): `privacy.html`(법적 하위 페이지·저가치)·`tour/admin.html`(noindex 관리자). 루트 `assets/*.png`는 `_middleware` BLOCKED(.md·config류)에 안 걸려 정상 서빙.
 - 검증: 4종 모두 1200×630 렌더 + 시각 확인(폰트 로드·레이아웃 정상). 배포 후 라이브 og:image 200 확인 예정.
 
----
-
-## 19. 운영 작업 로그 (Operations Log — 코드 변경 없는 데이터/운영 조치)
+### 18.23 v0.9.147 — /krjam-dcount 국문/영문 i18n + 언어 토글
+- 사용자: "디데이 프로젝트 영문 버전 추가 + 홈페이지에서 잘 보이게 국문/영문 전환 버튼." 참가국(외국 대표단) 대상이라 영문화 적합.
+- **i18n 방식**(app.jsx): 모듈 레벨 `LANG`(localStorage `dcount:lang` + `?lang=` + 브라우저 언어 자동감지, 기본 ko) + `L(ko,en)` 헬퍼. **데이터 키(상태값 `승인`·`신청가능` 등 API 값)는 한국어 유지**, 표시 라벨만 `SS_LABEL`/`ST_LABEL`로 영문 매핑. 토글 시 `LANG=v` 동기 갱신 후 setState → 트리 전체 재렌더(MASTER 패턴과 동일).
+- **언어 토글**: syncbar 우측에 `한국어 / EN` 세그먼트 pill(활성=accent green), 항상 노출. `setLang`이 localStorage·`<html lang>`·`window.__dcLang` 갱신.
+- **번역 범위**: 공개 플로우 전부 — 헤더(행사명·제목·부제)·4단계 안내·안내문구 2종·탭·달력(요일/월/범례/슬롯상태)·신청 모달(필드·5개 동의문·버튼·에러)·결과 모달·조회/수정/철회·사진 업로드. **관리자(MasterStyle·반려/승인 다이얼로그·대시보드)는 내부용이라 한국어 유지**(의도). 장면 라벨(SCENE_LABELS)은 공유 모듈이라 한국어 유지(모티프 이름, 경미).
+- **카드 자체 텍스트**(dcard.jsx): `window.__dcLang==='en'`이면 키커 `COUNTDOWN · N days to go`(국문 `N일 전`)·당일 `At last!`·푸터 기본 `KOREA NATIONAL JAMBOREE`/`2026.8.5–8.9 · Gangwon, Korea`. 프리뷰·A4 출력 모두 선택 언어 반영.
+- 검증: 로컬 http + 헤드리스 Chrome — KO/EN 스크린샷(헤더·탭·범례·안내 정상) + **CDP 토글 클릭 라이브 전환**(디데이 프로젝트→D-day Project, `<html lang>`=en) + **콘솔 에러 0**. 잔여 한국어는 admin/데이터정의/주석뿐 확인.
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-06-25 — krjam-dcount D-Count 신청 데이터 전체 초기화 (사용자 지시)

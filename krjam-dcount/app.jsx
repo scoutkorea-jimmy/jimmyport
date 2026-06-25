@@ -10,24 +10,42 @@
   const P = window.PAL;
   let MASTER = {};   // 현재 마스터 스타일(출력용 동기 참조)
 
+  /* ── i18n (국문/영문) — 데이터 키는 한국어 유지, 표시 라벨만 영문 ── */
+  let LANG = (function () {
+    try {
+      const u = new URLSearchParams(location.search).get('lang'); if (u === 'en' || u === 'ko') return u;
+      const s = localStorage.getItem('dcount:lang'); if (s === 'en' || s === 'ko') return s;
+      return (navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+    } catch (_) { return 'ko'; }
+  })();
+  try { document.documentElement.lang = LANG; window.__dcLang = LANG; } catch (_) {}
+  const L = (ko, en) => (LANG === 'en' ? en : ko);
+  const SS_LABEL = (s) => L(s, { '신청가능': 'Available', '검토중': 'In review', '확정': 'Confirmed', '닫힘': 'Closed' }[s] || s);
+  const ST_LABEL = (s) => L(s, { '제출됨': 'Submitted', '수정요청': 'Changes requested', '승인': 'Approved', '반려': 'Rejected', '철회': 'Withdrawn' }[s] || s);
+
   const SS_COLOR = { '신청가능': 'var(--st-ready)', '검토중': 'var(--st-draft)', '확정': 'var(--accent)', '닫힘': 'var(--faint)' };
   const ST_COLOR = { '제출됨': 'var(--st-draft)', '수정요청': '#C0492F', '승인': 'var(--st-ready)', '반려': 'var(--danger)', '철회': 'var(--faint)' };
   const SWATCHES = [P.purple, P.midnight, P.ocean, P.forest, P.red, P.orange, P.river, P.leaf, P.pink, '#ffffff'];
   const CONSENTS = [
-    { k: 'privacy', t: '개인정보 수집·이용 (필수)', d: '신청자명·휴대전화·소속대·접속 IP를 카드 검토·게시·통지 목적으로 수집하며, 행사 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.' },
-    { k: 'portrait', t: '초상권 / 사진 게시 (필수)', d: '카드에 인물 사진을 포함하는 경우, 해당 인물의 게시·활용에 동의합니다.' },
-    { k: 'thirdparty', t: '제3자 초상 확인 (필수)', d: '사진 속 타인이 있는 경우, 그 사람의 게시 동의를 신청자가 직접 받았음을 확인합니다.' },
-    { k: 'license', t: '콘텐츠 사용권 (필수)', d: '제출한 카드·사진을 제16회 한국잼버리/한국스카우트연맹이 게시·홍보 및 잼버리 화보집 제작에 활용할 수 있도록 사용권을 부여합니다.' },
-    { k: 'age14', t: '만 14세 이상 확인 (필수)', d: '신청자는 만 14세 이상입니다. (14세 미만은 신청 대상이 아닙니다.)' },
+    { k: 'privacy', t: '개인정보 수집·이용 (필수)', d: '신청자명·휴대전화·소속대·접속 IP를 카드 검토·게시·통지 목적으로 수집하며, 행사 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.',
+      te: 'Collection & use of personal data (required)', de: 'Your name, mobile number, unit and IP address are collected to review, publish and notify about your card, and are deleted within 3 months after the event (by 2026-11-09).' },
+    { k: 'portrait', t: '초상권 / 사진 게시 (필수)', d: '카드에 인물 사진을 포함하는 경우, 해당 인물의 게시·활용에 동의합니다.',
+      te: 'Portrait rights / photo publishing (required)', de: 'If your card includes photos of people, you agree to those people being published and used.' },
+    { k: 'thirdparty', t: '제3자 초상 확인 (필수)', d: '사진 속 타인이 있는 경우, 그 사람의 게시 동의를 신청자가 직접 받았음을 확인합니다.',
+      te: 'Third-party portrait confirmation (required)', de: 'If other people appear in your photos, you confirm you have obtained their consent to be published.' },
+    { k: 'license', t: '콘텐츠 사용권 (필수)', d: '제출한 카드·사진을 제16회 한국잼버리/한국스카우트연맹이 게시·홍보 및 잼버리 화보집 제작에 활용할 수 있도록 사용권을 부여합니다.',
+      te: 'Content licence (required)', de: 'You grant the 16th Korea National Jamboree / Korea Scout Association a licence to publish, promote and include your card and photos in the Jamboree photo book.' },
+    { k: 'age14', t: '만 14세 이상 확인 (필수)', d: '신청자는 만 14세 이상입니다. (14세 미만은 신청 대상이 아닙니다.)',
+      te: 'Age 14+ confirmation (required)', de: 'The applicant is aged 14 or older. (Under-14s are not eligible to apply.)' },
   ];
   const phoneOk = (s) => /^01\d{8,9}$/.test(String(s || '').replace(/\D/g, ''));
   const hyphenPhone = (v) => { const d = String(v || '').replace(/\D/g, '').slice(0, 11); if (d.length <= 3) return d; if (d.length <= 7) return d.slice(0, 3) + '-' + d.slice(3); return d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7); };
   const EMBLEMS = [['', '자동'], ['/jamboree/assets/logo.png', '컬러'], ['/jamboree/assets/logo-white.png', '흰색'], ['/jamboree/assets/logo-asset.png', '매듭']];
   async function uploadImage(file) {
-    if (file.size > 5 * 1024 * 1024) throw new Error('각 이미지는 5MB 이하만 가능합니다.');
+    if (file.size > 5 * 1024 * 1024) throw new Error(L('각 이미지는 5MB 이하만 가능합니다.', 'Each image must be 5MB or smaller.'));
     const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': file.type }, body: file });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.url) throw new Error(j.error === 'too_large' ? '5MB를 초과했습니다.' : j.error === 'unsupported_type' ? '이미지 파일만 가능합니다.' : '업로드 실패');
+    if (!r.ok || !j.url) throw new Error(j.error === 'too_large' ? L('5MB를 초과했습니다.', 'Exceeds 5MB.') : j.error === 'unsupported_type' ? L('이미지 파일만 가능합니다.', 'Image files only.') : L('업로드 실패', 'Upload failed'));
     return j.url;
   }
 
@@ -44,7 +62,7 @@
 
   /* ── A4(가로) PNG 출력 — 승인된 카드 ── */
   async function exportA4(props, filename) {
-    if (!window.htmlToImage) { alert('출력 라이브러리 로드 실패 — 새로고침 후 다시 시도하세요.'); return; }
+    if (!window.htmlToImage) { alert(L('출력 라이브러리 로드 실패 — 새로고침 후 다시 시도하세요.', 'Failed to load the export library — please refresh and try again.')); return; }
     const W = window.DCOUNT_WIDE.w, H = window.DCOUNT_WIDE.h;
     const host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:-99999px;top:0;width:' + W + 'px;height:' + H + 'px;';
@@ -60,7 +78,7 @@
     try {
       const url = await window.htmlToImage.toPng(host.firstChild, { width: W, height: H, pixelRatio: 2, cacheBust: true });
       const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-    } catch (e) { alert('출력 실패: ' + (e && e.message)); }
+    } catch (e) { alert(L('출력 실패: ', 'Export failed: ') + (e && e.message)); }
     root.unmount(); host.remove();
   }
   const cardProps = (a) => ({ dNumber: a.dNumber, isDay: false, teaser: a.teaser, bgColor: a.bgColor, inkColor: a.inkColor, sceneIdx: a.sceneIdx });
@@ -88,8 +106,8 @@
       </div>
     );
   }
-  const SsTag = ({ s }) => <span className="dc-ss" style={{ background: SS_COLOR[s] || 'var(--faint)' }}>{s}</span>;
-  const StTag = ({ s }) => <span className="dc-tag" style={{ background: ST_COLOR[s] || 'var(--faint)' }}>{s}</span>;
+  const SsTag = ({ s }) => <span className="dc-ss" style={{ background: SS_COLOR[s] || 'var(--faint)' }}>{SS_LABEL(s)}</span>;
+  const StTag = ({ s }) => <span className="dc-tag" style={{ background: ST_COLOR[s] || 'var(--faint)' }}>{ST_LABEL(s)}</span>;
 
   /* ── 달력(월 그리드, 일요일 시작) ── */
   function MonthGrid({ ym, byDate, mode, onApply, onToggle, today, busy }) {
@@ -99,10 +117,11 @@
     const cells = [];
     for (let i = 0; i < first; i++) cells.push(null);
     for (let d = 1; d <= days; d++) cells.push(d);
-    const dows = ['일', '월', '화', '수', '목', '금', '토'];
+    const dows = L(['일', '월', '화', '수', '목', '금', '토'], ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+    const EN_MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return (
       <div className="dc-month">
-        <div className="dc-mtitle">{y}년 {m}월</div>
+        <div className="dc-mtitle">{L(y + '년 ' + m + '월', EN_MON[m - 1] + ' ' + y)}</div>
         <div className="dc-dow">{dows.map((w, i) => <span key={i} className={i === 0 ? 'sun' : ''}>{w}</span>)}</div>
         <div className="dc-days">
           {cells.map((d, i) => {
@@ -133,14 +152,14 @@
 
   const fmtMd = (ds) => { const p = ds.split('-'); return parseInt(p[1], 10) + '/' + parseInt(p[2], 10); };
   function Calendar({ slots, loading, onApply }) {
-    if (loading && !slots) return <div className="dc-card"><p className="dc-note">불러오는 중…</p></div>;
+    if (loading && !slots) return <div className="dc-card"><p className="dc-note">{L('불러오는 중…', 'Loading…')}</p></div>;
     const sl = (slots || []).slice().sort((a, z) => z.dNumber - a.dNumber);   // D-40 → D-5
     const groups = [];
     sl.forEach((s) => { const gi = Math.floor((40 - s.dNumber) / 5); (groups[gi] = groups[gi] || []).push(s); });   // 5일 단위
     return (
       <div className="dc-card">
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14, fontSize: 12, color: 'var(--muted)' }}>
-          {['신청가능', '검토중', '확정', '닫힘'].map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 9, height: 9, borderRadius: '50%', background: SS_COLOR[s] }} />{s}</span>)}
+          {['신청가능', '검토중', '확정', '닫힘'].map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 9, height: 9, borderRadius: '50%', background: SS_COLOR[s] }} />{SS_LABEL(s)}</span>)}
         </div>
         {groups.map((g, gi) => {
           if (!g || !g.length) return null;
@@ -153,7 +172,7 @@
                     <div key={s.targetDate} className={'dc-slot2' + (open ? ' open' : ' dim')} onClick={() => open && onApply(s)} title={s.targetDate + ' · ' + s.slotStatus}>
                       <div className="d2-dn">D-{s.dNumber}</div>
                       <div className="d2-dt">{fmtMd(s.targetDate)}</div>
-                      <span className="dc-ss2" style={{ background: SS_COLOR[s.slotStatus] || 'var(--faint)' }}>{s.slotStatus}</span>
+                      <span className="dc-ss2" style={{ background: SS_COLOR[s.slotStatus] || 'var(--faint)' }}>{SS_LABEL(s.slotStatus)}</span>
                     </div>
                   );
                 })}
@@ -171,31 +190,31 @@
     return (
       <div>
         <div className="dc-field">
-          <label>카드 문구 (두 줄까지)</label>
-          <textarea className="dc-input" rows={2} value={form.teaser} maxLength={160} onChange={(e) => set('teaser', e.target.value)} placeholder={'예: 세계가 강원으로\n향합니다'} style={{ resize: 'vertical', lineHeight: 1.5 }} />
+          <label>{L('카드 문구 (두 줄까지)', 'Card message (up to two lines)')}</label>
+          <textarea className="dc-input" rows={2} value={form.teaser} maxLength={160} onChange={(e) => set('teaser', e.target.value)} placeholder={L('예: 세계가 강원으로\n향합니다', 'e.g. The world is heading\nto Gangwon')} style={{ resize: 'vertical', lineHeight: 1.5 }} />
         </div>
         <div className="dc-row">
           <div className="dc-field">
-            <label>배경색</label>
+            <label>{L('배경색', 'Background colour')}</label>
             <div className="dc-swatches">
               {SWATCHES.map((c) => <button key={c} type="button" className="dc-sw" style={{ background: c, outline: form.bgColor === c ? '2px solid var(--accent)' : 'none' }} onClick={() => set('bgColor', c)} title={c} />)}
               <input type="color" value={form.bgColor || '#622599'} onChange={(e) => set('bgColor', e.target.value)} style={{ width: 30, height: 28, padding: 0, border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }} />
-              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => set('bgColor', '')}>기본</button>
+              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => set('bgColor', '')}>{L('기본', 'Default')}</button>
             </div>
           </div>
           <div className="dc-field">
-            <label>글씨색</label>
+            <label>{L('글씨색', 'Text colour')}</label>
             <div className="dc-swatches">
               {['#ffffff', P.midnight, P.purple, P.orange, P.leaf].map((c) => <button key={c} type="button" className="dc-sw" style={{ background: c, outline: form.inkColor === c ? '2px solid var(--accent)' : 'none' }} onClick={() => set('inkColor', c)} title={c} />)}
               <input type="color" value={form.inkColor || '#ffffff'} onChange={(e) => set('inkColor', e.target.value)} style={{ width: 30, height: 28, padding: 0, border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }} />
-              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => set('inkColor', '')}>기본</button>
+              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => set('inkColor', '')}>{L('기본', 'Default')}</button>
             </div>
           </div>
         </div>
         <div className="dc-field">
-          <label>오른쪽 오브제 (색은 배경에 자동 매칭)</label>
+          <label>{L('오른쪽 오브제 (색은 배경에 자동 매칭)', 'Right-side motif (colour auto-matches the background)')}</label>
           <select className="dc-input" value={form.sceneIdx} onChange={(e) => set('sceneIdx', e.target.value)}>
-            <option value="">기본 (자동)</option>
+            <option value="">{L('기본 (자동)', 'Default (auto)')}</option>
             {labels.map((l, i) => <option key={i} value={i}>{i + 1}. {l}</option>)}
           </select>
         </div>
@@ -214,20 +233,20 @@
     const canSubmit = form.name.trim() && phoneOk(form.contact) && allConsent && !busy;
 
     async function submit() {
-      if (!form.name.trim()) { setErr('신청자 이름은 필수입니다.'); return; }
-      if (!phoneOk(form.contact)) { setErr('휴대전화 번호를 정확히 입력하세요 (예: 010-1234-5678).'); return; }
-      if (!allConsent) { setErr('필수 동의 항목에 모두 동의해야 합니다.'); return; }
+      if (!form.name.trim()) { setErr(L('신청자 이름은 필수입니다.', 'Applicant name is required.')); return; }
+      if (!phoneOk(form.contact)) { setErr(L('휴대전화 번호를 정확히 입력하세요 (예: 010-1234-5678).', 'Enter a valid mobile number (e.g. 010-1234-5678).')); return; }
+      if (!allConsent) { setErr(L('필수 동의 항목에 모두 동의해야 합니다.', 'You must agree to all required consent items.')); return; }
       setBusy(true); setErr('');
       const { ok, j } = await jsend('POST', { action: 'apply', targetDate: slot.targetDate, name: form.name, contact: form.contact, org: form.org, teaser: form.teaser, bgColor: form.bgColor, inkColor: form.inkColor, sceneIdx: form.sceneIdx, consents: { privacy: true, portrait: true, thirdparty: true, license: true, age14: true } });
       setBusy(false);
       if (ok && j.ok) onDone(j);
-      else setErr(j.error === 'rate_limited' ? '신청이 너무 잦습니다. 잠시 후 다시 시도하세요.'
-        : j.error === 'already_taken' ? '방금 이 날짜가 선점되었습니다. 다른 날짜를 선택하세요.'
-        : j.error === 'name_taken' ? '이미 같은 이름으로 신청된 건이 있습니다. (신청 조회에서 확인/철회하세요)'
-          : j.error === 'bad_phone' ? '휴대전화 번호 형식을 확인하세요.'
-            : j.error === 'name_required' ? '이름을 입력하세요.'
-              : j.error === 'slot_closed' ? '이 슬롯은 닫혀 있습니다.'
-                : '신청 처리 중 오류가 발생했습니다.');
+      else setErr(j.error === 'rate_limited' ? L('신청이 너무 잦습니다. 잠시 후 다시 시도하세요.', 'Too many requests. Please try again shortly.')
+        : j.error === 'already_taken' ? L('방금 이 날짜가 선점되었습니다. 다른 날짜를 선택하세요.', 'This date was just taken. Please choose another date.')
+        : j.error === 'name_taken' ? L('이미 같은 이름으로 신청된 건이 있습니다. (신청 조회에서 확인/철회하세요)', 'There is already an application under this name. (Check or withdraw it in “Check application”.)')
+          : j.error === 'bad_phone' ? L('휴대전화 번호 형식을 확인하세요.', 'Please check the mobile number format.')
+            : j.error === 'name_required' ? L('이름을 입력하세요.', 'Please enter a name.')
+              : j.error === 'slot_closed' ? L('이 슬롯은 닫혀 있습니다.', 'This slot is closed.')
+                : L('신청 처리 중 오류가 발생했습니다.', 'An error occurred while submitting your application.'));
     }
 
     return (
@@ -235,30 +254,30 @@
         <div className="dc-modal" onMouseDown={(e) => e.stopPropagation()}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <span className="dc-tag" style={{ background: 'var(--accent)' }}>D-{slot.dNumber}</span>
-            <b style={{ fontSize: 16 }}>{slot.targetDate} 디데이 카드</b><span style={{ flex: 1 }} />
-            <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={onClose}>닫기</button>
+            <b style={{ fontSize: 16 }}>{L(slot.targetDate + ' 디데이 카드', 'D-day card · ' + slot.targetDate)}</b><span style={{ flex: 1 }} />
+            <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={onClose}>{L('닫기', 'Close')}</button>
           </div>
           <div style={{ display: 'grid', gap: 18 }}>
-            <ScaledCard dNumber={slot.dNumber} isDay={false} teaser={form.teaser || '카드 문구를 입력하세요'} bgColor={form.bgColor} inkColor={form.inkColor} sceneIdx={form.sceneIdx} />
+            <ScaledCard dNumber={slot.dNumber} isDay={false} teaser={form.teaser || L('카드 문구를 입력하세요', 'Enter your card message')} bgColor={form.bgColor} inkColor={form.inkColor} sceneIdx={form.sceneIdx} />
             <div>
               <div className="dc-row">
-                <div className="dc-field"><label>신청자 이름 *</label><input className="dc-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="홍길동" /></div>
-                <div className="dc-field"><label>휴대전화 * (끝 4자리 = 비밀번호)</label><input className="dc-input" value={form.contact} onChange={(e) => set('contact', hyphenPhone(e.target.value))} placeholder="010-1234-5678" inputMode="numeric" maxLength={13} style={form.contact && !phoneOk(form.contact) ? { borderColor: 'var(--danger)' } : null} /></div>
-                <div className="dc-field"><label>소속대</label><input className="dc-input" value={form.org} onChange={(e) => set('org', e.target.value)} /></div>
+                <div className="dc-field"><label>{L('신청자 이름 *', 'Applicant name *')}</label><input className="dc-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={L('홍길동', 'e.g. Jane Smith')} /></div>
+                <div className="dc-field"><label>{L('휴대전화 * (끝 4자리 = 비밀번호)', 'Mobile * (last 4 digits = password)')}</label><input className="dc-input" value={form.contact} onChange={(e) => set('contact', hyphenPhone(e.target.value))} placeholder="010-1234-5678" inputMode="numeric" maxLength={13} style={form.contact && !phoneOk(form.contact) ? { borderColor: 'var(--danger)' } : null} /></div>
+                <div className="dc-field"><label>{L('소속대', 'Unit / group')}</label><input className="dc-input" value={form.org} onChange={(e) => set('org', e.target.value)} /></div>
               </div>
               <div style={{ borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
               <Customizer form={form} set={set} />
               <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0 6px' }} />
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', margin: '8px 0 4px' }}>동의 (전 항목 필수)</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', margin: '8px 0 4px' }}>{L('동의 (전 항목 필수)', 'Consent (all items required)')}</div>
               {CONSENTS.map((c) => (
                 <label key={c.k} className="dc-consent">
                   <input type="checkbox" checked={!!consents[c.k]} onChange={(e) => setConsents((p) => Object.assign({}, p, { [c.k]: e.target.checked }))} />
-                  <span><b>{c.t}</b> — {c.d}</span>
+                  <span><b>{L(c.t, c.te)}</b> — {L(c.d, c.de)}</span>
                 </label>
               ))}
               <div className="dc-err">{err}</div>
-              <button className="dc-btn primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%', marginTop: 8 }}>{busy ? '신청 중…' : '신청 제출 (날짜 선점)'}</button>
-              <p className="dc-note" style={{ marginTop: 8 }}>제출 즉시 이 날짜가 선점되고, <b>신청자 이름·비밀번호(휴대전화 끝 4자리)</b>로 조회·수정할 수 있어요. 홍보부에서 <b>매일 오후 12시·오후 6시경 일괄 승인</b>하며, 승인되면 사진을 올릴 수 있어요.</p>
+              <button className="dc-btn primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%', marginTop: 8 }}>{busy ? L('신청 중…', 'Submitting…') : L('신청 제출 (날짜 선점)', 'Submit application (reserve date)')}</button>
+              <p className="dc-note" style={{ marginTop: 8 }}>{L('제출 즉시 이 날짜가 선점되고, ', 'This date is reserved as soon as you submit, and ')}<b>{L('신청자 이름·비밀번호(휴대전화 끝 4자리)', 'your name and password (last 4 digits of your mobile)')}</b>{L('로 조회·수정할 수 있어요. 홍보부에서 ', ' let you check and edit it. The PR team ')}<b>{L('매일 오후 12시·오후 6시경 일괄 승인', 'approves in batches around 12:00 and 18:00 KST daily')}</b>{L('하며, 승인되면 사진을 올릴 수 있어요.', '. Once approved, you can upload photos.')}</p>
             </div>
           </div>
         </div>
@@ -270,14 +289,14 @@
     return (
       <div className="dc-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div className="dc-modal" style={{ width: 'min(440px,100%)', textAlign: 'center' }} onMouseDown={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--accent)', marginBottom: 6 }}>신청 완료 ✓</div>
-          <p className="dc-note">D-{result.dNumber} ({result.targetDate}) 선점 완료! 조회·사진 업로드 시 아래 정보를 사용하세요.</p>
-          <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>신청자 이름</div><div className="dc-mono">{result.applicationNo}</div></div>
-          <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>비밀번호 (휴대전화 끝 4자리)</div><div className="dc-mono">{result.password}</div></div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--accent)', marginBottom: 6 }}>{L('신청 완료 ✓', 'Application complete ✓')}</div>
+          <p className="dc-note">{L('D-' + result.dNumber + ' (' + result.targetDate + ') 선점 완료! 조회·사진 업로드 시 아래 정보를 사용하세요.', 'D-' + result.dNumber + ' (' + result.targetDate + ') reserved! Use the details below to check your application and upload photos.')}</p>
+          <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{L('신청자 이름', 'Applicant name')}</div><div className="dc-mono">{result.applicationNo}</div></div>
+          <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{L('비밀번호 (휴대전화 끝 4자리)', 'Password (last 4 digits of mobile)')}</div><div className="dc-mono">{result.password}</div></div>
           <div style={{ background: 'var(--accent-soft)', borderRadius: 'var(--r-2)', padding: '11px 13px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55, textAlign: 'left', margin: '0 0 14px' }}>
-            홍보부에서 <b>매일 오후 12시·오후 6시경에 일괄 검토·승인</b>합니다. 신청 시점에 따라 다음 승인 시간에 처리돼요. 급하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 연락주세요.
+            {L('홍보부에서 ', 'The PR team ')}<b>{L('매일 오후 12시·오후 6시경에 일괄 검토·승인', 'reviews and approves in batches around 12:00 and 18:00 KST daily')}</b>{L('합니다. 신청 시점에 따라 다음 승인 시간에 처리돼요. 급하면 ', '. Your application is handled at the next approval window. If urgent, contact the ', )}<b>{L('한국스카우트연맹 ', 'Korea Scout Association ')}<a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b>{L(' 으로 연락주세요.', '.')}
           </div>
-          <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>확인</button>
+          <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>{L('확인', 'OK')}</button>
         </div>
       </div>
     );
@@ -292,26 +311,26 @@
       const { ok, j } = await jsend('POST', { action: 'photos', applicationNo: no, password: pw, photos: next });
       setBusy(false);
       if (ok && j.ok) { setPhotos(j.application.photos || []); if (onUpdate) onUpdate(j.application); }
-      else setErr(j.error === 'not_approved' ? '승인된 신청만 사진을 올릴 수 있습니다.' : j.error === 'rate_limited' ? '잠시 후 다시 시도하세요.' : '저장 실패');
+      else setErr(j.error === 'not_approved' ? L('승인된 신청만 사진을 올릴 수 있습니다.', 'Only approved applications can upload photos.') : j.error === 'rate_limited' ? L('잠시 후 다시 시도하세요.', 'Please try again shortly.') : L('저장 실패', 'Save failed'));
     }
     async function onFiles(e) {
       const files = Array.from(e.target.files || []); e.target.value = '';
       if (!files.length) return;
-      if (photos.length + files.length > 3) { setErr('사진은 최대 3장까지입니다.'); return; }
+      if (photos.length + files.length > 3) { setErr(L('사진은 최대 3장까지입니다.', 'Up to 3 photos only.')); return; }
       setBusy(true); setErr('');
       try { const urls = []; for (const f of files) urls.push(await uploadImage(f)); await save(photos.concat(urls)); }
-      catch (ex) { setErr(ex.message || '업로드 실패'); setBusy(false); }
+      catch (ex) { setErr(ex.message || L('업로드 실패', 'Upload failed')); setBusy(false); }
     }
     return (
       <div style={{ marginTop: 16, border: '2px solid var(--accent)', borderRadius: 'var(--r-2)', background: 'var(--accent-soft)', padding: 14 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent-ink)', marginBottom: 4 }}>📷 D-day 카운트 사진 업로드하기</div>
-        <div style={{ fontSize: 12, color: 'var(--accent-ink)', opacity: .85, marginBottom: 10 }}>A4로 출력한 카드와 함께 촬영한 사진을 올려주세요. (최대 3장 · 각 5MB)</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent-ink)', marginBottom: 4 }}>{L('📷 D-day 카운트 사진 업로드하기', '📷 Upload your D-day countdown photos')}</div>
+        <div style={{ fontSize: 12, color: 'var(--accent-ink)', opacity: .85, marginBottom: 10 }}>{L('A4로 출력한 카드와 함께 촬영한 사진을 올려주세요. (최대 3장 · 각 5MB)', 'Upload photos taken with your A4-printed card. (Up to 3 · 5MB each)')}</div>
         <div className="dc-photos">
           {photos.map((u, i) => (<div key={i} className="dc-photo"><img src={u} alt="" /><button className="rm" disabled={busy} onClick={() => save(photos.filter((_, k) => k !== i))}>×</button></div>))}
-          {photos.length < 3 && <label className="dc-photo-add">{busy ? '업로드 중…' : '＋ 사진 추가'}<input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onFiles} /></label>}
+          {photos.length < 3 && <label className="dc-photo-add">{busy ? L('업로드 중…', 'Uploading…') : L('＋ 사진 추가', '＋ Add photo')}<input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onFiles} /></label>}
         </div>
         {err && <div className="dc-err">{err}</div>}
-        <p className="dc-note" style={{ marginTop: 8, color: 'var(--danger)' }}>⚠️ 승인 완료 후 <b>7일 이내</b>에 사진이 공유되지 않으면 <b>별도의 고지 없이 취소</b>될 수 있습니다.</p>
+        <p className="dc-note" style={{ marginTop: 8, color: 'var(--danger)' }}>{L('⚠️ 승인 완료 후 ', '⚠️ If photos are not shared within ')}<b>{L('7일 이내', '7 days')}</b>{L('에 사진이 공유되지 않으면 ', ' of approval, the application ')}<b>{L('별도의 고지 없이 취소', 'may be cancelled without further notice')}</b>{L('될 수 있습니다.', '.')}</p>
       </div>
     );
   }
@@ -328,30 +347,30 @@
       const { ok, j } = await jsend('POST', { action: 'lookup', applicationNo: no.trim(), password: pw });
       setBusy(false);
       if (ok && j.ok) { setApp(j.application); setForm(Object.assign({}, j.application)); }
-      else { setApp(null); setMsg(j.error === 'rate_limited' ? '시도가 너무 많습니다. 잠시 후 다시 시도하세요.' : j.error === 'bad_credentials' ? '이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.' : '조회 중 오류'); }
+      else { setApp(null); setMsg(j.error === 'rate_limited' ? L('시도가 너무 많습니다. 잠시 후 다시 시도하세요.', 'Too many attempts. Please try again shortly.') : j.error === 'bad_credentials' ? L('이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.', 'Name or password (last 4 digits of mobile) is incorrect.') : L('조회 중 오류', 'Lookup error')); }
     }
     async function save() {
       setBusy(true); setMsg('');
       const { ok, j } = await jsend('POST', { action: 'edit', applicationNo: no.trim(), password: pw, org: form.org, teaser: form.teaser, bgColor: form.bgColor, inkColor: form.inkColor, sceneIdx: form.sceneIdx });
       setBusy(false);
-      if (ok && j.ok) { setApp(j.application); setMsg('수정되었습니다.'); } else setMsg(j.error === 'not_editable' ? '검토중일 때만 수정할 수 있습니다.' : '수정 중 오류');
+      if (ok && j.ok) { setApp(j.application); setMsg(L('수정되었습니다.', 'Saved.')); } else setMsg(j.error === 'not_editable' ? L('검토중일 때만 수정할 수 있습니다.', 'You can only edit while the application is in review.') : L('수정 중 오류', 'Edit error'));
     }
     async function withdraw() {
-      if (!window.confirm('철회하면 이 날짜 선점이 해제됩니다. 진행할까요?')) return;
+      if (!window.confirm(L('철회하면 이 날짜 선점이 해제됩니다. 진행할까요?', 'Withdrawing will release this date. Continue?'))) return;
       setBusy(true); setMsg('');
       const { ok, j } = await jsend('POST', { action: 'withdraw', applicationNo: no.trim(), password: pw });
       setBusy(false);
-      if (ok && j.ok) { setApp(null); setForm(null); setMsg('철회되었습니다.'); } else setMsg('철회 중 오류');
+      if (ok && j.ok) { setApp(null); setForm(null); setMsg(L('철회되었습니다.', 'Withdrawn.')); } else setMsg(L('철회 중 오류', 'Withdrawal error'));
     }
 
     return (
       <div className="dc-card">
         <div className="dc-row" style={{ alignItems: 'flex-end' }}>
-          <div className="dc-field"><label>신청자 이름</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
-          <div className="dc-field"><label>비밀번호 (휴대전화 끝 4자리)</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" /></div>
-          <div className="dc-field" style={{ flex: '0 0 auto' }}><button className="dc-btn primary" disabled={busy || !no.trim() || pw.length < 4} onClick={lookup}>조회</button></div>
+          <div className="dc-field"><label>{L('신청자 이름', 'Applicant name')}</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder={L('홍길동', 'e.g. Jane Smith')} /></div>
+          <div className="dc-field"><label>{L('비밀번호 (휴대전화 끝 4자리)', 'Password (last 4 digits of mobile)')}</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" /></div>
+          <div className="dc-field" style={{ flex: '0 0 auto' }}><button className="dc-btn primary" disabled={busy || !no.trim() || pw.length < 4} onClick={lookup}>{L('조회', 'Look up')}</button></div>
         </div>
-        {msg && <div className={/오류|않|없/.test(msg) ? 'dc-err' : 'dc-ok'}>{msg}</div>}
+        {msg && <div className={/되었습니다|Saved|Withdrawn/.test(msg) ? 'dc-ok' : 'dc-err'}>{msg}</div>}
 
         {app && (
           <div style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
@@ -359,20 +378,20 @@
               <span className="dc-tag" style={{ background: 'var(--accent)' }}>D-{app.dNumber}</span>
               <span style={{ color: 'var(--muted)', fontSize: 13 }}>{app.targetDate}</span><StTag s={app.status} />
               <span style={{ flex: 1 }} />
-              {app.status === '승인' && <button className="dc-btn primary" style={{ padding: '8px 14px' }} onClick={() => exportA4(cardProps(app), fileFor(app))}>A4 PNG 출력</button>}
+              {app.status === '승인' && <button className="dc-btn primary" style={{ padding: '8px 14px' }} onClick={() => exportA4(cardProps(app), fileFor(app))}>{L('A4 PNG 출력', 'Export A4 PNG')}</button>}
             </div>
-            {app.rejectReason && <p className="dc-note" style={{ color: 'var(--danger)', marginBottom: 12 }}><b>사유:</b> {app.rejectReason}</p>}
+            {app.rejectReason && <p className="dc-note" style={{ color: 'var(--danger)', marginBottom: 12 }}><b>{L('사유:', 'Reason:')}</b> {app.rejectReason}</p>}
             <ScaledCard dNumber={app.dNumber} isDay={false} teaser={(form || app).teaser} bgColor={(form || app).bgColor} inkColor={(form || app).inkColor} sceneIdx={(form || app).sceneIdx} />
-            {app.status === '승인' && <p className="dc-note" style={{ marginTop: 8, color: 'var(--accent)' }}>✓ 승인됐어요! <b>사진 올리기</b> 탭에서 카드를 A4로 출력하고, 촬영한 사진을 올려주세요.</p>}
+            {app.status === '승인' && <p className="dc-note" style={{ marginTop: 8, color: 'var(--accent)' }}>{L('✓ 승인됐어요! ', '✓ Approved! ')}<b>{L('사진 올리기', 'Upload photos')}</b>{L(' 탭에서 카드를 A4로 출력하고, 촬영한 사진을 올려주세요.', ' tab: export the card as A4, then upload your photos.')}</p>}
 
             {app.editable && (
               <div style={{ marginTop: 16 }}>
-                <p className="dc-note" style={{ marginBottom: 10 }}>검토중입니다 — 카드 내용을 수정할 수 있습니다. (이름·전화는 변경 불가)</p>
-                <div className="dc-field"><label>소속대</label><input className="dc-input" value={form.org} onChange={(e) => setF('org', e.target.value)} /></div>
+                <p className="dc-note" style={{ marginBottom: 10 }}>{L('검토중입니다 — 카드 내용을 수정할 수 있습니다. (이름·전화는 변경 불가)', 'In review — you can edit the card content. (Name and phone cannot be changed.)')}</p>
+                <div className="dc-field"><label>{L('소속대', 'Unit / group')}</label><input className="dc-input" value={form.org} onChange={(e) => setF('org', e.target.value)} /></div>
                 <Customizer form={form} set={setF} />
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <button className="dc-btn primary" disabled={busy} onClick={save}>수정 저장</button>
-                  <button className="dc-btn danger" disabled={busy} onClick={withdraw}>신청 철회</button>
+                  <button className="dc-btn primary" disabled={busy} onClick={save}>{L('수정 저장', 'Save changes')}</button>
+                  <button className="dc-btn danger" disabled={busy} onClick={withdraw}>{L('신청 철회', 'Withdraw')}</button>
                 </div>
               </div>
             )}
@@ -391,17 +410,17 @@
       const { ok, j } = await jsend('POST', { action: 'lookup', applicationNo: no.trim(), password: pw });
       setBusy(false);
       if (ok && j.ok) setApp(j.application);
-      else { setApp(null); setMsg(j.error === 'rate_limited' ? '시도가 너무 많습니다. 잠시 후 다시 시도하세요.' : '이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.'); }
+      else { setApp(null); setMsg(j.error === 'rate_limited' ? L('시도가 너무 많습니다. 잠시 후 다시 시도하세요.', 'Too many attempts. Please try again shortly.') : L('이름 또는 비밀번호(전화 끝 4자리)가 올바르지 않습니다.', 'Name or password (last 4 digits of mobile) is incorrect.')); }
     }
     function reset() { setApp(null); setNo(''); setPw(''); setMsg(''); }
     return (
       <div className="dc-card">
         {!app ? (
           <div>
-            <p className="dc-note" style={{ marginBottom: 12 }}><b>승인된 신청</b>만 사진을 올릴 수 있어요. 신청할 때 쓴 <b>이름</b>과 <b>휴대전화 끝 4자리</b>로 로그인하세요.</p>
-            <div className="dc-field"><label>신청자 이름</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder="홍길동" /></div>
-            <div className="dc-field"><label>휴대전화 끝 4자리 (비밀번호)</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" onKeyDown={(e) => { if (e.key === 'Enter') login(); }} /></div>
-            <button className="dc-btn primary" style={{ width: '100%' }} disabled={busy || !no.trim() || pw.length < 4} onClick={login}>로그인</button>
+            <p className="dc-note" style={{ marginBottom: 12 }}><b>{L('승인된 신청', 'Only approved applications')}</b>{L('만 사진을 올릴 수 있어요. 신청할 때 쓴 ', ' can upload photos. Sign in with the ')}<b>{L('이름', 'name')}</b>{L('과 ', ' and ')}<b>{L('휴대전화 끝 4자리', 'last 4 digits of the mobile')}</b>{L('로 로그인하세요.', ' you used when applying.')}</p>
+            <div className="dc-field"><label>{L('신청자 이름', 'Applicant name')}</label><input className="dc-input" value={no} onChange={(e) => setNo(e.target.value)} placeholder={L('홍길동', 'e.g. Jane Smith')} /></div>
+            <div className="dc-field"><label>{L('휴대전화 끝 4자리 (비밀번호)', 'Last 4 digits of mobile (password)')}</label><input className="dc-input" inputMode="numeric" maxLength={4} value={pw} onChange={(e) => setPw(e.target.value.replace(/\D/g, ''))} placeholder="1234" onKeyDown={(e) => { if (e.key === 'Enter') login(); }} /></div>
+            <button className="dc-btn primary" style={{ width: '100%' }} disabled={busy || !no.trim() || pw.length < 4} onClick={login}>{L('로그인', 'Sign in')}</button>
             {msg && <div className="dc-err">{msg}</div>}
           </div>
         ) : app.status === '승인' ? (
@@ -410,22 +429,22 @@
               <span className="dc-tag" style={{ background: 'var(--accent)' }}>D-{app.dNumber}</span>
               <span style={{ color: 'var(--muted)', fontSize: 13 }}>{app.targetDate}</span><StTag s={app.status} />
               <span style={{ flex: 1 }} />
-              <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={reset}>다른 신청</button>
+              <button className="dc-btn ghost" style={{ padding: '6px 10px' }} onClick={reset}>{L('다른 신청', 'Another application')}</button>
             </div>
             <ScaledCard dNumber={app.dNumber} isDay={false} teaser={app.teaser} bgColor={app.bgColor} inkColor={app.inkColor} sceneIdx={app.sceneIdx} />
-            <button className="dc-btn primary" style={{ width: '100%', marginTop: 10 }} onClick={() => exportA4(cardProps(app), fileFor(app))}>A4 출력</button>
-            <p className="dc-note" style={{ marginTop: 8 }}>위 <b>A4 출력</b>으로 카드를 인쇄해 현장에서 사진을 촬영한 뒤, 아래에 올려주세요!</p>
+            <button className="dc-btn primary" style={{ width: '100%', marginTop: 10 }} onClick={() => exportA4(cardProps(app), fileFor(app))}>{L('A4 출력', 'Export A4')}</button>
+            <p className="dc-note" style={{ marginTop: 8 }}>{L('위 ', 'Use ')}<b>{L('A4 출력', 'Export A4')}</b>{L('으로 카드를 인쇄해 현장에서 사진을 촬영한 뒤, 아래에 올려주세요!', ' above to print your card, take photos on site, then upload them below!')}</p>
             <PhotoUploader no={no.trim()} pw={pw} app={app} onUpdate={setApp} />
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <StTag s={app.status} />
             <p className="dc-note" style={{ marginTop: 10 }}>
-              {(app.status === '제출됨' || app.status === '수정요청') ? '아직 승인 전이에요. 홍보부에서 매일 오후 12시·오후 6시경 일괄 승인하며, 승인되면 이 화면에서 사진을 올릴 수 있어요.'
-                : app.status === '반려' ? ('반려된 신청입니다.' + (app.rejectReason ? (' 사유: ' + app.rejectReason) : ''))
-                  : '철회된 신청입니다.'}
+              {(app.status === '제출됨' || app.status === '수정요청') ? L('아직 승인 전이에요. 홍보부에서 매일 오후 12시·오후 6시경 일괄 승인하며, 승인되면 이 화면에서 사진을 올릴 수 있어요.', 'Not yet approved. The PR team approves in batches around 12:00 and 18:00 KST daily; once approved, you can upload photos here.')
+                : app.status === '반려' ? (L('반려된 신청입니다.', 'This application was rejected.') + (app.rejectReason ? (L(' 사유: ', ' Reason: ') + app.rejectReason) : ''))
+                  : L('철회된 신청입니다.', 'This application was withdrawn.')}
             </p>
-            <button className="dc-btn ghost" style={{ marginTop: 8 }} onClick={reset}>다시</button>
+            <button className="dc-btn ghost" style={{ marginTop: 8 }} onClick={reset}>{L('다시', 'Retry')}</button>
           </div>
         )}
       </div>
@@ -707,6 +726,8 @@
   function App() {
     const [view, setViewState] = useState(viewFromHash);
     const setView = useCallback((v) => { setViewState(v); try { location.hash = v === 'cal' ? '' : ('#/' + v); } catch (_) {} }, []);
+    const [lang, setLangState] = useState(LANG);
+    const setLang = useCallback((v) => { LANG = v; window.__dcLang = v; try { localStorage.setItem('dcount:lang', v); document.documentElement.lang = v; } catch (_) {} setLangState(v); }, []);
     const [slots, setSlots] = useState(null);
     const [today, setToday] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -728,27 +749,32 @@
     }, [view, load]);
     useEffect(() => { const onH = () => setViewState(viewFromHash()); window.addEventListener('hashchange', onH); return () => window.removeEventListener('hashchange', onH); }, []);
 
-    const tabs = [['cal', '디데이 달력'], ['lookup', '신청 조회'], ['photo', '사진 올리기']];
+    const tabs = [['cal', L('디데이 달력', 'D-day calendar')], ['lookup', L('신청 조회', 'Check application')], ['photo', L('사진 올리기', 'Upload photos')]];
+    const langBtn = (v, label) => <button onClick={() => setLang(v)} style={{ border: 'none', background: lang === v ? 'var(--accent)' : 'transparent', color: lang === v ? '#fff' : 'var(--muted)', font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', borderRadius: 'var(--pill)', padding: '5px 13px', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{label}</button>;
     return (
       <window.DCMasterCtx.Provider value={master}>
         <div className="dc-wrap">
-          <div className="syncbar"><span className="orgtag">제16회 한국잼버리 · 디데이 프로젝트</span><span style={{ flex: 1 }} /><button onClick={() => setView('admin')} style={{ border: 'none', background: 'none', color: 'var(--faint)', font: 'inherit', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}>관리자</button></div>
+          <div className="syncbar">
+            <span className="orgtag">{L('제16회 한국잼버리 · 디데이 프로젝트', '16th Korea National Jamboree · D-day Project')}</span><span style={{ flex: 1 }} />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: 2, background: 'var(--surface)', marginRight: 12 }} aria-label="Language">{langBtn('ko', '한국어')}{langBtn('en', 'EN')}</div>
+            <button onClick={() => setView('admin')} style={{ border: 'none', background: 'none', color: 'var(--faint)', font: 'inherit', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}>{L('관리자', 'Admin')}</button>
+          </div>
           <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 16px' }}>
-            <img src="/jamboree/assets/logo.png" width="68" height="68" alt="엠블럼" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
+            <img src="/jamboree/assets/logo.png" width="68" height="68" alt="emblem" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
             <div>
-              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>제16회 한국잼버리 기획조정본부 홍보부</p>
-              <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>디데이 프로젝트</h1>
-              <p className="dc-note" style={{ marginTop: 6 }}>스카우트 가족이 <b>함께 준비하는 잼버리</b> — 날짜를 골라 디데이 카드를 신청하고, 홍보부를 통해 신청이 정상 확인되면 <b>A4로 출력해 사진을 촬영</b>한 뒤 그 사진을 올려주세요!</p>
+              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>{L('제16회 한국잼버리 기획조정본부 홍보부', '16th Korea National Jamboree · PR Team')}</p>
+              <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>{L('디데이 프로젝트', 'D-day Project')}</h1>
+              <p className="dc-note" style={{ marginTop: 6 }}>{L('스카우트 가족이 ', 'The whole Scout family ')}<b>{L('함께 준비하는 잼버리', 'preparing the Jamboree together')}</b>{L(' — 날짜를 골라 디데이 카드를 신청하고, 홍보부를 통해 신청이 정상 확인되면 ', ' — pick a date to apply for a D-day card, and once the PR team confirms it, ')}<b>{L('A4로 출력해 사진을 촬영', 'print it on A4 and take a photo')}</b>{L('한 뒤 그 사진을 올려주세요!', ', then upload that photo!')}</p>
             </div>
           </header>
           <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', fontSize: 11.5, color: 'var(--muted)', flexWrap: 'wrap' }}>
-            {['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'].map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
+            {L(['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'], ['① Apply for a date', '② PR team approval', '③ Print A4 & photograph', '④ Upload photos']).map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
           </div>
           <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8, whiteSpace: 'pre-wrap' }}>
-            🛡 {(master && master.notice) || DEFAULT_NOTICE}
+            🛡 {(master && master.notice) || L(DEFAULT_NOTICE, 'Cards with profanity, commercial promotion or political content — anything against the spirit of the Jamboree — may be rejected. Approvals run in batches around 12:00 and 18:00 KST daily.')}
           </div>
           <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55 }}>
-            ⚡ 더 빠른 확정을 원하면 <b>한국스카우트연맹 <a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b> 으로 문의주세요. 빠르게 도와드릴게요.
+            {L('⚡ 더 빠른 확정을 원하면 ', '⚡ For faster confirmation, contact the ')}<b>{L('한국스카우트연맹 ', 'Korea Scout Association ')}<a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b>{L(' 으로 문의주세요. 빠르게 도와드릴게요.', '. We are happy to help.')}
           </div>
           <div className="dc-nav">{tabs.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>)}</div>
           <div style={{ marginTop: 16 }}>
