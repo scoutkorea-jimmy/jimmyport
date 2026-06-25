@@ -832,3 +832,7 @@ WOSM Region → 국가(NSO) → 단위대
 
 ### 16.40 v0.9.143 — 회원 유형 이름 수정(회원 일괄 이전)
 - 사용자: 기존 유형 이름도 수정 가능해야. 유형명을 **수정 가능한 입력칸**으로(칸 밖 클릭 시 적용). `PATCH action:'rename_type'{from,to}` → 유형 설정 키 변경 + 해당 유형 회원(`jpm:index`+`jpm:user`)의 `type` 일괄 이전. 클라 `renameType`(중복 이름 차단·완료 후 openMembers 새로고침). 기본 '일반' 강제 제거 → cleanTypes/로그인 폴백은 첫 유형 사용(빈 설정이면 기본 일반/홍보부 재시드). 검증: node --check + 부팅·함수·콘솔 에러 0.
+
+### 16.41 v0.9.144 — 홍보부 기사 ↔ 카드뉴스 제작기 연결 (+ 기사 수정 확인)
+- 기사 수정은 기존 구현(작성자/관리자 `canEditNews`+PUT `/api/jp-news`, 카드 '수정' 버튼). 유지.
+- **기사 → 카드뉴스 연결**: 기사 카드에 '카드뉴스 만들기' 버튼 → `localStorage['cc-import']={title,body,images,at}` 저장 후 `/krjam-cardnews` 새 탭. 제작기(`jamboree/app.jsx`)가 마운트 시 cc-import(30분 내) 감지 → 헤더 아래 '📰 기사 가져오기' 배너 → '현재 카드에 채우기'가 현재 카드 `fields`(첫 필드=제목·긴 def=본문)·`photos` 슬롯에 기사 내용/사진 주입 후 cc-import 제거. 검증: 배너 표시·채우기 시 제목 카드 반영·배너 닫힘·콘솔 에러 0.
