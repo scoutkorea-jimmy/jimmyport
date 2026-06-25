@@ -16,22 +16,20 @@ function Kicker({ children, c, style, ek }) {
 
 /* 카테고리 컬러칩 — 기본: 솔리드 키컬러(본문 우상단, 표지색과 매칭) / dot: 흰 알약+점(표지용) */
 const CHIP_LIGHT = ['#FFAE80', '#9FED8F', '#82E6DE', '#FF8DFF'];
+/* 카테고리 칩 — 통일된 형태: 흰 알약 + 점(카테고리색) + 텍스트.
+ * 세트 공통 오버라이드: chipBg(알약 배경)·chipInk(글씨)·chipText(내용). */
 function CategoryChip({ label, color, top, right, bottom, left, dot, ek }) {
-  if (dot) {
-    const ds = { fontSize: 26, fontWeight: 700, color: INK, letterSpacing: '.01em' };
-    return (
-      <span style={{ position: 'absolute', top, right, bottom, left, display: 'inline-flex', alignItems: 'center', gap: 11, background: '#fff', border: '1px solid rgba(0,0,0,.06)', borderRadius: 999, padding: '10px 22px 10px 14px', boxShadow: '0 3px 12px rgba(40,30,50,.12)' }}>
-        <span style={{ width: 18, height: 18, borderRadius: '50%', background: color }} />
-        {ek ? <Editable ekey={ek} flabel="카테고리" tag="span" className="hi" nowrap style={ds}>{label}</Editable>
-            : <span className="hi" style={ds}>{label}</span>}
-      </span>
-    );
-  }
-  const lightBg = CHIP_LIGHT.includes(color);
-  const st = { position: 'absolute', top, right, bottom, left, background: color, color: lightBg ? PAL.midnight : '#fff', borderRadius: 999, padding: '12px 26px', fontSize: 27, fontWeight: 700, letterSpacing: '.01em' };
-  return ek
-    ? <Editable ekey={ek} flabel="카테고리" tag="span" className="hi" nowrap style={st}>{label}</Editable>
-    : <span className="hi" style={st}>{label}</span>;
+  const tw = React.useContext(window.DDayTweakCtx) || {};
+  const gBg = tw.chipBg || '', gInk = tw.chipInk || '', gText = tw.chipText || '';
+  const ds = { fontSize: 26, fontWeight: 700, color: gInk || INK, letterSpacing: '.01em' };
+  return (
+    <span style={{ position: 'absolute', top, right, bottom, left, display: 'inline-flex', alignItems: 'center', gap: 11, background: gBg || '#fff', border: '1px solid rgba(0,0,0,.06)', borderRadius: 999, padding: '10px 22px 10px 14px', boxShadow: '0 3px 12px rgba(40,30,50,.12)' }}>
+      <span style={{ width: 18, height: 18, borderRadius: '50%', background: color, flex: '0 0 auto' }} />
+      {gText ? <span className="hi" style={ds}>{gText}</span>
+        : (ek ? <Editable ekey={ek} flabel="카테고리" tag="span" className="hi" nowrap style={ds}>{label}</Editable>
+             : <span className="hi" style={ds}>{label}</span>)}
+    </span>
+  );
 }
 
 /* 더블클릭 인라인 편집 + 우측 폼 자동등록 (둘 다 CCStore 텍스트로 공유)

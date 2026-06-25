@@ -97,8 +97,8 @@ function Card({ bg, color = '#fff', pad = 88, children, style }) {
         fontFamily: "var(--cc-main, 'Cafe24ProSlim'), 'Apple SD Gothic Neo', sans-serif",
         letterSpacing: 'var(--cc-track, normal)', ...style
       }}>
-        {/* 전체 여백: 콘텐츠만 안쪽으로 축소(배경색은 가장자리까지 유지) */}
-        <div style={{ position: 'absolute', inset: 0, padding: pad, boxSizing: 'border-box', transform: 'scale(var(--cc-content-scale, 1))', transformOrigin: 'center center' }}>
+        {/* 전체 여백: 콘텐츠만 안쪽으로 축소(배경색은 가장자리까지 유지) · --cc-textw 로 콘텐츠 영역 우측 확장 */}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 'calc(0px - var(--cc-textw, 0px))', padding: pad, boxSizing: 'border-box', transform: 'scale(var(--cc-content-scale, 1))', transformOrigin: 'center center' }}>
           {children}
         </div>
       </div>

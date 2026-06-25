@@ -249,6 +249,20 @@ function FieldInput({ field }) {
   );
 }
 
+/* 접이식 섹션 — 트윅 묶음을 접어 패널을 간결하게 */
+function Section({ title, children, open = false, accent }) {
+  const [o, setO] = useState(open);
+  return (
+    <div style={{ borderTop: '1px solid ' + UI.line }}>
+      <button type="button" onClick={() => setO((v) => !v)} style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', padding: '11px 0 9px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent ? UI.accent : UI.ink }}>{title}</span>
+        <span style={{ fontSize: 12, color: UI.muted, lineHeight: 1, transform: o ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }}>▾</span>
+      </button>
+      {o && <div style={{ paddingBottom: 10 }}>{children}</div>}
+    </div>
+  );
+}
+
 function Toolbar({ onPng, onStitch, onZip, onList, onNew, status, busy, zipCount }) {
   const btn = (extra) => ({ border: '1px solid transparent', borderRadius: 8, padding: '8px 13px', fontSize: 13, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? .55 : 1, fontFamily: 'inherit', whiteSpace: 'nowrap', ...extra });
   const ghost = { background: 'rgba(255,255,255,.12)', color: '#fff', borderColor: 'rgba(255,255,255,.22)' };
@@ -321,12 +335,13 @@ function App() {
     r.setProperty('--cc-logo-dx', (tweaks.logoDX || 0) + 'px');
     r.setProperty('--cc-logo-dy', (tweaks.logoDY || 0) + 'px');
     r.setProperty('--cc-content-scale', String(1 - (tweaks.pad || 0)));
+    r.setProperty('--cc-textw', (tweaks.textw || 0) + 'px');
     r.setProperty('--cc-wm-scale', String(tweaks.wmScale || 1));
     r.setProperty('--cc-wm-dx', (tweaks.wmDX || 0) + 'px');
     r.setProperty('--cc-wm-dy', (tweaks.wmDY || 0) + 'px');
     r.setProperty('--cc-wm-rot', (tweaks.wmRot || 0) + 'deg');
     r.setProperty('--cc-wm-opacity', String(tweaks.wmOpacity != null ? tweaks.wmOpacity : 1));
-  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad, tweaks.wmScale, tweaks.wmDX, tweaks.wmDY, tweaks.wmRot, tweaks.wmOpacity]);
+  }, [tweaks.ink, tweaks.fontMain, tweaks.fontHi, tweaks.fz, tweaks.track, tweaks.logoScale, tweaks.logoDX, tweaks.logoDY, tweaks.pad, tweaks.textw, tweaks.wmScale, tweaks.wmDX, tweaks.wmDY, tweaks.wmRot, tweaks.wmOpacity]);
 
   /* ── 덱: 카드뉴스 한 편 구성 (cc-prop:_deck — 서버 저장에 자동 포함) ── */
   const deck = store.getProp('_deck', 'cards', []);
@@ -798,8 +813,8 @@ function App() {
           )}
 
           {familyKey === 'dday' && (
-            <div style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid '+UI.line }}>
-              <span style={fieldLabel}>배경 오브제 (매듭 에셋)</span>
+            <Section title="D-피드 세부 (배경 매듭·D-숫자)">
+              <span style={fieldLabel}>배경 매듭(에셋)</span>
               <Slider label="크기" value={Math.round((tweaks.wmScale || 1) * 100) / 100} min={0.3} max={2.4} step={0.05} unit="×" onChange={(v) => setTweak('wmScale', v)} />
               <Slider label="좌우 위치" value={tweaks.wmDX} min={-800} max={800} step={10} unit="px" onChange={(v) => setTweak('wmDX', v)} />
               <Slider label="상하 위치" value={tweaks.wmDY} min={-800} max={800} step={10} unit="px" onChange={(v) => setTweak('wmDY', v)} />
@@ -808,7 +823,7 @@ function App() {
               <span style={{ ...fieldLabel, marginTop: 10 }}>D-숫자 줄 위치</span>
               <Slider label="1행 (D-) 좌우" value={tweaks.dx1} min={-300} max={300} step={5} unit="px" onChange={(v) => setTweak('dx1', v)} />
               <Slider label="2행 (숫자) 좌우" value={tweaks.dx2} min={-300} max={300} step={5} unit="px" onChange={(v) => setTweak('dx2', v)} />
-            </div>
+            </Section>
           )}
 
           {alignScope && (
@@ -848,16 +863,31 @@ function App() {
             </div>
           )}
 
-          {/* 본문 자동 푸터 (페이지번호 + 제목) — 전 카드 공통 */}
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid '+UI.line }}>
-            <div style={secLabel}>본문 자동 푸터 (페이지·제목)</div>
-            <Seg value={footerOn ? 'on' : 'off'} options={[['on', '켜기'], ['off', '끄기']]} onPick={(v) => setTweak('footer', v === 'on' ? 1 : 0)} />
-            <p style={{ fontSize: 12, color: UI.muted, margin: '8px 0 0', lineHeight: 1.5 }}>본문·소식 카드 하단에 <b>표지색 띠</b>로 행사명 + 페이지번호를 표시합니다. 표지·D-피드는 제외. 번호는 아래 <b>카드뉴스 구성(덱)</b> 순서로 매겨집니다.</p>
-          </div>
+          {/* ═══ 세트 공통 (모든 카드에 한 번에 적용) ═══ */}
+          <div style={{ ...secLabel, marginTop: 18, marginBottom: 2, color: UI.accent, borderTop: '2px solid '+UI.line, paddingTop: 14 }}>⚙ 세트 공통 · 모든 카드에 적용</div>
 
-          {/* 트윅 — 전 카드 공통 */}
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid '+UI.line }}>
-            <div style={secLabel}>트윅 (전체 카드 공통)</div>
+          <Section title="브랜드 정보 (행사명·날짜·장소)" open>
+            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>표지 푸터·하단 띠 등 <b>모든 카드에 한 번에</b> 반영됩니다.</p>
+            {BRAND_FIELDS.map((f) => (
+              <label key={f.k} style={{ display: 'block', marginBottom: 10 }}>
+                <span style={fieldLabel}>{f.label}</span>
+                <input value={brand[f.k] || ''} placeholder={f.ph} onChange={(e) => setBrand((b) => ({ ...b, [f.k]: e.target.value }))} style={inputStyle} />
+              </label>
+            ))}
+            <button onClick={() => setBrand(DEFAULT_BRAND)} style={{ marginTop: 2, border: '1px solid '+UI.line, background: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: UI.muted }}>기본값으로</button>
+          </Section>
+
+          <Section title="카테고리 칩 (배경·글씨·내용)">
+            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 8px', lineHeight: 1.5 }}>모든 카드 칩에 적용. 비우면 카드별 기본값.</p>
+            <span style={fieldLabel}>칩 내용 (공통)</span>
+            <input value={tweaks.chipText || ''} placeholder="비우면 카드별" onChange={(e) => setTweak('chipText', e.target.value)} style={inputStyle} />
+            <span style={{ ...fieldLabel, marginTop: 10 }}>칩 배경색</span>
+            <Swatches value={tweaks.chipBg || ''} onPick={(c) => setTweak('chipBg', c || '')} clearable />
+            <span style={{ ...fieldLabel, marginTop: 10 }}>칩 글씨색</span>
+            <Swatches value={tweaks.chipInk || ''} onPick={(c) => setTweak('chipInk', c || '')} clearable />
+          </Section>
+
+          <Section title="글꼴 · 글자색 · 본문 영역">
             <span style={fieldLabel}>본문 글자색</span>
             <div style={{ marginBottom: 10 }}><Swatches value={tweaks.ink} colors={INK_SWATCHES} onPick={(c) => setTweak('ink', c || TWEAK_DEFAULTS.ink)} /></div>
             <label style={{ display: 'block', marginBottom: 10 }}>
@@ -874,43 +904,35 @@ function App() {
             </label>
             <Slider label="내용 글자 크기" value={Math.round(tweaks.fz * 100) / 100} min={0.8} max={1.3} step={0.02} unit="×" onChange={(v) => setTweak('fz', v)} />
             <Slider label="자간" value={Math.round(tweaks.track * 1000) / 1000} min={-0.03} max={0.2} step={0.005} unit="em" onChange={(v) => setTweak('track', v)} />
+            <Slider label="본문 영역 넓힘 (우측)" value={tweaks.textw || 0} min={0} max={90} step={5} unit="px" onChange={(v) => setTweak('textw', v)} />
             <Slider label="전체 여백 (배경색 유지)" value={Math.round((tweaks.pad || 0) * 100)} min={0} max={16} step={1} unit="%" onChange={(v) => setTweak('pad', v / 100)} />
-            <details>
-              <summary style={{ ...fieldLabel, cursor: 'pointer', marginBottom: 8 }}>D-day 여백·크기 조정</summary>
-              <Slider label="상단 여백" value={tweaks.topAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('topAdj', v)} />
-              <Slider label="하단 여백" value={tweaks.botAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('botAdj', v)} />
-              <Slider label="숫자↔티저 간격" value={tweaks.gapAdj} min={-40} max={160} unit="px" onChange={(v) => setTweak('gapAdj', v)} />
-              <Slider label="줄 간격 (D-↔숫자)" value={tweaks.lineAdj} min={-60} max={120} unit="px" onChange={(v) => setTweak('lineAdj', v)} />
-              <Slider label="숫자 크기" value={tweaks.numScale} min={0.7} max={1.2} step={0.02} onChange={(v) => setTweak('numScale', v)} />
-            </details>
-          </div>
+          </Section>
 
-          {/* 브랜드 + 엠블럼 */}
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid '+UI.line }}>
-            <div style={secLabel}>공통 브랜드 정보</div>
-            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 12px', lineHeight: 1.5 }}>표지 푸터·하단 띠 등 모든 카드에 반영됩니다.</p>
-            {BRAND_FIELDS.map((f) => (
-              <label key={f.k} style={{ display: 'block', marginBottom: 10 }}>
-                <span style={fieldLabel}>{f.label}</span>
-                <input value={brand[f.k] || ''} placeholder={f.ph} onChange={(e) => setBrand((b) => ({ ...b, [f.k]: e.target.value }))} style={inputStyle} />
-              </label>
-            ))}
-            <button onClick={() => setBrand(DEFAULT_BRAND)} style={{ marginTop: 2, border: '1px solid '+UI.line, background: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: UI.muted }}>기본값으로</button>
-            <div style={{ marginTop: 16 }}>
-              <div style={secLabel}>엠블럼</div>
-              <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>저장된 엠블럼에서 고르거나 직접 업로드하세요. 선택한 엠블럼은 <b>D-피드 배경 워터마크</b>에도 반영됩니다.</p>
-              <span style={fieldLabel}>컬러 엠블럼 — 밝은 배경용</span>
-              <EmblemPresetRow slot="logo" />
-              <PhotoRow slot="logo" label="직접 업로드 (PNG 권장)" png />
-              <span style={{ ...fieldLabel, marginTop: 10 }}>흰색 엠블럼 — 어두운 배경용</span>
-              <EmblemPresetRow slot="logo-white" />
-              <PhotoRow slot="logo-white" label="직접 업로드 (PNG 권장)" png />
-              <p style={{ fontSize: 12, color: UI.muted, margin: '8px 0 10px', lineHeight: 1.5 }}>카드 배경이 어두우면 흰색 엠블럼이 자동으로 사용됩니다.</p>
-              <Slider label="엠블럼 크기" value={Math.round(tweaks.logoScale * 100) / 100} min={0.6} max={1.6} step={0.02} unit="×" onChange={(v) => setTweak('logoScale', v)} />
-              <Slider label="엠블럼 좌우 위치" value={tweaks.logoDX} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDX', v)} />
-              <Slider label="엠블럼 상하 위치" value={tweaks.logoDY} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDY', v)} />
-            </div>
-          </div>
+          <Section title="자동 푸터 (페이지·제목)">
+            <Seg value={footerOn ? 'on' : 'off'} options={[['on', '켜기'], ['off', '끄기']]} onPick={(v) => setTweak('footer', v === 'on' ? 1 : 0)} />
+            <p style={{ fontSize: 12, color: UI.muted, margin: '8px 0 0', lineHeight: 1.5 }}>본문·소식 카드 하단에 <b>표지색 띠</b>로 행사명 + 페이지번호를 표시합니다. 표지·D-피드는 제외.</p>
+          </Section>
+
+          <Section title="D-day 여백·크기 조정">
+            <Slider label="상단 여백" value={tweaks.topAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('topAdj', v)} />
+            <Slider label="하단 여백" value={tweaks.botAdj} min={-100} max={200} unit="px" onChange={(v) => setTweak('botAdj', v)} />
+            <Slider label="숫자↔티저 간격" value={tweaks.gapAdj} min={-40} max={160} unit="px" onChange={(v) => setTweak('gapAdj', v)} />
+            <Slider label="줄 간격 (D-↔숫자)" value={tweaks.lineAdj} min={-60} max={120} unit="px" onChange={(v) => setTweak('lineAdj', v)} />
+            <Slider label="숫자 크기" value={tweaks.numScale} min={0.7} max={1.2} step={0.02} onChange={(v) => setTweak('numScale', v)} />
+          </Section>
+
+          <Section title="엠블럼 (로고)">
+            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>저장된 엠블럼에서 고르거나 직접 업로드. 선택한 엠블럼은 <b>D-피드 워터마크</b>에도 반영됩니다.</p>
+            <span style={fieldLabel}>컬러 엠블럼 — 밝은 배경용</span>
+            <EmblemPresetRow slot="logo" />
+            <PhotoRow slot="logo" label="직접 업로드 (PNG 권장)" png />
+            <span style={{ ...fieldLabel, marginTop: 10 }}>흰색 엠블럼 — 어두운 배경용</span>
+            <EmblemPresetRow slot="logo-white" />
+            <PhotoRow slot="logo-white" label="직접 업로드 (PNG 권장)" png />
+            <Slider label="엠블럼 크기" value={Math.round(tweaks.logoScale * 100) / 100} min={0.6} max={1.6} step={0.02} unit="×" onChange={(v) => setTweak('logoScale', v)} />
+            <Slider label="엠블럼 좌우 위치" value={tweaks.logoDX} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDX', v)} />
+            <Slider label="엠블럼 상하 위치" value={tweaks.logoDY} min={-200} max={200} step={4} unit="px" onChange={(v) => setTweak('logoDY', v)} />
+          </Section>
         </aside>
       </div>
 
