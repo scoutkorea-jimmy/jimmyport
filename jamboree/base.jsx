@@ -148,6 +148,10 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
   const [live, setLive] = React.useState(null);
   const ref = React.useRef(null);
   const img = slot ? store.getImage(sslot) : null;
+  // 프레임(영역) 트랜스폼: 크기(area)·위치(fx,fy) — 틀 안 사진 확대/이동(dx,dy,sc)과 별개
+  const fxf = slot ? store.getProps('imgxf-' + sslot) : {};
+  const frameArea = fxf.area != null ? +fxf.area : 1;
+  const frameTf = [(style && style.transform) || '', (frameArea !== 1 || fxf.fx || fxf.fy) ? `translate(${fxf.fx || 0}px, ${fxf.fy || 0}px) scale(${frameArea})` : ''].filter(Boolean).join(' ') || undefined;
   if (img) {
     // 사진은 프레임(overflow:hidden) 안에서 확대(sc)·이동(dx,dy) — objectFit:cover 자동 크롭을 직접 조절.
     const saved = store.getProps('imgxf-' + sslot);
@@ -171,7 +175,7 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
     };
     return (
       <div ref={ref} onDoubleClick={(e) => { e.stopPropagation(); setEditing((v) => !v); }} onPointerDown={(e) => startDrag(e, 'move')}
-        style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style,
+        style={{ position: 'relative', borderRadius: radius, overflow: 'hidden', ...style, transform: frameTf,
           cursor: editing ? 'move' : 'default', outline: editing ? '3px solid #6336B5' : 'none', outlineOffset: -1, zIndex: editing ? 6 : (style && style.zIndex) }}>
         <img src={img} alt="" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', transform: `translate(${xf.dx}px, ${xf.dy}px) scale(${xf.sc})`, transformOrigin: 'center' }} />
         {editing && <div onPointerDown={(e) => startDrag(e, 'resize')} title="사진 확대"
@@ -191,7 +195,7 @@ function Placeholder({ label = '현장 사진', tone = 'light', radius = 0, slot
     <div ref={ref} style={{
       position: 'relative', borderRadius: radius, overflow: 'hidden',
       background: `repeating-linear-gradient(45deg, ${a} 0 16px, ${b} 16px 32px)`,
-      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style
+      border: `2px dashed ${brd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style, transform: frameTf
     }}>
       {label ? <span style={{ fontFamily: 'ui-monospace,Menlo,monospace', fontSize: 22, letterSpacing: '.05em', color: ink, textTransform: 'uppercase' }}>◳ {label}</span> : null}
     </div>

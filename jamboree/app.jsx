@@ -185,11 +185,18 @@ function PhotoRow({ slot, label, png }) {
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
     </div>
-    <div style={{ marginTop: 4, opacity: cur ? 1 : .5 }}>
-      <Slider label="사진 확대(줌)" value={ax.sc != null ? ax.sc : 1} min={1} max={5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
-      <Slider label="사진 좌우" value={ax.dx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
-      <Slider label="사진 상하" value={ax.dy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
-      {!cur && <div style={{ fontSize: 11, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·이동이 적용돼요.</div>}
+    <div style={{ marginTop: 5 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '2px 0' }}>영역(틀) 크기·위치</div>
+      <Slider label="영역 크기" value={ax.area != null ? ax.area : 1} min={0.3} max={2.5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'area', v)} />
+      <Slider label="영역 좌우" value={ax.fx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'fx', v)} />
+      <Slider label="영역 상하" value={ax.fy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'fy', v)} />
+      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '6px 0 2px' }}>사진(틀 안) 확대·이동</div>
+      <div style={{ opacity: cur ? 1 : .5 }}>
+        <Slider label="사진 확대(줌)" value={ax.sc != null ? ax.sc : 1} min={1} max={5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
+        <Slider label="사진 좌우" value={ax.dx || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dx', v)} />
+        <Slider label="사진 상하" value={ax.dy || 0} min={-600} max={600} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'dy', v)} />
+        {!cur && <div style={{ fontSize: 11, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·이동이 적용돼요.</div>}
+      </div>
     </div>
     </div>
   );
