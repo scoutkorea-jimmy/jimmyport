@@ -7,25 +7,31 @@ window.DDayTweakCtx = React.createContext({});
 /* 공통 브랜드 내용 공유 (행사명·날짜·장소·주최) */
 window.GContentCtx = React.createContext({ brand: '제16회 한국잼버리', dateRange: '2026. 8. 5 – 8. 9', place: '강원 세계잼버리수련장', org: '한국스카우트연맹', openLine: '2026. 8. 5 개영' });
 
-function Kicker({ children, c, style }) {
-  return <div className="hi" style={{ fontWeight: 500, fontSize: 27, letterSpacing: '.14em', color: c, textTransform: 'uppercase', ...style }}>{children}</div>;
+function Kicker({ children, c, style, ek }) {
+  const st = { fontWeight: 500, fontSize: 27, letterSpacing: '.14em', color: c, textTransform: 'uppercase', ...style };
+  return ek
+    ? <Editable ekey={ek} flabel="상단 라벨(키커)" tag="div" className="hi" nowrap style={st}>{children}</Editable>
+    : <div className="hi" style={st}>{children}</div>;
 }
 
 /* 카테고리 컬러칩 — 기본: 솔리드 키컬러(본문 우상단, 표지색과 매칭) / dot: 흰 알약+점(표지용) */
 const CHIP_LIGHT = ['#FFAE80', '#9FED8F', '#82E6DE', '#FF8DFF'];
-function CategoryChip({ label, color, top, right, bottom, left, dot }) {
+function CategoryChip({ label, color, top, right, bottom, left, dot, ek }) {
   if (dot) {
+    const ds = { fontSize: 26, fontWeight: 700, color: INK, letterSpacing: '.01em' };
     return (
       <span style={{ position: 'absolute', top, right, bottom, left, display: 'inline-flex', alignItems: 'center', gap: 11, background: '#fff', border: '1px solid rgba(0,0,0,.06)', borderRadius: 999, padding: '10px 22px 10px 14px', boxShadow: '0 3px 12px rgba(40,30,50,.12)' }}>
         <span style={{ width: 18, height: 18, borderRadius: '50%', background: color }} />
-        <span className="hi" style={{ fontSize: 26, fontWeight: 700, color: INK, letterSpacing: '.01em' }}>{label}</span>
+        {ek ? <Editable ekey={ek} flabel="카테고리" tag="span" className="hi" nowrap style={ds}>{label}</Editable>
+            : <span className="hi" style={ds}>{label}</span>}
       </span>
     );
   }
   const lightBg = CHIP_LIGHT.includes(color);
-  return (
-    <span className="hi" style={{ position: 'absolute', top, right, bottom, left, background: color, color: lightBg ? PAL.midnight : '#fff', borderRadius: 999, padding: '12px 26px', fontSize: 27, fontWeight: 700, letterSpacing: '.01em' }}>{label}</span>
-  );
+  const st = { position: 'absolute', top, right, bottom, left, background: color, color: lightBg ? PAL.midnight : '#fff', borderRadius: 999, padding: '12px 26px', fontSize: 27, fontWeight: 700, letterSpacing: '.01em' };
+  return ek
+    ? <Editable ekey={ek} flabel="카테고리" tag="span" className="hi" nowrap style={st}>{label}</Editable>
+    : <span className="hi" style={st}>{label}</span>;
 }
 
 /* 더블클릭 인라인 편집 + 우측 폼 자동등록 (둘 다 CCStore 텍스트로 공유)
