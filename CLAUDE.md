@@ -829,3 +829,6 @@ WOSM Region → 국가(NSO) → 단위대
 - **개인 비밀번호 변경**: POST `action:'change_password'`(memberOrAdmin로 본인 세션 인증→현재 비번 검증→새 비번). 헤더 '비밀번호 변경' 버튼(비관리자 노출)→prompt 흐름.
 - **관리자 15분 유휴 자동 로그아웃**: `resetAdminIdle`(pointer/key/wheel/touch/input/change 활동마다 리셋)·`startIdleWatch`(init)·onAuthed에서 시작. admin일 때만.
 - 검증: `node --check`(app·api) + 헤드리스(부팅·게이트·changepw 버튼·유휴/비번 함수·콘솔 에러 0) + API no-auth 401. ⚠️ 유형 추가·탭 지정·접근 차단·15분 유휴 실흐름은 관리자 TOTP+회원계정 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
+
+### 16.40 v0.9.143 — 회원 유형 이름 수정(회원 일괄 이전)
+- 사용자: 기존 유형 이름도 수정 가능해야. 유형명을 **수정 가능한 입력칸**으로(칸 밖 클릭 시 적용). `PATCH action:'rename_type'{from,to}` → 유형 설정 키 변경 + 해당 유형 회원(`jpm:index`+`jpm:user`)의 `type` 일괄 이전. 클라 `renameType`(중복 이름 차단·완료 후 openMembers 새로고침). 기본 '일반' 강제 제거 → cleanTypes/로그인 폴백은 첫 유형 사용(빈 설정이면 기본 일반/홍보부 재시드). 검증: node --check + 부팅·함수·콘솔 에러 0.
