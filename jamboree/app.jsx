@@ -166,7 +166,19 @@ function PhotoRow({ slot, label, png }) {
   const cur = store.getImage(slot);
   const onFile = async (e) => {
     const f = e.target.files && e.target.files[0];
-    if (f) { try { store.setImage(slot, await imageFileToDataUrl(f, png ? { mime: 'image/png', maxDim: 1024 } : {})); } catch (_) {} }
+    if (f) {
+      try {
+        const dataUrl = await imageFileToDataUrl(f, png ? { mime: 'image/png', maxDim: 1024 } : {});
+        let url = dataUrl;
+        try {   // 사진을 서버(/api/image)에 저장 → URL만 보관(상태 경량 + 어디서나 로드). 실패 시 dataURL 폴백.
+          const blob = await (await fetch(dataUrl)).blob();
+          const r = await fetch('/api/image', { method: 'POST', headers: { 'content-type': blob.type || 'image/jpeg' }, body: blob });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok && d && d.url) url = d.url;
+        } catch (_) {}
+        store.setImage(slot, url);
+      } catch (_) {}
+    }
     e.target.value = '';
   };
   const ax = store.getProps('imgxf-' + slot);
@@ -297,17 +309,16 @@ function App() {
   const [author, setAuthorState] = useState(() => { try { return localStorage.getItem(AUTHOR_KEY) || ''; } catch (_) { return ''; } });
   const setAuthor = useCallback((v) => { setAuthorState(v); try { if (v) localStorage.setItem(AUTHOR_KEY, v); else localStorage.removeItem(AUTHOR_KEY); } catch (_) {} }, []);
 
-  /* ── 서버 백업(선택): 관리자 인증앱(TOTP) 6자리 코드로 활성. 기본 저장은 로컬(브라우저) ── */
-  const SESSION_KEY = 'jamboree:session';
-  const readSession = () => { try { const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); return (s && s.token && s.exp > Date.now()) ? s : null; } catch (_) { return null; } };
-  const [session, setSessionState] = useState(readSession);
-  const setSession = useCallback((s) => { setSessionState(s); try { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); } catch (_) {} }, []);
-  const serverOpen = !!session;
+  /* ── 서버 백업(선택): 공유 비밀번호로 저장/불러오기. 비번을 알면 다른 기기·다른 곳에서도 같은 카드뉴스 접근 ── */
+  const PASS_KEY = 'jamboree:pass';
+  const [serverPass, setServerPassState] = useState(() => { try { return localStorage.getItem(PASS_KEY) || ''; } catch (_) { return ''; } });
+  const setServerPass = useCallback((p) => { setServerPassState(p); try { if (p) localStorage.setItem(PASS_KEY, p); else localStorage.removeItem(PASS_KEY); } catch (_) {} }, []);
+  const serverOpen = !!serverPass;
   const [serverCode, setServerCode] = useState('');
   const [serverItems, setServerItems] = useState(null);
   const [serverMsg, setServerMsg] = useState('');
-  const authHeaders = useCallback((extra) => Object.assign({}, extra || {}, session ? { Authorization: 'Bearer ' + session.token } : {}), [session]);
-  const onAuthFail = useCallback(() => { setSession(null); setServerItems(null); setServerMsg('세션이 만료되었습니다. 인증 코드를 다시 입력하세요.'); }, [setSession]);
+  const authHeaders = useCallback((extra) => Object.assign({}, extra || {}, serverPass ? { 'X-CC-Pass': serverPass } : {}), [serverPass]);
+  const onAuthFail = useCallback(() => { setServerPass(''); setServerItems(null); setServerMsg('비밀번호가 올바르지 않습니다. 다시 입력하세요.'); }, [setServerPass]);
   const serverRefresh = useCallback(async () => {
     try {
       const r = await fetch('/api/jamboree?list=1', { headers: authHeaders() });
@@ -512,17 +523,18 @@ function App() {
 
   /* ── 서버 백업 액션 (관리자 인증앱 6자리 코드로 잠금 해제 후) ── */
   const unlockServer = useCallback(async () => {
-    const code = serverCode.replace(/\D/g, '');
-    if (code.length !== 6) { setServerMsg('인증앱 6자리 코드를 입력하세요'); return; }
+    const pass = serverCode.trim();
+    if (!pass) { setServerMsg('비밀번호를 입력하세요'); return; }
     setServerMsg('확인 중…');
     try {
-      const r = await fetch('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
+      const r = await fetch('/api/jamboree?list=1', { headers: { 'X-CC-Pass': pass } });
+      if (r.status === 401) { setServerMsg('비밀번호가 올바르지 않습니다'); return; }
+      if (!r.ok) { setServerMsg('서버 오류 (' + r.status + ')'); return; }
       const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d.ok || !d.token) { setServerMsg(r.status === 429 ? '시도가 너무 많습니다. 잠시 후 다시 시도하세요.' : '인증 코드가 올바르지 않습니다'); return; }
-      setSession({ token: d.token, exp: d.exp || (Date.now() + 12 * 3600 * 1000) });
-      setServerCode(''); setServerMsg(''); setServerItems(null);   // serverOpen→true 이펙트가 목록 새로고침
+      setServerPass(pass); setServerCode(''); setServerMsg('');
+      setServerItems(Array.isArray(d.items) ? d.items : []);
     } catch (_) { setServerMsg('네트워크 오류'); }
-  }, [serverCode, setSession]);
+  }, [serverCode, setServerPass]);
   const serverSave = useCallback(async () => {
     setServerMsg('서버 저장 중…');
     try {
@@ -1020,17 +1032,17 @@ function App() {
                 ))}
               </div>
 
-              {/* 서버 백업 (선택 · 관리자 인증앱 코드) */}
+              {/* 서버 저장 (공유 비밀번호) */}
               <div style={{ padding: '14px 20px', borderTop: '1px solid '+UI.line, background: UI.surface2 }}>
-                <div style={{ ...secLabel, marginBottom: 8 }}>서버 백업 (선택 · 관리자 인증 필요)</div>
+                <div style={{ ...secLabel, marginBottom: 8 }}>서버 저장 · 공유 (비밀번호)</div>
                 {!serverOpen ? (
                   <div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={serverCode} placeholder="인증앱 6자리 코드" onChange={(e) => setServerCode(e.target.value.replace(/\D/g, ''))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') unlockServer(); }} style={{ ...inputStyle, flex: 1, letterSpacing: '0.25em' }} />
-                      <button onClick={unlockServer} style={{ flex: '0 0 auto', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>잠금 해제</button>
+                      <input type="password" autoComplete="current-password" value={serverCode} placeholder="비밀번호" onChange={(e) => setServerCode(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') unlockServer(); }} style={{ ...inputStyle, flex: 1 }} />
+                      <button onClick={unlockServer} style={{ flex: '0 0 auto', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>열기</button>
                     </div>
-                    <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. 다른 기기와 공유하려면 관리자 인증앱(Authenticator)의 6자리 코드로 서버 백업을 켜세요.</p>
+                    <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. <b>비밀번호</b>를 입력하면 서버에 저장하고, 같은 비밀번호로 <b>다른 기기·다른 곳에서도</b> 불러올 수 있어요. (사진도 서버에 함께 저장됩니다.)</p>
                   </div>
                 ) : (
                   <div>
