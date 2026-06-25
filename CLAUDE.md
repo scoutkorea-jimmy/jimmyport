@@ -774,3 +774,10 @@ WOSM Region → 국가(NSO) → 단위대
 - **에이브로우/헤드라인 한 줄**(`lib.jsx` Editable `nowrap` 옵션 → `whiteSpace:pre`): Enter 없으면 자동 줄바꿈 안 함(한 줄), Enter만 줄바꿈. cover 에이브로우·제목 1·2행에 적용. 검증: 긴 에이브로우 clientH 33px(1줄)·whiteSpace pre.
 - **이미지 영역 크기/위치**(`base.jsx` Placeholder + `app.jsx` PhotoRow): imgxf 트랜스폼을 **빈 플레이스홀더에도** 적용 + PhotoRow에 '영역 크기/좌우/상하' 슬라이더. (더블클릭 드래그는 사진 업로드 후, 슬라이더는 빈 영역 포함 항상.)
 - **모든 텍스트 더블클릭 인라인 편집**: Editable 인라인 편집은 원래 작동(제목·본문·에이브로우 — 헤드리스로 contentEditable 확인). 추가로 **Kicker·CategoryChip에 `ek` 옵션** 추가 → Editable 렌더(더블클릭+우측 패널 자동 필드). THead(대부분 콘텐츠 카드 공통) + 직접 사용처(04·05·06·08·09 kicker/카테고리) + 03 인용출처 + 05 캡션부제 + 11·12 그리드 라벨 배선. cover 카테고리는 기존 중첩 Editable 유지. 검증: 06 카드 'MEALS'·'식사' 더블클릭→contentEditable, 레이아웃 무결·콘솔 에러 0.
+
+### 18.17 v0.9.127 — 사진 프레임내 확대/이동(영역배율 폐기) + 텍스트별 색상 + 그리드 라벨 얇게
+- 사용자 정정: 이미지 '영역 배율(sc)'이 아니라 **사진 자체를 프레임 안에서 확대·이동**해 objectFit:cover 자동 크롭을 조절하고 싶음.
+- **사진 트랜스폼을 프레임→img로 이동**(`base.jsx` Placeholder): 프레임(슬롯 박스·overflow:hidden)은 고정, `<img>`에 `translate(dx,dy) scale(sc)` 적용 → 확대/이동으로 크롭 조절(왜곡 없음, cover 재적합). 더블클릭 드래그=이동·모서리=확대. PhotoRow 슬라이더 '사진 확대(줌, 1~5)/좌우/상하'(사진 있을 때만). 빈/ bare 플레이스홀더는 트랜스폼 없음. 검증: img `translate(80px,0) scale(2)`.
+- **텍스트별 글자색 오버라이드**(`lib.jsx` Editable + `app.jsx` FieldInput): `cc-prop:txtcol[ekey]`. Editable이 있으면 적용(프리뷰·PNG 공용). 패널 각 텍스트 필드에 컬러피커+✕(기본). 사진 위 텍스트 가독성(흰 글자 등). 검증: 라벨 color rgb(255,255,255).
+- **이미지 그리드(10) 라벨 얇게**: `className="hi"`(Aggravo 700) → weight 500 기본체(Cafe24) — 하단 '제16회 한국잼버리' 푸터와 동일 톤. 검증: weight 500·Cafe24ProSlim.
+- 검증: 헤드리스 — 10 카드 사진 확대/이동(img 트랜스폼)·라벨 흰색·얇은 폰트, 콘솔 에러 0 + 스크린샷.
