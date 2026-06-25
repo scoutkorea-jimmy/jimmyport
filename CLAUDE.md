@@ -781,3 +781,9 @@ WOSM Region → 국가(NSO) → 단위대
 - **텍스트별 글자색 오버라이드**(`lib.jsx` Editable + `app.jsx` FieldInput): `cc-prop:txtcol[ekey]`. Editable이 있으면 적용(프리뷰·PNG 공용). 패널 각 텍스트 필드에 컬러피커+✕(기본). 사진 위 텍스트 가독성(흰 글자 등). 검증: 라벨 color rgb(255,255,255).
 - **이미지 그리드(10) 라벨 얇게**: `className="hi"`(Aggravo 700) → weight 500 기본체(Cafe24) — 하단 '제16회 한국잼버리' 푸터와 동일 톤. 검증: weight 500·Cafe24ProSlim.
 - 검증: 헤드리스 — 10 카드 사진 확대/이동(img 트랜스폼)·라벨 흰색·얇은 폰트, 콘솔 에러 0 + 스크린샷.
+
+### 18.18 v0.9.128–0.9.130 — 사진 위 텍스트 그림자 + 디데이 승인문구 + 덱 카드 독립화
+- **v0.9.128 사진 위 텍스트 드롭섀도**: Editable `shadow` 옵션 + per-ekey `txtsh` 오버라이드(`cc-prop:txtsh`). 패널 각 텍스트 필드에 '그림자' 토글(글자색 옆). over-photo 라벨 기본 적용: 이미지 그리드(10)·풀이미지(04) 제목·빅넘버(08).
+- **v0.9.129 디데이 승인 문구**: krjam-dcount 제출완료 모달 '빠르게 1~6시간' → **'매일 오후 12시·오후 6시경 일괄 검토·승인'**.
+- **v0.9.130 덱 카드 독립 인스턴스**(사용자: 같은 폼 3장이 연동됨): 같은 템플릿을 덱에 여러 번 담으면 같은 편집키 공유 → 한 장 수정이 전부 반영되던 문제. **`window.CCScope` 컨텍스트**(인스턴스 접두사)를 모든 per-card 키에 prepend: Editable(텍스트·색·그림자)·Placeholder(이미지·imgxf)·SceneScatter(장면·오브제위치)·cover/dday(자체 prop scope). 덱 프리뷰/썸네일/export는 `CCScope.Provider value={it.k}`로 래핑, 에디터는 `instKey` 상태로 현재 인스턴스 추적(우측 패널 scope·cardKey·footer 인덱스 동기화). **'현재 카드 담기'=현재 카드 내용 스냅샷 복사 → 새 독립 인스턴스**(fields/photos/scenes/scope 키 복사). **1회 마이그레이션**: 키 없는 기존 덱 중복 엔트리는 독립화(첫 장은 내용 유지, 중복은 템플릿 기본값으로 리셋). Logo/tweaks/brand는 전역(스코프 제외). 검증: 로컬+라이브 — 같은 06 템플릿 2장이 서로 다른 키로 독립 렌더(INST_ONE/INST_TWO 각각), 콘솔 에러 0.
+  ⚠️ 기존에 만든 연동된 중복 카드: 첫 장만 내용 유지, 2번째부터는 기본값으로 초기화되니 다시 채워야 함.
