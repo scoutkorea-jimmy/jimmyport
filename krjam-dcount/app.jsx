@@ -263,7 +263,7 @@
               <div className="dc-row">
                 <div className="dc-field"><label>{L('신청자 이름 *', 'Applicant name *')}</label><input className="dc-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={L('홍길동', 'e.g. Jane Smith')} /></div>
                 <div className="dc-field"><label>{L('휴대전화 * (끝 4자리 = 비밀번호)', 'Mobile * (last 4 digits = password)')}</label><input className="dc-input" value={form.contact} onChange={(e) => set('contact', hyphenPhone(e.target.value))} placeholder="010-1234-5678" inputMode="numeric" maxLength={13} style={form.contact && !phoneOk(form.contact) ? { borderColor: 'var(--danger)' } : null} /></div>
-                <div className="dc-field"><label>{L('소속대', 'Unit / group')}</label><input className="dc-input" value={form.org} onChange={(e) => set('org', e.target.value)} /></div>
+                <div className="dc-field"><label>{L('소속대', 'Scout unit')}</label><input className="dc-input" value={form.org} onChange={(e) => set('org', e.target.value)} /></div>
               </div>
               <div style={{ borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
               <Customizer form={form} set={set} />
@@ -277,7 +277,7 @@
               ))}
               <div className="dc-err">{err}</div>
               <button className="dc-btn primary" disabled={!canSubmit} onClick={submit} style={{ width: '100%', marginTop: 8 }}>{busy ? L('신청 중…', 'Submitting…') : L('신청 제출 (날짜 선점)', 'Submit application (reserve date)')}</button>
-              <p className="dc-note" style={{ marginTop: 8 }}>{L('제출 즉시 이 날짜가 선점되고, ', 'This date is reserved as soon as you submit, and ')}<b>{L('신청자 이름·비밀번호(휴대전화 끝 4자리)', 'your name and password (last 4 digits of your mobile)')}</b>{L('로 조회·수정할 수 있어요. 홍보부에서 ', ' let you check and edit it. The PR team ')}<b>{L('매일 오후 12시·오후 6시경 일괄 승인', 'approves in batches around 12:00 and 18:00 KST daily')}</b>{L('하며, 승인되면 사진을 올릴 수 있어요.', '. Once approved, you can upload photos.')}</p>
+              <p className="dc-note" style={{ marginTop: 8 }}>{L('제출 즉시 이 날짜가 선점되고, ', 'This date is reserved as soon as you submit, and ')}<b>{L('신청자 이름·비밀번호(휴대전화 끝 4자리)', 'your name and password (last 4 digits of your mobile)')}</b>{L('로 조회·수정할 수 있어요. 홍보부에서 ', ' let you check and edit it. The Media team ')}<b>{L('매일 오후 12시·오후 6시경 일괄 승인', 'approves in batches around 12:00 and 18:00 KST daily')}</b>{L('하며, 승인되면 사진을 올릴 수 있어요.', '. Once approved, you can upload photos.')}</p>
             </div>
           </div>
         </div>
@@ -294,7 +294,7 @@
           <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{L('신청자 이름', 'Applicant name')}</div><div className="dc-mono">{result.applicationNo}</div></div>
           <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{L('비밀번호 (휴대전화 끝 4자리)', 'Password (last 4 digits of mobile)')}</div><div className="dc-mono">{result.password}</div></div>
           <div style={{ background: 'var(--accent-soft)', borderRadius: 'var(--r-2)', padding: '11px 13px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55, textAlign: 'left', margin: '0 0 14px' }}>
-            {L('홍보부에서 ', 'The PR team ')}<b>{L('매일 오후 12시·오후 6시경에 일괄 검토·승인', 'reviews and approves in batches around 12:00 and 18:00 KST daily')}</b>{L('합니다. 신청 시점에 따라 다음 승인 시간에 처리돼요. 급하면 ', '. Your application is handled at the next approval window. If urgent, contact the ', )}<b>{L('한국스카우트연맹 ', 'Korea Scout Association ')}<a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b>{L(' 으로 연락주세요.', '.')}
+            {L('홍보부에서 ', 'The Media team ')}<b>{L('매일 오후 12시·오후 6시경에 일괄 검토·승인', 'reviews and approves in batches around 12:00 and 18:00 KST daily')}</b>{L('합니다. 신청 시점에 따라 다음 승인 시간에 처리돼요. 급하면 ', '. Your application is handled at the next approval window. If urgent, contact the ', )}<b>{L('한국스카우트연맹 ', 'Korea Scout Association ')}<a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b>{L(' 으로 연락주세요.', '.')}
           </div>
           <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>{L('확인', 'OK')}</button>
         </div>
@@ -387,7 +387,7 @@
             {app.editable && (
               <div style={{ marginTop: 16 }}>
                 <p className="dc-note" style={{ marginBottom: 10 }}>{L('검토중입니다 — 카드 내용을 수정할 수 있습니다. (이름·전화는 변경 불가)', 'In review — you can edit the card content. (Name and phone cannot be changed.)')}</p>
-                <div className="dc-field"><label>{L('소속대', 'Unit / group')}</label><input className="dc-input" value={form.org} onChange={(e) => setF('org', e.target.value)} /></div>
+                <div className="dc-field"><label>{L('소속대', 'Scout unit')}</label><input className="dc-input" value={form.org} onChange={(e) => setF('org', e.target.value)} /></div>
                 <Customizer form={form} set={setF} />
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                   <button className="dc-btn primary" disabled={busy} onClick={save}>{L('수정 저장', 'Save changes')}</button>
@@ -440,7 +440,7 @@
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <StTag s={app.status} />
             <p className="dc-note" style={{ marginTop: 10 }}>
-              {(app.status === '제출됨' || app.status === '수정요청') ? L('아직 승인 전이에요. 홍보부에서 매일 오후 12시·오후 6시경 일괄 승인하며, 승인되면 이 화면에서 사진을 올릴 수 있어요.', 'Not yet approved. The PR team approves in batches around 12:00 and 18:00 KST daily; once approved, you can upload photos here.')
+              {(app.status === '제출됨' || app.status === '수정요청') ? L('아직 승인 전이에요. 홍보부에서 매일 오후 12시·오후 6시경 일괄 승인하며, 승인되면 이 화면에서 사진을 올릴 수 있어요.', 'Not yet approved. The Media team approves in batches around 12:00 and 18:00 KST daily; once approved, you can upload photos here.')
                 : app.status === '반려' ? (L('반려된 신청입니다.', 'This application was rejected.') + (app.rejectReason ? (L(' 사유: ', ' Reason: ') + app.rejectReason) : ''))
                   : L('철회된 신청입니다.', 'This application was withdrawn.')}
             </p>
@@ -762,13 +762,13 @@
           <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 16px' }}>
             <img src="/jamboree/assets/logo.png" width="68" height="68" alt="emblem" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
             <div>
-              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>{L('제16회 한국잼버리 기획조정본부 홍보부', '16th Korea National Jamboree · PR Team')}</p>
+              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>{L('제16회 한국잼버리 기획조정본부 홍보부', '16th Korea National Jamboree · Media Team')}</p>
               <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>{L('디데이 프로젝트', 'D-day Project')}</h1>
-              <p className="dc-note" style={{ marginTop: 6 }}>{L('스카우트 가족이 ', 'The whole Scout family ')}<b>{L('함께 준비하는 잼버리', 'preparing the Jamboree together')}</b>{L(' — 날짜를 골라 디데이 카드를 신청하고, 홍보부를 통해 신청이 정상 확인되면 ', ' — pick a date to apply for a D-day card, and once the PR team confirms it, ')}<b>{L('A4로 출력해 사진을 촬영', 'print it on A4 and take a photo')}</b>{L('한 뒤 그 사진을 올려주세요!', ', then upload that photo!')}</p>
+              <p className="dc-note" style={{ marginTop: 6 }}>{L('스카우트 가족이 ', 'The whole Scout family ')}<b>{L('함께 준비하는 잼버리', 'preparing the Jamboree together')}</b>{L(' — 날짜를 골라 디데이 카드를 신청하고, 홍보부를 통해 신청이 정상 확인되면 ', ' — pick a date to apply for a D-day card, and once the Media team confirms it, ')}<b>{L('A4로 출력해 사진을 촬영', 'print it on A4 and take a photo')}</b>{L('한 뒤 그 사진을 올려주세요!', ', then upload that photo!')}</p>
             </div>
           </header>
           <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', fontSize: 11.5, color: 'var(--muted)', flexWrap: 'wrap' }}>
-            {L(['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'], ['① Apply for a date', '② PR team approval', '③ Print A4 & photograph', '④ Upload photos']).map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
+            {L(['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'], ['① Apply for a date', '② Media team approval', '③ Print A4 & photograph', '④ Upload photos']).map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
           </div>
           <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8, whiteSpace: 'pre-wrap' }}>
             🛡 {(master && master.notice) || L(DEFAULT_NOTICE, 'Cards with profanity, commercial promotion or political content — anything against the spirit of the Jamboree — may be rejected. Approvals run in batches around 12:00 and 18:00 KST daily.')}

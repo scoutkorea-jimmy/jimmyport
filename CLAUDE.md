@@ -864,6 +864,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **번역 범위**: 공개 플로우 전부 — 헤더(행사명·제목·부제)·4단계 안내·안내문구 2종·탭·달력(요일/월/범례/슬롯상태)·신청 모달(필드·5개 동의문·버튼·에러)·결과 모달·조회/수정/철회·사진 업로드. **관리자(MasterStyle·반려/승인 다이얼로그·대시보드)는 내부용이라 한국어 유지**(의도). 장면 라벨(SCENE_LABELS)은 공유 모듈이라 한국어 유지(모티프 이름, 경미).
 - **카드 자체 텍스트**(dcard.jsx): `window.__dcLang==='en'`이면 키커 `COUNTDOWN · N days to go`(국문 `N일 전`)·당일 `At last!`·푸터 기본 `KOREA NATIONAL JAMBOREE`/`2026.8.5–8.9 · Gangwon, Korea`. 프리뷰·A4 출력 모두 선택 언어 반영.
 - 검증: 로컬 http + 헤드리스 Chrome — KO/EN 스크린샷(헤더·탭·범례·안내 정상) + **CDP 토글 클릭 라이브 전환**(디데이 프로젝트→D-day Project, `<html lang>`=en) + **콘솔 에러 0**. 잔여 한국어는 admin/데이터정의/주석뿐 확인.
+
+### 18.24 v0.9.148 — 영문 스카우트 용어 검토 반영
+- 사용자: "번역이 스카우트 용어로서 적절한지 재검토." 저장소 기존 영문 표기와 대조 후 3건 교정.
+- **소속대**: `Unit / group` → **`Scout unit`**(사이트 전역 단위대 표기 `Scout unit` 9곳과 통일, 신청·수정 폼 2곳).
+- **카드 푸터 장소**(dcard.jsx): `Gangwon, Korea` → **`Goseong, Gangwon`**(공식 엠블럼 영문 표기 고성·강원에 맞춤).
+- **홍보부**: `PR Team` → **`Media Team`**(AskUserQuestion으로 사용자 확정 — 초기 미디어부 취지·SNS/콘텐츠 제작 강조). 헤더 에이브로우·4단계·안내문·결과/대기 메시지 6곳 일괄(트레일링 스페이스 유지 확인).
+- 적절 판정·유지: Korea Scout Association(공식 NSO)·16th Korea National Jamboree·Scout family·Jamboree·상태 라벨(Submitted/Approved/…). 검증: EN 재렌더(에이브로우 Media Team·"once the Media team confirms it, " 띄어쓰기 정상)·콘솔 에러 0.
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-06-25 — krjam-dcount D-Count 신청 데이터 전체 초기화 (사용자 지시)

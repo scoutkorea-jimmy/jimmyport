@@ -93,7 +93,7 @@
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 154, height: 16, background: track }}>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: prog + '%', background: fill }} />
         </div>
-        <window.FooterBand bg="transparent" color={ink} h={130} left={footLeft || (enL ? 'KOREA NATIONAL JAMBOREE' : '제16회 한국잼버리')} right={footRight || (enL ? '2026.8.5–8.9 · Gangwon, Korea' : '2026.8.5–8.9 · 강원 고성')} />
+        <window.FooterBand bg="transparent" color={ink} h={130} left={footLeft || (enL ? 'KOREA NATIONAL JAMBOREE' : '제16회 한국잼버리')} right={footRight || (enL ? '2026.8.5–8.9 · Goseong, Gangwon' : '2026.8.5–8.9 · 강원 고성')} />
       </window.Card>
     );
   }
