@@ -5,11 +5,20 @@
  *  DELETE /api/jp-tips?id=<id>                          (작성자 본인 또는 관리자)
  * KV: "jpt:<id>" = {id, reporterName, reporterUser, org, zone, text, photos[], status, note, ip, createdAt, triagedBy, triagedAt}
  */
-import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog } from "./_lib.js";
+import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog, bannedTerms, matchBanned } from "./_lib.js";
 
 const PREFIX = "jpt:";
 const KEY = (id) => PREFIX + id;
 const STATUSES = ["new", "used", "rejected"];
+
+// 공개(비로그인) 제보 레이트리밋 — IP당 10분에 8건
+async function rateOk(env, ip) {
+  const key = "jpt:rl:" + ip;
+  let n = 0; try { n = parseInt((await env.SCOUT_KV.get(key)) || "0", 10) || 0; } catch {}
+  if (n >= 8) return false;
+  try { await env.SCOUT_KV.put(key, String(n + 1), { expirationTtl: 600 }); } catch {}
+  return true;
+}
 
 async function readTip(env, id) {
   try { const raw = await env.SCOUT_KV.get(KEY(id)); return raw ? JSON.parse(raw) : null; } catch { return null; }
@@ -34,24 +43,32 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const who = await memberOrAdmin(request, env);
-  if (!who) return json({ ok: false, error: "unauthorized" }, 401);
+  const who = await memberOrAdmin(request, env);   // null = 공개(비로그인) 제보
   let body = {}; try { body = await request.json(); } catch {}
   const text = String(body.text || "").trim().slice(0, 2000);
   const photos = cleanPhotos(body.photos);
+  const reporterName = String(body.reporterName || "").trim().slice(0, 40);
+  const org = String(body.org || "").trim().slice(0, 60);
   if (!text && !photos.length) return json({ ok: false, error: "empty" }, 400);
+  if (!who && !reporterName) return json({ ok: false, error: "name_required" }, 400);  // 공개 제보는 이름 필수
+  if (!who) {
+    const ip = clientIp(request);
+    if (!(await rateOk(env, ip))) return json({ ok: false, error: "too_many" }, 429);
+    const terms = await bannedTerms(env);
+    if (matchBanned(terms, text + " " + reporterName + " " + org)) return json({ ok: false, error: "blocked_keyword" }, 400);
+  }
   const now = new Date().toISOString();
   const rec = {
     id: newId(),
-    reporterUser: who.admin ? "admin" : who.username,
-    reporterName: String(body.reporterName || (who.admin ? "관리자" : who.username) || "").slice(0, 40),
-    org: String(body.org || "").trim().slice(0, 60),
-    zone: String(body.zone || "").slice(0, 40),
-    text, photos, status: "new", note: "",
+    reporterUser: who ? (who.admin ? "admin" : who.username) : "public",
+    reporterName: reporterName || (who ? (who.admin ? "관리자" : who.username) : "익명"),
+    org, zone: String(body.zone || "").slice(0, 40),
+    text, photos, status: "new", note: "", assignee: "",
+    source: who ? "member" : "public",
     ip: maskIp(clientIp(request)), createdAt: now,
   };
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
-  await appendLog(env, { ts: now, action: "jpt.add", count: 0, ip: clientIp(request) });
+  await appendLog(env, { ts: now, action: who ? "jpt.add" : "jpt.add.public", count: 0, ip: clientIp(request) });
   return json({ ok: true, tip: rec });
 }
 
@@ -63,6 +80,7 @@ export async function onRequestPatch({ request, env }) {
   if (!rec) return json({ ok: false, error: "not_found" }, 404);
   if (body.status != null && STATUSES.indexOf(body.status) >= 0) rec.status = body.status;
   if (body.note != null) rec.note = String(body.note).slice(0, 500);
+  if (body.assignee != null) rec.assignee = String(body.assignee).slice(0, 40);
   rec.triagedBy = who.admin ? "관리자" : who.username;
   rec.triagedAt = new Date().toISOString();
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));

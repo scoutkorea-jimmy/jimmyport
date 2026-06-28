@@ -19,8 +19,8 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.155"></script>
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.155">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.156"></script>
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.156">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -144,7 +144,12 @@
       <h2><span data-ic="inbox" data-ic-size="17" style="vertical-align:-3px"></span> 현장 제보 인박스</h2>
       <button class="btn sm solid" id="tip-add"><span data-ic="camera" data-ic-size="14"></span> 제보하기</button>
     </div>
-    <p class="note">현장의 <b>사진·소식</b>을 제보하면 홍보부가 검토해 <b>기사·카드뉴스·자료</b>로 활용합니다. 로그인한 누구나 제보할 수 있고, <b>채택/반려</b>는 홍보부가 정리합니다. (제보 사진은 서버에 저장됩니다.)</p>
+    <p class="note">현장의 <b>사진·소식</b>을 모읍니다. <b>일반 스카우트는 아래 공개 제보 페이지</b>에서 로그인 없이 제보할 수 있고, 들어온 제보는 여기로 자동 모입니다. 홍보부는 <b>담당자 배정 · 채택/반려 · 기사/자료화</b>를 할 수 있습니다.</p>
+    <div class="jebo-bar">
+      <span class="jebo-ic" data-ic="inbox" data-ic-size="15"></span>
+      <span>일반 스카우트용 공개 제보 페이지 — <a href="/krjam-jebo" target="_blank" rel="noopener"><b>scoutingapp.net/krjam-jebo</b></a></span>
+      <button class="btn xs ghost" id="jebo-copy">링크 복사</button>
+    </div>
     <div class="filters" id="tip-filters"></div>
     <div class="tipgrid" id="tip-grid"></div>
   </section>
@@ -470,7 +475,7 @@
 <div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
-<script src="jamboree-plan/app.js?v=0.9.155"></script>
-<script src="version-watch.js?v=0.9.155"></script>
+<script src="jamboree-plan/app.js?v=0.9.156"></script>
+<script src="version-watch.js?v=0.9.156"></script>
 </body>
 </html>

@@ -2385,9 +2385,14 @@ function renderTips(){
     var st=TIP_STATUS[t.status]||TIP_STATUS['new'];
     var photos=(t.photos||[]).map(function(u){ return '<img class="tip-thumb" src="'+esc(u)+'" data-lb="'+esc(u)+'" alt="" loading="lazy">'; }).join('');
     var meta=[]; if(t.reporterName) meta.push(icon('user',12)+' '+esc(t.reporterName)); if(t.org) meta.push(esc(t.org)); var zl=tipZoneLabel(t.zone); if(zl) meta.push(icon('mapPin',12)+' '+esc(zl));
+    var srcBadge=(t.source==='public')?'<span class="tip-src">외부 제보</span>':'';
+    var asg=t.assignee?rosterById(t.assignee):null;
+    var asgChip=asg?('<span class="tip-asg">'+icon('user',12)+' 담당 '+esc(personLabel(asg))+'</span>'):'';
     var canDel=Auth.isAdmin()||(Auth.username&&t.reporterUser===Auth.username);
     var tools='';
     if(staff){
+      var ropts='<option value="">담당 미지정</option>'+rosterList().map(function(m){ return '<option value="'+esc(m.id)+'"'+(t.assignee===m.id?' selected':'')+'>'+esc(personLabel(m))+'</option>'; }).join('');
+      tools+='<select class="tip-assign" data-tip-assign="'+esc(t.id)+'" title="담당자 배정">'+ropts+'</select>';
       tools+='<button class="btn xs ghost" data-tip-tonews="'+esc(t.id)+'" title="이 제보로 기사 작성">'+icon('fileText',12)+' 기사로</button>';
       if((t.photos||[]).length) tools+='<button class="btn xs ghost" data-tip-toassets="'+esc(t.id)+'" title="사진을 자료실로">'+icon('image',12)+' 자료실로</button>';
       if(t.status!=='used') tools+='<button class="btn xs ghost" data-tip-status="'+esc(t.id)+'~used">'+icon('check',12)+' 채택</button>';
@@ -2398,7 +2403,7 @@ function renderTips(){
     return '<article class="tipcard s-'+esc(t.status)+'">'+
       (photos?('<div class="tip-photos n'+(t.photos||[]).length+'">'+photos+'</div>'):'')+
       '<div class="tip-main">'+
-        '<div class="tip-top"><span class="tip-badge" style="background:'+st[1]+'">'+st[0]+'</span><span class="tip-time">'+esc(fmtNewsTime(t.createdAt))+'</span></div>'+
+        '<div class="tip-top"><span class="tip-badge" style="background:'+st[1]+'">'+st[0]+'</span>'+srcBadge+asgChip+'<span class="tip-time">'+esc(fmtNewsTime(t.createdAt))+'</span></div>'+
         (t.text?('<div class="tip-text">'+esc(t.text).replace(/\n/g,'<br>')+'</div>'):'')+
         (meta.length?('<div class="tip-meta">'+meta.join('<span class="dotsep">·</span>')+'</div>'):'')+
         (tools?('<div class="tip-tools">'+tools+'</div>'):'')+
@@ -2449,6 +2454,12 @@ function triageTip(id,status){
   fetch('/api/jp-tips',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify({id:id,status:status})})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
     .then(function(j){ if(j&&j.ok&&j.tip){ var i=tipItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) tipItems[i]=j.tip; renderTips(); } })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+function assignTip(id,assignee){
+  fetch('/api/jp-tips',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify({id:id,assignee:assignee})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok&&j.tip){ var i=tipItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) tipItems[i]=j.tip; renderTips(); var who=assignee?rosterById(assignee):null; toast(who?(personLabel(who)+' 님에게 배정'):'담당 해제'); } })
     .catch(function(){ toast('네트워크 오류'); });
 }
 function deleteTip(id){
@@ -2783,13 +2794,16 @@ function init(){
   var tipScrim=document.getElementById('tip-scrim'); if(tipScrim) tipScrim.addEventListener('click',function(e){ if(e.target===this) closeTipEditor(); });
   var tipBody=document.getElementById('tip-body'); if(tipBody) tipBody.addEventListener('click',function(e){ var x=e.target.closest('[data-tip-img-del]'); if(x&&tipEdit){ tipEdit.images.splice(+x.getAttribute('data-tip-img-del'),1); renderTipEditor(); } });
   var tipFil=document.getElementById('tip-filters'); if(tipFil) tipFil.addEventListener('click',function(e){ var b=e.target.closest('[data-tipf]'); if(b){ tipFilter=b.getAttribute('data-tipf'); renderTips(); } });
-  var tipGrid=document.getElementById('tip-grid'); if(tipGrid) tipGrid.addEventListener('click',function(e){
+  var tipGrid=document.getElementById('tip-grid'); if(tipGrid){ tipGrid.addEventListener('click',function(e){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }
     var s=e.target.closest('[data-tip-status]'); if(s){ var pr=s.getAttribute('data-tip-status').split('~'); triageTip(pr[0],pr[1]); return; }
     var dl=e.target.closest('[data-tip-del]'); if(dl){ deleteTip(dl.getAttribute('data-tip-del')); return; }
     var tn=e.target.closest('[data-tip-tonews]'); if(tn){ tipToNews(tn.getAttribute('data-tip-tonews')); return; }
     var ta=e.target.closest('[data-tip-toassets]'); if(ta){ tipToAssets(ta.getAttribute('data-tip-toassets')); return; }
   });
+  tipGrid.addEventListener('change',function(e){ var a=e.target.closest('[data-tip-assign]'); if(a){ assignTip(a.getAttribute('data-tip-assign'), a.value); } });
+  }
+  var jc=document.getElementById('jebo-copy'); if(jc) jc.onclick=function(){ var url=location.origin+'/krjam-jebo'; (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(function(){ toast('제보 페이지 링크 복사됨'); },function(){ window.prompt('제보 페이지 주소', url); }); };
   // news 편집 모달 위임 (사진 삭제)
   document.getElementById('news-body').addEventListener('click',function(e){
     var x=e.target.closest('[data-news-img-del]'); if(x&&newsEdit){ newsEdit.images.splice(+x.getAttribute('data-news-img-del'),1); renderNewsEditor(); }

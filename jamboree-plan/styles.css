@@ -947,3 +947,14 @@ tr.rowdim{opacity:.34}
 .apnow.ap-approved{background:var(--st-ready-bg);color:var(--st-ready)}
 .apnow.ap-rejected{background:#FBE7E2;color:var(--danger)}
 .apbtns{display:flex;gap:6px;flex-wrap:wrap}
+
+/* 현장 제보 — 외부 제보 · 담당자 · 공개 페이지 링크 */
+.tip-src{display:inline-flex;align-items:center;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:var(--pill);background:#EAF2F8;color:var(--ch-fb)}
+.tip-asg{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--pill);background:var(--accent-soft);color:var(--accent-ink)}
+.tip-asg .ic{vertical-align:-2px}
+.tip-assign{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--pill);background:var(--surface);color:var(--ink-2);max-width:140px}
+.tip-assign:focus{outline:none;border-color:var(--accent)}
+.jebo-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border:1px dashed var(--accent);border-radius:var(--r-2);background:var(--accent-soft-2);font-size:13px;color:var(--ink-2)}
+.jebo-bar a{color:var(--accent);text-decoration:none}
+.jebo-bar a:hover{text-decoration:underline}
+.jebo-ic{color:var(--accent);display:inline-flex}
