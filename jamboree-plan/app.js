@@ -109,14 +109,14 @@ function defaultEvents(){ return [
 ].concat(meetingSeeds()); }
 /* 잼버리 기간 중 회의(고정) — 운영 일정(events)에 회의 종류로 노출. 안정적 id로 중복 방지. */
 function meetingSeeds(){ return [
-  {id:'mtg-jy-0804',title:'분단야영장회의 22:00',kind:'회의',start:'2026-08-04',end:'2026-08-04',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-jy-0805',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-05',end:'2026-08-05',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-jy-0806',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-06',end:'2026-08-06',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-jy-0807',title:'분단야영장회의 22:00',kind:'회의',start:'2026-08-07',end:'2026-08-07',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-jy-0808',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-08',end:'2026-08-08',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-bd-0804',title:'분단장 회의 21:00',kind:'회의',start:'2026-08-04',end:'2026-08-04',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-bd-0806',title:'분단장 회의 22:00',kind:'회의',start:'2026-08-06',end:'2026-08-06',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHG 회의실'},
-  {id:'mtg-bd-0808',title:'분단장 회의 22:00',kind:'회의',start:'2026-08-08',end:'2026-08-08',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHG 회의실'}
+  {id:'mtg-jy-0804',title:'분단야영장회의 22:00',kind:'회의',start:'2026-08-04',end:'2026-08-04',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-jy-0805',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-05',end:'2026-08-05',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-jy-0806',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-06',end:'2026-08-06',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-jy-0807',title:'분단야영장회의 22:00',kind:'회의',start:'2026-08-07',end:'2026-08-07',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-jy-0808',title:'분단야영장회의 23:00',kind:'회의',start:'2026-08-08',end:'2026-08-08',owner:'',memo:'참석: 야영장단·본부장·지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-bd-0804',title:'분단장 회의 21:00',kind:'회의',start:'2026-08-04',end:'2026-08-04',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-bd-0806',title:'분단장 회의 22:00',kind:'회의',start:'2026-08-06',end:'2026-08-06',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHQ 본부'},
+  {id:'mtg-bd-0808',title:'분단장 회의 22:00',kind:'회의',start:'2026-08-08',end:'2026-08-08',owner:'',memo:'참석: 야영장단·본부장·지원부장·분단장·분단지원부장 / 장소: JHQ 본부'}
 ]; }
 /* 서버 events에 회의 시드가 없으면 병합(라이브 보드에도 회의가 보이도록). 추가가 있으면 저장. */
 function mergeSeedMeetings(){
@@ -1695,83 +1695,98 @@ function zoneOptions(sel){
 function mapPosMap(){ if(!state.mappos) state.mappos={}; return state.mappos; }
 function saveMapPos(){ debouncedPut('mapTimer', {mappos: mapPosMap()}, '현장 위치 저장됨'); }
 function smMinLabel(mi){ var h=Math.floor(mi/60), m=mi%60; return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
-var smMode='manual', smDay='2026-08-05', smTimeMin=720, smSel=null;
-// 한 인원의 현재 위치 → {zone, src:'manual'|'sched', item?} 또는 null
+var smSel=null, smByZone={}, smPopZone=null;
+// 현재(실시간) 잼버리 시각 → {day,h} 또는 null(행사 기간 외)
+function smNow(){
+  var d=new Date();
+  var iso=d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
+  if(!jamDay(iso)) return null;
+  return {day:iso, h:d.getHours()+d.getMinutes()/60};
+}
+// 한 인원의 현재 위치 → {zone, src:'manual'|'sched'|'default', item?}
+// 우선순위: 수동 지정 > 현재 시각 일정표 > 기본(JHQ 본부)
 function smPersonZone(m){
   var manual=mapPosMap()[m.id];
   if(manual && zoneByKey(manual)) return {zone:manual, src:'manual'};
-  if(smMode==='manual') return null;
-  var th=smTimeMin/60;
-  var items=ttList().filter(function(t){ if(t.day!==smDay) return false; var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null) return false; return (t.assignees||[]).indexOf(m.id)>=0 && s<=th && e>th; });
-  if(!items.length) return null;
-  items.sort(sortByDayTime);
-  for(var i=0;i<items.length;i++){ var z=items[i].zone||zoneForPlace(items[i].place); if(z&&zoneByKey(z)) return {zone:z, src:'sched', item:items[i]}; }
-  return null;
+  var now=smNow();
+  if(now){
+    var items=ttList().filter(function(t){ if(t.day!==now.day) return false; var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null) return false; return (t.assignees||[]).indexOf(m.id)>=0 && s<=now.h && e>now.h; });
+    if(items.length){ items.sort(sortByDayTime);
+      for(var i=0;i<items.length;i++){ var z=items[i].zone||zoneForPlace(items[i].place); if(z&&zoneByKey(z)) return {zone:z, src:'sched', item:items[i]}; }
+    }
+  }
+  return {zone:'jhq', src:'default'};   // 기본 = JHQ 본부
 }
 function smPlace(pid, zoneKey){ if(!zoneKey){ delete mapPosMap()[pid]; } else mapPosMap()[pid]=zoneKey; saveMapPos(); smSel=null; renderSiteMap(); }
 function smUnplace(pid){ if(mapPosMap()[pid]){ delete mapPosMap()[pid]; saveMapPos(); } smSel=null; renderSiteMap(); }
 function renderSiteMap(){
   var sec=document.getElementById('sitemap'); if(!sec) return;
-  // 모드 UI
-  sec.querySelectorAll('#sm-modeseg button').forEach(function(b){ b.classList.toggle('active', b.dataset.m===smMode); });
-  var sched=document.getElementById('sm-sched'); if(sched) sched.style.display = smMode==='schedule'?'':'none';
-  // 날짜 옵션(최초 1회 채움)
-  var daySel=document.getElementById('sm-day');
-  if(daySel && !daySel.options.length){ daySel.innerHTML=JAM_DAYS.map(function(d){var dd=ymd(d[0]);return '<option value="'+d[0]+'">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')'+(d[1]?(' '+esc(d[1])):'')+'</option>';}).join(''); daySel.value=smDay; }
-  var tlab=document.getElementById('sm-tlabel'); if(tlab) tlab.textContent=smMinLabel(smTimeMin);
-  var tr=document.getElementById('sm-time'); if(tr) tr.value=smTimeMin;
-  var help=document.getElementById('sm-help');
-  if(help) help.innerHTML = smMode==='manual'
-    ? '인원을 클릭(또는 드래그)해 선택한 뒤 지도의 <b>구역</b>을 클릭하면 그 위치에 배치됩니다. 빼려면 인원을 선택하고 <b>빼기</b>를 누르세요. 수동 배치는 서버에 저장됩니다.'
-    : '선택한 <b>날짜·시각</b> 기준으로, <b>잼버리 일정표</b>의 담당 지정·구역에서 인원 위치를 자동 표시합니다(<b>수동 배치가 있으면 우선</b>). 시간 슬라이더를 움직여 보세요. 일정에 ‘현장 지도 구역’을 지정하면 정확히 표시됩니다.';
+  var now=smNow();
+  var nowEl=document.getElementById('sm-now');
+  if(nowEl){
+    if(now){ var d=ymd(now.day); nowEl.textContent='8/'+d.getDate()+' ('+WDS[d.getDay()]+') '+smMinLabel(Math.round(now.h*60)); }
+    else nowEl.textContent='행사 기간 외 — 전원 기본 위치(JHQ 본부)';
+  }
   var clr=document.getElementById('sm-clear'); if(clr) clr.style.display = Object.keys(mapPosMap()).length?'':'none';
   renderSiteMapMarkers();
-  renderSiteTray();
   renderSiteSelbar();
 }
 function renderSiteMapMarkers(){
   var stage=document.getElementById('sm-stage'); if(!stage) return;
   var people=rosterList();
-  var byZone={};
-  people.forEach(function(m,idx){ var p=smPersonZone(m); if(p){ (byZone[p.zone]||(byZone[p.zone]=[])).push({m:m,idx:idx,p:p}); } });
+  smByZone={};
+  people.forEach(function(m,idx){ var p=smPersonZone(m); if(p){ (smByZone[p.zone]||(smByZone[p.zone]=[])).push({m:m,idx:idx,p:p}); } });
   Array.prototype.slice.call(stage.querySelectorAll('.smzone')).forEach(function(el){ el.remove(); });
+  var CAP=3;  // 한 구역에 여러 명이면 대표 N명만 겹쳐 보이고 나머지는 +수
   ZONES.forEach(function(z){
-    var ppl=byZone[z.key]||[];
+    var ppl=smByZone[z.key]||[];
     var el=document.createElement('div');
-    el.className='smzone'+(ppl.length?' has':'');
+    el.className='smzone'+(ppl.length?' has':'')+(ppl.length>1?' multi':'');
     el.style.left=(z.x*100)+'%'; el.style.top=(z.y*100)+'%';
     el.dataset.zone=z.key;
-    var avs=ppl.map(function(o){
+    var shown=ppl.slice(0,CAP), extra=ppl.length-shown.length;
+    var avs=shown.map(function(o,i){
       var manual=o.p.src==='manual';
       var ttl=personLabel(o.m)+(manual?' · 수동 지정':(o.p.item?(' · '+(o.p.item.title||'일정')+' '+(o.p.item.start||'')):''));
-      return '<span class="smav'+(smSel===o.m.id?' sel':'')+'" draggable="true" data-pid="'+esc(o.m.id)+'" style="background:'+personColor(o.idx)+'" title="'+esc(ttl)+'">'+esc(avatarInitial(o.m))+(manual?'<i class="smpin"></i>':'')+'</span>';
+      return '<span class="smav'+(smSel===o.m.id?' sel':'')+'" draggable="true" data-pid="'+esc(o.m.id)+'" style="background:'+personColor(o.idx)+';z-index:'+(10-i)+'" title="'+esc(ttl)+'">'+esc(avatarInitial(o.m))+(manual?'<i class="smpin"></i>':'')+'</span>';
     }).join('');
-    el.innerHTML='<span class="smavs">'+avs+'</span><span class="smdot"></span><span class="smlbl">'+esc(z.label)+'</span>';
+    if(extra>0) avs+='<span class="smmore" title="'+extra+'명 더 — 클릭해 전체 보기">+'+extra+'</span>';
+    el.innerHTML='<span class="smavs'+(ppl.length>1?' stack':'')+'">'+avs+'</span><span class="smdot"></span><span class="smlbl">'+esc(z.label)+(ppl.length>1?(' · '+ppl.length+'명'):'')+'</span>';
     stage.appendChild(el);
   });
+  renderZonePopover();
 }
-function renderSiteTray(){
-  var tray=document.getElementById('sm-tray'), h=document.getElementById('sm-tray-h'); if(!tray) return;
-  var people=rosterList();
-  var unplaced=people.map(function(m,idx){ return {m:m,idx:idx}; }).filter(function(o){ return !smPersonZone(o.m); });
-  if(h) h.textContent = smMode==='manual' ? ('미배치 인원 ('+unplaced.length+'명)') : ('이 시각 위치 미상 ('+unplaced.length+'명)');
-  if(!people.length){ tray.innerHTML='<span class="sm-empty">먼저 <b>홍보부 인원 관리</b> 탭에서 인원을 추가하세요.</span>'; return; }
-  if(!unplaced.length){ tray.innerHTML='<span class="sm-empty">'+(smMode==='manual'?'모든 인원이 배치되었습니다.':'이 시각 모든 인원의 위치가 표시됩니다.')+'</span>'; return; }
-  tray.innerHTML=unplaced.map(function(o){
-    return '<span class="smchip'+(smSel===o.m.id?' sel':'')+'" draggable="true" data-pid="'+esc(o.m.id)+'"><span class="smav" style="background:'+personColor(o.idx)+'">'+esc(avatarInitial(o.m))+'</span>'+esc(personLabel(o.m))+'</span>';
-  }).join('');
+/* 한 구역에 여러 명 → 클릭 시 말풍선으로 전체 명단(이동·빼기) */
+function openZonePopover(zkey){ smPopZone=(smPopZone===zkey)?null:zkey; renderZonePopover(); }
+function closeZonePopover(){ smPopZone=null; renderZonePopover(); }
+function renderZonePopover(){
+  var stage=document.getElementById('sm-stage'); if(!stage) return;
+  var old=stage.querySelector('.smpop'); if(old) old.remove();
+  if(!smPopZone) return;
+  var z=zoneByKey(smPopZone), ppl=smByZone[smPopZone]||[];
+  if(!z||!ppl.length){ smPopZone=null; return; }
+  var pop=document.createElement('div'); pop.className='smpop';
+  pop.style.left=(z.x*100)+'%'; pop.style.top=(z.y*100)+'%';
+  pop.innerHTML='<div class="smpop-h">'+esc(z.label)+' · '+ppl.length+'명<button class="smpop-x" data-pop-close aria-label="닫기">'+icon('x',13)+'</button></div>'+
+    '<div class="smpop-list">'+ppl.map(function(o){
+      var manual=o.p.src==='manual';
+      var sub=manual?'수동 지정':(o.p.src==='sched'&&o.p.item?((o.p.item.start||'')+' '+(o.p.item.title||'')):'대기 · 기본 위치');
+      return '<div class="smpop-row"><span class="smav" style="background:'+personColor(o.idx)+'">'+esc(avatarInitial(o.m))+'</span><span class="smpop-name">'+esc(personLabel(o.m))+'<span class="smpop-sub">'+esc(sub)+'</span></span>'+
+        '<button type="button" class="btn xs" data-pop-move="'+esc(o.m.id)+'">이동</button>'+(manual?('<button type="button" class="btn xs danger" data-pop-unplace="'+esc(o.m.id)+'" title="수동 지정 해제 (자동으로 되돌리기)">해제</button>'):'')+'</div>';
+    }).join('')+'</div>';
+  stage.appendChild(pop);
 }
 function renderSiteSelbar(){
   var bar=document.getElementById('sm-selbar'); if(!bar) return;
   if(!smSel){ bar.classList.remove('show'); bar.innerHTML=''; return; }
   var m=rosterById(smSel); if(!m){ smSel=null; bar.classList.remove('show'); return; }
   var placed=!!mapPosMap()[smSel];
-  bar.innerHTML='<b>'+esc(personLabel(m))+'</b> 선택됨 — 지도의 <b>구역을 클릭</b>해 배치'+
-    (placed?'<button type="button" class="btn xs danger" data-sm-unplace>빼기 (미배치)</button>':'')+
+  bar.innerHTML='<b>'+esc(personLabel(m))+'</b> 선택됨 — 옮길 <b>구역을 클릭</b>하세요'+
+    (placed?'<button type="button" class="btn xs danger" data-sm-unplace title="수동 지정 해제 (자동으로 되돌리기)">수동 해제</button>':'')+
     '<button type="button" class="btn xs ghost" data-sm-desel>선택 해제</button>';
   bar.classList.add('show');
 }
-function smSelectPerson(pid){ smSel = (smSel===pid)?null:pid; renderSiteMapMarkers(); renderSiteTray(); renderSiteSelbar(); }
+function smSelectPerson(pid){ smSel = (smSel===pid)?null:pid; renderSiteMapMarkers(); renderSiteSelbar(); }
 
 /* ===== render orchestration ===== */
 function renderAll(){ renderHeader(); renderCalendar(); renderFilters(); renderBoard(); renderMarketing(); if(curViewMode==='dashboard') renderDashboard(); }
@@ -1973,7 +1988,11 @@ function reflectAuthUI(){
     var v=b.getAttribute('data-v');
     b.style.display=(Auth.authed() && Auth.canSee(v))?'':'none';
   });
-  var mrow=document.getElementById('tabrow-manage'); if(mrow) mrow.style.display=(Auth.authed()&&Auth.isStaff())?'':'none';
+  // 그룹: 보이는 탭이 하나도 없으면 그룹(라벨 포함) 숨김
+  document.querySelectorAll('.tabgroup[data-grp]').forEach(function(g){
+    var any=Array.prototype.some.call(g.querySelectorAll('.vtab[data-v]'), function(b){ return b.style.display!=='none'; });
+    g.style.display=any?'':'none';
+  });
 }
 function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); resetAdminIdle(); }
 
@@ -2550,17 +2569,24 @@ function init(){
   var ttAdd=document.getElementById('tt-add'); if(ttAdd) ttAdd.onclick=addTT;
   var ttSeg=document.getElementById('tt-modeseg'); if(ttSeg) ttSeg.querySelectorAll('button').forEach(function(bt){ bt.onclick=function(){ ttMode=bt.dataset.m; try{localStorage.setItem('jamboree-plan:ttmode',ttMode);}catch(e){} renderTimetable(); }; });
   var rsAdd=document.getElementById('roster-add'); if(rsAdd) rsAdd.onclick=addRoster;
-  // 현장 위치 지도
-  var smSeg=document.getElementById('sm-modeseg'); if(smSeg) smSeg.querySelectorAll('button').forEach(function(bt){ bt.onclick=function(){ smMode=bt.dataset.m; smSel=null; renderSiteMap(); }; });
-  var smDaySel=document.getElementById('sm-day'); if(smDaySel) smDaySel.addEventListener('change',function(){ smDay=this.value; renderSiteMapMarkers(); renderSiteTray(); });
-  var smTime=document.getElementById('sm-time'); if(smTime) smTime.addEventListener('input',function(){ smTimeMin=+this.value; var lb=document.getElementById('sm-tlabel'); if(lb) lb.textContent=smMinLabel(smTimeMin); renderSiteMapMarkers(); renderSiteTray(); });
-  var smClear=document.getElementById('sm-clear'); if(smClear) smClear.onclick=function(){ if(!Object.keys(mapPosMap()).length) return; if(!confirm('수동으로 지정한 현장 위치를 모두 비울까요?')) return; state.mappos={}; saveMapPos(); smSel=null; renderSiteMap(); };
+  // 현장 위치 지도 — 현재 시각 자동 연동(1분마다 갱신) + 수동 지정(우선)
+  var smClear=document.getElementById('sm-clear'); if(smClear) smClear.onclick=function(){ if(!Object.keys(mapPosMap()).length) return; if(!confirm('수동으로 지정한 위치를 모두 초기화할까요?\n전원이 현재 시각 자동 표시(일정 없으면 JHQ 본부)로 돌아갑니다.')) return; state.mappos={}; saveMapPos(); smSel=null; renderSiteMap(); };
+  setInterval(function(){ if(curViewMode==='sitemap') renderSiteMap(); }, 60000);
   var smDragPid=null;
   var smStage=document.getElementById('sm-stage');
   if(smStage){
     smStage.addEventListener('click',function(e){
-      var av=e.target.closest('.smav'); if(av){ e.stopPropagation(); smSelectPerson(av.dataset.pid); return; }
-      var z=e.target.closest('.smzone'); if(z){ if(smSel){ smPlace(smSel, z.dataset.zone); } return; }
+      if(e.target.closest('[data-pop-close]')){ closeZonePopover(); return; }
+      var mv=e.target.closest('[data-pop-move]'); if(mv){ smSel=mv.getAttribute('data-pop-move'); closeZonePopover(); renderSiteMapMarkers(); renderSiteSelbar(); return; }
+      var up=e.target.closest('[data-pop-unplace]'); if(up){ smUnplace(up.getAttribute('data-pop-unplace')); return; }
+      if(e.target.closest('.smpop')) return;   // 그 외 말풍선 내부 클릭은 무시
+      var z=e.target.closest('.smzone');
+      if(z){ var zk=z.dataset.zone;
+        if(smSel){ smPlace(smSel, zk); return; }          // 선택된 인원 → 그 구역에 배치
+        if(z.classList.contains('has')){ openZonePopover(zk); }  // 인원 있는 구역 → 말풍선
+        return;
+      }
+      closeZonePopover();   // 빈 곳 클릭 → 말풍선 닫기
     });
     smStage.addEventListener('dragstart',function(e){ var av=e.target.closest('.smav[data-pid]'); if(av){ smDragPid=av.dataset.pid; try{e.dataTransfer.setData('text/plain',smDragPid);e.dataTransfer.effectAllowed='move';}catch(_){} } });
     smStage.addEventListener('dragover',function(e){ var z=e.target.closest('.smzone'); if(z&&smDragPid){ e.preventDefault(); document.querySelectorAll('.smzone.drop').forEach(function(x){x.classList.remove('drop');}); z.classList.add('drop'); } });
@@ -2568,18 +2594,10 @@ function init(){
     smStage.addEventListener('drop',function(e){ var z=e.target.closest('.smzone'); if(z&&smDragPid){ e.preventDefault(); z.classList.remove('drop'); smPlace(smDragPid, z.dataset.zone); smDragPid=null; } });
     smStage.addEventListener('dragend',function(){ smDragPid=null; document.querySelectorAll('.smzone.drop').forEach(function(x){x.classList.remove('drop');}); });
   }
-  var smTray=document.getElementById('sm-tray');
-  if(smTray){
-    smTray.addEventListener('click',function(e){ var ch=e.target.closest('.smchip[data-pid]'); if(ch) smSelectPerson(ch.dataset.pid); });
-    smTray.addEventListener('dragstart',function(e){ var ch=e.target.closest('.smchip[data-pid]'); if(ch){ smDragPid=ch.dataset.pid; try{e.dataTransfer.setData('text/plain',smDragPid);}catch(_){} } });
-    smTray.addEventListener('dragover',function(e){ if(smDragPid){ e.preventDefault(); smTray.classList.add('drop'); } });
-    smTray.addEventListener('dragleave',function(){ smTray.classList.remove('drop'); });
-    smTray.addEventListener('drop',function(e){ if(smDragPid){ e.preventDefault(); smTray.classList.remove('drop'); smUnplace(smDragPid); smDragPid=null; } });
-  }
   var smSelbar=document.getElementById('sm-selbar');
   if(smSelbar) smSelbar.addEventListener('click',function(e){
     if(e.target.closest('[data-sm-unplace]')){ if(smSel) smUnplace(smSel); return; }
-    if(e.target.closest('[data-sm-desel]')){ smSel=null; renderSiteMapMarkers(); renderSiteTray(); renderSiteSelbar(); return; }
+    if(e.target.closest('[data-sm-desel]')){ smSel=null; renderSiteMapMarkers(); renderSiteSelbar(); return; }
   });
   // 취재 연락처 탭
   var conAdd=document.getElementById('con-add'); if(conAdd) conAdd.onclick=function(){ addContactRow(); renderContacts(); saveContacts(); };

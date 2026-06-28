@@ -21,5 +21,20 @@ export async function onRequest(context) {
       headers: { "content-type": "text/plain; charset=utf-8" },
     });
   }
-  return context.next();
+  const res = await context.next();
+  // Because this middleware wraps every request, the `_headers` no-cache rule is
+  // bypassed for static assets (they fall back to Pages' default max-age=14400),
+  // so new deploys can take hours to reach browsers. Force-revalidate every
+  // static asset / HTML here (ETag → 304 when unchanged). API routes (/api/*)
+  // keep their own cache headers untouched.
+  if (!path.startsWith("/api/")) {
+    try {
+      const r = new Response(res.body, res);
+      r.headers.set("Cache-Control", "no-cache");
+      return r;
+    } catch {
+      return res;
+    }
+  }
+  return res;
 }

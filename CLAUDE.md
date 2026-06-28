@@ -861,6 +861,21 @@ WOSM Region → 국가(NSO) → 단위대
 - API(`functions/api/jamboree-plan.js`): `MAPPOS` 키 + GET 응답에 `mappos` + PUT `body.mappos`(객체) 분기 + `cleanTT`에 zone.
 - 검증: `node --check`(app·api) + 헤드리스 Chrome(CDP, 관리자 세션 시드): 게이트 통과·탭 활성·이미지 로드·29마커·6 트레이 / 선택→배치(stage)→mappos·트레이 5·핀 / 연동 모드 개영식 담당 지정+20:30→stage 자동(src sched, 메인스타디움→stage 매칭)·수동 1+자동 1=2 / TT 모달 구역 select 30옵션 / **콘솔 에러 0** + 스크린샷(배치도 풀폭·마커·트레이 정상). ⚠️ 실 인원/배치 저장 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
 
+### 16.44 v0.9.151 — 현장 지도 가독성(겹침+N·말풍선) + 메뉴 그루핑 + 캐시 근본수정 + JHG→JHQ
+- 사용자 라이브 피드백 다건 일괄.
+- **캐시 근본 수정**(`functions/_middleware.js`): `_headers`의 `/* no-cache`가 **미들웨어가 감싼 정적 자산엔 미적용**(Pages 기본 `max-age=14400`)이라 새 배포가 브라우저에 수시간 지연되던 원인 확인(§17.9 반복 문제의 잔존). → 미들웨어가 `next()` 후 **`/api/*` 외 모든 응답에 `Cache-Control: no-cache` 강제 셋**(`new Response(res.body,res)`). API는 자체 캐시 유지. 이후 배포 **즉시 반영**(ETag 304).
+- **메뉴 그루핑**(UX): 평면 2행(콘텐츠 6 + 홍보부 운영) → **라벨 4그룹** `nav.tabbar`(`.tabgroup`+`.tg-label`): **개요**(대시보드) · **콘텐츠·SNS**(캘린더·콘텐츠 리스트·기사·자료실) · **현장 일정**(잼버리 일정표·현장 위치 지도·의전 일정) · **인원·연락망**(홍보부 인원·협조 연락처·분단 연락망). `reflectAuthUI`가 `#tabrow-manage` 토글 → **그룹별 "보이는 탭 1개라도 있으면 표시"**(없으면 라벨째 숨김). 일반 회원=3그룹(인원·연락망 숨김), 관리자/홍보부=4그룹. (탭 라벨 일부 축약, data-v 불변)
+- **현장 지도 동작 모델 변경**(사용자 지시): 수동/일정표 **모드 토글·날짜/시간 슬라이더·미배치 트레이 제거** → **단일 실시간 뷰**. 위치 우선순위 = **수동 지정 > 현재 시각(`smNow()`=실제 `new Date()`, 잼버리 8/2~8/9일 때만) 일정표 연동 > 기본 JHQ 본부**(전원 기본 JHQ). 임의 이동 시 수동 지정(우선·서버 저장), ‘수동 배치 초기화’로 자동 복귀. 상단 ‘지금 기준 · 날짜·시각’ 라이브 표시 + **1분마다 자동 갱신**(`setInterval`, sitemap 뷰일 때). 행사 기간 외엔 ‘전원 기본 위치(JHQ 본부)’.
+- **현장 지도 가독성**(한 구역 다수 인원): 아바타 25→**30px**·구역 점 흰 채움+accent 3px 링(15px). 한 구역 **여러 명 → 대표 3명 겹쳐(stack) + `+N` 배지**, 라벨 ‘· N명’. **클릭 시 말풍선(`.smpop`)**으로 전체 명단(아바타·이름·일정/수동/기본 표시 + ‘이동’·수동만 ‘해제’). 클릭 흐름: 인원 선택중→구역 클릭=수동 배치, 미선택+인원 구역 클릭=말풍선, 빈 곳=닫기. 아바타 드래그=수동 이동. `smByZone`/`smPopZone`.
+- **JHG → JHQ 본부**(오타 정정): 소스 `meetingSeeds` 8곳(`memo`) replace + **라이브 KV read-modify-write**(비파괴): events 8(memo)+timetable 8(place) → ‘JHG 회의실’→‘JHQ 본부’. 검증 후 라이브 JHG 0건·‘JHQ 본부’ 16건.
+- 검증: `node --check`(app·middleware) + 헤드리스 Chrome(CDP, 관리자 세션): 그루핑 4그룹·라벨·일반회원 3그룹(staff/sitemap 숨김) / 모드토글·트레이 없음·라이브 시각 표시 / **전원 JHQ 기본**(6명·아바타 3+‘+3’) / 현재시각 mock(8/5 20:30)+담당 지정→그 인원 메인무대(sched)·나머지 JHQ / 수동 이동→food(manual·핀) / 말풍선 명단·이동·해제 / **콘솔 에러 0** + 스크린샷. ⚠️ 실 인원/배치 저장은 로그인 필요 → 사용자 QA.
+
+### OPS 2026-06-28 — krjam-planning 라이브 KV ‘JHG 회의실’→‘JHQ 본부’ 일괄 정정 (사용자 지시)
+- 지시: "JHG 회의실로 되어있는거 모두 다 JHQ 본부로 변경." 코드 변경(§16.44)과 별개로 운영 KV도 정정.
+- 전(前): `jp:events` 8건(memo 장소: JHG 회의실) + `jp:timetable` 8건(place: JHG 회의실). 합 16건.
+- 조치(curl read-modify-write, 비파괴): 전체 배열 그대로 받아 ‘JHG 회의실’→‘JHQ 본부’만 치환 후 events/timetable 각각 PUT(author=system). 그 외 키 불변.
+- 후(後)/검증: 라이브 `GET /api/jamboree-plan` 전수 스캔 — JHG 0건, ‘JHQ 본부’ 16건.
+
 ### 18.22 v0.9.146 — 페이지별 OG 이미지 4종 신설(랜딩·Tour·홍보부보드·디데이)
 - 기존엔 카드뉴스(`krjam-cardnews`, `jamboree/assets/og.png`)에만 OG가 있었음. 사용자: "카드뉴스처럼 다른 페이지들도 OG 이미지 적절히 만들어줘. 잼버리 관련은 잼버리 OG로."
 - **생성 방식**(기존 og.png와 동일): HTML 템플릿 → 헤드리스 Chrome(`--headless=new --screenshot --window-size=1200,630 --virtual-time-budget`) 1200×630 PNG 렌더. 엠블럼은 base64 임베드, 폰트는 Pretendard(CDN)·Bricolage/Hanken(Google Fonts).

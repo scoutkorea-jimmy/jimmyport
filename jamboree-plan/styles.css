@@ -59,6 +59,10 @@ h1{font-size:25px;font-weight:680;margin:0 0 5px;letter-spacing:-.02em;line-heig
 .clock .sub{color:rgba(255,255,255,.82);font-size:12px}
 
 /* ---- view tabs ---- */
+.tabbar{display:flex;flex-wrap:wrap;gap:13px 22px;align-items:flex-start;margin-bottom:16px;padding-bottom:15px;border-bottom:1px solid var(--line)}
+.tabgroup{display:flex;flex-direction:column;gap:6px}
+.tg-label{font-size:10.5px;font-weight:800;letter-spacing:.04em;color:var(--faint);padding-left:3px;text-transform:uppercase}
+.tg-tabs{display:flex;flex-wrap:wrap;gap:7px}
 .viewtabs{display:flex;gap:7px;margin-bottom:6px;flex-wrap:wrap}
 .viewtabs-manage{margin-top:2px;padding-top:9px;border-top:1px dashed var(--line);align-items:center}
 .tabrow-label{font-size:11.5px;font-weight:800;color:var(--muted);padding:0 7px 0 2px;align-self:center;white-space:nowrap}
@@ -841,14 +845,15 @@ tr.rowdim{opacity:.34}
 .smstage{position:relative;width:100%;line-height:0}
 .smstage img{width:100%;height:auto;display:block;-webkit-user-drag:none;user-select:none}
 .smzone{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;z-index:2}
-.smzone .smdot{width:9px;height:9px;border-radius:50%;background:rgba(35,70,54,.34);border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(35,70,54,.22)}
-.smzone.has .smdot{width:6px;height:6px;background:rgba(35,70,54,.5)}
-.smzone .smlbl{font-size:10px;font-weight:700;color:#1B211D;background:rgba(255,255,255,.9);border-radius:6px;padding:1px 5px;white-space:nowrap;opacity:0;transition:opacity var(--ease);box-shadow:var(--sh-1);pointer-events:none}
+.smzone .smdot{width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.4)}
+.smzone:hover .smdot{background:var(--accent)}
+.smzone.has .smdot{display:none}
+.smzone .smlbl{font-size:11px;font-weight:700;color:#1B211D;background:rgba(255,255,255,.94);border-radius:6px;padding:2px 6px;white-space:nowrap;opacity:0;transition:opacity var(--ease);box-shadow:0 1px 4px rgba(0,0,0,.3);pointer-events:none}
 .smzone.has .smlbl,.smzone:hover .smlbl{opacity:1}
 .smzone.drop{outline:2px dashed var(--accent);outline-offset:4px;border-radius:9px}
 .smzone.drop .smdot{background:var(--accent);transform:scale(1.6)}
-.smavs{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;max-width:104px;margin-bottom:1px}
-.smav{position:relative;width:25px;height:25px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:var(--sh-1);cursor:grab;line-height:1}
+.smavs{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;max-width:120px;margin-bottom:1px}
+.smav{position:relative;width:30px;height:30px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.45);cursor:grab;line-height:1}
 .smav.sel{outline:2px solid var(--accent);outline-offset:1px}
 .smav .smpin{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:#C0492F;border:1.5px solid #fff}
 .smtray-h{font-size:14px;font-weight:700;color:var(--ink-2);margin:0}
@@ -859,3 +864,24 @@ tr.rowdim{opacity:.34}
 .smchip .smav{width:22px;height:22px;font-size:10px;cursor:grab}
 .sm-empty{color:var(--muted);font-size:13px}
 @media(max-width:760px){ .sm-timewrap input[type=range]{width:148px} .smav{width:21px;height:21px;font-size:10px} .smavs{max-width:88px} }
+
+/* 현장 위치 지도 — 여러 명 겹침(+N) + 말풍선 */
+.smavs.stack .smav{margin-left:-12px}
+.smavs.stack .smav:first-child{margin-left:0}
+.smmore{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 5px;margin-left:-12px;border-radius:var(--pill);background:var(--accent-ink);color:#fff;font-size:11.5px;font-weight:800;border:2.5px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.25),0 2px 6px rgba(0,0,0,.45);cursor:pointer;line-height:1}
+.smzone.multi{cursor:pointer}
+.smpop{position:absolute;transform:translate(-50%,calc(-100% - 20px));z-index:20;background:#fff;border:1px solid var(--line);border-radius:var(--r-2);box-shadow:var(--sh-3);width:max-content;max-width:250px;min-width:158px;cursor:default}
+.smpop::after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:#fff;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.smpop-h{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line-2);font-size:12.5px;font-weight:800;color:var(--ink)}
+.smpop-x{margin-left:auto;border:none;background:none;color:var(--muted);cursor:pointer;display:inline-flex;padding:2px;line-height:0}
+.smpop-list{padding:6px;display:flex;flex-direction:column;gap:3px;max-height:226px;overflow:auto}
+.smpop-row{display:flex;align-items:center;gap:8px;padding:3px 4px}
+.smpop-row .smav{width:24px;height:24px;font-size:11px;cursor:default;flex:0 0 auto;box-shadow:var(--sh-1)}
+.smpop-name{font-size:13px;font-weight:600;color:var(--ink-2);display:flex;flex-direction:column;line-height:1.25;flex:1;min-width:0}
+.smpop-sub{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.smpop .btn.xs{flex:0 0 auto}
+
+/* 현장 지도 — 실시간(현재 시각) 표시 */
+.sm-live{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding:6px 13px;background:var(--accent-soft);border:1px solid var(--accent-soft);border-radius:var(--pill)}
+.sm-live b{color:var(--accent-ink);font-weight:800}
+.sm-livedot{width:8px;height:8px;border-radius:50%;background:var(--st-ready);box-shadow:0 0 0 3px rgba(47,143,107,.18)}

@@ -86,22 +86,39 @@
     </div>
   </header>
 
-  <div class="viewtabs" role="tablist" aria-label="콘텐츠">
-    <button class="vtab active" data-v="dashboard" role="tab"><span data-ic="grid"></span> 대시보드</button>
-    <button class="vtab" data-v="news" role="tab"><span data-ic="fileText"></span> 기사</button>
-    <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더 보기</button>
-    <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 리스트 보기</button>
-    <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
-    <button class="vtab" data-v="library" role="tab"><span data-ic="image"></span> 자료실</button>
-  </div>
-  <div class="viewtabs viewtabs-manage" id="tabrow-manage" role="tablist" aria-label="홍보부 운영">
-    <span class="tabrow-label">홍보부 운영</span>
-    <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 홍보부 인원 관리</button>
-    <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
-    <button class="vtab" data-v="orginfo" role="tab"><span data-ic="users"></span> 분단 연락망</button>
-    <button class="vtab" data-v="protocol" role="tab"><span data-ic="grid"></span> 의전 일정</button>
-    <button class="vtab" data-v="sitemap" role="tab"><span data-ic="mapPin"></span> 현장 위치 지도</button>
-  </div>
+  <nav class="tabbar" role="tablist" aria-label="메뉴">
+    <div class="tabgroup" data-grp>
+      <span class="tg-label">개요</span>
+      <div class="tg-tabs">
+        <button class="vtab active" data-v="dashboard" role="tab"><span data-ic="grid"></span> 대시보드</button>
+      </div>
+    </div>
+    <div class="tabgroup" data-grp>
+      <span class="tg-label">콘텐츠 · SNS</span>
+      <div class="tg-tabs">
+        <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더</button>
+        <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 콘텐츠 리스트</button>
+        <button class="vtab" data-v="news" role="tab"><span data-ic="fileText"></span> 기사</button>
+        <button class="vtab" data-v="library" role="tab"><span data-ic="image"></span> 자료실</button>
+      </div>
+    </div>
+    <div class="tabgroup" data-grp>
+      <span class="tg-label">현장 일정</span>
+      <div class="tg-tabs">
+        <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
+        <button class="vtab" data-v="sitemap" role="tab"><span data-ic="mapPin"></span> 현장 위치 지도</button>
+        <button class="vtab" data-v="protocol" role="tab"><span data-ic="grid"></span> 의전 일정</button>
+      </div>
+    </div>
+    <div class="tabgroup" data-grp>
+      <span class="tg-label">인원 · 연락망</span>
+      <div class="tg-tabs">
+        <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 홍보부 인원</button>
+        <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
+        <button class="vtab" data-v="orginfo" role="tab"><span data-ic="users"></span> 분단 연락망</button>
+      </div>
+    </div>
+  </nav>
 
   <section id="dashboard">
     <div class="sec-head">
@@ -296,23 +313,14 @@
       <span class="sub">제16회 한국잼버리 야영장 배치도 위에 홍보부 인원 위치를 대략적으로 표시</span>
     </div>
     <div class="smctrl">
-      <div class="seg" id="sm-modeseg">
-        <button type="button" data-m="manual" class="active">수동 배치</button>
-        <button type="button" data-m="schedule">일정표 연동</button>
-      </div>
-      <div class="sm-sched" id="sm-sched" style="display:none">
-        <select id="sm-day" class="evinput sm-day"></select>
-        <div class="sm-timewrap"><span class="sm-tlabel mono" id="sm-tlabel">12:00</span><input type="range" id="sm-time" min="0" max="1425" step="15" value="720" aria-label="시각"></div>
-      </div>
+      <span class="sm-live"><span class="sm-livedot"></span> 지금 기준 · <b id="sm-now"></b></span>
       <span class="spacer"></span>
-      <button class="btn sm ghost" id="sm-clear" style="display:none">수동 배치 비우기</button>
+      <button class="btn sm ghost" id="sm-clear" style="display:none">수동 배치 초기화</button>
     </div>
-    <p class="note" id="sm-help"></p>
+    <p class="note" id="sm-help"><b>현재 시각</b>의 <b>잼버리 일정표</b>를 기준으로 인원 위치를 실시간 표시합니다. 일정이 없는 인원은 기본적으로 <b>JHQ 본부</b>에 모입니다. 특정 인원을 옮기려면 모인 구역을 클릭해 <b>이동</b>하거나 아바타를 드래그하세요 — <b>수동 지정은 자동보다 우선</b>합니다. ‘수동 배치 초기화’를 누르면 다시 현재 시각 자동 표시로 돌아갑니다.</p>
     <div class="sm-selbar" id="sm-selbar"></div>
     <div class="smwrap"><div class="smstage" id="sm-stage"><img src="jamboree-plan/assets/sitemap.png" alt="제16회 한국잼버리 야영장 배치도" id="sm-img" draggable="false"></div></div>
-    <div class="sec-head" style="margin-top:18px;margin-bottom:8px"><h3 class="smtray-h" id="sm-tray-h">미배치 인원</h3></div>
-    <div class="smtray" id="sm-tray"></div>
-    <p class="note">위치는 <b>대략적인 구역</b> 기준입니다. 인원은 <b>홍보부 인원 관리</b> 탭의 R&amp;R 명단에서 가져옵니다. ‘일정표 연동’은 <b>잼버리 일정표</b>의 담당 지정·구역을 기반으로 자동 표시하며, 수동 배치가 있으면 그 위치를 우선합니다.</p>
+    <p class="note">위치는 <b>대략적인 구역</b> 기준이며, 인원은 <b>홍보부 인원 관리</b> 탭의 명단에서 가져옵니다. 일정에 ‘현장 지도 구역’을 지정하면 해당 시간에 정확한 위치로 표시됩니다.</p>
   </section>
 
   <footer class="foot">
