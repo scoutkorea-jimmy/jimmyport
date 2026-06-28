@@ -1696,6 +1696,9 @@ function mapPosMap(){ if(!state.mappos) state.mappos={}; return state.mappos; }
 function saveMapPos(){ debouncedPut('mapTimer', {mappos: mapPosMap()}, '현장 위치 저장됨'); }
 function smMinLabel(mi){ var h=Math.floor(mi/60), m=mi%60; return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
 var smSel=null, smByZone={}, smPopZone=null;
+var smTimeMode='now', smDay='2026-08-05', smTimeMin=1200;   // 'now'=실시간 / 'pick'=시간 지정(슬라이더)
+// 위치 계산 기준 시점 → {day,h} 또는 null. 실시간이면 현재, 시간 지정이면 슬라이더 값.
+function smMoment(){ if(smTimeMode==='now') return smNow(); return {day:smDay, h:smTimeMin/60}; }
 // 현재(실시간) 잼버리 시각 → {day,h} 또는 null(행사 기간 외)
 function smNow(){
   var d=new Date();
@@ -1708,9 +1711,9 @@ function smNow(){
 function smPersonZone(m){
   var manual=mapPosMap()[m.id];
   if(manual && zoneByKey(manual)) return {zone:manual, src:'manual'};
-  var now=smNow();
-  if(now){
-    var items=ttList().filter(function(t){ if(t.day!==now.day) return false; var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null) return false; return (t.assignees||[]).indexOf(m.id)>=0 && s<=now.h && e>now.h; });
+  var mo=smMoment();
+  if(mo){
+    var items=ttList().filter(function(t){ if(t.day!==mo.day) return false; var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null) return false; return (t.assignees||[]).indexOf(m.id)>=0 && s<=mo.h && e>mo.h; });
     if(items.length){ items.sort(sortByDayTime);
       for(var i=0;i<items.length;i++){ var z=items[i].zone||zoneForPlace(items[i].place); if(z&&zoneByKey(z)) return {zone:z, src:'sched', item:items[i]}; }
     }
@@ -1721,12 +1724,21 @@ function smPlace(pid, zoneKey){ if(!zoneKey){ delete mapPosMap()[pid]; } else ma
 function smUnplace(pid){ if(mapPosMap()[pid]){ delete mapPosMap()[pid]; saveMapPos(); } smSel=null; renderSiteMap(); }
 function renderSiteMap(){
   var sec=document.getElementById('sitemap'); if(!sec) return;
-  var now=smNow();
+  // 모드 토글
+  sec.querySelectorAll('#sm-modeseg button').forEach(function(b){ b.classList.toggle('active', b.dataset.m===smTimeMode); });
+  var live=document.getElementById('sm-live'); if(live) live.style.display = smTimeMode==='now'?'':'none';
+  var sched=document.getElementById('sm-sched'); if(sched) sched.style.display = smTimeMode==='pick'?'':'none';
+  // 실시간: 현재 시각 표시
   var nowEl=document.getElementById('sm-now');
-  if(nowEl){
+  if(nowEl){ var now=smNow();
     if(now){ var d=ymd(now.day); nowEl.textContent='8/'+d.getDate()+' ('+WDS[d.getDay()]+') '+smMinLabel(Math.round(now.h*60)); }
     else nowEl.textContent='행사 기간 외 — 전원 기본 위치(JHQ 본부)';
   }
+  // 시간 지정: 날짜 옵션(최초 1회) + 슬라이더 라벨
+  var daySel=document.getElementById('sm-day');
+  if(daySel){ if(!daySel.options.length){ daySel.innerHTML=JAM_DAYS.map(function(d){var dd=ymd(d[0]);return '<option value="'+d[0]+'">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')'+(d[1]?(' '+esc(d[1])):'')+'</option>';}).join(''); } daySel.value=smDay; }
+  var tlab=document.getElementById('sm-tlabel'); if(tlab) tlab.textContent=smMinLabel(smTimeMin);
+  var tr=document.getElementById('sm-time'); if(tr) tr.value=smTimeMin;
   var clr=document.getElementById('sm-clear'); if(clr) clr.style.display = Object.keys(mapPosMap()).length?'':'none';
   renderSiteMapMarkers();
   renderSiteSelbar();
@@ -2569,9 +2581,12 @@ function init(){
   var ttAdd=document.getElementById('tt-add'); if(ttAdd) ttAdd.onclick=addTT;
   var ttSeg=document.getElementById('tt-modeseg'); if(ttSeg) ttSeg.querySelectorAll('button').forEach(function(bt){ bt.onclick=function(){ ttMode=bt.dataset.m; try{localStorage.setItem('jamboree-plan:ttmode',ttMode);}catch(e){} renderTimetable(); }; });
   var rsAdd=document.getElementById('roster-add'); if(rsAdd) rsAdd.onclick=addRoster;
-  // 현장 위치 지도 — 현재 시각 자동 연동(1분마다 갱신) + 수동 지정(우선)
-  var smClear=document.getElementById('sm-clear'); if(smClear) smClear.onclick=function(){ if(!Object.keys(mapPosMap()).length) return; if(!confirm('수동으로 지정한 위치를 모두 초기화할까요?\n전원이 현재 시각 자동 표시(일정 없으면 JHQ 본부)로 돌아갑니다.')) return; state.mappos={}; saveMapPos(); smSel=null; renderSiteMap(); };
-  setInterval(function(){ if(curViewMode==='sitemap') renderSiteMap(); }, 60000);
+  // 현장 위치 지도 — 지금 기준(실시간, 1분 갱신) ↔ 시간 지정(슬라이더) 공존 + 수동 지정(우선)
+  var smSeg=document.getElementById('sm-modeseg'); if(smSeg) smSeg.querySelectorAll('button').forEach(function(bt){ bt.onclick=function(){ smTimeMode=bt.dataset.m; renderSiteMap(); }; });
+  var smDaySel=document.getElementById('sm-day'); if(smDaySel) smDaySel.addEventListener('change',function(){ smDay=this.value; renderSiteMapMarkers(); });
+  var smTime=document.getElementById('sm-time'); if(smTime) smTime.addEventListener('input',function(){ smTimeMin=+this.value; var lb=document.getElementById('sm-tlabel'); if(lb) lb.textContent=smMinLabel(smTimeMin); renderSiteMapMarkers(); });
+  var smClear=document.getElementById('sm-clear'); if(smClear) smClear.onclick=function(){ if(!Object.keys(mapPosMap()).length) return; if(!confirm('수동으로 지정한 위치를 모두 초기화할까요?\n전원이 자동 표시(일정 없으면 JHQ 본부)로 돌아갑니다.')) return; state.mappos={}; saveMapPos(); smSel=null; renderSiteMap(); };
+  setInterval(function(){ if(curViewMode==='sitemap' && smTimeMode==='now') renderSiteMap(); }, 60000);
   var smDragPid=null;
   var smStage=document.getElementById('sm-stage');
   if(smStage){

@@ -19,8 +19,8 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.151"></script>
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.151">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.152"></script>
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.152">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -313,11 +313,19 @@
       <span class="sub">제16회 한국잼버리 야영장 배치도 위에 홍보부 인원 위치를 대략적으로 표시</span>
     </div>
     <div class="smctrl">
-      <span class="sm-live"><span class="sm-livedot"></span> 지금 기준 · <b id="sm-now"></b></span>
+      <div class="seg" id="sm-modeseg">
+        <button type="button" data-m="now" class="active">지금 기준</button>
+        <button type="button" data-m="pick">시간 지정</button>
+      </div>
+      <span class="sm-live" id="sm-live"><span class="sm-livedot"></span> <b id="sm-now"></b></span>
+      <div class="sm-sched" id="sm-sched" style="display:none">
+        <select id="sm-day" class="evinput sm-day" aria-label="날짜"></select>
+        <div class="sm-timewrap"><input type="range" id="sm-time" min="0" max="1425" step="15" value="1200" aria-label="시각"><span class="sm-tlabel mono" id="sm-tlabel">20:00</span></div>
+      </div>
       <span class="spacer"></span>
       <button class="btn sm ghost" id="sm-clear" style="display:none">수동 배치 초기화</button>
     </div>
-    <p class="note" id="sm-help"><b>현재 시각</b>의 <b>잼버리 일정표</b>를 기준으로 인원 위치를 실시간 표시합니다. 일정이 없는 인원은 기본적으로 <b>JHQ 본부</b>에 모입니다. 특정 인원을 옮기려면 모인 구역을 클릭해 <b>이동</b>하거나 아바타를 드래그하세요 — <b>수동 지정은 자동보다 우선</b>합니다. ‘수동 배치 초기화’를 누르면 다시 현재 시각 자동 표시로 돌아갑니다.</p>
+    <p class="note" id="sm-help"><b>지금 기준</b>은 현재 시각의 <b>잼버리 일정표</b>로 인원 위치를 실시간 표시하고, <b>시간 지정</b>은 슬라이더로 특정 날짜·시각의 배치를 미리 봅니다. 일정이 없는 인원은 기본적으로 <b>JHQ 본부</b>에 모입니다. 특정 인원을 옮기려면 모인 구역을 클릭해 <b>이동</b>하거나 아바타를 드래그하세요 — <b>수동 지정은 자동보다 우선</b>합니다. ‘수동 배치 초기화’로 다시 자동 표시로 돌아갑니다.</p>
     <div class="sm-selbar" id="sm-selbar"></div>
     <div class="smwrap"><div class="smstage" id="sm-stage"><img src="jamboree-plan/assets/sitemap.png" alt="제16회 한국잼버리 야영장 배치도" id="sm-img" draggable="false"></div></div>
     <p class="note">위치는 <b>대략적인 구역</b> 기준이며, 인원은 <b>홍보부 인원 관리</b> 탭의 명단에서 가져옵니다. 일정에 ‘현장 지도 구역’을 지정하면 해당 시간에 정확한 위치로 표시됩니다.</p>
@@ -426,7 +434,7 @@
 <div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
-<script src="jamboree-plan/app.js?v=0.9.151"></script>
-<script src="version-watch.js?v=0.9.151"></script>
+<script src="jamboree-plan/app.js?v=0.9.152"></script>
+<script src="version-watch.js?v=0.9.152"></script>
 </body>
 </html>

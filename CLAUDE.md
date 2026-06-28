@@ -861,6 +861,11 @@ WOSM Region → 국가(NSO) → 단위대
 - API(`functions/api/jamboree-plan.js`): `MAPPOS` 키 + GET 응답에 `mappos` + PUT `body.mappos`(객체) 분기 + `cleanTT`에 zone.
 - 검증: `node --check`(app·api) + 헤드리스 Chrome(CDP, 관리자 세션 시드): 게이트 통과·탭 활성·이미지 로드·29마커·6 트레이 / 선택→배치(stage)→mappos·트레이 5·핀 / 연동 모드 개영식 담당 지정+20:30→stage 자동(src sched, 메인스타디움→stage 매칭)·수동 1+자동 1=2 / TT 모달 구역 select 30옵션 / **콘솔 에러 0** + 스크린샷(배치도 풀폭·마커·트레이 정상). ⚠️ 실 인원/배치 저장 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
 
+### 16.45 v0.9.152 — 현장 지도: ‘지금 기준(실시간)’ ↔ ‘시간 지정(슬라이더)’ 모드 공존
+- 사용자: 현재 시각 실시간 보기와 **타이머(슬라이더)로 특정 시각 배치 미리보기** 두 기능이 **공존**해야 함.
+- **세그 토글**(`#sm-modeseg` 지금 기준/시간 지정): `smTimeMode`('now'/'pick'). `smMoment()`=now면 `smNow()`(실시간), pick면 `{day:smDay,h:smTimeMin/60}`(슬라이더). `smPersonZone`이 `smMoment()` 사용 → 두 모드 공통(수동>해당시점 일정>기본 JHQ). now=라이브 라벨+1분 자동갱신(now일 때만), pick=날짜 select + 15분 시간 슬라이더(기본 8/5 20:00). 캐시버스트 `?v=0.9.152`.
+- 검증: 헤드리스 — 세그 ‘지금 기준|시간 지정’ / now=라이브 표시·sched 숨김·전원 JHQ / pick=sched 표시·날짜 8옵션·슬라이더 / 담당+8/5 20:00→메인무대(sched), 06:00→JHQ(일정 없음) / now 복귀 라이브 / **콘솔 에러 0**.
+
 ### 16.44 v0.9.151 — 현장 지도 가독성(겹침+N·말풍선) + 메뉴 그루핑 + 캐시 근본수정 + JHG→JHQ
 - 사용자 라이브 피드백 다건 일괄.
 - **캐시 근본 수정**(`functions/_middleware.js`): `_headers`의 `/* no-cache`가 **미들웨어가 감싼 정적 자산엔 미적용**(Pages 기본 `max-age=14400`)이라 새 배포가 브라우저에 수시간 지연되던 원인 확인(§17.9 반복 문제의 잔존). → 미들웨어가 `next()` 후 **`/api/*` 외 모든 응답에 `Cache-Control: no-cache` 강제 셋**(`new Response(res.body,res)`). API는 자체 캐시 유지. 이후 배포 **즉시 반영**(ETag 304).
