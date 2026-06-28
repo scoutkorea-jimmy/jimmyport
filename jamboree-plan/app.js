@@ -222,6 +222,8 @@ function normEdit(e){
   if(!Array.isArray(e.channels)||!e.channels.length) e.channels = e.channel ? [e.channel] : ['페이스북'];
   if(typeof e.links!=='object'||!e.links) e.links = e.link ? (function(){var o={};o[e.channels[0]]=e.link;return o;})() : {};
   if(!Array.isArray(e.files)) e.files=[];
+  if(typeof e.due!=='string') e.due='';
+  e.approval=normApproval(e.approval);
   delete e.channel; delete e.link;
   return e;
 }
@@ -229,7 +231,8 @@ function adopt(s){ var st=Object.assign(stateDefaults(), s||{}); Object.keys(st.
 function loadLocal(){ try{var r=localStorage.getItem(LS); if(r) state=adopt(JSON.parse(r));}catch(e){} }
 function saveLocal(){ prune(); try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} }
 function key(date,type){return date+'#'+type;}
-function EDEF(){ return {title:'',ctype:'',status:'planned',time:'',owner:'',tags:'',posted:false,postedAt:'',channels:['페이스북'],links:{},images:[],files:[]}; }
+function EDEF(){ return {title:'',ctype:'',status:'planned',time:'',owner:'',tags:'',posted:false,postedAt:'',channels:['페이스북'],links:{},images:[],files:[],due:'',approval:{state:'none',by:'',at:'',note:''}}; }
+function normApproval(a){ a=(a&&typeof a==='object')?a:{}; return {state:(['none','requested','approved','rejected'].indexOf(a.state)>=0?a.state:'none'),by:a.by||'',at:a.at||'',note:a.note||''}; }
 function getEdit(k){ return state.edits[k] || (state.edits[k]=EDEF()); }   // editing (persists)
 function peek(k){ return state.edits[k] || EDEF(); }                       // read-only (no store)
 function hist(k){ return state.history[k] || []; }
@@ -238,7 +241,7 @@ function linkCount(e){ return e.links ? Object.keys(e.links).filter(function(c){
 function channelPh(c){ return ({'페이스북':'https://facebook.com/…','인스타그램':'https://instagram.com/…','유튜브':'https://youtube.com/…','블로그':'https://blog…/…'})[c]||'https://…'; }
 function normUrl(v){ v=(v||'').trim(); if(v && !/^https?:\/\//i.test(v) && /\./.test(v) && !/\s/.test(v)) v='https://'+v; return v; }
 function lastEditText(k){ var m=state.meta[k]; if(!m||!m.updatedAt) return ''; return '마지막 작업: '+(m.author||'익명')+(m.ip?(' · IP '+m.ip):'')+' · '+fmtDateTime(m.updatedAt); }
-function isDefaultEdit(e){ var defCh=!e.channels||(e.channels.length===1&&e.channels[0]==='페이스북'); return !e.title && !e.ctype && !e.time && !e.owner && !e.tags && !e.posted && !hasLink(e) && (!e.images||!e.images.length) && (!e.files||!e.files.length) && (!e.status||e.status==='planned') && defCh; }
+function isDefaultEdit(e){ var defCh=!e.channels||(e.channels.length===1&&e.channels[0]==='페이스북'); var defAp=!e.approval||!e.approval.state||e.approval.state==='none'; return !e.title && !e.ctype && !e.time && !e.owner && !e.tags && !e.posted && !hasLink(e) && (!e.images||!e.images.length) && (!e.files||!e.files.length) && (!e.status||e.status==='planned') && defCh && !e.due && defAp; }
 function prune(){ Object.keys(state.edits).forEach(function(k){ if(isDefaultEdit(state.edits[k]) && !(state.history[k]&&state.history[k].length) && k.indexOf('#extra#')<0) delete state.edits[k]; }); }
 function defaultMarketing(){
   return [
@@ -257,7 +260,7 @@ function authorVal(){ var el=document.getElementById('author'); return el?(el.va
 function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
 function slotEditPayload(k,s){
   var e=peek(k);
-  return {title:e.title||'',ctype:e.ctype||'',status:e.status||'planned',time:e.time||'',owner:e.owner||'',tags:e.tags||'',posted:!!e.posted,postedAt:e.postedAt||'',channels:(e.channels&&e.channels.length?e.channels:['페이스북']),links:e.links||{},images:e.images||[],files:e.files||[],category:(s&&s.category)||''};
+  return {title:e.title||'',ctype:e.ctype||'',status:e.status||'planned',time:e.time||'',owner:e.owner||'',tags:e.tags||'',posted:!!e.posted,postedAt:e.postedAt||'',channels:(e.channels&&e.channels.length?e.channels:['페이스북']),links:e.links||{},images:e.images||[],files:e.files||[],due:e.due||'',approval:normApproval(e.approval),category:(s&&s.category)||''};
 }
 function applyMeta(k,slot){ if(slot){ state.meta[k]={author:slot.author,ip:slot.ip,updatedAt:slot.updatedAt}; updateLastEditUI(k); } }
 function updateLastEditUI(k){ var els=document.querySelectorAll('[data-lastedit="'+k+'"]'); for(var i=0;i<els.length;i++) els[i].textContent=lastEditText(k); }
@@ -695,6 +698,38 @@ function renderFilters(){
 }
 var kindFilter='all';   // all | content | meeting
 function matchKind(e){ return kindFilter==='all' || (kindFilter==='meeting'? isMeeting(e) : !isMeeting(e)); }
+/* ===== 마감일 · 승인 ===== */
+var APPROVAL_LABEL={none:'',requested:'검수 요청',approved:'승인됨',rejected:'반려됨'};
+function dueState(e){ // '' | 'soon'(오늘~내일) | 'over'(지남) — 미게시 콘텐츠만
+  if(!e||!e.due||e.posted) return '';
+  var today=todayISO(); if(e.due<today) return 'over';
+  var days=Math.round((new Date(e.due+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
+  return days<=1?'soon':'';
+}
+function dueBadge(e){ if(!e||!e.due) return ''; var ds=dueState(e); var lbl='마감 '+e.due.slice(5);
+  if(ds==='over') return '<span class="duebadge over">'+lbl+' 지남</span>';
+  if(ds==='soon') return '<span class="duebadge soon">'+lbl+' 임박</span>';
+  return '<span class="duebadge">'+lbl+'</span>'; }
+function approvalBadge(e){ var a=(e&&e.approval)||{}; if(!a.state||a.state==='none') return ''; return '<span class="apbadge ap-'+a.state+'">'+(APPROVAL_LABEL[a.state]||'')+'</span>'; }
+function dueItems(){ var out=[]; DAYS.forEach(function(d){ daySlots(d).forEach(function(s){ var e=peek(s.k); if(isMeeting(e)) return; var ds=dueState(e); if(ds) out.push({d:d,s:s,e:e,ds:ds}); }); }); return out; }
+/* 마감 알림(브라우저 Notification) */
+var NOTIF_KEY='jamboree-plan:due-notified';
+function notifiedSet(){ try{ return JSON.parse(localStorage.getItem(NOTIF_KEY)||'{}'); }catch(e){ return {}; } }
+function scanDueNotify(){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  var notified=notifiedSet(), today=todayISO(), changed=false;
+  dueItems().forEach(function(it){ var key=it.s.k+'|'+today; if(notified[key]) return; notified[key]=1; changed=true;
+    var title=it.e.title||it.s.seedTitle||'콘텐츠';
+    try{ new Notification(it.ds==='over'?'마감 지난 콘텐츠':'마감 임박 콘텐츠',{body:title+' — 마감 '+(it.e.due||''),icon:'/jamboree/assets/logo.png',tag:it.s.k}); }catch(e){}
+  });
+  if(changed){ try{ localStorage.setItem(NOTIF_KEY,JSON.stringify(notified)); }catch(e){} }
+}
+function updateNotifyBtn(){ var b=document.getElementById('due-notify'); if(!b) return; var sup=('Notification' in window); var on=sup&&Notification.permission==='granted'; b.textContent=on?'🔔 마감 알림 켜짐':'🔔 마감 알림 켜기'; b.classList.toggle('solid',on); b.disabled=sup&&Notification.permission==='denied'; }
+function enableDueNotify(){
+  if(!('Notification' in window)){ toast('이 브라우저는 알림을 지원하지 않습니다'); return; }
+  if(Notification.permission==='granted'){ toast('마감 알림이 이미 켜져 있습니다'); scanDueNotify(); return; }
+  Notification.requestPermission().then(function(p){ updateNotifyBtn(); if(p==='granted'){ toast('마감 알림이 켜졌습니다'); scanDueNotify(); } else toast('알림 권한이 허용되지 않았습니다'); });
+}
 function renderBoard(){
   var board=document.getElementById('board'); if(!board) return;
   board.innerHTML='';
@@ -719,6 +754,11 @@ function renderBoard(){
   var pct= total? Math.round(ready/total*100):0;
   document.getElementById('pfill').style.width=pct+'%';
   document.getElementById('ptext').textContent='콘텐츠 완료 '+ready+'/'+total+' ('+pct+'%) · 진행 시작 '+started+' · 회의 '+meetings+'건';
+  var dbn=document.getElementById('due-banner');
+  if(dbn){ var due=dueItems(), over=due.filter(function(x){return x.ds==='over';}).length, soon=due.filter(function(x){return x.ds==='soon';}).length;
+    if(over||soon){ dbn.style.display=''; dbn.innerHTML='<span data-ic="clock" data-ic-size="15" style="vertical-align:-3px"></span> <b>마감 주의</b> — 임박 '+soon+'건'+(over?(' · 지남 '+over+'건'):'')+' (미게시 콘텐츠)'; var ic=dbn.querySelector('[data-ic]'); if(ic) ic.innerHTML=icon('clock',15); }
+    else dbn.style.display='none';
+  }
 }
 function chanClass(ch){ return ch==='인스타그램'?'ig':ch==='유튜브'?'yt':(ch==='페이스북'||!ch)?'':'etc'; }
 function cardEl(d,s,e){
@@ -727,6 +767,8 @@ function cardEl(d,s,e){
   var chs=(e.channels&&e.channels.length?e.channels:['페이스북']);
   var bits=[];
   if(e.posted) bits.push('<span class="postbadge">게시됨</span>');
+  var ab=approvalBadge(e); if(ab) bits.push(ab);
+  var db=dueBadge(e); if(db) bits.push(db);
   bits=bits.concat(chs.map(function(c){ return '<span class="chchip '+chanClass(c)+'">'+esc(c)+'</span>'; }));
   var ln=linkCount(e); if(ln) bits.push('<span class="minic">'+icon('link',13)+' '+ln+'</span>');
   if(e.images&&e.images.length) bits.push('<span class="minic">'+icon('image',13)+' '+e.images.length+'</span>');
@@ -860,6 +902,31 @@ function slotEl(rec,s,e){
   pchk.onchange=function(){ e.posted=pchk.checked; e.postedAt=pchk.checked?new Date().toISOString():''; postWrap.classList.toggle('on',pchk.checked); pstat.textContent=pstatTxt(); mark(); };
   postWrap.appendChild(pchk); postWrap.appendChild(document.createTextNode(' 게시 완료 ')); postWrap.appendChild(pstat);
   metaFld.appendChild(postWrap); wrap.appendChild(metaFld);
+
+  // 마감일 + 승인 (콘텐츠만)
+  var dueFld=document.createElement('div'); dueFld.className='fld sns-only';
+  dueFld.innerHTML='<label>마감일 (이 날짜까지 게시 · 선택) · 검수/승인</label>';
+  var dueInp=document.createElement('input'); dueInp.type='date'; dueInp.className='evinput duein'; dueInp.value=e.due||''; dueInp.min='2026-06-15'; dueInp.max='2026-08-31';
+  dueInp.onchange=function(){ e.due=dueInp.value; mark(); };
+  dueFld.appendChild(dueInp);
+  var apWrap=document.createElement('div'); apWrap.className='apctrl';
+  function renderAp(){
+    apWrap.innerHTML=''; var a=e.approval=normApproval(e.approval);
+    var now=document.createElement('span'); now.className='apnow ap-'+(a.state||'none');
+    now.textContent= a.state==='approved'?('승인됨'+(a.by?(' · '+a.by):'')) : a.state==='rejected'?('반려됨'+(a.note?(' · '+a.note):'')) : a.state==='requested'?'검수 요청됨':'검수 전';
+    apWrap.appendChild(now);
+    var btns=document.createElement('div'); btns.className='apbtns';
+    function apBtn(label,cls,fn){ var b=document.createElement('button'); b.type='button'; b.className='btn xs '+cls; b.textContent=label; b.onclick=fn; btns.appendChild(b); }
+    if(a.state!=='requested'&&a.state!=='approved') apBtn('검수 요청','ghost',function(){ a.state='requested'; a.at=new Date().toISOString(); a.by=Auth.name||Auth.username||''; renderAp(); mark(); });
+    if(Auth.isStaff()){
+      if(a.state!=='approved') apBtn('승인','solid',function(){ a.state='approved'; a.by=Auth.name||Auth.username||'홍보부'; a.at=new Date().toISOString(); a.note=''; renderAp(); mark(); });
+      if(a.state!=='rejected') apBtn('반려','danger',function(){ var n=prompt('반려 사유 (선택)')||''; a.state='rejected'; a.note=n.slice(0,300); a.by=Auth.name||Auth.username||''; a.at=new Date().toISOString(); renderAp(); mark(); });
+    }
+    if(a.state!=='none') apBtn('해제','ghost',function(){ a.state='none'; a.by=''; a.at=''; a.note=''; renderAp(); mark(); });
+    apWrap.appendChild(btns);
+  }
+  renderAp();
+  dueFld.appendChild(apWrap); wrap.appendChild(dueFld);
 
   // 채널 (복수 선택)
   var chWrap=document.createElement('div'); chWrap.className='fld sns-only';
@@ -2750,6 +2817,9 @@ function init(){
     var k=addContent(d); var sl=findSlot(byDate[d],k); renderAfterEdit(k,sl); openSlot(d, sl);
   };
   document.getElementById('mk-add').onclick=function(){ if(!state.marketing)state.marketing=defaultMarketing(); state.marketing.push({id:mkid(),date:'',title:'',channel:'',memo:''}); renderMarketing(); saveMarketing(); };
+  // 마감 알림
+  var dn=document.getElementById('due-notify'); if(dn) dn.onclick=enableDueNotify;
+  updateNotifyBtn(); setTimeout(scanDueNotify,3000); setInterval(scanDueNotify, 5*60*1000);
   var ttAdd=document.getElementById('tt-add'); if(ttAdd) ttAdd.onclick=addTT;
   var ttSeg=document.getElementById('tt-modeseg'); if(ttSeg) ttSeg.querySelectorAll('button').forEach(function(bt){ bt.onclick=function(){ ttMode=bt.dataset.m; try{localStorage.setItem('jamboree-plan:ttmode',ttMode);}catch(e){} renderTimetable(); }; });
   var rsAdd=document.getElementById('roster-add'); if(rsAdd) rsAdd.onclick=addRoster;

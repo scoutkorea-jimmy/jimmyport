@@ -928,3 +928,22 @@ tr.rowdim{opacity:.34}
 .shoot-title:focus,.shoot-zone:focus,.shoot-time:focus,.shoot-note:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .shoot-del{flex:0 0 auto}
 @media(max-width:680px){ .shoot-row2{flex-direction:column} .shoot-zone{width:100%;max-width:none} }
+
+/* ===== 콘텐츠 마감일 · 승인 ===== */
+.duebadge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:var(--pill);background:var(--surface-3);color:var(--muted);border:1px solid var(--line)}
+.duebadge.soon{background:var(--st-draft-bg);color:var(--st-draft);border-color:transparent}
+.duebadge.over{background:#FBE7E2;color:var(--danger);border-color:transparent}
+.apbadge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:var(--pill);color:#fff}
+.apbadge.ap-requested{background:var(--st-draft)}
+.apbadge.ap-approved{background:var(--st-ready)}
+.apbadge.ap-rejected{background:var(--danger)}
+.due-banner{display:flex;align-items:center;gap:7px;margin:0 0 12px;padding:9px 14px;border-radius:var(--r-2);background:var(--st-draft-bg);color:var(--st-draft);font-size:13px;border:1px solid transparent}
+.due-banner b{font-weight:800}
+#due-notify.solid{background:var(--accent);border-color:var(--accent);color:#fff}
+.duein{max-width:190px}
+.apctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px}
+.apnow{font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:var(--pill);background:var(--surface-3);color:var(--muted)}
+.apnow.ap-requested{background:var(--st-draft-bg);color:var(--st-draft)}
+.apnow.ap-approved{background:var(--st-ready-bg);color:var(--st-ready)}
+.apnow.ap-rejected{background:#FBE7E2;color:var(--danger)}
+.apbtns{display:flex;gap:6px;flex-wrap:wrap}

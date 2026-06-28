@@ -861,6 +861,14 @@ WOSM Region → 국가(NSO) → 단위대
 - API(`functions/api/jamboree-plan.js`): `MAPPOS` 키 + GET 응답에 `mappos` + PUT `body.mappos`(객체) 분기 + `cleanTT`에 zone.
 - 검증: `node --check`(app·api) + 헤드리스 Chrome(CDP, 관리자 세션 시드): 게이트 통과·탭 활성·이미지 로드·29마커·6 트레이 / 선택→배치(stage)→mappos·트레이 5·핀 / 연동 모드 개영식 담당 지정+20:30→stage 자동(src sched, 메인스타디움→stage 매칭)·수동 1+자동 1=2 / TT 모달 구역 select 30옵션 / **콘솔 에러 0** + 스크린샷(배치도 풀폭·마커·트레이 정상). ⚠️ 실 인원/배치 저장 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
 
+### 16.48 v0.9.155 — 콘텐츠 ③: 마감일 + 검수/승인 워크플로 + 마감 브라우저 알림
+- 사용자 선택 3종 중 **③콘텐츠 승인+마감 알림** 구현(콘텐츠 보드 확장).
+- **데이터**: `cleanEdit`/EDEF/normEdit/slotEditPayload/isDefaultEdit에 `due`(YYYY-MM-DD)·`approval`{state:none/requested/approved/rejected,by,at,note} 추가(`normApproval`). 기존 카드 호환(기본값).
+- **모달**(slotEl, sns-only): 마감일 date input + 검수/승인 컨트롤(`.apctrl`) — 검수 요청(누구나)·승인/반려(홍보부 isStaff, 반려 사유 prompt)·해제. 현재 상태 `.apnow` 배지.
+- **카드/보드**: `cardEl`에 승인 배지(`.apbadge`)·마감 배지(`.duebadge` 임박 soon=오늘~내일·지남 over, 미게시만). 리스트 상단 **마감 배너**(`#due-banner` 임박/지남 건수) + **‘마감 알림 켜기’ 버튼**(Notification 권한).
+- **알림**: `scanDueNotify`(권한 granted 시 마감 임박/지난 미게시 콘텐츠를 1일 1회 브라우저 알림, `localStorage` 중복 방지) + init에서 3초 후·5분 주기 스캔. `enableDueNotify`(권한 요청).
+- 검증: `node --check`(app·api) + 헤드리스(관리자): 지난마감+승인 카드·오늘마감 카드 → over1/soon1 배지·승인 배지1·배너 ‘임박 1·지남 1’·알림 버튼·모달 마감일(값 2026-06-28)·승인 컨트롤(검수요청/승인/반려)·승인→‘승인됨’·`enableDueNotify` 무에러·**콘솔 에러 0**. ⚠️ 실 저장·알림 권한은 사용자 환경 QA.
+
 ### 16.47 v0.9.154 — 현장 지도 ②: 촬영 요청 핀 + 수동 배치 체크인 시각
 - 사용자 선택 3종 중 **②지도 체크인·촬영요청** 구현(현장 지도 확장).
 - **촬영 요청(shoots)**: jamboree-plan state/API에 `shoots` 추가(KV `jp:shoots`, `cleanShoot` {id,zone,title,time,note,status:open/done,assignees,by,createdAt}, GET키+PUT배열 분기). 현장 지도 하단 ‘촬영 요청’ 목록(인라인 카드: 상태토글·제목·구역 select[ZONES]·시간·메모·삭제, `saveShoots` 디바운스) + **지도에 카메라 핀**(`.smshoot`, 구역 좌표, open=빨강/done=회색, 클릭 시 해당 카드로 스크롤·flash). `addShoot`.

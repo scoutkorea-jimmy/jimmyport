@@ -19,8 +19,8 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.154"></script>
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.154">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.155"></script>
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.155">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -191,11 +191,13 @@
     <div class="progress"><div class="pbar"><i id="pfill"></i></div><span id="ptext"></span></div>
     <div class="filters" id="filters"></div>
     <div class="tools">
+      <button class="btn sm" id="due-notify">🔔 마감 알림 켜기</button>
       <span class="spacer"></span>
       <input type="date" id="add-date" class="adddate" min="2026-06-15" max="2026-08-09">
       <button class="btn sm solid" id="add-content"><span data-ic="plus" data-ic-size="14"></span> 콘텐츠 추가</button>
       <button class="btn sm" id="export">JSON</button>
     </div>
+    <div class="due-banner" id="due-banner" style="display:none"></div>
     <div class="board" id="board"></div>
     <p class="note">카드를 클릭하면 <b>종류 · 제목 · 채널 · 링크 · 이미지 · 첨부 · SNS 문구</b>를 편집합니다. 카드 하단으로 <b>기획 · 작성중 · 완료</b> 상태를 옮기고, 위 날짜 선택 후 <b>＋ 콘텐츠 추가</b>로 새 콘텐츠를 만듭니다. 변경은 서버에 자동 동기화됩니다.</p>
   </section>
@@ -468,7 +470,7 @@
 <div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
-<script src="jamboree-plan/app.js?v=0.9.154"></script>
-<script src="version-watch.js?v=0.9.154"></script>
+<script src="jamboree-plan/app.js?v=0.9.155"></script>
+<script src="version-watch.js?v=0.9.155"></script>
 </body>
 </html>

@@ -225,6 +225,16 @@ function cleanEdit(e) {
     links,
     images: Array.isArray(e.images) ? e.images.slice(0, 10).map((u) => (u || "").toString().slice(0, 600)) : [],
     files,
+    due: (e.due || "").toString().slice(0, 10),
+    approval: (() => {
+      const a = e.approval && typeof e.approval === "object" ? e.approval : {};
+      return {
+        state: ["none", "requested", "approved", "rejected"].indexOf(a.state) >= 0 ? a.state : "none",
+        by: (a.by || "").toString().slice(0, 40),
+        at: (a.at || "").toString().slice(0, 30),
+        note: (a.note || "").toString().slice(0, 300),
+      };
+    })(),
     category: (e.category || "").toString().slice(0, 40),
   };
 }
