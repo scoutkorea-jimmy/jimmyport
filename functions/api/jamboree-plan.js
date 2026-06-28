@@ -26,15 +26,35 @@ const DIVISIONS = "jp:divisions";
 const PROTOCOL = "jp:protocol";
 const LAUNCH = "jp:launch";
 const MAPPOS = "jp:mappos";
+const SHOOTS = "jp:shoots";
 
 function cleanMapPos(o) {
   o = o && typeof o === "object" ? o : {};
   const out = {};
   Object.keys(o).slice(0, 300).forEach((pid) => {
-    const z = (o[pid] || "").toString().slice(0, 40);
-    if (z) out[pid.toString().slice(0, 40)] = z;
+    const v = o[pid];
+    const key = pid.toString().slice(0, 40);
+    if (typeof v === "string") { const z = v.slice(0, 40); if (z) out[key] = { zone: z }; }
+    else if (v && typeof v === "object") { const z = (v.zone || "").toString().slice(0, 40); if (z) out[key] = { zone: z, at: (v.at || "").toString().slice(0, 30) }; }
   });
   return out;
+}
+function cleanShoot(e) {
+  e = e && typeof e === "object" ? e : {};
+  const assignees = Array.isArray(e.assignees)
+    ? e.assignees.slice(0, 20).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean)
+    : [];
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    zone: (e.zone || "").toString().slice(0, 30),
+    title: (e.title || "").toString().slice(0, 200),
+    time: (e.time || "").toString().slice(0, 40),
+    note: (e.note || "").toString().slice(0, 500),
+    status: ["open", "done"].indexOf(e.status) >= 0 ? e.status : "open",
+    assignees,
+    by: (e.by || "").toString().slice(0, 40),
+    createdAt: (e.createdAt || "").toString().slice(0, 30),
+  };
 }
 
 function cleanDivision(e) {
@@ -279,7 +299,11 @@ export async function onRequestGet(ctx) {
   const mpraw = await env.SCOUT_KV.get(MAPPOS);
   if (mpraw) { try { mappos = JSON.parse(mpraw).mappos; } catch {} }
 
-  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch, mappos }, 30);  // short TTL; writes purge it
+  let shoots = null;
+  const shraw = await env.SCOUT_KV.get(SHOOTS);
+  if (shraw) { try { shoots = JSON.parse(shraw).shoots; } catch {} }
+
+  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch, mappos, shoots }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
@@ -385,6 +409,13 @@ async function putImpl(ctx) {
   if (body.mappos && typeof body.mappos === "object" && !Array.isArray(body.mappos)) {
     const mappos = cleanMapPos(body.mappos);
     await env.SCOUT_KV.put(MAPPOS, JSON.stringify({ mappos, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 현장 지도 — 촬영 요청(shoots) 저장
+  if (Array.isArray(body.shoots)) {
+    const shoots = body.shoots.slice(0, 200).map(cleanShoot);
+    await env.SCOUT_KV.put(SHOOTS, JSON.stringify({ shoots, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

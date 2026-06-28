@@ -907,3 +907,24 @@ tr.rowdim{opacity:.34}
 .tip-meta .dotsep{color:var(--faint)}
 .tip-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;padding-top:10px;border-top:1px solid var(--line-2)}
 .tip-who{font-size:13px;color:var(--ink-2);background:var(--accent-soft);border-radius:var(--r-1);padding:8px 11px;margin-bottom:4px}
+
+/* ===== 현장 지도 — 촬영 요청 핀 + 목록 ===== */
+.smshoot{position:absolute;transform:translate(-50%,16px);z-index:3;display:inline-flex;align-items:center;gap:3px;background:var(--danger);color:#fff;border:2px solid #fff;border-radius:var(--pill);padding:2px 7px 2px 5px;font-size:10.5px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer;max-width:130px}
+.smshoot.s-done{background:var(--muted)}
+.smshoot .smshoot-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.smshoot .ic{flex:0 0 auto}
+.shootlist{display:flex;flex-direction:column;gap:10px}
+.shootcard{border:1px solid var(--line);border-left:4px solid var(--danger);border-radius:var(--r-2);background:var(--surface);padding:11px 13px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh-1);transition:background var(--ease)}
+.shootcard.s-done{border-left-color:var(--muted);opacity:.78}
+.shootcard.flash{background:var(--accent-soft)}
+.shoot-row1{display:flex;align-items:center;gap:8px}
+.shoot-row2{display:flex;gap:8px}
+.shoot-status{flex:0 0 auto;font:inherit;font-size:12px;font-weight:700;padding:5px 12px;border-radius:var(--pill);border:1px solid var(--danger);background:#fff;color:var(--danger);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.shoot-status.done{border-color:var(--st-ready);background:var(--st-ready);color:#fff}
+.shoot-title{flex:1;min-width:0;font:inherit;font-size:14px;font-weight:600;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.shoot-zone{flex:0 0 auto;width:160px;max-width:46%;font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.shoot-time{flex:1;min-width:0;font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.shoot-note{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface-2);color:var(--ink-2)}
+.shoot-title:focus,.shoot-zone:focus,.shoot-time:focus,.shoot-note:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.shoot-del{flex:0 0 auto}
+@media(max-width:680px){ .shoot-row2{flex-direction:column} .shoot-zone{width:100%;max-width:none} }

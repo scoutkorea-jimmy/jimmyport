@@ -861,6 +861,12 @@ WOSM Region → 국가(NSO) → 단위대
 - API(`functions/api/jamboree-plan.js`): `MAPPOS` 키 + GET 응답에 `mappos` + PUT `body.mappos`(객체) 분기 + `cleanTT`에 zone.
 - 검증: `node --check`(app·api) + 헤드리스 Chrome(CDP, 관리자 세션 시드): 게이트 통과·탭 활성·이미지 로드·29마커·6 트레이 / 선택→배치(stage)→mappos·트레이 5·핀 / 연동 모드 개영식 담당 지정+20:30→stage 자동(src sched, 메인스타디움→stage 매칭)·수동 1+자동 1=2 / TT 모달 구역 select 30옵션 / **콘솔 에러 0** + 스크린샷(배치도 풀폭·마커·트레이 정상). ⚠️ 실 인원/배치 저장 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
 
+### 16.47 v0.9.154 — 현장 지도 ②: 촬영 요청 핀 + 수동 배치 체크인 시각
+- 사용자 선택 3종 중 **②지도 체크인·촬영요청** 구현(현장 지도 확장).
+- **촬영 요청(shoots)**: jamboree-plan state/API에 `shoots` 추가(KV `jp:shoots`, `cleanShoot` {id,zone,title,time,note,status:open/done,assignees,by,createdAt}, GET키+PUT배열 분기). 현장 지도 하단 ‘촬영 요청’ 목록(인라인 카드: 상태토글·제목·구역 select[ZONES]·시간·메모·삭제, `saveShoots` 디바운스) + **지도에 카메라 핀**(`.smshoot`, 구역 좌표, open=빨강/done=회색, 클릭 시 해당 카드로 스크롤·flash). `addShoot`.
+- **체크인 시각**: `mappos` 값 `문자열`→`{zone,at}`로 확장(`cleanMapPos` 양쪽 호환, 프런트 `mapZoneOf`/`mapAtOf`). 수동 배치 시 `at=now` 기록 → 말풍선에 ‘체크인 N분 전’(`checkinAgo`). 구버전 문자열 값도 그대로 동작.
+- 검증: `node --check`(app·api) + 헤드리스(관리자): 촬영요청 섹션·빈상태·추가1·구역/제목→지도 핀1(제목 표시)·완료 토글(status done·핀 s-done)·수동배치→mappos 객체{zone,at}·말풍선 ‘체크인’·구버전 문자열 호환(stage)·**콘솔 에러 0**. ⚠️ 실 저장은 로그인 필요 → 사용자 QA.
+
 ### 16.46 v0.9.153 — 현장 제보 인박스(타 본부·대원 제보 → 홍보부 검토→기사/자료화)
 - 사용자 선택 3종(현장 제보 인박스·지도 체크인/촬영요청·콘텐츠 승인+알림) 중 **①현장 제보 인박스** 먼저 구현.
 - **신규 API** `functions/api/jp-tips.js`(KV `jpt:<id>`, `memberOrAdmin` 인증): GET(목록 최신순)·POST(제보 `{org,zone,text,photos[≤3],reporterName}`)·PATCH(검토 `status` new/used/rejected·note)·DELETE(작성자/관리자). 사진=`/api/image` URL만 저장, IP 마스킹 기록.

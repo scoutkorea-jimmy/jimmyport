@@ -19,8 +19,8 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.153"></script>
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.153">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.154"></script>
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.154">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -339,7 +339,14 @@
     <p class="note" id="sm-help"><b>지금 기준</b>은 현재 시각의 <b>잼버리 일정표</b>로 인원 위치를 실시간 표시하고, <b>시간 지정</b>은 슬라이더로 특정 날짜·시각의 배치를 미리 봅니다. 일정이 없는 인원은 기본적으로 <b>JHQ 본부</b>에 모입니다. 특정 인원을 옮기려면 모인 구역을 클릭해 <b>이동</b>하거나 아바타를 드래그하세요 — <b>수동 지정은 자동보다 우선</b>합니다. ‘수동 배치 초기화’로 다시 자동 표시로 돌아갑니다.</p>
     <div class="sm-selbar" id="sm-selbar"></div>
     <div class="smwrap"><div class="smstage" id="sm-stage"><img src="jamboree-plan/assets/sitemap.png" alt="제16회 한국잼버리 야영장 배치도" id="sm-img" draggable="false"></div></div>
-    <p class="note">위치는 <b>대략적인 구역</b> 기준이며, 인원은 <b>홍보부 인원 관리</b> 탭의 명단에서 가져옵니다. 일정에 ‘현장 지도 구역’을 지정하면 해당 시간에 정확한 위치로 표시됩니다.</p>
+    <p class="note">위치는 <b>대략적인 구역</b> 기준이며, 인원은 <b>홍보부 인원 관리</b> 탭의 명단에서 가져옵니다. 일정에 ‘현장 지도 구역’을 지정하면 해당 시간에 정확한 위치로 표시됩니다. 인원을 수동으로 옮기면 <b>체크인 시각</b>이 기록됩니다(말풍선에서 확인).</p>
+
+    <div class="sec-head" style="margin-top:22px;margin-bottom:8px">
+      <h3 class="smtray-h"><span data-ic="camera" data-ic-size="15" style="vertical-align:-2px"></span> 촬영 요청</h3>
+      <button class="btn sm" id="shoot-add"><span data-ic="plus" data-ic-size="14"></span> 촬영 요청 추가</button>
+    </div>
+    <div class="shootlist" id="shoot-list"></div>
+    <p class="note">언제·어디서 촬영이 필요한지 등록하면 지도에 <b>카메라 핀</b>으로 표시됩니다. 구역을 지정하면 핀이 그 위치에 찍히고, 핀을 클릭하면 해당 요청으로 이동합니다. 촬영을 마치면 <b>완료</b>로 전환하세요.</p>
   </section>
 
   <footer class="foot">
@@ -461,7 +468,7 @@
 <div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
-<script src="jamboree-plan/app.js?v=0.9.153"></script>
-<script src="version-watch.js?v=0.9.153"></script>
+<script src="jamboree-plan/app.js?v=0.9.154"></script>
+<script src="version-watch.js?v=0.9.154"></script>
 </body>
 </html>
