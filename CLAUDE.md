@@ -875,6 +875,11 @@ WOSM Region → 국가(NSO) → 단위대
 - **필수/동의**: 이름+**전화번호** 필수, 하단 체크 2종(개인정보 수집·이용 동의·참가자 확인) 모두 필수. API `jp-tips` 공개 POST에 `phone_required`/`consent_required`/`participant_required` 게이트 + 레코드에 `phone`·`consentAt`·`participant` 저장. 인박스 카드에 전화(`tel:` 링크) 표시.
 - 검증: `node --check`(jp-tips·image·app) + 헤드리스(KO/EN 토글·전화 필드·체크 2종·검증 순서 이름→전화→내용→동의→참가·구역 KO 'JHQ 본부'/EN 'JHQ HQ'·MAXP 10·콘솔 에러 0) + 스크린샷 + 라이브 비파괴(이름없음→400·전화없음→phone_required·동의없음→consent_required, 모두 무기록). ⚠️ 실제 제보 1건은 운영 KV 기록 → 사용자 QA.
 
+### 16.49c v0.9.158 — 공개 제보 리프레이밍: ‘현장(온사이트)’ → ‘잼버리 소식’(행사 전부터)
+- 사용자: 공개 페이지를 온사이트 제보가 아니라 **제16회 한국잼버리 소식**을 모으는 창구로 — **잼버리 시작 전부터** 참가자 관련 특별 소식·사연을 미리 제보.
+- 공개 페이지(`krjam-jebo.html`) 카피 교체(ko/en): 제목 ‘잼버리 소식 제보 / Share Jamboree News’, 리드(행사 전 특별 소식·사연 강조), 내용 placeholder, 위치→‘관련 위치(선택)’, `<title>`/OG. 필드·동의·전화 필수 등 구조는 §16.49b 유지.
+- 인박스(planning): 탭 ‘현장 제보’→‘소식 제보’, 섹션 ‘잼버리 소식 제보’, 안내문·모달 제목·기사화/자료화 라벨 reword(내부 id `tips` 불변). 검증: `node --check`+헤드리스(제목 KO/EN·관련 위치·콘솔 0)+라이브 title 확인.
+
 ### 16.48 v0.9.155 — 콘텐츠 ③: 마감일 + 검수/승인 워크플로 + 마감 브라우저 알림
 - 사용자 선택 3종 중 **③콘텐츠 승인+마감 알림** 구현(콘텐츠 보드 확장).
 - **데이터**: `cleanEdit`/EDEF/normEdit/slotEditPayload/isDefaultEdit에 `due`(YYYY-MM-DD)·`approval`{state:none/requested/approved/rejected,by,at,note} 추가(`normApproval`). 기존 카드 호환(기본값).
