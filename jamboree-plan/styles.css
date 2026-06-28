@@ -885,3 +885,25 @@ tr.rowdim{opacity:.34}
 .sm-live{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);padding:6px 13px;background:var(--accent-soft);border:1px solid var(--accent-soft);border-radius:var(--pill)}
 .sm-live b{color:var(--accent-ink);font-weight:800}
 .sm-livedot{width:8px;height:8px;border-radius:50%;background:var(--st-ready);box-shadow:0 0 0 3px rgba(47,143,107,.18)}
+
+/* ===== 현장 제보 인박스 ===== */
+.tipgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.tipcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;box-shadow:var(--sh-1);display:flex;flex-direction:column}
+.tipcard.s-used{border-color:var(--st-ready)}
+.tipcard.s-rejected{opacity:.7}
+.tip-photos{display:grid;gap:2px;background:var(--line-2)}
+.tip-photos.n1{grid-template-columns:1fr}
+.tip-photos.n2{grid-template-columns:1fr 1fr}
+.tip-photos.n3{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}
+.tip-photos.n3 .tip-thumb:first-child{grid-row:1/3}
+.tip-thumb{width:100%;height:100%;min-height:110px;max-height:230px;object-fit:cover;cursor:zoom-in;display:block}
+.tip-main{padding:13px 15px 14px;display:flex;flex-direction:column;gap:9px}
+.tip-top{display:flex;align-items:center;gap:8px}
+.tip-badge{color:#fff;font-size:11px;font-weight:800;padding:2px 9px;border-radius:var(--pill)}
+.tip-time{font-size:12px;color:var(--muted);margin-left:auto}
+.tip-text{font-size:14px;line-height:1.6;color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
+.tip-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.tip-meta .ic{vertical-align:-2px}
+.tip-meta .dotsep{color:var(--faint)}
+.tip-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;padding-top:10px;border-top:1px solid var(--line-2)}
+.tip-who{font-size:13px;color:var(--ink-2);background:var(--accent-soft);border-radius:var(--r-1);padding:8px 11px;margin-bottom:4px}

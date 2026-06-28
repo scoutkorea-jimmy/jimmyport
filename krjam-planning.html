@@ -19,8 +19,8 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.152"></script>
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.152">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.153"></script>
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.153">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -99,6 +99,7 @@
         <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더</button>
         <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 콘텐츠 리스트</button>
         <button class="vtab" data-v="news" role="tab"><span data-ic="fileText"></span> 기사</button>
+        <button class="vtab" data-v="tips" role="tab"><span data-ic="inbox"></span> 현장 제보</button>
         <button class="vtab" data-v="library" role="tab"><span data-ic="image"></span> 자료실</button>
       </div>
     </div>
@@ -136,6 +137,16 @@
     </div>
     <p class="note">홍보부원 누구나 <b>사진 2~3장과 기사</b>를 올릴 수 있습니다. 올린 기사는 바로 게시되며, <b>작성자 본인</b>이 자유롭게 수정할 수 있습니다. (삭제는 관리자) 이 보드는 내부용이며 연맹 SNS로 자동 게시되지 않습니다.</p>
     <div class="newsgrid" id="news-list"></div>
+  </section>
+
+  <section id="tips" style="display:none">
+    <div class="sec-head">
+      <h2><span data-ic="inbox" data-ic-size="17" style="vertical-align:-3px"></span> 현장 제보 인박스</h2>
+      <button class="btn sm solid" id="tip-add"><span data-ic="camera" data-ic-size="14"></span> 제보하기</button>
+    </div>
+    <p class="note">현장의 <b>사진·소식</b>을 제보하면 홍보부가 검토해 <b>기사·카드뉴스·자료</b>로 활용합니다. 로그인한 누구나 제보할 수 있고, <b>채택/반려</b>는 홍보부가 정리합니다. (제보 사진은 서버에 저장됩니다.)</p>
+    <div class="filters" id="tip-filters"></div>
+    <div class="tipgrid" id="tip-grid"></div>
   </section>
 
   <section id="library" style="display:none">
@@ -416,6 +427,22 @@
   </div>
 </div>
 
+<!-- 현장 제보 작성 모달 -->
+<div class="scrim" id="tip-scrim">
+  <div class="modal" style="max-width:520px" role="dialog" aria-modal="true">
+    <div class="mhead">
+      <div class="mt">현장 제보</div>
+      <button class="x" id="tip-close" aria-label="닫기"><span data-ic="x" data-ic-size="17"></span></button>
+    </div>
+    <div class="mbody" id="tip-body"></div>
+    <div class="mfoot">
+      <span class="spacer"></span>
+      <button class="btn ghost sm" id="tip-cancel">닫기</button>
+      <button class="btn solid" id="tip-save">제보 등록</button>
+    </div>
+  </div>
+</div>
+
 <!-- 관리자: 홍보부원 회원 관리 모달 -->
 <div class="scrim" id="members-scrim">
   <div class="modal" style="max-width:560px" role="dialog" aria-modal="true">
@@ -434,7 +461,7 @@
 <div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
-<script src="jamboree-plan/app.js?v=0.9.152"></script>
-<script src="version-watch.js?v=0.9.152"></script>
+<script src="jamboree-plan/app.js?v=0.9.153"></script>
+<script src="version-watch.js?v=0.9.153"></script>
 </body>
 </html>
