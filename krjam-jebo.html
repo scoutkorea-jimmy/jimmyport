@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>제16회 한국잼버리 · 현장 소식 제보</title>
+<title>제16회 한국잼버리 · 현장 소식 제보 / Share On-Site News</title>
 <link rel="icon" type="image/png" href="jamboree/assets/logo.png">
-<meta name="description" content="제16회 한국잼버리 현장의 사진과 소식을 누구나 자유롭게 제보하세요. 홍보부가 검토해 콘텐츠로 만듭니다.">
+<meta name="description" content="제16회 한국잼버리 현장의 사진과 소식을 누구나 자유롭게 제보하세요. / Share photos and news from the 16th Korea National Jamboree.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="제16회 한국잼버리">
-<meta property="og:title" content="제16회 한국잼버리 · 현장 소식 제보">
-<meta property="og:description" content="현장의 사진·소식을 누구나 제보하세요. 홍보부가 콘텐츠로 만듭니다.">
+<meta property="og:title" content="제16회 한국잼버리 · 현장 소식 제보 / Share On-Site News">
+<meta property="og:description" content="현장의 사진·소식을 누구나 제보하세요. / Share photos and news from the Jamboree.">
 <meta property="og:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -27,7 +27,11 @@
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.55;-webkit-text-size-adjust:100%}
 .wrap{max-width:560px;margin:0 auto;padding:0 16px 48px}
-.top{text-align:center;padding:30px 0 18px}
+/* 언어 토글 (상단, 크게) */
+.langbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;justify-content:center;padding:12px 0;background:linear-gradient(var(--bg) 70%,transparent)}
+.langbtn{flex:1;max-width:200px;font:inherit;font-size:17px;font-weight:800;padding:12px 0;border:2px solid var(--accent);border-radius:var(--pill);background:var(--surface);color:var(--accent);cursor:pointer;transition:var(--ease)}
+.langbtn.on{background:var(--accent);color:#fff;box-shadow:var(--sh-1)}
+.top{text-align:center;padding:14px 0 18px}
 .top img{width:72px;height:72px;border-radius:50%;background:#fff;box-shadow:var(--sh-1);padding:4px;border:1px solid var(--line-2)}
 .eyebrow{font-size:12px;font-weight:800;letter-spacing:.02em;color:var(--accent);margin:14px 0 4px}
 h1{font-size:24px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
@@ -36,6 +40,7 @@ h1{font-size:24px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
 label.fl{display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin:16px 0 7px}
 label.fl:first-child{margin-top:0}
 label.fl .req{color:var(--danger);margin-left:3px}
+label.fl .opt{font-weight:500;color:var(--faint);margin-left:3px}
 .in,.ta,.sel{width:100%;font:inherit;font-size:15px;padding:12px 13px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
 .ta{resize:vertical;min-height:96px}
 .in:focus,.ta:focus,.sel:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -44,9 +49,13 @@ label.fl .req{color:var(--danger);margin-left:3px}
 .slot{position:relative;width:84px;height:84px;border-radius:var(--r-1);overflow:hidden;border:1px solid var(--line);background:var(--line-2)}
 .slot img{width:100%;height:100%;object-fit:cover;display:block}
 .slot .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;cursor:pointer;line-height:22px;padding:0}
-.slot.add{display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);border-style:dashed;background:var(--surface);gap:3px;font-size:12px;font-weight:600}
+.slot.add{display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);border-style:dashed;background:var(--surface);gap:3px;font-size:12px;font-weight:600;text-align:center}
 .slot.add svg{width:22px;height:22px}
-.btn{display:block;width:100%;font:inherit;font-size:16px;font-weight:800;padding:15px;border:none;border-radius:var(--r-2);background:var(--accent);color:#fff;cursor:pointer;margin-top:22px;box-shadow:var(--sh-1);transition:var(--ease)}
+.chks{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-2);display:flex;flex-direction:column;gap:12px}
+.chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:13px;color:var(--ink-2);line-height:1.5}
+.chk input{width:20px;height:20px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
+.chk b{color:var(--ink);font-weight:700}
+.btn{display:block;width:100%;font:inherit;font-size:16px;font-weight:800;padding:15px;border:none;border-radius:var(--r-2);background:var(--accent);color:#fff;cursor:pointer;margin-top:18px;box-shadow:var(--sh-1);transition:var(--ease)}
 .btn:hover{background:var(--accent-ink)}
 .btn:disabled{opacity:.6;cursor:default}
 .err{color:var(--danger);font-size:13.5px;font-weight:600;margin:14px 0 0;text-align:center;min-height:18px}
@@ -61,66 +70,132 @@ label.fl .req{color:var(--danger);margin-left:3px}
 </style>
 </head>
 <body>
-<div class="busy" id="busy">전송 중…</div>
+<div class="busy" id="busy"></div>
 <div class="wrap">
+  <div class="langbar">
+    <button type="button" class="langbtn" id="lang-ko" data-lang="ko">한국어</button>
+    <button type="button" class="langbtn" id="lang-en" data-lang="en">English</button>
+  </div>
+
   <div class="top">
     <img src="jamboree/assets/logo.png" alt="제16회 한국잼버리 엠블럼" width="72" height="72">
-    <p class="eyebrow">제16회 한국잼버리 · 기획조정본부 홍보부</p>
-    <h1>현장 소식 제보</h1>
-    <p class="lead">잼버리 현장의 <b>사진과 소식</b>을 누구나 자유롭게 보내주세요.<br>홍보부가 검토해 카드뉴스·기사로 만들어 함께 나눕니다.</p>
+    <p class="eyebrow" id="t-eyebrow"></p>
+    <h1 id="t-title"></h1>
+    <p class="lead" id="t-lead"></p>
   </div>
 
   <form class="card" id="form" autocomplete="on">
-    <label class="fl" for="f-name">이름<span class="req">*</span></label>
-    <input class="in" id="f-name" type="text" maxlength="40" placeholder="제보자 이름" autocomplete="name">
+    <label class="fl" for="f-name"><span id="l-name"></span><span class="req">*</span></label>
+    <input class="in" id="f-name" type="text" maxlength="40" autocomplete="name">
 
-    <label class="fl" for="f-org">소속 · 분단 <span style="font-weight:500;color:var(--faint)">(선택)</span></label>
-    <input class="in" id="f-org" type="text" maxlength="60" placeholder="예: 평화숲분단 · 운영본부 · 일본 대표단">
+    <label class="fl" for="f-phone"><span id="l-phone"></span><span class="req">*</span></label>
+    <input class="in" id="f-phone" type="tel" maxlength="40" autocomplete="tel" inputmode="tel">
 
-    <label class="fl" for="f-zone">위치 <span style="font-weight:500;color:var(--faint)">(선택)</span></label>
+    <label class="fl" for="f-org"><span id="l-org"></span><span class="opt" id="l-org-opt"></span></label>
+    <input class="in" id="f-org" type="text" maxlength="60">
+
+    <label class="fl" for="f-zone"><span id="l-zone"></span><span class="opt" id="l-zone-opt"></span></label>
     <select class="sel" id="f-zone"></select>
 
-    <label class="fl" for="f-text">제보 내용</label>
-    <textarea class="ta" id="f-text" maxlength="2000" placeholder="무슨 일이 있었나요? 현장 소식·상황을 적어주세요."></textarea>
+    <label class="fl" for="f-text"><span id="l-text"></span></label>
+    <textarea class="ta" id="f-text" maxlength="2000"></textarea>
 
-    <label class="fl">사진 <span style="font-weight:500;color:var(--faint)">(최대 3장)</span></label>
+    <label class="fl"><span id="l-photo"></span> <span class="opt" id="l-photo-sub"></span></label>
     <div class="slots" id="slots"></div>
-    <p class="hint">사진 또는 내용 중 하나는 입력해 주세요.</p>
+    <p class="hint" id="t-photohint"></p>
 
-    <button class="btn" id="submit" type="submit">제보 보내기</button>
+    <div class="chks">
+      <label class="chk"><input type="checkbox" id="c-consent"><span id="t-consent"></span></label>
+      <label class="chk"><input type="checkbox" id="c-participant"><span id="t-participant"></span></label>
+    </div>
+
+    <button class="btn" id="submit" type="submit"></button>
     <p class="err" id="err"></p>
   </form>
 
   <div class="card" id="done" style="display:none">
     <div class="done">
       <div class="big">🏕️</div>
-      <h2>제보 감사합니다!</h2>
-      <p>홍보부가 확인 후 콘텐츠로 활용합니다.<br>소중한 현장 소식 고맙습니다.</p>
-      <button class="btn" id="again" type="button">새 제보 작성</button>
+      <h2 id="t-donetitle"></h2>
+      <p id="t-donetext"></p>
+      <button class="btn" id="again" type="button"></button>
     </div>
   </div>
 
-  <p class="foot">제보하신 이름·소속·사진·접속 IP는 홍보 콘텐츠 제작·검토 목적으로 수집되며, 제16회 한국잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제됩니다. 타인의 초상이 포함된 사진은 동의를 받아 제보해 주세요.</p>
+  <p class="foot" id="t-foot"></p>
 </div>
 
 <script>
+var T={
+  ko:{
+    eyebrow:'제16회 한국잼버리 · 기획조정본부 홍보부', title:'현장 소식 제보',
+    lead:'잼버리 현장의 <b>사진과 소식</b>을 누구나 자유롭게 보내주세요.<br>홍보부가 검토해 카드뉴스·기사로 만들어 함께 나눕니다.',
+    name:'이름', namePh:'제보자 이름', phone:'전화번호', phonePh:'예: 010-1234-5678', org:'소속 · 분단', opt:'(선택)', orgPh:'예: 평화숲분단 · 운영본부 · 일본 대표단',
+    zone:'위치', zoneNone:'— 위치 선택 안 함 —', text:'제보 내용', textPh:'무슨 일이 있었나요? 현장 소식·상황을 적어주세요.',
+    photo:'사진', photoSub:'(최대 10장)', photoAdd:'사진 추가', photoHint:'사진 또는 내용 중 하나는 입력해 주세요. 사진은 고화질로 전송됩니다.',
+    consent:'<b>[필수] 개인정보 수집·이용에 동의합니다.</b> 이름·소속·사진·접속 IP를 홍보 콘텐츠 제작·검토 목적으로 수집하며, 잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.',
+    participant:'<b>[필수] 본인은 제16회 한국잼버리 참가자임을 확인합니다.</b>',
+    submit:'제보 보내기', busy:'전송 중…',
+    donetitle:'제보 감사합니다!', donetext:'홍보부가 확인 후 콘텐츠로 활용합니다.<br>소중한 현장 소식 고맙습니다.', again:'새 제보 작성',
+    foot:'제보하신 이름·소속·사진·접속 IP는 홍보 콘텐츠 제작·검토 목적으로 수집되며, 제16회 한국잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제됩니다. 타인의 초상이 포함된 사진은 동의를 받아 제보해 주세요.',
+    err:{empty:'사진 또는 내용을 입력해 주세요.', name_required:'이름을 입력해 주세요.', phone_required:'전화번호를 입력해 주세요.', consent_required:'개인정보 수집·이용 동의가 필요합니다.', participant_required:'잼버리 참가자 확인이 필요합니다.', too_many:'제보가 너무 많습니다. 잠시 후 다시 시도해 주세요.', blocked_keyword:'허용되지 않는 표현이 포함되어 있습니다.', network:'네트워크 오류입니다. 다시 시도해 주세요.', generic:'전송에 실패했습니다. 다시 시도해 주세요.'}
+  },
+  en:{
+    eyebrow:'16th Korea National Jamboree · Media Team', title:'Share On-Site News',
+    lead:'Send us <b>photos and news</b> from the Jamboree.<br>The Media Team reviews them and turns them into cards & articles to share.',
+    name:'Name', namePh:'Your name', phone:'Phone', phonePh:'e.g. +82 10-1234-5678', org:'Unit · Division', opt:'(optional)', orgPh:'e.g. Pyeonghwasup Div. · Operations · Japan Contingent',
+    zone:'Location', zoneNone:'— No location selected —', text:'Your message', textPh:'What happened? Describe the on-site news or situation.',
+    photo:'Photos', photoSub:'(up to 10)', photoAdd:'Add photo', photoHint:'Please provide at least a photo or a message. Photos are sent in high quality.',
+    consent:'<b>[Required] I agree to the collection and use of my personal data.</b> Name, unit, photos and IP are collected for media content production/review and kept until 3 months after the Jamboree (until 2026-11-09), then deleted.',
+    participant:'<b>[Required] I confirm that I am a participant of the 16th Korea National Jamboree.</b>',
+    submit:'Send report', busy:'Sending…',
+    donetitle:'Thank you for your report!', donetext:'The Media Team will review and use it.<br>Thank you for sharing.', again:'New report',
+    foot:'Your name, unit, photos and IP are collected for media content production/review and kept until 3 months after the 16th Korea National Jamboree (until 2026-11-09), then deleted. For photos including other people, please obtain their consent before submitting.',
+    err:{empty:'Please enter a photo or a message.', name_required:'Please enter your name.', phone_required:'Please enter your phone number.', consent_required:'Consent to data collection is required.', participant_required:'Participant confirmation is required.', too_many:'Too many submissions. Please try again later.', blocked_keyword:'Your message contains words that are not allowed.', network:'Network error. Please try again.', generic:'Failed to send. Please try again.'}
+  }
+};
 var ZONES=[
-  ['','— 위치 선택 안 함 —'],
-  ['jhq','JHQ 본부'],['exhibit','전시·행사장'],['stage','메인무대'],['food','급식'],['camp','대회장·야영장'],
-  ['p1','과정1 활동장'],['p2','과정2 활동장'],['p3','과정3 활동장'],['p4','과정4 활동장'],['gym','과정5·체육관'],
-  ['supply','물자보급장소'],['cubs','컵스카우트 숙소'],['staffpark','운영요원 주차장'],['buspark','버스 주차장'],
-  ['admin','관리사무소'],['hospital','잼버리병원'],['staffhouse','운영요원 숙소'],
-  ['gn','큰물결분단'],['sb','솔바람분단'],['bn','빛누리분단'],['ul','어울림분단'],['pb','푸른별분단'],['ph','평화숲분단'],['kd','꿈동산분단'],
-  ['g1','Gate 1'],['g2','Gate 2'],['g3','Gate 3'],['g4','Gate 4'],['g5','Gate 5']
+  ['jhq','JHQ 본부','JHQ HQ'],['exhibit','전시·행사장','Exhibition & Event Hall'],['stage','메인무대','Main Stage'],['food','급식','Dining'],['camp','대회장·야영장','Ceremony & Camp Ground'],
+  ['p1','과정1 활동장','Program Field 1'],['p2','과정2 활동장','Program Field 2'],['p3','과정3 활동장','Program Field 3'],['p4','과정4 활동장','Program Field 4'],['gym','과정5·체육관','Field 5 · Gym'],
+  ['supply','물자보급장소','Supply Center'],['cubs','컵스카우트 숙소','Cub Scout Lodging'],['staffpark','운영요원 주차장','Staff Parking'],['buspark','버스 주차장','Bus Parking'],
+  ['admin','관리사무소','Admin Office'],['hospital','잼버리병원','Jamboree Hospital'],['staffhouse','운영요원 숙소','Staff Lodging'],
+  ['gn','큰물결분단','Keunmulgyeol Div.'],['sb','솔바람분단','Solbaram Div.'],['bn','빛누리분단','Bitnuri Div.'],['ul','어울림분단','Eoullim Div.'],['pb','푸른별분단','Pureunbyeol Div.'],['ph','평화숲분단','Pyeonghwasup Div.'],['kd','꿈동산분단','Kkumdongsan Div.'],
+  ['g1','Gate 1','Gate 1'],['g2','Gate 2','Gate 2'],['g3','Gate 3','Gate 3'],['g4','Gate 4','Gate 4'],['g5','Gate 5','Gate 5']
 ];
-document.getElementById('f-zone').innerHTML=ZONES.map(function(z){return '<option value="'+z[0]+'">'+z[1]+'</option>';}).join('');
+var MAXP=10;
+var LANG='ko'; try{ LANG=(localStorage.getItem('jebo:lang')==='en')?'en':'ko'; }catch(e){}
+var errKey=null;
+function setText(id,v){ var el=document.getElementById(id); if(el) el.innerHTML=v; }
+function applyLang(){
+  var t=T[LANG]; document.documentElement.lang=LANG;
+  document.getElementById('lang-ko').classList.toggle('on',LANG==='ko');
+  document.getElementById('lang-en').classList.toggle('on',LANG==='en');
+  setText('t-eyebrow',t.eyebrow); setText('t-title',t.title); setText('t-lead',t.lead);
+  setText('l-name',t.name); document.getElementById('f-name').placeholder=t.namePh;
+  setText('l-phone',t.phone); document.getElementById('f-phone').placeholder=t.phonePh;
+  setText('l-org',t.org); setText('l-org-opt',t.opt); document.getElementById('f-org').placeholder=t.orgPh;
+  setText('l-zone',t.zone); setText('l-zone-opt',t.opt); document.getElementById('f-text').placeholder=t.textPh;
+  setText('l-text',t.text); setText('l-photo',t.photo); setText('l-photo-sub',t.photoSub);
+  setText('t-photohint',t.photoHint); setText('t-consent',t.consent); setText('t-participant',t.participant);
+  setText('submit',t.submit); setText('t-donetitle',t.donetitle); setText('t-donetext',t.donetext);
+  setText('again',t.again); setText('t-foot',t.foot);
+  document.getElementById('busy').textContent=t.busy;
+  // zones (선택값 유지)
+  var zs=document.getElementById('f-zone'), cur=zs.value;
+  var li=(LANG==='en')?2:1;
+  zs.innerHTML='<option value="">'+t.zoneNone+'</option>'+ZONES.map(function(z){return '<option value="'+z[0]+'">'+z[li]+'</option>';}).join('');
+  zs.value=cur;
+  renderSlots();
+  if(errKey) setErr(errKey);
+}
+function setLang(v){ LANG=(v==='en')?'en':'ko'; try{ localStorage.setItem('jebo:lang',LANG); }catch(e){} applyLang(); }
 
 var images=[];
 var ADD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 function renderSlots(){
   var box=document.getElementById('slots');
-  var html=images.map(function(u,i){ return '<div class="slot"><img src="'+u+'" alt=""><button type="button" class="x" data-del="'+i+'" aria-label="삭제">×</button></div>'; }).join('');
-  if(images.length<3) html+='<label class="slot add">'+ADD_SVG+'<span>사진 추가</span><input type="file" accept="image/*" multiple id="file" hidden></label>';
+  var html=images.map(function(u,i){ return '<div class="slot"><img src="'+u+'" alt=""><button type="button" class="x" data-del="'+i+'" aria-label="x">×</button></div>'; }).join('');
+  if(images.length<MAXP) html+='<label class="slot add">'+ADD_SVG+'<span>'+T[LANG].photoAdd+'</span><input type="file" accept="image/*" multiple id="file" hidden></label>';
   box.innerHTML=html;
   var fi=document.getElementById('file'); if(fi) fi.onchange=function(){ handleFiles(this.files); };
 }
@@ -135,36 +210,43 @@ function downscale(file,max,q){
 }
 function uploadBlob(blob){ return fetch('/api/image',{method:'POST',headers:{'content-type':'image/jpeg'},body:blob}).then(function(r){return r.json();}).then(function(j){ return j&&j.url?j.url:null; }); }
 function handleFiles(files){
-  var list=Array.prototype.slice.call(files||[]).slice(0,3-images.length); if(!list.length) return;
+  var list=Array.prototype.slice.call(files||[]).slice(0,MAXP-images.length); if(!list.length) return;
   setBusy(true);
   (function next(){ if(!list.length){ setBusy(false); renderSlots(); return; } var f=list.shift();
-    downscale(f,1600,0.85).then(uploadBlob).then(function(url){ if(url&&images.length<3) images.push(url); next(); }).catch(function(){ next(); }); })();
+    // 고화질(최장 2800px, q0.92) — 사실상 용량 걱정 없이 전송
+    downscale(f,2800,0.92).then(uploadBlob).then(function(url){ if(url&&images.length<MAXP) images.push(url); next(); }).catch(function(){ next(); }); })();
 }
 function setBusy(on){ document.getElementById('busy').classList.toggle('show',on); document.getElementById('submit').disabled=on; }
-function setErr(m){ document.getElementById('err').textContent=m||''; }
-var ERR={empty:'사진 또는 내용을 입력해 주세요.', name_required:'이름을 입력해 주세요.', too_many:'제보가 너무 많습니다. 잠시 후 다시 시도해 주세요.', blocked_keyword:'허용되지 않는 표현이 포함되어 있습니다.'};
+function setErr(key){ errKey=key||null; document.getElementById('err').textContent=key?(T[LANG].err[key]||T[LANG].err.generic):''; }
 
+document.getElementById('lang-ko').onclick=function(){ setLang('ko'); };
+document.getElementById('lang-en').onclick=function(){ setLang('en'); };
 document.getElementById('slots').addEventListener('click',function(e){ var d=e.target.closest('[data-del]'); if(d){ images.splice(+d.getAttribute('data-del'),1); renderSlots(); } });
 document.getElementById('form').addEventListener('submit',function(e){
-  e.preventDefault(); setErr('');
+  e.preventDefault(); setErr(null);
   var name=document.getElementById('f-name').value.trim();
+  var phone=document.getElementById('f-phone').value.trim();
   var text=document.getElementById('f-text').value.trim();
-  if(!name){ setErr(ERR.name_required); document.getElementById('f-name').focus(); return; }
-  if(!text && !images.length){ setErr(ERR.empty); return; }
+  if(!name){ setErr('name_required'); document.getElementById('f-name').focus(); return; }
+  if(!phone){ setErr('phone_required'); document.getElementById('f-phone').focus(); return; }
+  if(!text && !images.length){ setErr('empty'); return; }
+  if(!document.getElementById('c-consent').checked){ setErr('consent_required'); return; }
+  if(!document.getElementById('c-participant').checked){ setErr('participant_required'); return; }
   setBusy(true);
   fetch('/api/jp-tips',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
-    reporterName:name, org:document.getElementById('f-org').value.trim(), zone:document.getElementById('f-zone').value, text:text, photos:images
+    reporterName:name, phone:phone, org:document.getElementById('f-org').value.trim(), zone:document.getElementById('f-zone').value,
+    text:text, photos:images, consent:true, participant:true
   })}).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
     .then(function(res){ setBusy(false);
       if(res.ok && res.j && res.j.ok){ document.getElementById('form').style.display='none'; document.getElementById('done').style.display=''; window.scrollTo(0,0); }
-      else { setErr((res.j&&ERR[res.j.error])||'전송에 실패했습니다. 다시 시도해 주세요.'); }
-    }).catch(function(){ setBusy(false); setErr('네트워크 오류입니다. 다시 시도해 주세요.'); });
+      else { setErr((res.j&&res.j.error&&T[LANG].err[res.j.error])?res.j.error:'generic'); }
+    }).catch(function(){ setBusy(false); setErr('network'); });
 });
 document.getElementById('again').onclick=function(){
-  images=[]; document.getElementById('form').reset(); renderSlots(); setErr('');
+  images=[]; document.getElementById('form').reset(); renderSlots(); setErr(null);
   document.getElementById('done').style.display='none'; document.getElementById('form').style.display=''; window.scrollTo(0,0);
 };
-renderSlots();
+applyLang();
 </script>
 </body>
 </html>

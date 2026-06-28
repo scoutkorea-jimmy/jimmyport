@@ -48,10 +48,14 @@ export async function onRequestPost({ request, env }) {
   const text = String(body.text || "").trim().slice(0, 2000);
   const photos = cleanPhotos(body.photos);
   const reporterName = String(body.reporterName || "").trim().slice(0, 40);
+  const phone = String(body.phone || "").trim().slice(0, 40);
   const org = String(body.org || "").trim().slice(0, 60);
   if (!text && !photos.length) return json({ ok: false, error: "empty" }, 400);
-  if (!who && !reporterName) return json({ ok: false, error: "name_required" }, 400);  // 공개 제보는 이름 필수
   if (!who) {
+    if (!reporterName) return json({ ok: false, error: "name_required" }, 400);  // 공개 제보는 이름 필수
+    if (!phone) return json({ ok: false, error: "phone_required" }, 400);  // 전화번호 필수
+    if (body.consent !== true) return json({ ok: false, error: "consent_required" }, 400);  // 개인정보 수집·이용 동의
+    if (body.participant !== true) return json({ ok: false, error: "participant_required" }, 400);  // 잼버리 참가자 확인
     const ip = clientIp(request);
     if (!(await rateOk(env, ip))) return json({ ok: false, error: "too_many" }, 429);
     const terms = await bannedTerms(env);
@@ -62,9 +66,11 @@ export async function onRequestPost({ request, env }) {
     id: newId(),
     reporterUser: who ? (who.admin ? "admin" : who.username) : "public",
     reporterName: reporterName || (who ? (who.admin ? "관리자" : who.username) : "익명"),
-    org, zone: String(body.zone || "").slice(0, 40),
+    phone, org, zone: String(body.zone || "").slice(0, 40),
     text, photos, status: "new", note: "", assignee: "",
     source: who ? "member" : "public",
+    consentAt: (!who && body.consent === true) ? now : "",
+    participant: !who ? (body.participant === true) : true,
     ip: maskIp(clientIp(request)), createdAt: now,
   };
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));

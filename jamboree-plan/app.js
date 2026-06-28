@@ -2384,7 +2384,7 @@ function renderTips(){
   grid.innerHTML=items.map(function(t){
     var st=TIP_STATUS[t.status]||TIP_STATUS['new'];
     var photos=(t.photos||[]).map(function(u){ return '<img class="tip-thumb" src="'+esc(u)+'" data-lb="'+esc(u)+'" alt="" loading="lazy">'; }).join('');
-    var meta=[]; if(t.reporterName) meta.push(icon('user',12)+' '+esc(t.reporterName)); if(t.org) meta.push(esc(t.org)); var zl=tipZoneLabel(t.zone); if(zl) meta.push(icon('mapPin',12)+' '+esc(zl));
+    var meta=[]; if(t.reporterName) meta.push(icon('user',12)+' '+esc(t.reporterName)); if(t.phone) meta.push('<a class="tip-phone" href="tel:'+esc(t.phone)+'">'+icon('phone',12)+' '+esc(t.phone)+'</a>'); if(t.org) meta.push(esc(t.org)); var zl=tipZoneLabel(t.zone); if(zl) meta.push(icon('mapPin',12)+' '+esc(zl));
     var srcBadge=(t.source==='public')?'<span class="tip-src">외부 제보</span>':'';
     var asg=t.assignee?rosterById(t.assignee):null;
     var asgChip=asg?('<span class="tip-asg">'+icon('user',12)+' 담당 '+esc(personLabel(asg))+'</span>'):'';

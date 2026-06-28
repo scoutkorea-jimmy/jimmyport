@@ -5,7 +5,7 @@
  * (다운스케일하는 댓글/잼버리 앱은 1~2MB 미만이라 한도 상향 영향 없음. D-count 승인 후 원본 사진 최대 5MB.) */
 import { json, newId } from "./_lib.js";
 
-var MAX = 5 * 1024 * 1024; // 5MB
+var MAX = 10 * 1024 * 1024; // 10MB (현장 제보 고화질 사진 대응)
 var ALLOWED = { "image/jpeg": 1, "image/png": 1, "image/gif": 1, "image/webp": 1 };
 
 export async function onRequestPost({ request, env }) {

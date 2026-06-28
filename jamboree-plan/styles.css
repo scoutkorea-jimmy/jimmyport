@@ -958,3 +958,6 @@ tr.rowdim{opacity:.34}
 .jebo-bar a{color:var(--accent);text-decoration:none}
 .jebo-bar a:hover{text-decoration:underline}
 .jebo-ic{color:var(--accent);display:inline-flex}
+
+.tip-phone{color:var(--ch-fb);text-decoration:none;font-weight:600}
+.tip-phone:hover{text-decoration:underline}
