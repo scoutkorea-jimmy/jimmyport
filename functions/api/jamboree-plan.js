@@ -25,6 +25,17 @@ const CONTACTS = "jp:contacts";
 const DIVISIONS = "jp:divisions";
 const PROTOCOL = "jp:protocol";
 const LAUNCH = "jp:launch";
+const MAPPOS = "jp:mappos";
+
+function cleanMapPos(o) {
+  o = o && typeof o === "object" ? o : {};
+  const out = {};
+  Object.keys(o).slice(0, 300).forEach((pid) => {
+    const z = (o[pid] || "").toString().slice(0, 40);
+    if (z) out[pid.toString().slice(0, 40)] = z;
+  });
+  return out;
+}
 
 function cleanDivision(e) {
   e = e && typeof e === "object" ? e : {};
@@ -124,6 +135,7 @@ function cleanTT(e) {
     end: (e.end || "").toString().slice(0, 5),
     title: (e.title || "").toString().slice(0, 200),
     place: (e.place || "").toString().slice(0, 120),
+    zone: (e.zone || "").toString().slice(0, 30),
     cat: (e.cat || "").toString().slice(0, 20),
     assignees,
     contacts,
@@ -263,7 +275,11 @@ export async function onRequestGet(ctx) {
   const lraw = await env.SCOUT_KV.get(LAUNCH);
   if (lraw) { try { launch = JSON.parse(lraw).launch; } catch {} }
 
-  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch }, 30);  // short TTL; writes purge it
+  let mappos = null;
+  const mpraw = await env.SCOUT_KV.get(MAPPOS);
+  if (mpraw) { try { mappos = JSON.parse(mpraw).mappos; } catch {} }
+
+  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch, mappos }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
@@ -362,6 +378,13 @@ async function putImpl(ctx) {
   if (body.launch && typeof body.launch === "object" && !Array.isArray(body.launch)) {
     const launch = cleanLaunch(body.launch);
     await env.SCOUT_KV.put(LAUNCH, JSON.stringify({ launch, updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 현장 위치 지도 — 수동 배치(mappos) 저장 — 객체(배열 아님)
+  if (body.mappos && typeof body.mappos === "object" && !Array.isArray(body.mappos)) {
+    const mappos = cleanMapPos(body.mappos);
+    await env.SCOUT_KV.put(MAPPOS, JSON.stringify({ mappos, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

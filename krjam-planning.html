@@ -100,6 +100,7 @@
     <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
     <button class="vtab" data-v="orginfo" role="tab"><span data-ic="users"></span> 분단 연락망</button>
     <button class="vtab" data-v="protocol" role="tab"><span data-ic="grid"></span> 의전 일정</button>
+    <button class="vtab" data-v="sitemap" role="tab"><span data-ic="mapPin"></span> 현장 위치 지도</button>
   </div>
 
   <section id="dashboard">
@@ -287,6 +288,31 @@
         <tbody id="pr-body"></tbody>
       </table>
     </div>
+  </section>
+
+  <section id="sitemap" style="display:none">
+    <div class="sec-head">
+      <h2><span data-ic="mapPin" data-ic-size="17" style="vertical-align:-3px"></span> 현장 위치 지도</h2>
+      <span class="sub">제16회 한국잼버리 야영장 배치도 위에 홍보부 인원 위치를 대략적으로 표시</span>
+    </div>
+    <div class="smctrl">
+      <div class="seg" id="sm-modeseg">
+        <button type="button" data-m="manual" class="active">수동 배치</button>
+        <button type="button" data-m="schedule">일정표 연동</button>
+      </div>
+      <div class="sm-sched" id="sm-sched" style="display:none">
+        <select id="sm-day" class="evinput sm-day"></select>
+        <div class="sm-timewrap"><span class="sm-tlabel mono" id="sm-tlabel">12:00</span><input type="range" id="sm-time" min="0" max="1425" step="15" value="720" aria-label="시각"></div>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn sm ghost" id="sm-clear" style="display:none">수동 배치 비우기</button>
+    </div>
+    <p class="note" id="sm-help"></p>
+    <div class="sm-selbar" id="sm-selbar"></div>
+    <div class="smwrap"><div class="smstage" id="sm-stage"><img src="jamboree-plan/assets/sitemap.png" alt="제16회 한국잼버리 야영장 배치도" id="sm-img" draggable="false"></div></div>
+    <div class="sec-head" style="margin-top:18px;margin-bottom:8px"><h3 class="smtray-h" id="sm-tray-h">미배치 인원</h3></div>
+    <div class="smtray" id="sm-tray"></div>
+    <p class="note">위치는 <b>대략적인 구역</b> 기준입니다. 인원은 <b>홍보부 인원 관리</b> 탭의 R&amp;R 명단에서 가져옵니다. ‘일정표 연동’은 <b>잼버리 일정표</b>의 담당 지정·구역을 기반으로 자동 표시하며, 수동 배치가 있으면 그 위치를 우선합니다.</p>
   </section>
 
   <footer class="foot">

@@ -850,6 +850,17 @@ WOSM Region → 국가(NSO) → 단위대
 - **검수 코멘트(기사)** — `jp-news` POST `action:comment`/`comment_delete`(article.comments[], 본인/관리자 삭제). 기사 카드에 '검수 N' 토글 → 코멘트 스레드(작성·삭제·Enter) `.ac-box`. (기사 수정은 기존 `canEditNews`+PUT 유지.)
 - 검증: node --check(app·jp-assets·jp-news) + 라이브 GET jp-assets/jp-news 200 + 헤드리스(자료실 탭·섹션·함수 존재·콘솔 에러 0). ⚠️ 업로드·코멘트·대시보드 실데이터 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
 
+### 16.43 v0.9.150 — 현장 위치 지도(홍보부 인원 위치 시각화) 신설
+- 사용자: 잼버리 야영장 배치도(사용자 업로드 `KakaoTalk_…png`, 시설물자관리본부 제작) 기반으로 **홍보부 인원의 위치를 대략적으로 표현**. AskUserQuestion 확정 — 대상=**홍보부 인원(roster)**, 위치=**일정표 자동 + 수동 배치(수동 우선)**, 단위=**이름붙은 구역에 스냅**.
+- **자산**: 원본(3508×2481)을 `jamboree-plan/assets/sitemap.png`(2000×1414로 다운스케일)로 배치(루트 원본은 보존). 배경 이미지 위 절대배치 마커 방식(폴리곤 아님 → vanilla 단순).
+- **구역(ZONES) 29개**: 본부·시설 17(JHQ·전시행사장·메인무대·급식·대회장야영장·과정1~5·물자보급·컵스숙소·주차장2·관리사무소·병원·운영요원숙소) + 분단 영지 7(큰물결·솔바람·빛누리·어울림·푸른별·평화숲·꿈동산) + 게이트 5. 각 구역 = 이미지 비율좌표(x,y 0~1) + 장소명 자동매칭 별칭(al). `zoneForPlace(txt)`=일정 장소명↔구역 substring 매칭(≥2자).
+- **신규 탭 `sitemap`**(홍보부 운영 행, `mapPin` 아이콘): `canSee`에 특례 `v==='sitemap'→isStaff()`(홍보부 유형/관리자만, 회원유형 탭설정 불필요). setView/savedView/reflectAuthUI 연동.
+- **2모드 세그**: ① **수동 배치**(기본) — 인원 클릭/드래그 선택 → 구역 클릭/드롭으로 배치, 선택바(`#sm-selbar`)에서 빼기·선택해제, 미배치 트레이(`#sm-tray`)로 드롭 시 해제. ② **일정표 연동** — 날짜 select + 15분 시간 슬라이더 → 그 시각 활성 일정(`assignees` 포함 + start≤t<end)의 `zone`(명시) 또는 `zoneForPlace(place)`로 자동 표시. **수동 배치가 있으면 항상 우선**(src='manual', 핀 배지). 위치 없는 인원은 트레이('위치 미상').
+- **데이터**: 수동 배치 = `state.mappos`={pid:zoneKey}, 서버 KV `jp:mappos`(객체, `cleanMapPos`), `saveMapPos`=debouncedPut. applyServer 로드. 인원=roster(personLabel/색=인덱스 팔레트, 아바타=이름/역할 첫 글자).
+- **일정표 구역 태깅**: 시간 일정 모달에 **‘현장 지도 구역’ select**(자동/29구역, `zoneOptions`) 추가 → `ttDraft.zone`·`buildCleanTT`·반복(series 'all') 복제·API `cleanTT.zone`(slice30). 지정 시 연동 모드에서 정확 표시(미지정=장소명 추정).
+- API(`functions/api/jamboree-plan.js`): `MAPPOS` 키 + GET 응답에 `mappos` + PUT `body.mappos`(객체) 분기 + `cleanTT`에 zone.
+- 검증: `node --check`(app·api) + 헤드리스 Chrome(CDP, 관리자 세션 시드): 게이트 통과·탭 활성·이미지 로드·29마커·6 트레이 / 선택→배치(stage)→mappos·트레이 5·핀 / 연동 모드 개영식 담당 지정+20:30→stage 자동(src sched, 메인스타디움→stage 매칭)·수동 1+자동 1=2 / TT 모달 구역 select 30옵션 / **콘솔 에러 0** + 스크린샷(배치도 풀폭·마커·트레이 정상). ⚠️ 실 인원/배치 저장 흐름은 로그인 필요 → 사용자 QA(운영 KV 파괴적 쓰기 금지).
+
 ### 18.22 v0.9.146 — 페이지별 OG 이미지 4종 신설(랜딩·Tour·홍보부보드·디데이)
 - 기존엔 카드뉴스(`krjam-cardnews`, `jamboree/assets/og.png`)에만 OG가 있었음. 사용자: "카드뉴스처럼 다른 페이지들도 OG 이미지 적절히 만들어줘. 잼버리 관련은 잼버리 OG로."
 - **생성 방식**(기존 og.png와 동일): HTML 템플릿 → 헤드리스 Chrome(`--headless=new --screenshot --window-size=1200,630 --virtual-time-budget`) 1200×630 PNG 렌더. 엠블럼은 base64 임베드, 폰트는 Pretendard(CDN)·Bricolage/Hanken(Google Fonts).
