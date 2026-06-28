@@ -2425,7 +2425,7 @@ function renderTipEditor(){
     '<div class="tip-who">제보자: <b>'+esc(Auth.name||Auth.username||'')+'</b></div>'+
     '<label class="fl">소속 (선택) — 예: 운영본부 · 평화숲분단</label><input class="ti" id="tip-org" type="text" maxlength="60" placeholder="소속 · 부서" value="'+esc(tipEdit.org)+'">'+
     '<label class="fl">위치 (선택)</label><select class="ti" id="tip-zone">'+tipZoneOptions(tipEdit.zone)+'</select>'+
-    '<label class="fl">제보 내용</label><textarea class="ta" id="tip-text" rows="4" placeholder="현장 소식 · 상황을 적어주세요">'+esc(tipEdit.text)+'</textarea>'+
+    '<label class="fl">소식 내용</label><textarea class="ta" id="tip-text" rows="4" placeholder="잼버리 소식 · 사연을 적어주세요">'+esc(tipEdit.text)+'</textarea>'+
     '<label class="fl">사진 (최대 3장)</label><div class="news-slots">'+slots+addSlot+'</div>';
   b.querySelector('#tip-org').oninput=function(){ tipEdit.org=this.value; };
   b.querySelector('#tip-zone').onchange=function(){ tipEdit.zone=this.value; };
@@ -2473,7 +2473,7 @@ function tipToNews(id){
   var t=tipItems.filter(function(x){return x.id===id;})[0]; if(!t) return;
   if(!Auth.authed()){ toast('로그인 후 작성'); return; }
   newsEdit={ title:'', body:t.text||'', images:(t.photos||[]).slice(0,3) };
-  document.getElementById('news-mtitle').textContent='기사 작성 (현장 제보)';
+  document.getElementById('news-mtitle').textContent='기사 작성 (소식 제보)';
   renderNewsEditor();
   document.getElementById('news-scrim').classList.add('show');
 }
@@ -2482,7 +2482,7 @@ function tipToAssets(id){
   var zl=tipZoneLabel(t.zone); var tags=zl?[zl]:[];
   toast('자료실로 보내는 중…'); var done=0,ok=0;
   t.photos.forEach(function(url){
-    fetch('/api/jp-assets',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({url:url,name:(t.reporterName||'현장 제보'),type:'photo',tags:tags,authorName:Auth.name||Auth.username})})
+    fetch('/api/jp-assets',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({url:url,name:(t.reporterName||'잼버리 소식 제보'),type:'photo',tags:tags,authorName:Auth.name||Auth.username})})
       .then(function(r){return r.json();}).then(function(j){ if(j&&j.ok){ ok++; if(typeof libItems!=='undefined'&&j.asset) libItems.unshift(j.asset); } done++; if(done===t.photos.length) toast('자료실에 '+ok+'개 추가됨'); })
       .catch(function(){ done++; });
   });
