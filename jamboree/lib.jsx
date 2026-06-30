@@ -50,6 +50,16 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children, nowr
   const display = stored != null ? stored : children;
   const colOv = store.getProp('txtcol', K, '');   // 글자색 오버라이드(사진 위 텍스트 등)
   const shOn = shadow || store.getProp('txtsh', K, '') === '1';   // 드롭섀도(사진 위 가독성)
+  // 영역(글상자) 가장자리 확장 — 사진과 동일 개념: 위(et)·아래(eb)·왼(el)·오른(er) px 만큼 음수 마진으로 글상자를 키운다.
+  // (절대배치 텍스트는 left/right 양쪽이 잡혀 있으면 폭이, top 만 잡힌 경우 위치가 확장된다. 음수=축소.)
+  const xf = store.getProps('txtxf-' + K);
+  const bn = (v) => (typeof v === 'number' ? v : 0);
+  const exMargin = (xf.et || xf.eb || xf.el || xf.er) ? {
+    marginTop: bn(style && style.marginTop) - (+xf.et || 0),
+    marginBottom: bn(style && style.marginBottom) - (+xf.eb || 0),
+    marginLeft: bn(style && style.marginLeft) - (+xf.el || 0),
+    marginRight: bn(style && style.marginRight) - (+xf.er || 0),
+  } : null;
   React.useEffect(() => {
     if (register) register(K, flabel || textOf(children), textOf(children));
   }, [K]); // eslint-disable-line
@@ -57,7 +67,7 @@ function Editable({ ekey, tag = 'span', flabel, className, style, children, nowr
   const fz = (style && typeof style.fontSize === 'number') ? `calc(${style.fontSize}px * var(--cc-fz, 1))` : (style ? style.fontSize : undefined);
   return (
     <Tag ref={ref} className={className} title="더블클릭하여 수정"
-      style={{ ...style, color: colOv || (style && style.color), textShadow: shOn ? '0 2px 10px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.5)' : (style && style.textShadow), fontSize: fz, whiteSpace: nowrap ? 'pre' : 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
+      style={{ ...style, ...exMargin, color: colOv || (style && style.color), textShadow: shOn ? '0 2px 10px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.5)' : (style && style.textShadow), fontSize: fz, whiteSpace: nowrap ? 'pre' : 'pre-wrap', cursor: editing ? 'text' : 'inherit', outline: editing ? '2px solid rgba(98,37,153,.45)' : 'none', outlineOffset: 3, borderRadius: 4 }}
       contentEditable={editing} suppressContentEditableWarning
       onDoubleClick={(e) => { e.stopPropagation(); setEditing(true); requestAnimationFrame(() => { const el = ref.current; if (!el) return; el.focus(); try { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (_) { } }); }}
       onBlur={(e) => { store.setText(K, e.currentTarget.innerText.replace(/\n$/, '')); setEditing(false); }}

@@ -256,20 +256,41 @@ function FieldInput({ field }) {
   const common = { value: cur, placeholder: field.def || '', onChange: (e) => store.setText(field.ekey, e.target.value), style: { ...inputStyle, ...(long ? { resize: 'vertical', minHeight: 56, lineHeight: 1.4, whiteSpace: 'pre-wrap' } : null) } };
   const colOv = store.getProp('txtcol', field.ekey, '');
   const shOv = store.getProp('txtsh', field.ekey, '');
+  const xf = store.getProps('txtxf-' + field.ekey);     // 영역(글상자) 가장자리 확장
+  const xfActive = !!(xf.et || xf.eb || xf.el || xf.er);
+  const [xfOpen, setXfOpen] = useState(false);
+  const setXf = (k, val) => store.setProp('txtxf-' + field.ekey, k, val);
   return (
-    <label style={{ display: 'block', marginBottom: 10 }}>
-      <span style={{ ...fieldLabel, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        {(field.label || '항목').slice(0, 22)}
-        <input type="color" value={colOv || '#000000'} onChange={(e) => store.setProp('txtcol', field.ekey, e.target.value)} title="글자색"
-          style={{ width: 20, height: 16, padding: 0, border: '1px solid ' + UI.line, borderRadius: 3, background: 'none', cursor: 'pointer' }} />
-        {colOv && <button type="button" onClick={() => store.setProp('txtcol', field.ekey, '')} title="기본색"
-          style={{ fontSize: 11, color: UI.muted, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>✕</button>}
-        <button type="button" onClick={() => store.setProp('txtsh', field.ekey, shOv === '1' ? '' : '1')} title="사진 위 그림자"
-          style={{ fontSize: 10, color: shOv === '1' ? '#fff' : UI.muted, background: shOv === '1' ? UI.accent : 'none', border: '1px solid ' + (shOv === '1' ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>그림자</button>
-      </span>
-      {long ? <textarea rows={2} {...common} /> : <input {...common} />}
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ display: 'block' }}>
+        <span style={{ ...fieldLabel, display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          {(field.label || '항목').slice(0, 22)}
+          <input type="color" value={colOv || '#000000'} onChange={(e) => store.setProp('txtcol', field.ekey, e.target.value)} title="글자색"
+            style={{ width: 20, height: 16, padding: 0, border: '1px solid ' + UI.line, borderRadius: 3, background: 'none', cursor: 'pointer' }} />
+          {colOv && <button type="button" onClick={() => store.setProp('txtcol', field.ekey, '')} title="기본색"
+            style={{ fontSize: 11, color: UI.muted, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>✕</button>}
+          <button type="button" onClick={() => store.setProp('txtsh', field.ekey, shOv === '1' ? '' : '1')} title="사진 위 그림자"
+            style={{ fontSize: 10, color: shOv === '1' ? '#fff' : UI.muted, background: shOv === '1' ? UI.accent : 'none', border: '1px solid ' + (shOv === '1' ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>그림자</button>
+          <button type="button" onClick={() => setXfOpen((o) => !o)} title="영역(글상자) 가장자리 확장"
+            style={{ fontSize: 10, color: (xfOpen || xfActive) ? '#fff' : UI.muted, background: (xfOpen || xfActive) ? UI.accent : 'none', border: '1px solid ' + ((xfOpen || xfActive) ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>↔ 영역</button>
+        </span>
+        {long ? <textarea rows={2} {...common} /> : <input {...common} />}
+      </label>
       {long && <span style={{ fontSize: 10.5, color: '#a9a2b3', display: 'block', marginTop: 2 }}>줄바꿈(Enter) 가능</span>}
-    </label>
+      {xfOpen && (
+        <div style={{ marginTop: 6, padding: '7px 9px', background: UI.surface2, border: '1px solid ' + UI.line, borderRadius: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: UI.muted }}>영역(글상자) 가장자리 확장</span>
+            {xfActive && <button type="button" onClick={() => ['et', 'eb', 'el', 'er'].forEach((k) => setXf(k, ''))}
+              style={{ fontSize: 11, color: UI.muted, border: '1px solid ' + UI.line, background: '#fff', borderRadius: 6, cursor: 'pointer', padding: '1px 8px', fontFamily: 'inherit' }}>초기화</button>}
+          </div>
+          <Slider label="위로" value={+xf.et || 0} min={-200} max={600} step={10} unit="px" onChange={(val) => setXf('et', val)} />
+          <Slider label="아래로" value={+xf.eb || 0} min={-200} max={600} step={10} unit="px" onChange={(val) => setXf('eb', val)} />
+          <Slider label="왼쪽" value={+xf.el || 0} min={-200} max={600} step={10} unit="px" onChange={(val) => setXf('el', val)} />
+          <Slider label="오른쪽" value={+xf.er || 0} min={-200} max={600} step={10} unit="px" onChange={(val) => setXf('er', val)} />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -330,6 +351,8 @@ function App() {
   const [serverCode, setServerCode] = useState('');
   const [serverItems, setServerItems] = useState(null);
   const [serverMsg, setServerMsg] = useState('');
+  const [serverCurrentId, setServerCurrentId] = useState(null);   // 서버에 저장/불러온 항목 → 다시 저장 시 덮어쓰기
+  const [serverCurrentName, setServerCurrentName] = useState('');
   const authHeaders = useCallback((extra) => Object.assign({}, extra || {}, serverPass ? { 'X-CC-Pass': serverPass } : {}), [serverPass]);
   const onAuthFail = useCallback(() => { setServerPass(''); setServerItems(null); setServerMsg('비밀번호가 올바르지 않습니다. 다시 입력하세요.'); }, [setServerPass]);
   const serverRefresh = useCallback(async () => {
@@ -381,6 +404,7 @@ function App() {
       const tv = store.getText(f.ekey); if (tv != null) store.setText(dk, tv);
       const cv = store.getProp('txtcol', f.ekey, ''); if (cv) store.setProp('txtcol', dk, cv);
       const sv = store.getProp('txtsh', f.ekey, ''); if (sv) store.setProp('txtsh', dk, sv);
+      const txf = store.getProps('txtxf-' + f.ekey); Object.keys(txf).forEach((kk) => store.setProp('txtxf-' + dk, kk, txf[kk]));
     });
     photos.forEach((p) => {
       const dk = newK + p.slot.slice(src.length);
@@ -559,17 +583,29 @@ function App() {
       setServerItems(Array.isArray(d.items) ? d.items : []);
     } catch (_) { setServerMsg('네트워크 오류'); }
   }, [serverCode, setServerPass]);
-  const serverSave = useCallback(async () => {
+  // 서버 저장: 현재 서버 항목이 있으면 덮어쓰기(PUT), 없거나 asNew면 새 항목(POST).
+  const serverSave = useCallback(async (asNew) => {
     setServerMsg('서버 저장 중…');
     try {
       const state = Object.assign(window.CCStore.collect(), { brand });
-      const name = (currentName || saveName || brand.brand || '카드뉴스').trim();
-      const r = await fetch('/api/jamboree', { method: 'POST', headers: authHeaders({ 'content-type': 'application/json' }), body: JSON.stringify({ name, author: author || '익명', state }) });
+      const name = ((asNew ? '' : serverCurrentName) || currentName || saveName || brand.brand || '카드뉴스').trim();
+      let overwrite = !asNew && !!serverCurrentId;
+      let r = await fetch('/api/jamboree', {
+        method: overwrite ? 'PUT' : 'POST',
+        headers: authHeaders({ 'content-type': 'application/json' }),
+        body: JSON.stringify(overwrite ? { id: serverCurrentId, name, author: author || '익명', state } : { name, author: author || '익명', state }),
+      });
       if (r.status === 401) { onAuthFail(); return; }
+      if (overwrite && r.status === 404) {   // 항목이 사라졌으면 새로 저장
+        overwrite = false;
+        r = await fetch('/api/jamboree', { method: 'POST', headers: authHeaders({ 'content-type': 'application/json' }), body: JSON.stringify({ name, author: author || '익명', state }) });
+      }
       if (!r.ok) { setServerMsg('서버 저장 실패 (' + r.status + ')'); return; }
-      setServerMsg('서버에 저장됨 ✓'); flash('서버 저장 ✓'); serverRefresh();
+      const d = await r.json().catch(() => ({}));
+      if (d && d.id) { setServerCurrentId(d.id); setServerCurrentName(name); }
+      setServerMsg(overwrite ? '서버에 덮어썼어요 ✓' : '서버에 저장됨 ✓'); flash('서버 저장 ✓'); serverRefresh();
     } catch (_) { setServerMsg('네트워크 오류'); }
-  }, [brand, currentName, saveName, author, serverRefresh, authHeaders, onAuthFail]);
+  }, [brand, currentName, saveName, author, serverCurrentId, serverCurrentName, serverRefresh, authHeaders, onAuthFail]);
   const serverLoad = useCallback(async (it) => {
     setServerMsg('불러오는 중…');
     try {
@@ -580,6 +616,7 @@ function App() {
       window.CCStore.hydrate(d.state);
       if (d.state.brand) setBrand(Object.assign({}, DEFAULT_BRAND, d.state.brand));
       setCurrentId(null); setCurrentName(it.name || '');   // 서버본은 로컬 자동저장 대상 아님
+      setServerCurrentId(it.id); setServerCurrentName(it.name || '');   // 다시 저장 시 이 항목에 덮어쓰기
       setRemount((n) => n + 1); setListOpen(false); flash('서버에서 불러옴 ✓');
     } catch (_) { setServerMsg('네트워크 오류'); }
   }, [authHeaders, onAuthFail]);
@@ -589,9 +626,10 @@ function App() {
       const r = await fetch('/api/jamboree?id=' + encodeURIComponent(it.id), { method: 'DELETE', headers: authHeaders() });
       if (r.status === 401) { onAuthFail(); return; }
       if (!r.ok) { setServerMsg('삭제 실패'); return; }
+      if (serverCurrentId === it.id) { setServerCurrentId(null); setServerCurrentName(''); }
       setServerItems((p) => Array.isArray(p) ? p.filter((x) => x.id !== it.id) : p);
     } catch (_) { setServerMsg('네트워크 오류'); }
-  }, [authHeaders, onAuthFail]);
+  }, [authHeaders, onAuthFail, serverCurrentId]);
 
   /* ── 자동 저장: 불러온/저장한 항목이 있으면 그 항목을 갱신(작성자 이름 필요) ── */
   const brandRef = useRef(brand);
@@ -1078,13 +1116,15 @@ function App() {
                   </div>
                 ) : (
                   <div>
-                    <button onClick={serverSave} style={{ width: '100%', border: 'none', background: UI.accentInk, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>현재 카드뉴스를 서버에 저장</button>
+                    <div style={{ fontSize: 12.5, color: UI.muted, marginBottom: 8 }}>현재 서버 항목: <b>{serverCurrentName ? serverCurrentName : '없음 (새로 저장)'}</b></div>
+                    <button onClick={() => serverSave(false)} style={{ width: '100%', border: 'none', background: UI.accentInk, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: serverCurrentId ? 8 : 10 }}>{serverCurrentId ? '서버에 저장 (덮어쓰기)' : '현재 카드뉴스를 서버에 저장'}</button>
+                    {serverCurrentId && <button onClick={() => serverSave(true)} style={{ width: '100%', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '9px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>새 사본으로 저장</button>}
                     {serverItems === null && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 13 }}>불러오는 중…</div>}
                     {serverItems && serverItems.length === 0 && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 12.5 }}>서버에 저장된 카드뉴스가 없습니다.</div>}
                     {serverItems && serverItems.map((it) => (
-                      <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10, background: '#fff', border: '1px solid '+UI.line, marginBottom: 6 }}>
+                      <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10, background: it.id === serverCurrentId ? UI.soft : '#fff', border: it.id === serverCurrentId ? '1px solid '+UI.accent : '1px solid '+UI.line, marginBottom: 6 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+                          <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}{it.id === serverCurrentId ? ' · 현재' : ''}</div>
                           <div style={{ fontSize: 11, color: UI.faint, marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
                         </div>
                         <button onClick={() => serverLoad(it)} style={{ border: 'none', background: UI.accent, color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>

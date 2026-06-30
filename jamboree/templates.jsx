@@ -95,13 +95,14 @@ function T_FullImage({ ek }) {
   );
 }
 
-/* 05 이미지 + 캡션형 */
+/* 05 이미지 + 캡션형 — 이미지 + 제목(캡션) + 내용 텍스트 + 하단 라벨 */
 function T_ImageCaption({ ek }) {
   return (
     <Card bg={PAL.white} color={INK} pad={0}>
-      <Placeholder tone="light" label="이미지" slot={ek + '-img'} slotLabel="이미지" radius={26} style={{ position: 'absolute', top: S, left: S, right: S, height: 556 }} />
+      <Placeholder tone="light" label="이미지" slot={ek + '-img'} slotLabel="이미지" radius={26} style={{ position: 'absolute', top: S, left: S, right: S, height: 520 }} />
       <CategoryChip ek={ek + '-cat'} label="영외활동" color={P.ocean} top={S + 22} right={S + 22} />
-      <Editable ekey={ek + '-cap'} tag="div" className="hi" style={{ position: 'absolute', left: S, right: S, top: 712, fontSize: 62, fontWeight: 700, color: INK, lineHeight: 1.14 }}>강원의 명소를 발로 누비는 영외활동</Editable>
+      <Editable ekey={ek + '-cap'} tag="div" className="hi" style={{ position: 'absolute', left: S, right: S, top: 676, fontSize: 60, fontWeight: 700, color: INK, lineHeight: 1.14 }}>강원의 명소를 발로 누비는 영외활동</Editable>
+      <Editable ekey={ek + '-body'} tag="div" style={{ position: 'absolute', left: S, right: S, top: 858, bottom: 168, fontSize: 33, fontWeight: 300, lineHeight: 1.55, color: INK }}>잼버리장을 벗어나 강원의 명소와 지역 문화를 직접 체험하는 시간. 세계 친구들과 함께 지역사회를 누비며 새로운 추억을 만들어요.</Editable>
       <Editable ekey={ek + '-sub'} tag="div" style={{ position: 'absolute', left: S, bottom: S, fontSize: 30, fontWeight: 300, color: DMUTE }}>OUT-CAMP · 지역 탐방</Editable>
       <AutoFooter />
     </Card>
