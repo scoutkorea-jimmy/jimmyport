@@ -887,6 +887,13 @@ WOSM Region → 국가(NSO) → 단위대
 - 공개 페이지(`krjam-jebo.html`) 카피 교체(ko/en): 제목 ‘잼버리 소식 제보 / Share Jamboree News’, 리드(행사 전 특별 소식·사연 강조), 내용 placeholder, 위치→‘관련 위치(선택)’, `<title>`/OG. 필드·동의·전화 필수 등 구조는 §16.49b 유지.
 - 인박스(planning): 탭 ‘현장 제보’→‘소식 제보’, 섹션 ‘잼버리 소식 제보’, 안내문·모달 제목·기사화/자료화 라벨 reword(내부 id `tips` 불변). 검증: `node --check`+헤드리스(제목 KO/EN·관련 위치·콘솔 0)+라이브 title 확인.
 
+### 16.50 v0.9.160 — 홍보부 R&R 2팀 구분(팀명 편집) + 자료실 운영계획서/카드뉴스 구분 + D-count 승인 캘린더
+- 사용자 3건(대화 중 순차 지시): (1) 홍보부 인원 R&R을 **홍보부장 아래 2개 팀**으로 나누고 **팀명 편집 가능**하게, (2) D-count 관리자 페이지에서 **승인 완료 신청을 캘린더 뷰**로, (3) 자료실을 **잼버리 운영 계획서 / 카드뉴스 자료**로 구분.
+- **R&R 2팀 구분**(`jamboree-plan`): roster 멤버에 `team` 필드(`lead`/`t1`/`t2`) + 편집 가능 팀명 `state.teams`{t1,t2}(KV `jp:roster` 래퍼에 `teams` 병행 저장, GET/PUT 확장). `renderStaff` 재작성 — 단일 표에 **팀 구분 헤더 행**(홍보부장=고정 뱃지 / 1·2팀=이름 input, 팀별 ‘인원 추가’·인원수) + 멤버 행에 **팀 이동 select**(팀명 실시간 반영). 구버전 데이터 마이그레이션 `teamOf`(team 없으면 role에 ‘부장’ 포함 시 lead, 아니면 t1). thead 6→7열(팀 칸 추가). API `cleanRoster`에 team·`cleanTeams`(t1/t2) 추가.
+- **자료실 구분**(`jamboree-plan`): jp-assets에 `category`(plan/cardnews/photo)·`ct`(문서 타입) 추가, POST가 `/api/file?id=`(문서·PDF·HWP)도 허용. 업로드 버튼 2개 — **운영 계획서 올리기**(문서+이미지, `uploadAttachment`로 /api/file 저장, category=plan)·**카드뉴스·사진 올리기**(이미지, PNG=cardnews/그 외=photo 자동). `renderLibrary` — 구분 탭(전체/운영계획서/카드뉴스/사진·기타, 카운트) + ‘전체’ 시 구분별 섹션 그룹핑, 문서 자산은 `libdoc` 카드(fileText 아이콘 + `docLabel(ct)` PDF/HWP/PPT/…). 레거시(category 없음)는 type로 폴백.
+- **D-count 승인 캘린더**(`krjam-dcount`): 관리자 대시보드 최상단에 **‘✓ 승인 완료 캘린더’** 섹션(기본 열림) — `MonthGrid` `mode="approved"` 신설, 승인(`status==='승인'`) 신청을 targetDate로 매핑해 월 그리드에 **초록 셀(D-번호+신청자 이름)**로 표시, 클릭 시 아래 목록을 `승인` 필터로. `appByDate`/`approvedCount` 파생.
+- 검증: `node --check`(app·jp-assets·jamboree-plan API) + esbuild(dcount JSX) + 헤드리스 puppeteer(로컬 http, fetch 목업) — R&R 3팀 헤더(홍보부장/1팀/2팀·인원수)·팀명 편집→select 라벨 실시간 갱신·팀 이동·7열 / 자료실 구분 탭 4개(전체5·계획서2·카드뉴스1·사진2)·섹션 그룹·문서 2/이미지 3·탭 필터 / D-count 승인 캘린더 2건(D-38 박지민·D-30 최규호 초록셀)·셀 클릭→승인 필터 / **콘솔 에러 0** + 스크린샷 3종. ⚠️ 실 저장(R&R·자료 업로드·D-count 승인)은 로그인/TOTP 필요 → 사용자 QA. 운영 KV 파괴적 쓰기 금지(§16.6) 준수.
+
 ### 16.48 v0.9.155 — 콘텐츠 ③: 마감일 + 검수/승인 워크플로 + 마감 브라우저 알림
 - 사용자 선택 3종 중 **③콘텐츠 승인+마감 알림** 구현(콘텐츠 보드 확장).
 - **데이터**: `cleanEdit`/EDEF/normEdit/slotEditPayload/isDefaultEdit에 `due`(YYYY-MM-DD)·`approval`{state:none/requested/approved/rejected,by,at,note} 추가(`normApproval`). 기존 카드 호환(기본값).

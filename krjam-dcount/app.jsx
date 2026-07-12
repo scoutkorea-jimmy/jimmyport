@@ -110,7 +110,7 @@
   const StTag = ({ s }) => <span className="dc-tag" style={{ background: ST_COLOR[s] || 'var(--faint)' }}>{ST_LABEL(s)}</span>;
 
   /* ── 달력(월 그리드, 일요일 시작) ── */
-  function MonthGrid({ ym, byDate, mode, onApply, onToggle, today, busy }) {
+  function MonthGrid({ ym, byDate, appByDate, mode, onApply, onToggle, onPick, today, busy }) {
     const y = parseInt(ym.slice(0, 4), 10), m = parseInt(ym.slice(5, 7), 10);
     const first = new Date(y, m - 1, 1).getDay();
     const days = new Date(y, m, 0).getDate();
@@ -129,6 +129,17 @@
             const ds = y + '-' + pad2(m) + '-' + pad2(d);
             const slot = byDate[ds];
             const tcl = ds === today ? ' today' : '';
+            if (mode === 'approved') {
+              const app = appByDate && appByDate[ds];
+              if (app) return (
+                <div key={i} className={'dc-day slot approved' + tcl} onClick={() => onPick && onPick(app)} title={'D-' + app.dNumber + ' · ' + (app.name || '') + ' · 승인 확정'}>
+                  <span className="dnum">{d}</span><div className="dd">D-{app.dNumber}</div>
+                  <div className="dc-appname">{app.name || '—'}</div>
+                </div>
+              );
+              if (slot) return <div key={i} className={'dc-day slot dimmed' + tcl}><span className="dnum">{d}</span><div className="dd">D-{slot.dNumber}</div></div>;
+              return <div key={i} className={'dc-day' + tcl}><span className="dnum">{d}</span></div>;
+            }
             if (!slot) return <div key={i} className={'dc-day' + tcl}><span className="dnum">{d}</span></div>;
             if (mode === 'admin') return (
               <div key={i} className={'dc-day slot' + tcl + (slot.isOpen ? ' open' : ' dimmed')}>
@@ -632,6 +643,8 @@
     const byDate = {}; slots.forEach((s) => { byDate[s.targetDate] = s; });
     const counts = apps.reduce((m, a) => { m[a.status] = (m[a.status] || 0) + 1; return m; }, {});
     const todoCount = (counts['제출됨'] || 0) + (counts['수정요청'] || 0);
+    const approvedByDate = {}; apps.forEach((a) => { if (a.status === '승인') approvedByDate[a.targetDate] = a; });
+    const approvedCount = counts['승인'] || 0;
     const FILTERS = [['대기', '검토 대기'], ['승인', '승인'], ['반려', '반려'], ['철회', '철회'], ['all', '전체']];
     const match = (a) => filter === 'all' ? true : filter === '대기' ? (a.status === '제출됨' || a.status === '수정요청') : a.status === filter;
     const order = { '제출됨': 0, '수정요청': 1, '승인': 2, '반려': 3, '철회': 4 };
@@ -654,6 +667,18 @@
             ))}
           </div>
         </div>
+
+        <details className="dc-sec" open>
+          <summary>✓ 승인 완료 캘린더 ({approvedCount}건 · 날짜별 확정 카드)</summary>
+          <div className="dc-secbody">
+            {approvedCount ? (
+              <>
+                <p className="dc-note" style={{ margin: '0 0 12px', fontSize: 11.5 }}>승인 확정된 신청을 <b>날짜(D-day) 캘린더</b>로 봅니다. 초록 칸 = 확정된 날짜(신청자 이름 표시). 칸을 클릭하면 아래 목록이 <b>승인</b>만 보이도록 걸러집니다.</p>
+                <div className="dc-months">{monthsOf(slots).map((ym) => <MonthGrid key={ym} ym={ym} byDate={byDate} appByDate={approvedByDate} mode="approved" today={today} onPick={() => setFilter('승인')} />)}</div>
+              </>
+            ) : <p className="dc-note" style={{ margin: 0 }}>아직 승인 완료된 신청이 없습니다.</p>}
+          </div>
+        </details>
 
         <MasterStyle master={master} busy={busy} setBusy={setBusy} onSaved={(ms) => setMaster(ms)} />
 

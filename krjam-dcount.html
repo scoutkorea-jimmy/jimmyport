@@ -114,6 +114,11 @@
     .dc-day.slot.open:hover{ border-color:var(--accent); box-shadow:var(--sh-1); }
     .dc-day.slot.dimmed{ opacity:.5; }
     .dc-day.today{ outline:2px solid var(--accent); outline-offset:-1px; }
+    .dc-day.approved{ background:var(--st-ready); border-color:var(--st-ready); cursor:pointer; min-height:56px; }
+    .dc-day.approved .dnum{ color:rgba(255,255,255,.7); }
+    .dc-day.approved .dd{ color:#fff; }
+    .dc-day.approved:hover{ box-shadow:var(--sh-2); filter:brightness(1.04); }
+    .dc-appname{ font:700 10px 'Hanken Grotesk',sans-serif; color:#fff; margin-top:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 2px; }
 
     /* 관리자 */
     .dc-stats{ display:flex; gap:8px; flex-wrap:wrap; }

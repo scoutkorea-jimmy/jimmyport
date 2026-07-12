@@ -173,7 +173,14 @@ function cleanRoster(e) {
     duty: (e.duty || "").toString().slice(0, 400),
     contact: (e.contact || "").toString().slice(0, 80),
     channel: (e.channel || "").toString().slice(0, 160),
+    team: (e.team || "").toString().slice(0, 20),
   };
+}
+function cleanTeams(t) {
+  t = t && typeof t === "object" && !Array.isArray(t) ? t : {};
+  const out = {};
+  ["t1", "t2"].forEach((k) => { if (t[k] != null) out[k] = (t[k] || "").toString().slice(0, 40); });
+  return out;
 }
 function cleanPlace(e) {
   e = e && typeof e === "object" ? e : {};
@@ -273,9 +280,9 @@ export async function onRequestGet(ctx) {
   const ttraw = await env.SCOUT_KV.get(TIMETABLE);
   if (ttraw) { try { timetable = JSON.parse(ttraw).timetable; } catch {} }
 
-  let roster = null;
+  let roster = null, teams = null;
   const rraw = await env.SCOUT_KV.get(ROSTER);
-  if (rraw) { try { roster = JSON.parse(rraw).roster; } catch {} }
+  if (rraw) { try { const rj = JSON.parse(rraw); roster = rj.roster; teams = rj.teams || null; } catch {} }
 
   let placement = null;
   const praw = await env.SCOUT_KV.get(PLACEMENT);
@@ -313,7 +320,7 @@ export async function onRequestGet(ctx) {
   const shraw = await env.SCOUT_KV.get(SHOOTS);
   if (shraw) { try { shoots = JSON.parse(shraw).shoots; } catch {} }
 
-  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, placement, ttcats, offtimes, contacts, divisions, protocol, launch, mappos, shoots }, 30);  // short TTL; writes purge it
+  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, teams, placement, ttcats, offtimes, contacts, divisions, protocol, launch, mappos, shoots }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
@@ -359,10 +366,13 @@ async function putImpl(ctx) {
     return json({ ok: true, updatedAt: now });
   }
 
-  // 홍보부 인원 R&R(roster) 저장
+  // 홍보부 인원 R&R(roster) 저장 (+ 편집 가능한 팀명 teams)
   if (Array.isArray(body.roster)) {
     const roster = body.roster.slice(0, 100).map(cleanRoster);
-    await env.SCOUT_KV.put(ROSTER, JSON.stringify({ roster, updatedAt: now }));
+    let teams = null;
+    if (body.teams && typeof body.teams === "object") teams = cleanTeams(body.teams);
+    else { try { teams = JSON.parse(await env.SCOUT_KV.get(ROSTER) || "{}").teams || null; } catch {} }
+    await env.SCOUT_KV.put(ROSTER, JSON.stringify({ roster, teams, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

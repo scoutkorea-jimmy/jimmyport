@@ -19,8 +19,8 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.158"></script>
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.158">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.160"></script>
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.160">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -156,11 +156,14 @@
 
   <section id="library" style="display:none">
     <div class="sec-head">
-      <h2><span data-ic="image" data-ic-size="17" style="vertical-align:-3px"></span> 자료실 (사진 · 카드뉴스 아카이브)</h2>
-      <label class="btn sm solid" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 자료 올리기<input type="file" id="lib-file" accept="image/*" multiple hidden></label>
+      <h2><span data-ic="image" data-ic-size="17" style="vertical-align:-3px"></span> 자료실</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="btn sm" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 운영 계획서 올리기<input type="file" id="lib-file-plan" accept=".pdf,.hwp,.hwpx,.ppt,.pptx,.doc,.docx,.xls,.xlsx,image/*" multiple hidden></label>
+        <label class="btn sm solid" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 카드뉴스·사진 올리기<input type="file" id="lib-file-media" accept="image/*" multiple hidden></label>
+      </div>
     </div>
-    <p class="note">완성한 <b>카드뉴스 PNG</b>나 <b>현장 사진</b>을 올려두고 태그로 찾아 재사용하세요. 사진은 서버에 저장됩니다. (삭제는 올린 사람·관리자)</p>
-    <div class="lib-bar"><div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="lib-search" type="search" placeholder="이름·태그 검색"></div><div class="lib-tags" id="lib-tags"></div></div>
+    <p class="note"><b>잼버리 운영 계획서</b>(문서·PDF)와 <b>카드뉴스·현장 사진</b>을 구분해 보관합니다. 서버에 저장되며, 아래 구분 탭·태그·검색으로 찾아 재사용하세요. (삭제는 올린 사람·관리자)</p>
+    <div class="lib-bar"><div class="libcats" id="lib-cats"></div><div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="lib-search" type="search" placeholder="이름·태그 검색"></div><div class="lib-tags" id="lib-tags"></div></div>
     <div class="libgrid" id="lib-grid"></div>
   </section>
 
@@ -244,11 +247,11 @@
     </div>
     <table id="rostertbl">
       <thead><tr>
-        <th style="width:130px">역할</th><th style="width:110px">이름</th><th>담당 업무 (R&amp;R)</th><th style="width:160px">담당 채널</th><th style="width:130px">연락처</th><th style="width:40px"></th>
+        <th style="width:120px">역할</th><th style="width:96px">이름</th><th>담당 업무 (R&amp;R)</th><th style="width:150px">담당 채널</th><th style="width:120px">연락처</th><th style="width:78px">팀</th><th style="width:40px"></th>
       </tr></thead>
       <tbody id="roster-body"></tbody>
     </table>
-    <p class="note">홍보부 구성원의 역할과 책임(R&amp;R). 칸을 클릭해 직접 수정하세요. 변경은 서버에 자동 저장됩니다.</p>
+    <p class="note">홍보부장 아래 <b>2개 팀</b>으로 구분됩니다. 팀 이름은 팀 헤더에서 직접 수정할 수 있고, 각 인원은 <b>팀</b> 칸에서 소속 팀을 바꿀 수 있습니다. 칸을 클릭해 수정하면 서버에 자동 저장됩니다.</p>
 
     <div class="sec-head" style="margin-top:26px">
       <h2>인원별 오프타임</h2>
@@ -475,7 +478,7 @@
 <div class="lightbox" id="lightbox"><img id="lb-img" alt=""></div>
 <div class="toast" id="toast"></div>
 
-<script src="jamboree-plan/app.js?v=0.9.158"></script>
-<script src="version-watch.js?v=0.9.158"></script>
+<script src="jamboree-plan/app.js?v=0.9.160"></script>
+<script src="version-watch.js?v=0.9.160"></script>
 </body>
 </html>
