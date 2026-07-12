@@ -778,9 +778,66 @@ html.pw-ok #auth-gate{display:none}
 .dp-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dp-st{flex:0 0 auto;color:#fff;font-size:11px;font-weight:700;border-radius:var(--pill);padding:2px 9px}
 .dp-kind{color:#fff;font-size:11px;font-weight:700;border-radius:var(--pill);padding:1px 8px;margin-right:2px}
+.dp-hsub{font-weight:600;color:var(--muted);font-size:11.5px;margin-left:6px}
+.dp-place{color:var(--muted);font-weight:500}
+.dp-hint{font-size:11px;color:var(--faint);margin-top:8px}
+.dp-more{display:block;width:100%;margin-top:10px;background:none;border:1px dashed var(--line);border-radius:var(--r-1);padding:7px;font-family:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer}
+.dp-more:hover{background:var(--accent-soft);border-color:var(--accent)}
+.dp-empty.ok{color:var(--st-ready);font-weight:600}
+/* B. 실시간 D-day 배너 */
+.dash-dday{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:linear-gradient(100deg,var(--accent),var(--accent-ink));color:#fff;border-radius:var(--r-2);padding:16px 20px;margin-bottom:16px;box-shadow:var(--sh-2)}
+.dd-lab{font-size:12px;font-weight:600;opacity:.85;display:block}
+.dd-big{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.dd-big .hms{font-variant-numeric:tabular-nums;opacity:.95}
+.dd-right{text-align:right}
+.dd-note{font-size:13px;display:block} .dd-note b{font-weight:800}
+.dd-over{color:#FFD3D1;font-weight:700}
+.dd-sub{font-size:11.5px;opacity:.8}
+/* A. 액션 큐 */
+.actq{margin-bottom:16px}
+.actq-list{display:flex;flex-direction:column;gap:7px}
+.actq-item{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-1);padding:9px 12px;cursor:pointer;font-family:inherit;font-size:13.5px;color:var(--ink);font-weight:600}
+.actq-item:hover{border-color:var(--accent);background:var(--accent-soft-2)}
+.actq-n{flex:0 0 auto;min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;border-radius:8px;padding:0 7px}
+.actq-lab{flex:1;min-width:0}
+.actq-arw{flex:0 0 auto;color:var(--muted);font-weight:700}
+/* E. 파이프라인 */
+.dashpanel+.dashpanel,.dashcols+.dashpanel,.dashpanel+.dashcols,.dashcols+.dashcols,.dashgrid+.dashpanel{margin-top:14px}
+.pipebar{display:flex;height:16px;border-radius:999px;overflow:hidden;background:var(--line-2);gap:2px}
+.pipeseg{height:100%;min-width:3px;transition:width .3s var(--ease)}
+.pipelegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.pipelegend span{display:inline-flex;align-items:center;gap:5px}
+.pipelegend i{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+.pipelegend b{color:var(--ink)}
+/* C. 오늘의 현장 */
+.fieldrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.fieldstat{background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-1);padding:10px 6px;text-align:center;cursor:pointer;font-family:inherit}
+.fieldstat:hover{border-color:var(--accent)}
+.fieldstat b{display:block;font-size:20px;font-weight:760;color:var(--ink)}
+.fieldstat span{font-size:11px;color:var(--muted)}
+/* G. 팀별 워크로드 */
+.teamload{display:flex;flex-direction:column;gap:7px}
+.tl-row{display:flex;align-items:center;gap:9px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-1);padding:8px 11px;font-size:12.5px}
+.tl-badge{font-size:11.5px;font-weight:700;color:#fff;border-radius:var(--pill);padding:2px 10px;background:var(--accent)}
+.tl-badge.lead{background:var(--accent)} .tl-badge.t1{background:#0f8a8a} .tl-badge.t2{background:#6b4fa0}
+.tl-people{color:var(--muted)}
+.tl-stat{margin-left:auto;color:var(--ink-2)} .tl-stat+.tl-stat{margin-left:14px} .tl-stat b{color:var(--ink)}
+/* F. 최근 자료실 */
+.recentlib{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rlib{display:block;text-decoration:none;color:var(--ink)}
+.rlib-img{display:block;aspect-ratio:1;border-radius:var(--r-1);background-size:cover;background-position:center;border:1px solid var(--line)}
+.rlib-doc{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:var(--r-1);background:var(--surface-2);border:1px solid var(--line);color:var(--accent)}
+.rlib-n{display:block;font-size:11px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* D. 디데이 요약 */
+.dcsum{margin-top:14px}
+.dcsum-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.dcsum-stat{font-size:13px;color:var(--ink-2)} .dcsum-stat b{font-size:20px;font-weight:760;color:var(--ink);margin-right:3px}
+.dcsum .dp-more{width:auto;margin:0 0 0 auto;padding:6px 12px;border-style:solid;text-decoration:none}
 @media(max-width:680px){
   .dashcols{grid-template-columns:1fr}
   .wxloc{text-align:left}
+  .dash-dday{flex-direction:column;align-items:flex-start} .dd-right{text-align:left}
+  .recentlib{grid-template-columns:repeat(4,1fr)}
 }
 
 /* ---- 의전(캘린더 구분) + 분단·발대식 ---- */

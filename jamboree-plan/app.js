@@ -508,6 +508,14 @@ function renderClock(){
   cl.innerHTML='D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>';
   sub.textContent='개영식(2026-08-05 20:00)까지';
 }
+/* 대시보드 실시간 D-day 카운트다운 */
+var dashClockTimer=null;
+function ddayCountdownHTML(){ var diff=EVENT_DT-new Date(); if(diff<=0) return '<b>D-DAY</b> · 개영!'; var d=Math.floor(diff/86400000),h=Math.floor(diff%86400000/3600000),m=Math.floor(diff%3600000/60000),sc=Math.floor(diff%60000/1000); return 'D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>'; }
+function startDashClock(){ stopDashClock(); dashClockTimer=setInterval(function(){ var el=document.getElementById('dash-dday-t'); if(!el){ stopDashClock(); return; } el.innerHTML=ddayCountdownHTML(); }, 1000); }
+function stopDashClock(){ if(dashClockTimer){ clearInterval(dashClockTimer); dashClockTimer=null; } }
+/* 승인 대기 회원 수(관리자) — 대시보드 액션 큐용, 1회 캐시 */
+var dashMembersPending=null;
+function loadDashMembers(){ if(!Auth.isAdmin()) return; fetch('/api/jp-members',{headers:authHeader()}).then(function(r){ return r.ok?r.json():null; }).then(function(j){ if(j&&j.members){ dashMembersPending=j.members.filter(function(m){return m.status!=='approved';}).length; if(curViewMode==='dashboard') renderDashboard(); } }).catch(function(){}); }
 
 /* ===== calendar ===== */
 /* 좁은 셀에서 잘리는 제목 → 호버 시 전체 제목 커스텀 툴팁 */
@@ -2225,8 +2233,8 @@ function changeMyPassword(){
 /* ===== 홍보부원 기사 (news) ===== */
 var newsItems=[], newsLoaded=false, newsEdit=null; // newsEdit: {id?, title, body, images[]}
 function loadNews(){
-  fetch('/api/jp-news').then(function(r){return r.json();}).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; if(curViewMode==='news') renderNews(); })
-    .catch(function(){ newsLoaded=true; if(curViewMode==='news') renderNews(); });
+  fetch('/api/jp-news').then(function(r){return r.json();}).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); })
+    .catch(function(){ newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
 function fmtNewsTime(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }catch(e){ return ''; } }
 function canEditNews(a){ return Auth.isAdmin() || (Auth.username && a.author===Auth.username); }
@@ -2274,8 +2282,8 @@ function docLabel(ct){ ct=(ct||'').toLowerCase();
   if(/word|document/.test(ct)) return 'DOC'; if(/zip|compress/.test(ct)) return 'ZIP';
   var seg=ct.split('/').pop()||''; return (seg.split('.').pop()||'FILE').toUpperCase().slice(0,8); }
 function loadLibrary(){
-  fetch('/api/jp-assets').then(function(r){return r.json();}).then(function(j){ libItems=(j&&j.assets)||[]; libLoaded=true; if(curViewMode==='library') renderLibrary(); })
-    .catch(function(){ libLoaded=true; if(curViewMode==='library') renderLibrary(); });
+  fetch('/api/jp-assets').then(function(r){return r.json();}).then(function(j){ libItems=(j&&j.assets)||[]; libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); })
+    .catch(function(){ libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
 function libAllTags(){ var s={}; libItems.forEach(function(a){ (a.tags||[]).forEach(function(t){ s[t]=(s[t]||0)+1; }); }); return Object.keys(s).sort(); }
 function libCardHtml(a){
@@ -2437,8 +2445,8 @@ var tipItems=[], tipLoaded=false, tipFilter='all', tipEdit=null;
 var TIP_STATUS={ 'new':['새 제보','var(--st-planned)'], 'used':['채택','var(--st-ready)'], 'rejected':['반려','var(--danger)'] };
 function loadTips(){
   fetch('/api/jp-tips',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
-    .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; if(curViewMode==='tips') renderTips(); })
-    .catch(function(){ tipLoaded=true; if(curViewMode==='tips') renderTips(); });
+    .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); })
+    .catch(function(){ tipLoaded=true; if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
 function tipZoneLabel(z){ var zz=zoneByKey(z); return zz?zz.label:(z||''); }
 function tipZoneOptions(sel){ return '<option value="">— 선택 안 함 —</option>'+ZONES.map(function(z){ return '<option value="'+z.key+'"'+(z.key===sel?' selected':'')+'>'+esc(z.label)+'</option>'; }).join(''); }
@@ -2689,20 +2697,35 @@ function renderWeather(){
 function renderDashboard(){
   loadWeather();
   var box=document.getElementById('dash-stats'); if(!box) return;
-  var total=0, planned=0, draft=0, ready=0, meetings=0, today=todayISO(), upcoming=[];
+  // 대시보드 위젯용 지연 로드(탭 방문 전이라도 채움)
+  if(Auth.authed()){ if(!tipLoaded) loadTips(); if(!newsLoaded) loadNews(); if(!libLoaded) loadLibrary(); }
+  if(Auth.isAdmin() && dashMembersPending===null) loadDashMembers();
+  var today=todayISO(), isJamboree=(today>='2026-08-02' && today<='2026-08-09');
+  var total=0, planned=0, draft=0, ready=0, meetings=0, upcoming=[];
   var posted=0, titled=0, byCh={}, byOwner={}, dueSoon=[];
+  var tPlanned=0, tDraft=0, tReady=0;   // 실제(제목 있는) 콘텐츠만 — 파이프라인용
+  var approvalReq=0, overdue=0, weekLeft=0;
+  // 콘텐츠 owner ↔ 팀 매칭용 이름 집합
+  var teamNameSet={lead:{},t1:{},t2:{}}, teamTT={lead:0,t1:0,t2:0}, teamContent={lead:0,t1:0,t2:0};
+  rosterList().forEach(function(m){ var nm=(m.name||'').trim(); if(nm) teamNameSet[teamOf(m)][nm]=1; });
+  function teamForOwner(name){ name=(name||'').trim(); if(!name) return null; if(teamNameSet.lead[name])return 'lead'; if(teamNameSet.t1[name])return 't1'; if(teamNameSet.t2[name])return 't2'; return null; }
   DAYS.forEach(function(d){
     daySlots(d).forEach(function(s){
       var e=peek(s.k), st=e.status||'planned';
       if(isMeeting(e)){ meetings++; }
       else {
         total++; if(st==='ready')ready++; else if(st==='draft')draft++; else planned++;
+        if(e.approval && e.approval.state==='requested') approvalReq++;
         if(e.title){
           titled++; if(e.posted) posted++;
+          if(st==='ready')tReady++; else if(st==='draft')tDraft++; else tPlanned++;
           (e.channels||[]).forEach(function(c){ if(!byCh[c])byCh[c]={t:0,p:0}; byCh[c].t++; if(e.posted)byCh[c].p++; });
           var ow=(e.owner||'').trim()||'(미지정)'; byOwner[ow]=(byOwner[ow]||0)+1;
+          var tm=teamForOwner(e.owner); if(tm) teamContent[tm]++;
           var dl=dayDiff(d.date, today);
           if(!e.posted && dl>=0 && dl<=3) dueSoon.push({d:d,s:s,e:e,dl:dl});
+          if(!e.posted && dl>=0 && dl<=7) weekLeft++;
+          if(!e.posted && e.due && e.due<today) overdue++;
         }
       }
       if(e.title && d.date>=today){ upcoming.push({d:d,s:s,e:e}); }
@@ -2716,22 +2739,61 @@ function renderDashboard(){
   var ttN=ttList().length;
   var conN=contactList().filter(function(c){ return (c.name||'').trim(); }).length;
   var dd=dayDiff(EVENT_DAY, today);
+  // 팀별 시간 일정(assignees 기준)
+  ttList().forEach(function(t){ (t.assignees||[]).forEach(function(pid){ var m=rosterById(pid); if(m) teamTT[teamOf(m)]++; }); });
+  // 소식 제보 · 기사 · D-count 파생
+  var tipsNew = tipLoaded ? tipItems.filter(function(t){ return t.status==='new'; }).length : 0;
+  var tipsUnassigned = tipLoaded ? tipItems.filter(function(t){ return t.status==='new' && !t.assignee; }).length : 0;
+  var newsComments = newsLoaded ? newsItems.reduce(function(a,x){ return a+((x.comments||[]).length); },0) : 0;
+  var dcApproved = dcountApproved.length;
+  var dcWeek = dcountApproved.filter(function(a){ var dl=dayDiff(a.targetDate, today); return dl>=0 && dl<=7; }).length;
+  var staff=Auth.isStaff(), admin=Auth.isAdmin();
+
   function statCard(label, big, sub, color){
     return '<div class="statcard"><div class="sc-lab">'+label+'</div><div class="sc-big" style="color:'+(color||'var(--ink)')+'">'+big+'</div><div class="sc-sub">'+(sub||'')+'</div></div>';
   }
-  var html='<div class="dashgrid">';
+  var html='';
+
+  // ===== B. 실시간 D-day 배너 =====
+  html+='<div class="dash-dday"><div class="dd-left"><span class="dd-lab">개영식까지</span><span class="dd-big" id="dash-dday-t">'+ddayCountdownHTML()+'</span></div>'+
+    '<div class="dd-right"><span class="dd-note">이번 주 남은 콘텐츠 <b>'+weekLeft+'건</b>'+(overdue?(' · <span class="dd-over">마감 지남 '+overdue+'건</span>'):'')+'</span><span class="dd-sub">2026-08-05(수) 20:00 · 강원 고성</span></div></div>';
+
+  // ===== A. 지금 처리할 일 (액션 큐) =====
+  var acts=[];
+  if(staff && approvalReq) acts.push({n:approvalReq, lab:'검수·승인 대기 콘텐츠', go:'list', c:'#C0492F'});
+  if(overdue) acts.push({n:overdue, lab:'마감 지난 미게시 콘텐츠', go:'list', c:'var(--danger)'});
+  if(tipsNew) acts.push({n:tipsNew, lab:'미처리 소식 제보'+(tipsUnassigned?(' (미배정 '+tipsUnassigned+')'):''), go:'tips', c:'var(--st-planned)'});
+  if(staff && newsComments) acts.push({n:newsComments, lab:'기사 검수 의견', go:'news', c:'var(--c-intl)'});
+  if(admin && dashMembersPending) acts.push({n:dashMembersPending, lab:'회원가입 승인 대기', go:'members', c:'var(--accent)'});
+  html+='<div class="dashpanel actq"><div class="dp-h">지금 처리할 일</div>';
+  if(!acts.length){ html+='<div class="dp-empty ok">밀린 일이 없습니다. 모두 처리됨 ✓</div>'; }
+  else { html+='<div class="actq-list">'+acts.map(function(a){ return '<button class="actq-item" '+(a.go==='members'?'data-open-members="1"':('data-goto="'+a.go+'"'))+'><span class="actq-n" style="background:'+a.c+'">'+a.n+'</span><span class="actq-lab">'+a.lab+'</span><span class="actq-arw">→</span></button>'; }).join('')+'</div>'; }
+  html+='</div>';
+
+  // ===== 통계 카드 =====
+  html+='<div class="dashgrid">';
   html+=statCard('개영까지', dd>0?('D-'+dd):(dd===0?'D-DAY':('D+'+(-dd))), '2026-08-05 개영', 'var(--c-fin)');
   html+=statCard('콘텐츠 진행', ready+' / '+total, '완료 '+pct+'% · 작성중 '+draft+' · 기획 '+planned, 'var(--st-ready)');
   html+=statCard('게시 완료', posted+' / '+titled, titled?(Math.round(posted/titled*100)+'% 게시'):'게시할 콘텐츠 없음', 'var(--c-intl)');
   html+=statCard('운영 일정', evs.length+'건', '다가오는 회의 · 공모전 · 행사', 'var(--c-intl)');
   html+=statCard('시간 일정', ttN+'건', '잼버리 일정표 (8/2~8/9)', 'var(--accent)');
+  html+=statCard('디데이 신청', dcApproved+'건', dcWeek?('이번 주 확정 '+dcWeek+'건'):'승인 확정 카드', 'var(--c-sub)');
   html+=statCard('인원 · 연락처', rosterN+' · '+conN, 'R&R 인원 · 취재 연락처', 'var(--ink-2)');
-  html+=statCard('진행률', pct+'%', '<div class="sc-bar"><i style="width:'+pct+'%"></i></div>', 'var(--st-ready)');
   html+='</div>';
+
+  // ===== E. 콘텐츠 파이프라인 (제목 있는 실제 콘텐츠 기준) =====
+  var readyUnposted=Math.max(0, tReady-posted);
+  var pipe=[['기획',tPlanned,'var(--st-planned)'],['작성중',tDraft,'var(--st-draft)'],['완료·미게시',readyUnposted,'var(--st-ready)'],['게시완료',posted,'var(--c-intl)']];
+  var pipeSum=pipe.reduce(function(a,x){return a+x[1];},0)||1;
+  html+='<div class="dashpanel"><div class="dp-h">콘텐츠 파이프라인 <span class="dp-hsub">'+titled+'건</span></div>';
+  html+='<div class="pipebar">'+pipe.map(function(p){ var w=Math.round(p[1]/pipeSum*100); return p[1]?'<div class="pipeseg" style="width:'+w+'%;background:'+p[2]+'" title="'+p[0]+' '+p[1]+'건"></div>':''; }).join('')+'</div>';
+  html+='<div class="pipelegend">'+pipe.map(function(p){ return '<span><i style="background:'+p[2]+'"></i>'+p[0]+' <b>'+p[1]+'</b></span>'; }).join('')+'</div></div>';
+
+  // ===== 다가오는 콘텐츠 / 운영 일정 =====
   html+='<div class="dashcols">';
   html+='<div class="dashpanel"><div class="dp-h">다가오는 콘텐츠</div>';
   if(!upcoming.length){ html+='<div class="dp-empty">예정된(제목 입력된) 콘텐츠가 없습니다.</div>'; }
-  else { html+='<div class="dp-list">'; upcoming.slice(0,8).forEach(function(it){
+  else { html+='<div class="dp-list">'; upcoming.slice(0,7).forEach(function(it){
     html+='<button class="dp-item" data-date="'+it.d.date+'" data-sk="'+esc(it.s.k)+'">'+
       '<span class="dp-d">'+it.d.label+' '+it.d.weekday+'</span>'+
       '<span class="dp-t">'+(it.e.ctype?ctchip(it.e.ctype)+' ':'')+esc(it.e.title)+'</span>'+
@@ -2740,23 +2802,71 @@ function renderDashboard(){
   html+='</div>';
   html+='<div class="dashpanel"><div class="dp-h">다가오는 운영 일정</div>';
   if(!evs.length){ html+='<div class="dp-empty">예정된 운영 일정이 없습니다.</div>'; }
-  else { html+='<div class="dp-list">'; evs.slice(0,8).forEach(function(ev){
+  else { html+='<div class="dp-list">'; evs.slice(0,7).forEach(function(ev){
     var ek=(eventColor?eventColor(ev.kind):'#7A6A57');
     html+='<button class="dp-item" data-eid="'+esc(ev.id)+'">'+
       '<span class="dp-d">'+(ev.start||'').slice(5)+(ev.end&&ev.end!==ev.start?('~'+ev.end.slice(5)):'')+'</span>'+
       '<span class="dp-t"><span class="dp-kind" style="background:'+ek+'">'+esc(ev.kind||'')+'</span> '+esc(ev.title)+'</span></button>';
   }); html+='</div>'; }
   html+='</div></div>';
-  // 게시 현황 · 통계 (채널별 · 담당자별 · 마감 임박)
+
+  // ===== C. 오늘의 현장 / G. 팀별 워크로드 =====
+  html+='<div class="dashcols">';
+  var todayTT=ttList().filter(function(t){ return t.day===today; }).slice().sort(function(a,b){ return (a.start||'')<(b.start||'')?-1:1; });
+  var openShoots=shootList().filter(function(s){ return s.status!=='done'; });
+  var placedNow=rosterList().filter(function(m){ return mapZoneOf(m.id); }).length;
+  html+='<div class="dashpanel"><div class="dp-h">오늘의 현장 <span class="dp-hsub">'+(isJamboree?('오늘 '+today.slice(5)):'잼버리 기간(8/2~8/9)')+'</span></div>';
+  html+='<div class="fieldrow"><button class="fieldstat" data-goto="timetable"><b>'+todayTT.length+'</b><span>오늘 시간 일정</span></button>'+
+    '<button class="fieldstat" data-goto="sitemap"><b>'+placedNow+'</b><span>현장 배치 인원</span></button>'+
+    '<button class="fieldstat" data-goto="sitemap"><b>'+openShoots.length+'</b><span>미완료 촬영 요청</span></button></div>';
+  if(todayTT.length){ html+='<div class="dp-list">'+todayTT.slice(0,5).map(function(t){ return '<button class="dp-item" data-ttid="'+esc(t.id)+'"><span class="dp-d">'+esc(t.start||'')+(t.end?('~'+t.end):'')+'</span><span class="dp-t">'+esc(t.title||'(제목 없음)')+(t.place?(' <span class="dp-place">· '+esc(t.place)+'</span>'):'')+'</span></button>'; }).join('')+'</div>'; }
+  else { html+='<div class="dp-empty">오늘 등록된 시간 일정이 없습니다.</div>'; }
+  html+='</div>';
+  // 팀별 워크로드
+  html+='<div class="dashpanel"><div class="dp-h">팀별 워크로드</div><div class="teamload">';
+  TEAM_ORDER.forEach(function(tk){
+    var members=rosterList().filter(function(m){ return teamOf(m)===tk && ((m.name||'').trim()||(m.role||'').trim()); });
+    var badge=tk==='lead'?'<span class="tl-badge lead">홍보부장</span>':'<span class="tl-badge '+tk+'">'+esc(teamNames()[tk])+'</span>';
+    html+='<div class="tl-row">'+badge+'<span class="tl-people">'+members.length+'명</span>'+
+      '<span class="tl-stat">콘텐츠 <b>'+teamContent[tk]+'</b></span><span class="tl-stat">현장 <b>'+teamTT[tk]+'</b></span></div>';
+  });
+  html+='</div><div class="dp-hint">콘텐츠=담당자(이름) 매칭 · 현장=잼버리 일정표 담당 배정 기준</div></div>';
+  html+='</div>';
+
+  // ===== 게시 현황 · 통계 =====
   var owners=Object.keys(byOwner).sort(function(a,b){return byOwner[b]-byOwner[a];});
-  html+='<div class="dashpanel" style="margin-top:14px"><div class="dp-h">게시 현황 · 통계</div><div class="pubgrid">';
+  html+='<div class="dashpanel"><div class="dp-h">게시 현황 · 통계</div><div class="pubgrid">';
   html+='<div class="pubcol"><div class="pubcol-h">채널별 (게시/전체)</div>'+CHANNELS.map(function(c){ var x=byCh[c]||{t:0,p:0}; return '<div class="pubrow"><span>'+esc(c)+'</span><b>'+x.p+' / '+x.t+'</b></div>'; }).join('')+'</div>';
   html+='<div class="pubcol"><div class="pubcol-h">담당자별 콘텐츠</div>'+(owners.length?owners.slice(0,8).map(function(o){ return '<div class="pubrow"><span>'+esc(o)+'</span><b>'+byOwner[o]+'건</b></div>'; }).join(''):'<div class="dp-empty">담당자 지정된 콘텐츠 없음</div>')+'</div>';
   html+='<div class="pubcol"><div class="pubcol-h">마감 임박 · 미게시 (3일 내)</div>'+(dueSoon.length?dueSoon.slice(0,8).map(function(it){ return '<button class="pubrow due" data-date="'+it.d.date+'" data-sk="'+esc(it.s.k)+'"><span>'+it.d.label+' '+(it.dl===0?'오늘':('D-'+it.dl))+'</span><b>'+esc(it.e.title)+'</b></button>'; }).join(''):'<div class="dp-empty">임박한 미게시 콘텐츠 없음</div>')+'</div>';
   html+='</div></div>';
+
+  // ===== F. 최근 자료실 / 최근 기사 =====
+  html+='<div class="dashcols">';
+  html+='<div class="dashpanel"><div class="dp-h">최근 자료실 <span class="dp-hsub">'+(libLoaded?libItems.length:'…')+'</span></div>';
+  if(libLoaded && libItems.length){ html+='<div class="recentlib">'+libItems.slice(0,4).map(function(a){ var img=isImageAsset(a); return '<a class="rlib" href="'+esc(a.url)+'" target="_blank" rel="noopener">'+(img?'<span class="rlib-img" style="background-image:url('+esc(a.url)+')"></span>':'<span class="rlib-doc">'+icon('fileText',22)+'</span>')+'<span class="rlib-n">'+esc(a.name||'(이름 없음)')+'</span></a>'; }).join('')+'</div>'; }
+  else { html+='<div class="dp-empty">'+(libLoaded?'올라온 자료가 없습니다.':'불러오는 중…')+'</div>'; }
+  html+='<button class="dp-more" data-goto="library">자료실 전체 보기 →</button></div>';
+  html+='<div class="dashpanel"><div class="dp-h">최근 기사 <span class="dp-hsub">'+(newsLoaded?newsItems.length:'…')+'</span></div>';
+  if(newsLoaded && newsItems.length){ html+='<div class="dp-list">'+newsItems.slice(0,5).map(function(a){ return '<button class="dp-item" data-goto="news"><span class="dp-t">'+esc(a.title||'(제목 없음)')+'</span><span class="dp-d">'+esc((a.authorName||'')+(a.comments&&a.comments.length?(' · 검수 '+a.comments.length):''))+'</span></button>'; }).join('')+'</div>'; }
+  else { html+='<div class="dp-empty">'+(newsLoaded?'올라온 기사가 없습니다.':'불러오는 중…')+'</div>'; }
+  html+='<button class="dp-more" data-goto="news">기사 전체 보기 →</button></div>';
+  html+='</div>';
+
+  // ===== D. 디데이 프로젝트 요약 =====
+  html+='<div class="dashpanel dcsum"><div class="dp-h">디데이 프로젝트 (D-count)</div>'+
+    '<div class="dcsum-row"><span class="dcsum-stat"><b>'+dcApproved+'</b> 승인 확정</span><span class="dcsum-stat"><b>'+dcWeek+'</b> 이번 주 디데이</span>'+
+    '<a class="dp-more" href="/krjam-dcount" target="_blank" rel="noopener">디데이 프로젝트 열기 →</a></div>';
+  if(dcApproved){ var dcSorted=dcountApproved.slice().sort(function(a,b){ return dayDiff(a.targetDate,today)-dayDiff(b.targetDate,today); }); html+='<div class="dp-list">'+dcSorted.slice(0,5).map(function(a){ return '<a class="dp-item" href="/krjam-dcount" target="_blank" rel="noopener"><span class="dp-d">D-'+a.dNumber+' · '+esc(a.targetDate.slice(5))+'</span><span class="dp-t">'+esc(a.name||'')+(a.org?(' <span class="dp-place">· '+esc(a.org)+'</span>'):'')+'</span></a>'; }).join('')+'</div>'; }
+  html+='</div>';
+
   box.innerHTML=html;
+  startDashClock();
   box.querySelectorAll('.dp-item[data-sk],.pubrow[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
   box.querySelectorAll('.dp-item[data-eid]').forEach(function(b){ b.onclick=function(){ openEvent(b.getAttribute('data-eid')); }; });
+  box.querySelectorAll('.dp-item[data-ttid]').forEach(function(b){ b.onclick=function(){ openTT(b.getAttribute('data-ttid')); }; });
+  box.querySelectorAll('[data-goto]').forEach(function(b){ b.onclick=function(){ setView(b.getAttribute('data-goto')); }; });
+  box.querySelectorAll('[data-open-members]').forEach(function(b){ b.onclick=function(){ openMembers(); }; });
 }
 
 /* ===== wire up ===== */
@@ -2765,6 +2875,7 @@ var curViewMode='calendar';
 function setView(v){
   if(!Auth.canSee(v)) v='dashboard';   // 관리 탭은 홍보부 유형/관리자만
   curViewMode=v;
+  if(v!=='dashboard') stopDashClock();
   var db=document.getElementById('dashboard'); if(db) db.style.display = v==='dashboard'?'':'none';
   var nw=document.getElementById('news'); if(nw) nw.style.display = v==='news'?'':'none';
   document.getElementById('calendar').style.display  = v==='calendar'?'':'none';
