@@ -54,9 +54,10 @@
     const r = await fetch(API, { method, headers: Object.assign({ 'content-type': 'application/json' }, headers || {}), body: JSON.stringify(body) });
     return { ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) };
   }
-  function adminToken() { try { const s = JSON.parse(localStorage.getItem(ADMIN_KEY) || 'null'); return (s && s.token && s.exp > Date.now()) ? s.token : null; } catch (_) { return null; } }
+  // 관리자 인증 = 공유 비밀번호(scout1922). 서버는 헤더 X-CC-Pass 로 검증(TOTP 세션도 병행 허용).
+  function adminToken() { try { const s = JSON.parse(localStorage.getItem(ADMIN_KEY) || 'null'); return (s && s.pass && s.exp > Date.now()) ? s.pass : null; } catch (_) { return null; } }
   function setAdmin(s) { try { if (s) localStorage.setItem(ADMIN_KEY, JSON.stringify(s)); else localStorage.removeItem(ADMIN_KEY); } catch (_) {} }
-  function bearer() { const t = adminToken(); return t ? { Authorization: 'Bearer ' + t } : {}; }
+  function bearer() { const p = adminToken(); return p ? { 'X-CC-Pass': p } : {}; }
   function copy(t) { try { navigator.clipboard.writeText(t); } catch (_) {} }
   const pad2 = (n) => (n < 10 ? '0' + n : '' + n);
 
@@ -578,7 +579,7 @@
   /* ── 관리자 ── */
   function Admin({ master, setMaster }) {
     const [authed, setAuthed] = useState(() => !!adminToken());
-    const [code, setCode] = useState(''); const [data, setData] = useState(null);
+    const [pw, setPw] = useState(''); const [data, setData] = useState(null);
     const [filter, setFilter] = useState('대기'); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
     const [idleLeft, setIdleLeft] = useState(600);
     const [rejectFor, setRejectFor] = useState(null);
@@ -586,7 +587,7 @@
 
     const load = useCallback(async () => {
       const { ok, status, j } = await jget(API + '?admin=1', bearer());
-      if (status === 401) { setAdmin(null); setAuthed(false); setMsg('세션 만료 — 코드를 다시 입력하세요.'); return; }
+      if (status === 401) { setAdmin(null); setAuthed(false); setMsg('세션 만료 — 비밀번호를 다시 입력하세요.'); return; }
       if (ok) { setData(j); if (j.masterStyle) setMaster(j.masterStyle); }
     }, [setMaster]);
     useEffect(() => { if (authed) load(); }, [authed, load]);
@@ -606,12 +607,13 @@
     }, [authed]);
 
     async function login() {
-      const c = code.replace(/\D/g, ''); if (c.length !== 6) { setMsg('6자리 코드를 입력하세요.'); return; }
+      const p = pw.trim(); if (!p) { setMsg('비밀번호를 입력하세요.'); return; }
       setBusy(true); setMsg('');
-      const r = await fetch('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: c }) });
-      const j = await r.json().catch(() => ({})); setBusy(false);
-      if (r.ok && j.ok && j.token) { setAdmin({ token: j.token, exp: j.exp || (Date.now() + 12 * 3600 * 1000) }); setCode(''); setAuthed(true); }
-      else setMsg(r.status === 429 ? '시도가 너무 많습니다.' : '인증 코드가 올바르지 않습니다.');
+      // 비밀번호 검증 = 관리자 GET(?admin=1) 호출로 확인
+      const { status } = await jget(API + '?admin=1', { 'X-CC-Pass': p });
+      setBusy(false);
+      if (status !== 401) { setAdmin({ pass: p, exp: Date.now() + 12 * 3600 * 1000 }); setPw(''); setAuthed(true); }
+      else setMsg('비밀번호가 올바르지 않습니다.');
     }
     async function patch(body) {
       setBusy(true);
@@ -629,9 +631,9 @@
 
     if (!authed) return (
       <div className="dc-card" style={{ maxWidth: 360, margin: '20px auto', textAlign: 'center' }}>
-        <p className="dc-note" style={{ marginBottom: 12 }}>관리자 인증 앱의 6자리 코드를 입력하세요.</p>
-        <input className="dc-input" inputMode="numeric" maxLength={6} value={code} placeholder="000000" style={{ textAlign: 'center', letterSpacing: '.3em', marginBottom: 10 }}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter') login(); }} />
+        <p className="dc-note" style={{ marginBottom: 12 }}>관리자 비밀번호를 입력하세요.</p>
+        <input className="dc-input" type="password" value={pw} placeholder="비밀번호" style={{ textAlign: 'center', marginBottom: 10 }}
+          onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') login(); }} />
         <button className="dc-btn primary" style={{ width: '100%' }} disabled={busy} onClick={login}>관리자 입장</button>
         {msg && <div className="dc-err">{msg}</div>}
       </div>

@@ -978,6 +978,13 @@ WOSM Region → 국가(NSO) → 단위대
 - 사용자: 달력이 가시성 떨어짐(흰 카드+작은 신청가능 pill이 다 비슷) → "신청가능한 날은 초록색으로 셀을 채우자."
 - **CSS만 변경**(krjam-dcount.html): `.dc-slot2.open` = `--st-ready`(#2F8F6B) 솔리드 배경+테두리, D번호·날짜 흰색, 내부 pill 흰색 반투명(`rgba(255,255,255,.24)!important`로 인라인 초록 배경 오버라이드). hover=진한 초록+살짝 떠오름. 점유(확정/검토중)·닫힘은 기존 `.dim`(opacity .5) 유지 → 가능=초록 채움 vs 불가=흐림 대비.
 - 검증: CDP로 `/api/krjam-dcount` 목킹(36슬롯, 확정/검토중/닫힘 섞음) 후 렌더 — 신청가능 초록 채움·확정/검토중/닫힘 흐림 구분 명확, 콘솔 정상.
+### 18.27 v0.9.162 — /krjam-dcount 관리자 로그인 TOTP → 공유 비밀번호(scout1922)
+- 사용자: "관리자에 scout1922로 로그인할수있게 바꿔줘"(AskUserQuestion으로 대상 = **/krjam-dcount 관리자** 확정). 카드뉴스(§18.20 v0.9.138)와 동일한 공유 비밀번호 게이트 패턴 채택.
+- **백엔드**(`functions/api/krjam-dcount.js`): `requireAdmin(request,env)` 헬퍼 신설 — 관리자 세션(TOTP `isAdmin`) **또는** 헤더 `X-CC-Pass === env.CC_PASS`(기본 `scout1922`) 허용. 관리자 GET(`?admin=1`)·PATCH 인증을 `isAdmin`→`requireAdmin`으로 교체. (TOTP 세션도 계속 유효 — 병행.)
+- **프런트**(`krjam-dcount/app.jsx`): 관리자 게이트 6자리 TOTP 코드 → **비밀번호 입력**(`type=password`). `adminToken()`/`setAdmin()`/`bearer()`가 세션토큰(`{token}`, `Authorization: Bearer`) → 공유 비번(`{pass,exp}`, `X-CC-Pass`)으로 전환(localStorage `krjam-dcount:admin`, 12h). `login()`은 `/api/login` POST 대신 `GET ?admin=1` + `X-CC-Pass`로 검증(401 아니면 통과). 10분 유휴 자동 로그아웃·유휴 카운트다운은 유지. 세션 만료 문구 '코드'→'비밀번호'.
+- ⚠️ env `CC_PASS` 미설정 시 기본 `scout1922`(카드뉴스와 공유). 공개 저장소라 노출되나 내부 운영 게이트 용도. 기존 저장된 TOTP 세션(`{token}`)은 shape 불일치로 자동 무효 → 재로그인.
+- 검증: `node --check`(API) + esbuild(app.jsx) 컴파일 OK. 잔여 `/api/login`·`setCode`·`.token` 참조 0.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-06-25 — krjam-dcount D-Count 신청 데이터 전체 초기화 (사용자 지시)

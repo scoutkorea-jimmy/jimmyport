@@ -6,6 +6,13 @@
  *  KV: dcount:closed · dcount:index · dcount:style · dcount:app:<이름> · dcount:lock:<date> */
 import { json, hashPassword, verifyPassword, isAdmin, getArr, putArr, clientIp, maskIp, appendLog } from "./_lib.js";
 
+// 관리자 인증: 관리자 세션(TOTP) 또는 공유 비밀번호(헤더 X-CC-Pass, env.CC_PASS 기본 scout1922).
+async function requireAdmin(request, env) {
+  if (await isAdmin(request, env)) return true;
+  const pass = (request.headers.get("X-CC-Pass") || "").trim();
+  return !!(pass && pass === (env.CC_PASS || "scout1922"));
+}
+
 const EVENT_DATE = "2026-08-05";
 const SLOT_HI = 40, SLOT_LO = 5;
 const CLOSED = "dcount:closed", INDEX = "dcount:index", STYLE = "dcount:style";
@@ -79,7 +86,7 @@ export async function onRequestGet({ request, env }) {
   const t = today();
 
   if (url.searchParams.get("admin")) {
-    if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
+    if (!(await requireAdmin(request, env))) return json({ error: "unauthorized" }, 401);
     const apps = [];
     for (const e of index) { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) { try { apps.push(JSON.parse(raw)); } catch {} } }
     return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps, dclog: await getArr(env, DCLOG), visits: parseInt((await env.SCOUT_KV.get(VISITS)) || "0", 10) || 0 });
@@ -204,7 +211,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestPatch({ request, env }) {
-  if (!(await isAdmin(request, env))) return json({ error: "unauthorized" }, 401);
+  if (!(await requireAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   let b; try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
   const action = b.action, now = new Date().toISOString();
 
