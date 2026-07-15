@@ -1,9 +1,12 @@
 /* 현장 제보 인박스 — 현장 사진/소식 제보 → 홍보부 검토(채택/반려)
  *  GET    /api/jp-tips                                  (회원/관리자) → { tips } 최신순
- *  POST   /api/jp-tips { org, zone, text, photos[], reporterName }  (회원/관리자) 제보 등록
- *  PATCH  /api/jp-tips { id, status?, note? }           (회원/관리자) 검토 상태·메모
+ *  POST   /api/jp-tips { org, zone, text, photos[], reporterName, date?, time? }  (공개/회원) 제보 등록
+ *  PATCH  /api/jp-tips { id, status?, note?, assignee?, date?, time?, scheduled? } (회원/관리자) 검토·일정
  *  DELETE /api/jp-tips?id=<id>                          (작성자 본인 또는 관리자)
- * KV: "jpt:<id>" = {id, reporterName, reporterUser, org, zone, text, photos[], status, note, ip, createdAt, triagedBy, triagedAt}
+ * KV: "jpt:<id>" = {id, reporterName, reporterUser, org, zone, text, photos[], status, note, assignee,
+ *                   date, time,                       // 제보자가 제안한 희망 일시(선택)
+ *                   scheduled: {kind:'tt'|'slot', ref, date, time},  // 홍보부가 잡은 일정 링크
+ *                   ip, createdAt, triagedBy, triagedAt}
  */
 import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog, bannedTerms, matchBanned } from "./_lib.js";
 
@@ -27,6 +30,15 @@ function cleanPhotos(arr) {
   return Array.isArray(arr)
     ? arr.map((u) => String(u || "").slice(0, 600)).filter((u) => /^\/api\/image\?id=/.test(u)).slice(0, 3)
     : [];
+}
+// 희망 일시 — 형식 안 맞으면 조용히 버린다(선택 항목이라 제보 자체를 막지 않음)
+const cleanDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : "");
+const cleanTime = (v) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || "")) ? String(v) : "");
+function cleanScheduled(s) {
+  if (!s || typeof s !== "object") return null;
+  const kind = s.kind === "tt" || s.kind === "slot" ? s.kind : "";
+  if (!kind) return null;
+  return { kind, ref: String(s.ref || "").slice(0, 80), date: cleanDate(s.date), time: cleanTime(s.time) };
 }
 
 export async function onRequestGet({ request, env }) {
@@ -68,6 +80,8 @@ export async function onRequestPost({ request, env }) {
     reporterName: reporterName || (who ? (who.admin ? "관리자" : who.username) : "익명"),
     phone, org, zone: String(body.zone || "").slice(0, 40),
     text, photos, status: "new", note: "", assignee: "",
+    date: cleanDate(body.date), time: cleanTime(body.time), // 제보자 희망 일시(선택)
+    scheduled: null,
     source: who ? "member" : "public",
     consentAt: (!who && body.consent === true) ? now : "",
     participant: !who ? (body.participant === true) : true,
@@ -87,6 +101,9 @@ export async function onRequestPatch({ request, env }) {
   if (body.status != null && STATUSES.indexOf(body.status) >= 0) rec.status = body.status;
   if (body.note != null) rec.note = String(body.note).slice(0, 500);
   if (body.assignee != null) rec.assignee = String(body.assignee).slice(0, 40);
+  if (body.date != null) rec.date = cleanDate(body.date);
+  if (body.time != null) rec.time = cleanTime(body.time);
+  if (body.scheduled !== undefined) rec.scheduled = cleanScheduled(body.scheduled); // null = 일정 해제
   rec.triagedBy = who.admin ? "관리자" : who.username;
   rec.triagedAt = new Date().toISOString();
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));

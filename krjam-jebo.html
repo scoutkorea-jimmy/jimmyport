@@ -43,6 +43,10 @@ label.fl .req{color:var(--danger);margin-left:3px}
 label.fl .opt{font-weight:500;color:var(--faint);margin-left:3px}
 .in,.ta,.sel{width:100%;font:inherit;font-size:15px;padding:12px 13px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
 .ta{resize:vertical;min-height:96px}
+.whenrow{display:flex;align-items:center;gap:7px}
+.whenrow #f-date{flex:1 1 auto;min-width:0}
+.whenrow .tnum{flex:0 0 62px;text-align:center;padding:12px 6px}
+.whensep{font-size:15px;font-weight:700;color:var(--faint);flex:0 0 auto}
 .in:focus,.ta:focus,.sel:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .hint{font-size:12px;color:var(--faint);margin:6px 0 0}
 .slots{display:flex;flex-wrap:wrap;gap:9px;margin-top:4px}
@@ -97,6 +101,16 @@ label.fl .opt{font-weight:500;color:var(--faint);margin-left:3px}
     <label class="fl" for="f-zone"><span id="l-zone"></span><span class="opt" id="l-zone-opt"></span></label>
     <select class="sel" id="f-zone"></select>
 
+    <label class="fl" for="f-date"><span id="l-when"></span><span class="opt" id="l-when-opt"></span></label>
+    <div class="whenrow">
+      <input class="in" id="f-date" type="date" min="2026-06-15" max="2026-08-09">
+      <span class="whensep" id="l-whenat"></span>
+      <input class="in tnum" id="f-hh" type="number" min="0" max="23" inputmode="numeric" placeholder="00">
+      <span class="whensep">:</span>
+      <input class="in tnum" id="f-mm" type="number" min="0" max="59" step="5" inputmode="numeric" placeholder="00">
+    </div>
+    <p class="hint" id="t-whenhint"></p>
+
     <label class="fl" for="f-text"><span id="l-text"></span></label>
     <textarea class="ta" id="f-text" maxlength="2000"></textarea>
 
@@ -132,11 +146,12 @@ var T={
     lead:'잼버리를 준비하며 생긴 <b>특별한 소식이나 사연</b>, 자랑하고 싶은 이야기를 보내주세요.<br><b>잼버리 시작 전부터</b> 언제든 환영합니다 — 홍보부가 모아 카드뉴스·기사로 만듭니다.',
     name:'이름', namePh:'제보자 이름', phone:'전화번호', phonePh:'예: 010-1234-5678', org:'소속 · 분단', opt:'(선택)', orgPh:'예: 평화숲분단 · 운영본부 · 일본 대표단',
     zone:'관련 위치', zoneNone:'— 위치 선택 안 함 —', text:'소식 내용', textPh:'어떤 소식인가요? 잼버리 준비 이야기, 참가자 사연, 자랑거리 등 자유롭게 적어주세요.',
+    when:'희망 날짜 · 시간', whenAt:'', whenHint:'취재를 원하는 날짜·시각이 있으면 알려주세요. 홍보부가 확인 후 일정을 확정합니다. (24시간 기준)',
     photo:'사진', photoSub:'(최대 10장)', photoAdd:'사진 추가', photoHint:'사진 또는 내용 중 하나는 입력해 주세요. 사진은 고화질로 전송됩니다.',
     consent:'<b>[필수] 개인정보 수집·이용에 동의합니다.</b> 이름·소속·사진·접속 IP를 홍보 콘텐츠 제작·검토 목적으로 수집하며, 잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.',
     participant:'<b>[필수] 본인은 제16회 한국잼버리 참가자임을 확인합니다.</b>',
     submit:'제보 보내기', busy:'전송 중…',
-    donetitle:'제보 감사합니다!', donetext:'홍보부가 확인 후 콘텐츠로 활용합니다.<br>소중한 현장 소식 고맙습니다.', again:'새 제보 작성',
+    donetitle:'제보 감사합니다!', donetext:'홍보부가 확인 후 콘텐츠로 활용합니다.<br>소중한 잼버리 소식 고맙습니다.', again:'새 제보 작성',
     foot:'제보하신 이름·소속·사진·접속 IP는 홍보 콘텐츠 제작·검토 목적으로 수집되며, 제16회 한국잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제됩니다. 타인의 초상이 포함된 사진은 동의를 받아 제보해 주세요.',
     err:{empty:'사진 또는 내용을 입력해 주세요.', name_required:'이름을 입력해 주세요.', phone_required:'전화번호를 입력해 주세요.', consent_required:'개인정보 수집·이용 동의가 필요합니다.', participant_required:'잼버리 참가자 확인이 필요합니다.', too_many:'제보가 너무 많습니다. 잠시 후 다시 시도해 주세요.', blocked_keyword:'허용되지 않는 표현이 포함되어 있습니다.', network:'네트워크 오류입니다. 다시 시도해 주세요.', generic:'전송에 실패했습니다. 다시 시도해 주세요.'}
   },
@@ -145,6 +160,7 @@ var T={
     lead:'Share <b>special news or stories</b> about your Jamboree journey — even <b>before the Jamboree begins</b>.<br>The Media Team collects them and turns them into cards & articles.',
     name:'Name', namePh:'Your name', phone:'Phone', phonePh:'e.g. +82 10-1234-5678', org:'Unit · Division', opt:'(optional)', orgPh:'e.g. Pyeonghwasup Div. · Operations · Japan Contingent',
     zone:'Related location', zoneNone:'— No location selected —', text:'Your news', textPh:'What is your news? Preparation stories, participant tales, things to share — anything is welcome.',
+    when:'Preferred date · time', whenAt:'', whenHint:'If you have a preferred date/time for coverage, let us know. The Media Team will confirm the schedule. (24-hour clock)',
     photo:'Photos', photoSub:'(up to 10)', photoAdd:'Add photo', photoHint:'Please provide at least a photo or a message. Photos are sent in high quality.',
     consent:'<b>[Required] I agree to the collection and use of my personal data.</b> Name, unit, photos and IP are collected for media content production/review and kept until 3 months after the Jamboree (until 2026-11-09), then deleted.',
     participant:'<b>[Required] I confirm that I am a participant of the 16th Korea National Jamboree.</b>',
@@ -175,6 +191,7 @@ function applyLang(){
   setText('l-phone',t.phone); document.getElementById('f-phone').placeholder=t.phonePh;
   setText('l-org',t.org); setText('l-org-opt',t.opt); document.getElementById('f-org').placeholder=t.orgPh;
   setText('l-zone',t.zone); setText('l-zone-opt',t.opt); document.getElementById('f-text').placeholder=t.textPh;
+  setText('l-when',t.when); setText('l-when-opt',t.opt); setText('l-whenat',t.whenAt); setText('t-whenhint',t.whenHint);
   setText('l-text',t.text); setText('l-photo',t.photo); setText('l-photo-sub',t.photoSub);
   setText('t-photohint',t.photoHint); setText('t-consent',t.consent); setText('t-participant',t.participant);
   setText('submit',t.submit); setText('t-donetitle',t.donetitle); setText('t-donetext',t.donetext);
@@ -222,6 +239,14 @@ function setErr(key){ errKey=key||null; document.getElementById('err').textConte
 document.getElementById('lang-ko').onclick=function(){ setLang('ko'); };
 document.getElementById('lang-en').onclick=function(){ setLang('en'); };
 document.getElementById('slots').addEventListener('click',function(e){ var d=e.target.closest('[data-del]'); if(d){ images.splice(+d.getAttribute('data-del'),1); renderSlots(); } });
+/* 희망 시각 — 시/분 둘 다 유효할 때만 HH:MM (24시간 기준, 선택 항목) */
+function wishTime(){
+  var h=document.getElementById('f-hh').value, m=document.getElementById('f-mm').value;
+  if(h===''||m==='') return '';
+  h=parseInt(h,10); m=parseInt(m,10);
+  if(!(h>=0&&h<=23)||!(m>=0&&m<=59)) return '';
+  return ('0'+h).slice(-2)+':'+('0'+m).slice(-2);
+}
 document.getElementById('form').addEventListener('submit',function(e){
   e.preventDefault(); setErr(null);
   var name=document.getElementById('f-name').value.trim();
@@ -235,6 +260,7 @@ document.getElementById('form').addEventListener('submit',function(e){
   setBusy(true);
   fetch('/api/jp-tips',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
     reporterName:name, phone:phone, org:document.getElementById('f-org').value.trim(), zone:document.getElementById('f-zone').value,
+    date:document.getElementById('f-date').value||'', time:wishTime(),
     text:text, photos:images, consent:true, participant:true
   })}).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
     .then(function(res){ setBusy(false);

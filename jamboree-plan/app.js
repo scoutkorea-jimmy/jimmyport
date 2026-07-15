@@ -1648,7 +1648,7 @@ function renderTTModal(){
   var rdAdd=b.querySelector('#tt-rd-add'); if(rdAdd) rdAdd.onclick=function(){ if(!Array.isArray(ttDraft.rundown)) ttDraft.rundown=[]; ttDraft.rundown.push({time:'',title:'',note:''}); renderTTModal(); };
 }
 function ttIdx(id){ var l=ttList(); for(var i=0;i<l.length;i++) if(l[i].id===id) return i; return -1; }
-function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', zone:ttDraft.zone||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
+function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', zone:ttDraft.zone||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', tipId:ttDraft.tipId||'', rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
 function ttCopy(src, day, sid){ return Object.assign({},src,{id:mkid(),day:day,series:sid,assignees:src.assignees.slice(),contacts:src.contacts.slice(),rundown:(src.rundown||[]).map(function(r){return Object.assign({},r);})}); }
 function finishTT(msg){ saveTimetable(); renderTimetable(); if(curViewMode==='staff') renderStaff(); closeTT(); toast(msg); }
 /* 반복 일정 수정 범위 선택 — 이 일정만 / 모든 반복 */
@@ -2439,12 +2439,50 @@ function libProgress(label, pct){
   document.getElementById('lib-progress-p').textContent=(pct||0)+'%';
   document.getElementById('lib-progress-f').style.width=(pct||0)+'%';
 }
-function uploadAssets(files, category){
+/* 업로드 모달 — 파일 목록·구분·태그를 한 화면에서 확인 후 올린다 (기존 window.prompt 대체) */
+var libUp=null;   // {files:[], category, tags}
+function openLibUpload(files, category){
   if(!Auth.authed()){ toast('로그인 후 올릴 수 있습니다'); return; }
   var arr=Array.prototype.slice.call(files||[]); if(!arr.length) return;
-  var catLabel=category==='plan'?'잼버리 운영 계획서':'카드뉴스·사진';
-  var tagStr=prompt('['+catLabel+'] 태그 (쉼표로 구분 · 선택) — 예: 개영식, 운영, 카드뉴스'); if(tagStr===null) return;
-  var tags=(tagStr||'').split(',').map(function(t){return t.trim();}).filter(Boolean);
+  libUp={ files:arr, category:category, tags:'' };
+  renderLibUpload();
+  document.getElementById('lib-scrim').classList.add('show');
+  setTimeout(function(){ var t=document.getElementById('libup-tags'); t&&t.focus(); },30);
+}
+function closeLibUpload(){ document.getElementById('lib-scrim').classList.remove('show'); libUp=null; }
+function renderLibUpload(){
+  if(!libUp) return;
+  var catLabel=libUp.category==='plan'?'잼버리 운영 계획서':'카드뉴스·사진';
+  document.getElementById('lib-mtitle').textContent=catLabel+' 올리기';
+  var rows=libUp.files.map(function(f,i){
+    var over=f.size>MAX_FILE;
+    return '<div class="libup-row'+(over?' over':'')+'">'+icon(/^image\//i.test(f.type||'')?'image':'fileText',14)+
+      '<span class="libup-n">'+esc(f.name)+'</span>'+
+      '<span class="libup-s">'+fmtMB(f.size)+(over?' · 100MB 초과':'')+'</span>'+
+      '<button class="btn xs ghost" data-libup-del="'+i+'" aria-label="빼기">'+icon('x',12)+'</button></div>';
+  }).join('');
+  var over=libUp.files.filter(function(f){return f.size>MAX_FILE;}).length;
+  document.getElementById('lib-body').innerHTML=
+    '<div class="fl">파일 ('+libUp.files.length+')</div><div class="libup-list">'+rows+'</div>'+
+    (over?'<div class="libup-warn">'+icon('clock',13)+' 100MB를 넘는 파일 '+over+'개는 업로드에서 제외됩니다.</div>':'')+
+    '<div class="fl">태그 (쉼표로 구분 · 선택)</div>'+
+    '<input class="ti" id="libup-tags" type="text" placeholder="예: 개영식, 운영, 카드뉴스" value="'+esc(libUp.tags)+'">'+
+    '<div class="libup-hint">파일 1개당 <b>100MB</b>까지 · 사진은 자동 축소(1600px) 후 저장됩니다.</div>';
+  var btn=document.getElementById('lib-upload');
+  var n=libUp.files.filter(function(f){return f.size<=MAX_FILE;}).length;
+  btn.disabled=!n; btn.textContent=n?('업로드 ('+n+')'):'올릴 파일 없음';
+}
+function commitLibUpload(){
+  if(!libUp) return;
+  var t=document.getElementById('libup-tags'); if(t) libUp.tags=t.value;
+  var files=libUp.files, cat=libUp.category, tags=(libUp.tags||'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  closeLibUpload();
+  uploadAssets(files, cat, tags);
+}
+function uploadAssets(files, category, tags){
+  if(!Auth.authed()){ toast('로그인 후 올릴 수 있습니다'); return; }
+  var arr=Array.prototype.slice.call(files||[]); if(!arr.length) return;
+  tags=tags||[];
   var over=arr.filter(function(f){ return f.size>MAX_FILE; });
   if(over.length){ toast(over[0].name+' : '+fmtMB(over[0].size)+' — 파일 1개당 100MB까지'); arr=arr.filter(function(f){ return f.size<=MAX_FILE; }); }
   if(!arr.length){ return; }
@@ -2582,11 +2620,19 @@ function renderTips(){
     var srcBadge=(t.source==='public')?'<span class="tip-src">외부 제보</span>':'';
     var asg=t.assignee?rosterById(t.assignee):null;
     var asgChip=asg?('<span class="tip-asg">'+icon('user',12)+' 담당 '+esc(personLabel(asg))+'</span>'):'';
+    // 제보자 희망 일시(선택) — 아직 일정 안 잡힌 경우에만 표시
+    if(!t.scheduled && (t.date||t.time)) meta.push(icon('clock',12)+' 희망 '+esc([t.date,t.time].filter(Boolean).join(' ')));
+    var scChip=t.scheduled
+      ? ('<span class="tip-sch '+(t.scheduled.kind==='tt'?'tt':'slot')+'" data-tip-goto="'+esc(t.id)+'" title="연결된 일정 열기">'+
+          icon(t.scheduled.kind==='tt'?'clock':'calendar',12)+' 일정 '+esc([t.scheduled.date,t.scheduled.time].filter(Boolean).join(' '))+'</span>')
+      : '';
     var canDel=Auth.isAdmin()||(Auth.username&&t.reporterUser===Auth.username);
     var tools='';
     if(staff){
       var ropts='<option value="">담당 미지정</option>'+rosterList().map(function(m){ return '<option value="'+esc(m.id)+'"'+(t.assignee===m.id?' selected':'')+'>'+esc(personLabel(m))+'</option>'; }).join('');
       tools+='<select class="tip-assign" data-tip-assign="'+esc(t.id)+'" title="담당자 배정">'+ropts+'</select>';
+      tools+='<button class="btn xs ghost" data-tip-sched="'+esc(t.id)+'" title="날짜·시간·담당을 정해 일정에 올립니다">'+icon('clock',12)+' '+(t.scheduled?'일정 변경':'일정 잡기')+'</button>';
+      if(t.scheduled) tools+='<button class="btn xs ghost" data-tip-unsched="'+esc(t.id)+'" title="일정 링크 해제">링크 해제</button>';
       tools+='<button class="btn xs ghost" data-tip-tonews="'+esc(t.id)+'" title="이 제보로 기사 작성">'+icon('fileText',12)+' 기사로</button>';
       if((t.photos||[]).length) tools+='<button class="btn xs ghost" data-tip-toassets="'+esc(t.id)+'" title="사진을 자료실로">'+icon('image',12)+' 자료실로</button>';
       if(t.status!=='used') tools+='<button class="btn xs ghost" data-tip-status="'+esc(t.id)+'~used">'+icon('check',12)+' 채택</button>';
@@ -2597,7 +2643,7 @@ function renderTips(){
     return '<article class="tipcard s-'+esc(t.status)+'">'+
       (photos?('<div class="tip-photos n'+(t.photos||[]).length+'">'+photos+'</div>'):'')+
       '<div class="tip-main">'+
-        '<div class="tip-top"><span class="tip-badge" style="background:'+st[1]+'">'+st[0]+'</span>'+srcBadge+asgChip+'<span class="tip-time">'+esc(fmtNewsTime(t.createdAt))+'</span></div>'+
+        '<div class="tip-top"><span class="tip-badge" style="background:'+st[1]+'">'+st[0]+'</span>'+srcBadge+asgChip+scChip+'<span class="tip-time">'+esc(fmtNewsTime(t.createdAt))+'</span></div>'+
         (t.text?('<div class="tip-text">'+esc(t.text).replace(/\n/g,'<br>')+'</div>'):'')+
         (meta.length?('<div class="tip-meta">'+meta.join('<span class="dotsep">·</span>')+'</div>'):'')+
         (tools?('<div class="tip-tools">'+tools+'</div>'):'')+
@@ -2661,6 +2707,107 @@ function deleteTip(id){
   fetch('/api/jp-tips?id='+encodeURIComponent(id),{method:'DELETE',headers:authHeader()})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
     .then(function(j){ if(j&&j.ok){ tipItems=tipItems.filter(function(x){return x.id!==id;}); renderTips(); toast('삭제됨'); } else if(j) toast('삭제 권한 없음'); })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+/* ===== 소식 제보 → 일정 잡기 =====
+   날짜로 자동 분기: 8/2~8/9(JAM_DAYS) = 잼버리 일정표의 취재 블록 · 그 외 = 콘텐츠 캘린더 슬롯.
+   제보에는 scheduled{kind,ref,date,time} 를 남겨 양방향으로 오갈 수 있게 한다. */
+var tschDraft=null;   // {tipId, date, hh, mm, dur, title, assignees[], zone}
+function isJamDay(d){ return JAM_DAYS.some(function(x){ return x[0]===d; }); }
+function tipTitleGuess(t){
+  var s=(t.text||'').trim().split('\n')[0].trim();
+  if(s.length>40) s=s.slice(0,40)+'…';
+  return s || ((t.reporterName||'소식')+' 취재');
+}
+function openTipSchedule(id){
+  var t=tipItems.filter(function(x){return x.id===id;})[0]; if(!t) return;
+  if(!Auth.isStaff()){ toast('홍보부만 일정을 잡을 수 있습니다'); return; }
+  var sc=t.scheduled||null;
+  var d=(sc&&sc.date)||t.date||todayISO();
+  var tm=(sc&&sc.time)||t.time||'10:00';
+  tschDraft={ tipId:id, date:d, hh:parseInt(tm.split(':')[0],10)||10, mm:parseInt(tm.split(':')[1],10)||0,
+              dur:60, title:tipTitleGuess(t), assignees:t.assignee?[t.assignee]:[], zone:t.zone||'' };
+  renderTipSchedule();
+  document.getElementById('tsch-scrim').classList.add('show');
+}
+function closeTipSchedule(){ document.getElementById('tsch-scrim').classList.remove('show'); tschDraft=null; }
+function renderTipSchedule(){
+  if(!tschDraft) return;
+  var d=tschDraft, jam=isJamDay(d.date);
+  var people=rosterList().map(function(m){
+    var on=d.assignees.indexOf(m.id)>=0;
+    return '<button class="evkind'+(on?' on':'')+'" data-tsch-p="'+esc(m.id)+'">'+esc(personLabel(m))+'</button>';
+  }).join('') || '<span class="tsch-none">홍보부 인원이 없습니다 — 인원 관리에서 먼저 등록하세요.</span>';
+  document.getElementById('tsch-body').innerHTML=
+    '<div class="fl">날짜</div>'+
+    '<input class="ti" id="tsch-date" type="date" min="2026-06-15" max="2026-08-09" value="'+esc(d.date)+'">'+
+    '<div class="tsch-dest '+(jam?'jam':'cal')+'">'+icon(jam?'clock':'calendar',13)+'<span>'+
+      (jam?'<b>잼버리 일정표</b>에 취재 블록으로 등록됩니다.':'<b>콘텐츠 캘린더</b>에 콘텐츠로 등록됩니다. <span class="tsch-why">(일정표는 8/2~8/9만 다룹니다)</span>')+'</span></div>'+
+    '<div class="fl">시작 시각 (24시간)</div>'+
+    '<div class="evtimegrp"><input class="evtime" id="tsch-hh" type="number" min="0" max="23" value="'+d.hh+'"><span>:</span>'+
+      '<input class="evtime" id="tsch-mm" type="number" min="0" max="59" step="5" value="'+d.mm+'">'+
+      (jam?('<span class="tsch-dur">소요 <input class="evtime" id="tsch-dur" type="number" min="15" max="600" step="15" value="'+d.dur+'">분</span>'):'')+'</div>'+
+    '<div class="fl">제목</div>'+
+    '<input class="ti" id="tsch-title" type="text" maxlength="120" value="'+esc(d.title)+'">'+
+    '<div class="fl">담당 인원</div><div class="chipset">'+people+'</div>'+
+    '<div class="fl">현장 지도 구역</div><select class="ti" id="tsch-zone">'+zoneOptions(d.zone)+'</select>';
+}
+function commitTipSchedule(){
+  if(!tschDraft) return;
+  var d=tschDraft;
+  d.date=document.getElementById('tsch-date').value||'';
+  d.hh=Math.max(0,Math.min(23,parseInt(document.getElementById('tsch-hh').value,10)||0));
+  d.mm=Math.max(0,Math.min(59,parseInt(document.getElementById('tsch-mm').value,10)||0));
+  var durEl=document.getElementById('tsch-dur'); if(durEl) d.dur=Math.max(15,parseInt(durEl.value,10)||60);
+  d.title=(document.getElementById('tsch-title').value||'').trim();
+  d.zone=document.getElementById('tsch-zone').value||'';
+  if(!d.date){ toast('날짜를 선택하세요'); return; }
+  if(!d.title){ toast('제목을 입력하세요'); return; }
+  var t=tipItems.filter(function(x){return x.id===d.tipId;})[0];
+  var time=pad2(d.hh)+':'+pad2(d.mm);
+  var sched;
+  if(isJamDay(d.date)){
+    // 잼버리 일정표 취재 블록
+    var startH=d.hh+d.mm/60, endH=Math.min(24,startH+d.dur/60);
+    var item={ id:mkid(), day:d.date, start:time, end:h2hhmm(endH), title:d.title,
+               place:tipZoneLabel(d.zone), zone:d.zone, cat:'홍보활동',
+               assignees:d.assignees.slice(), contacts:[], memo:'소식 제보에서 생성'+(t&&t.reporterName?(' · 제보자 '+t.reporterName):''),
+               series:'', rundown:[], tipId:d.tipId };
+    ttList().push(item); saveTimetable();
+    if(curViewMode==='timetable') renderTimetable(); if(curViewMode==='staff') renderStaff();
+    sched={kind:'tt', ref:item.id, date:d.date, time:time};
+  } else {
+    // 콘텐츠 캘린더 슬롯 (행사 전 소식)
+    if(!byDate[d.date]){ toast('캘린더 기간(6/15~8/9) 밖 날짜입니다'); return; }
+    var k=addContent(d.date), e=getEdit(k);
+    e.title=d.title; e.time=time; e.ctype='취재';
+    var who=d.assignees.length?rosterById(d.assignees[0]):null; if(who) e.owner=personLabel(who);
+    var s=findSlot(byDate[d.date],k);
+    renderAfterEdit(k,s,true);
+    if(curViewMode==='calendar') renderCalendar();
+    sched={kind:'slot', ref:k, date:d.date, time:time};
+  }
+  // 제보에 일정 링크 + 담당자 동기화
+  var patch={id:d.tipId, scheduled:sched, date:d.date, time:time};
+  if(d.assignees.length) patch.assignee=d.assignees[0];
+  fetch('/api/jp-tips',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify(patch)})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok&&j.tip){ var i=tipItems.map(function(x){return x.id;}).indexOf(d.tipId); if(i>=0) tipItems[i]=j.tip; renderTips(); } })
+    .catch(function(){ toast('제보 링크 저장 실패 — 일정은 생성됨'); });
+  closeTipSchedule();
+  toast(sched.kind==='tt'?'잼버리 일정표에 등록됨':'콘텐츠 캘린더에 등록됨');
+}
+function openTipScheduled(id){   // 제보 카드의 일정 칩 → 해당 일정으로 이동
+  var t=tipItems.filter(function(x){return x.id===id;})[0]; if(!t||!t.scheduled) return;
+  var sc=t.scheduled;
+  if(sc.kind==='tt'){ setView('timetable'); setTimeout(function(){ openTT(sc.ref); },60); }
+  else { var s=byDate[sc.date]&&findSlot(byDate[sc.date],sc.ref); if(s){ setView('calendar'); setTimeout(function(){ openSlot(sc.date,s); },60); } else toast('연결된 콘텐츠를 찾을 수 없습니다'); }
+}
+function unscheduleTip(id){
+  if(!confirm('이 제보의 일정 링크를 해제할까요?\n(생성된 일정 자체는 남습니다)')) return;
+  fetch('/api/jp-tips',{method:'PATCH',headers:authJsonHeaders(),body:JSON.stringify({id:id,scheduled:null})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok&&j.tip){ var i=tipItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) tipItems[i]=j.tip; renderTips(); toast('일정 링크 해제됨'); } })
     .catch(function(){ toast('네트워크 오류'); });
 }
 function tipToNews(id){
@@ -3079,8 +3226,14 @@ function init(){
     if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } }
   });
   // 자료실(라이브러리) 배선
-  var lfp=document.getElementById('lib-file-plan'); if(lfp) lfp.addEventListener('change',function(){ uploadAssets(this.files,'plan'); this.value=''; });
-  var lfm=document.getElementById('lib-file-media'); if(lfm) lfm.addEventListener('change',function(){ uploadAssets(this.files,'media'); this.value=''; });
+  var lfp=document.getElementById('lib-file-plan'); if(lfp) lfp.addEventListener('change',function(){ openLibUpload(this.files,'plan'); this.value=''; });
+  var lfm=document.getElementById('lib-file-media'); if(lfm) lfm.addEventListener('change',function(){ openLibUpload(this.files,'media'); this.value=''; });
+  var lbx=document.getElementById('lib-close'); if(lbx) lbx.onclick=closeLibUpload;
+  var lbc=document.getElementById('lib-cancel'); if(lbc) lbc.onclick=closeLibUpload;
+  var lbu=document.getElementById('lib-upload'); if(lbu) lbu.onclick=commitLibUpload;
+  var lbs=document.getElementById('lib-scrim');
+  if(lbs){ lbs.addEventListener('click',function(e){ if(e.target===lbs) closeLibUpload(); });
+    lbs.addEventListener('click',function(e){ var d=e.target.closest('[data-libup-del]'); if(d&&libUp){ libUp.files.splice(+d.getAttribute('data-libup-del'),1); if(!libUp.files.length){ closeLibUpload(); return; } renderLibUpload(); } }); }
   var ls=document.getElementById('lib-search'); if(ls) ls.addEventListener('input',function(){ libSearch=this.value; renderLibrary(); });
   var lt=document.getElementById('lib-tags'); if(lt) lt.addEventListener('click',function(e){ var b=e.target.closest('[data-libtag]'); if(b){ libTag=b.getAttribute('data-libtag'); renderLibrary(); } });
   var lc=document.getElementById('lib-cats'); if(lc) lc.addEventListener('click',function(e){ var b=e.target.closest('[data-libcat]'); if(b){ libCat=b.getAttribute('data-libcat'); renderLibrary(); } });
@@ -3099,8 +3252,34 @@ function init(){
     var dl=e.target.closest('[data-tip-del]'); if(dl){ deleteTip(dl.getAttribute('data-tip-del')); return; }
     var tn=e.target.closest('[data-tip-tonews]'); if(tn){ tipToNews(tn.getAttribute('data-tip-tonews')); return; }
     var ta=e.target.closest('[data-tip-toassets]'); if(ta){ tipToAssets(ta.getAttribute('data-tip-toassets')); return; }
+    var sc=e.target.closest('[data-tip-sched]'); if(sc){ openTipSchedule(sc.getAttribute('data-tip-sched')); return; }
+    var us=e.target.closest('[data-tip-unsched]'); if(us){ unscheduleTip(us.getAttribute('data-tip-unsched')); return; }
+    var gt=e.target.closest('[data-tip-goto]'); if(gt){ openTipScheduled(gt.getAttribute('data-tip-goto')); return; }
   });
   tipGrid.addEventListener('change',function(e){ var a=e.target.closest('[data-tip-assign]'); if(a){ assignTip(a.getAttribute('data-tip-assign'), a.value); } });
+  }
+  // 일정 잡기 모달
+  var tsx=document.getElementById('tsch-close'); if(tsx) tsx.onclick=closeTipSchedule;
+  var tsc=document.getElementById('tsch-cancel'); if(tsc) tsc.onclick=closeTipSchedule;
+  var tss=document.getElementById('tsch-save'); if(tss) tss.onclick=commitTipSchedule;
+  var tsr=document.getElementById('tsch-scrim');
+  if(tsr){ tsr.addEventListener('click',function(e){ if(e.target===tsr) closeTipSchedule(); });
+    tsr.addEventListener('click',function(e){
+      var p=e.target.closest('[data-tsch-p]');
+      if(p&&tschDraft){ var id=p.getAttribute('data-tsch-p'), i=tschDraft.assignees.indexOf(id);
+        if(i>=0) tschDraft.assignees.splice(i,1); else tschDraft.assignees.push(id);
+        p.classList.toggle('on',i<0); }
+    });
+    // 날짜를 바꾸면 목적지(일정표/캘린더)가 즉시 바뀌므로 다시 그린다
+    tsr.addEventListener('change',function(e){
+      if(e.target.id==='tsch-date'&&tschDraft){
+        tschDraft.date=e.target.value;
+        tschDraft.hh=Math.max(0,Math.min(23,parseInt(document.getElementById('tsch-hh').value,10)||0));
+        tschDraft.mm=Math.max(0,Math.min(59,parseInt(document.getElementById('tsch-mm').value,10)||0));
+        tschDraft.title=document.getElementById('tsch-title').value||'';
+        renderTipSchedule();
+      }
+    });
   }
   var jc=document.getElementById('jebo-copy'); if(jc) jc.onclick=function(){ var url=location.origin+'/krjam-jebo'; (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(function(){ toast('제보 페이지 링크 복사됨'); },function(){ window.prompt('제보 페이지 주소', url); }); };
   // news 편집 모달 위임 (사진 삭제)

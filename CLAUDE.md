@@ -995,6 +995,18 @@ WOSM Region → 국가(NSO) → 단위대
 - **콘텐츠 리스트 4개선**(사용자가 4개 모두 선택): ① **빈 슬롯 기본 숨김** — 기존 `isDefaultEdit`(+history/notes) 재사용한 `isBlankSlot`으로 손 안 댄 시드 38개를 숨겨 기획 칼럼 도배 해소(v0.9.21의 '빈 테이블' 문제가 칸반에서 재발했던 것), `빈 슬롯 보기 (n)` 토글(localStorage). ② **필터바 접이식**(기본 접힘) + 활성 필터 요약(`▸ 필터 · 상태 완료 · 검색 “…”`) — 6줄 23버튼이 보드를 밀어내던 문제. ③ **칼럼 간 드래그앤드롭** 상태 이동(`.dropcol` 하이라이트, 카드 하단 세그는 모바일 폴백으로 유지). ④ **정렬 세그**(날짜/마감/담당자/제목, localStorage). 기존 캘린더 DnD(`dragSrc`)와 충돌 없게 `boardDrag`·`.bdragging` 별도 네임스페이스.
 - 검증: `node --check` + ESM 임포트(r2·jp-assets) + **헤드리스 Chrome(puppeteer-core, 로컬 http, /api/* 전부 목업 → 운영 KV 무접촉) 19/19 PASS** — 빈 슬롯 기본 3장·토글 시 41장(3+38)·정렬 세그 4·필터 기본 접힘·요약 표시·드롭 하이라이트·드래그로 기획→완료 이동 / **100MB→8MiB 13파트·complete에 13 etag·abort 0·101MB는 시도 자체 차단** / **콘솔 에러 0** + 스크린샷. ⚠️ 실제 R2 업로드(라이브 바인딩)는 로그인 필요 → 사용자 QA. 운영 KV 파괴적 쓰기 금지(§16.6) 준수.
 
+### 16.53 v0.9.164 — 소식 제보 → 일정(자동분기) + 제보 양식 희망 일시 + 자료실 업로드 모달
+- 사용자 3건: (1) "소식제보 받으면 우리가 일정과 날짜를 정하고 담당자가 배정되면 일정표에도 노출", (2) 제보 양식에 날짜·시간 **선택항목**, (3) 자료실 문서 업로드를 **팝업 아닌 모달**로.
+- ⚠️ **일정표는 8/2~8/9(JAM_DAYS) 8일만** 다루는데 §16.49c에서 제보를 "행사 전부터" 받게 바꿔서, 7월 제보엔 올릴 자리가 없음 → AskUserQuestion으로 **날짜 자동 분기** 확정.
+- **제보 → 일정 잡기**(`openTipSchedule`/`commitTipSchedule`): 제보 카드(홍보부만) '일정 잡기' 버튼 → 모달(날짜·시작시각·소요·제목·담당 인원·구역). **날짜로 자동 분기** — `isJamDay(d)`면 **잼버리 일정표**에 취재 블록(`cat:'홍보활동'`, assignees, zone, `tipId`), 아니면 **콘텐츠 캘린더** 슬롯(`addContent`+제목/시각/담당/`ctype:'취재'`). 날짜 바꾸면 목적지 배너가 **라이브 전환**(소요시간 필드도 일정표일 때만). 프리필 = 제보자 희망 일시·구역·본문 첫 줄(제목 추정)·기존 담당.
+- **양방향 링크**: 제보 record에 `scheduled{kind:'tt'|'slot',ref,date,time}` → 카드에 일정 칩(teal=일정표/보라=캘린더, 클릭 시 `openTipScheduled`가 해당 탭+모달로 이동), 버튼은 '일정 변경'+'링크 해제'(`unscheduleTip`, 일정 자체는 보존). 반대 방향은 timetable item의 `tipId`. 담당자도 제보에 동기화.
+- **제보 양식 희망 일시**(`krjam-jebo.html`, ko/en): 관련 위치 아래 `희망 날짜 · 시간 (선택)` — `type=date` + **시/분 number 입력**(§16.36 24시간제 준수, `type=time` 금지). `wishTime()`이 시·분 모두 유효할 때만 `HH:MM` zero-pad, 아니면 빈 문자열(선택 항목이라 제출을 막지 않음). T 사전 ko/en 추가.
+- **API**(`jp-tips.js`): `date`/`time`(제보자 희망) + `scheduled`(홍보부가 잡은 일정) 필드. `cleanDate`/`cleanTime`/`cleanScheduled` — 형식 안 맞으면 조용히 버림(선택 항목이라 제보 자체는 통과). PATCH에서 date/time/scheduled 갱신(`scheduled:null`=해제).
+- ⚠️ **서버 필드 누락 2건 사전 발견·수정**: (a) `cleanEdit`에 **`memo`가 없어** 슬롯에 제보 본문을 넣으려던 `e.memo`가 조용히 스트립될 것 → 해당 라인 제거. (b) `cleanTT`에 **`tipId`가 없어** 일정표→제보 역링크가 저장 시 사라질 것 → `cleanTT`에 `tipId` 추가 + `buildCleanTT`에도 추가(편집 시 유실 방지, `openTT`의 `clone(ex)`는 이미 보존).
+- **자료실 업로드 모달**(`window.prompt` 태그 입력 폐기): `openLibUpload`→`#lib-scrim` 모달(파일 목록 + 개별 크기 + ✕로 빼기 + 100MB 초과 표시/경고 + 태그 입력 + 유효 파일 수 반영 버튼)→`commitLibUpload`→`uploadAssets(files,cat,tags)`. `uploadAssets` 시그니처에 tags 추가(prompt 제거).
+- UI 수정: 제보 카드 `.tip-top`에 칩이 4개(상태·외부제보·담당·일정)가 되며 글자가 세로로 쪼개짐 → `flex-wrap:wrap` + 칩 `white-space:nowrap`. 목적지 배너 flex gap이 `<b>` 뒤 "에"를 띄어놓던 것 → 텍스트를 `<span>`으로 감쌈. 제보 완료 문구 '소중한 **현장** 소식' → '잼버리 소식'(§16.49c 리프레이밍 잔재).
+- 검증: `node --check`(app·jp-tips·jamboree-plan) + krjam-jebo 인라인 JS 파싱 + **헤드리스 Chrome 36/36 PASS**(로컬 http, /api/* 목업 → 운영 KV 무접촉) — 공개 폼(날짜/시/분·(선택)·`type=time` 0개·EN 번역·미입력 제출 가능·9/5→`09:05`) / 제보 카드(희망 일시·일정 잡기·프리필·제목 추정·구역·담당칩) / **8/5→일정표 분기·7/20→캘린더 분기(라이브 전환)** / 캘린더 경로 슬롯 저장(제목·20:00·김기자·취재) · 일정표 경로 timetable 생성(홍보활동·assignees·zone·tipId) · scheduled 링크 slot/tt 양쪽 · 담당 동기화 · 일정 칩/변경/해제 / 업로드 모달(목록 2·초과 경고·태그·업로드(1)·파일 빼기·**prompt 미사용**) / **콘솔 에러 0** + 스크린샷 4종. ⚠️ 실 저장 흐름은 로그인 필요 → 사용자 QA. 운영 KV 파괴적 쓰기 금지(§16.6) 준수.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-15 — R2 버킷 `jimmyport-assets` 생성 (v0.9.163 자료실 100MB)

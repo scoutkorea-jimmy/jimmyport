@@ -162,6 +162,7 @@ function cleanTT(e) {
     memo: (e.memo || "").toString().slice(0, 500),
     rundown,
     series: (e.series || "").toString().slice(0, 40),
+    tipId: (e.tipId || "").toString().slice(0, 40),   // 소식 제보에서 만들어진 취재 일정이면 그 제보 id
   };
 }
 function cleanRoster(e) {
