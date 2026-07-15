@@ -1061,14 +1061,16 @@ WOSM Region → 국가(NSO) → 단위대
 ### 16.57 v0.9.168 — 레거시 파일 정리 + 내부 원본 공개 차단
 - 사용자 "레거시 파일 중 필요없는것들은 모두 지워버리고". 전수 조사 후 **판단 필요 3건은 AskUserQuestion 으로 확정**하고 삭제(임의 삭제 금지 — 2건은 CLAUDE.md 에 '보존' 결정이 기록돼 있었음).
 - **삭제**:
-  - `박지민 포트폴리오 사이트/`(9파일 1.5MB) — 코드 참조 0. 최우선규칙②의 '포트폴리오 예정(새 repo)' 자료였으나 **사용자가 완전 삭제 선택**(처음부터 새로 만들 계획). ⚠️ 라이브에 **공개(200)** 돼 있던 것도 함께 해소. 과거 커밋에는 남아 복구 가능.
+  - `박지민 포트폴리오 사이트/`(9파일 1.5MB) — 코드 참조 0. 최우선규칙②의 '포트폴리오 예정(새 repo)' 자료였으나 **사용자가 완전 삭제 선택**(처음부터 새로 만들 계획). 과거 커밋에 남아 복구 가능(`git show 86b1928^:"박지민 포트폴리오 사이트/..."`).
+    - ⚠️ **정정**: 조사 당시 이 경로가 200 이라 '공개 노출'로 보고했으나 **오판이었음**. Pages 는 매칭되는 자산이 없으면 **index.html 을 폴백으로 200 반환**한다(존재한 적 없는 `/definitely-not-real.txt` 도 200). 삭제 전 배포본(a4754bea)에 직접 확인한 결과 `text/html · 7,104B`(=랜딩 폴백)였고 실제 파일이 아니었다 — 한글·공백 경로라 자산으로 매칭되지 않았던 것. **교훈: Pages 에서 노출 판정은 상태코드가 아니라 `content-type`/`size` 로 할 것.**
   - `.github/workflows/deploy-on-push.yml` — `CLOUDFLARE_API_TOKEN`/`ACCOUNT_ID` secrets 가 **등록된 적이 없어 모든 push 마다 실패**(최근 5회 전부 failure, 14~19s 만에 'Missing secret' 종료). 존재하지 않는 `ADMIN_VERSION` 을 검증하고 이름도 구 도메인(jimmypark.net) 기준. 수동 `wrangler pages deploy`(§8)와 중복이라 제거 → 실패 알림·빨간 배지 노이즈 해소.
   - `.nojekyll`(빈 파일)·`CNAME`(내용 `scoutingapp.net`) — **GitHub Pages 관례 파일**. Cloudflare Pages 는 둘 다 읽지 않고 커스텀 도메인은 대시보드 설정. 참조 0 확인 후 제거. **삭제 후 두 도메인 200 재확인**(아래 검증).
-- **보존 + 비공개**(사용자 선택): 루트 `KakaoTalk_Photo_2026-06-26-15-09-57.png`(872KB, 야영장 배치도 원본 · 시설물자관리본부 제작) — §16.43 의 '루트 원본 보존' 결정 유지하되 **라이브 공개(200)는 차단**. `_middleware.js` BLOCKED 에 `/^\/KakaoTalk_Photo_[\d-]+\.png$/i` 추가. 앱이 실제로 쓰는 건 `jamboree-plan/assets/sitemap.png`(다운스케일본)이라 동작 영향 0.
+- **보존 + 비공개**(사용자 선택): 루트 `KakaoTalk_Photo_2026-06-26-15-09-57.png`(872KB, 야영장 배치도 원본 · 시설물자관리본부 제작) — §16.43 의 '루트 원본 보존' 결정 유지하되 **라이브 공개 차단**. ⚠️ 이건 폴백이 아니라 **실제 노출이 맞았음**(삭제 전 배포본에서 `image/png · 889,263B` 확인) — 내부 문서가 URL 만 알면 받아지는 상태였다. `_middleware.js` BLOCKED 에 `/^\/KakaoTalk_Photo_[\d-]+\.png$/i` 추가. 앱이 실제로 쓰는 건 `jamboree-plan/assets/sitemap.png`(다운스케일본)이라 동작 영향 0.
 - **유지 판정**(레거시로 오해하기 쉬우나 사용 중): `privacy.html`(index·tour/index 에서 링크) · `functions/api/auth-config.js`·`me.js`(admin.js 사용) · 루트 `app.js`/`admin.js`/`styles.css`/`data.js`(§18.4 — `tour/*` 가 루트 절대경로로 참조) · `data.js` 의 `SCOUT_NSOS`/`SCOUT_REGION_COLORS`(SCOUT_UNITS 만 비어 있음).
 - **이미 정리됨 확인**: §17.4 가 남긴 죽은 편집기 CSS(`edit-form`·`ef-l`·`edit-panel`·`card-tools` 등) 는 v0.9.62 styles.css 전면 교체로 **이미 0건**.
 - 미조치(코드 내 dormant, 파일 아님): `jp:placement`(§16.20 UI 미사용) · `launch`(§16.32 발대식 UI 제거 후 함수/데이터 잔존) — app.js 안의 죽은 경로라 파일 삭제 범위 밖. 도메인 분리(§16.55 부채 2) 때 함께 걷어내는 것이 안전.
-- 검증: **회귀 34/34**(앱 무영향) + 배포 후 라이브 — 포트폴리오 경로 404 · 배치도 원본 404 · `sitemap.png` 200 · **scoutingapp.net / jimmypark.net 둘 다 200**(CNAME 삭제가 도메인에 영향 없음 확인) · 5개 앱 200.
+- 검증: **회귀 34/34**(앱 무영향) + 배포 후 라이브 — **배치도 원본 404**(미들웨어 차단 확인) · `sitemap.png` 200(앱 사용본 정상) · **scoutingapp.net / jimmypark.net 둘 다 200**(CNAME 삭제가 커스텀 도메인에 영향 없음 확인) · 5개 앱 200 · 회귀 34/34.
+  - ⚠️ 삭제된 경로는 404 가 아니라 **index.html 폴백 200** 이 뜬다(Pages 기본 동작, 404.html 없음). 삭제 검증은 상태코드가 아니라 **디스크·git 부재 + content-type** 으로 확인함.
 
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
