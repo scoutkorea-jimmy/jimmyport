@@ -163,6 +163,7 @@ function cleanTT(e) {
     rundown,
     series: (e.series || "").toString().slice(0, 40),
     tipId: (e.tipId || "").toString().slice(0, 40),   // 소식 제보에서 만들어진 취재 일정이면 그 제보 id
+    noCover: !!e.noCover,                              // 취재 불필요 — 일정표에서 흐리게 표시
   };
 }
 function cleanRoster(e) {

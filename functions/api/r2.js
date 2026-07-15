@@ -7,6 +7,7 @@
  *  POST /api/r2?action=complete {key, uploadId, parts[]}  (회원/관리자) → { url, name, ct, size }
  *  POST /api/r2?action=abort    {key, uploadId}           (회원/관리자)
  *  GET  /api/r2?id=<key>  → 파일 스트림 + 다운로드 헤더 (공개 — /api/file 과 동일)
+ *       &inline=1 → inline 으로 내려 미리보기(iframe)에 띄울 수 있다.
  *  DELETE /api/r2?id=<key> (회원/관리자)
  */
 import { json, memberOrAdmin, newId, clientIp, appendLog } from "./_lib.js";
@@ -108,17 +109,19 @@ export async function onRequestPut({ request, env }) {
 export async function onRequestGet({ request, env }) {
   const b = bucket(env);
   if (!b) return new Response("r2 unbound", { status: 503 });
-  const key = new URL(request.url).searchParams.get("id") || "";
+  const u = new URL(request.url);
+  const key = u.searchParams.get("id") || "";
   if (!KEY_RE.test(key)) return new Response("missing id", { status: 400 });
   const obj = await b.get(key);
   if (!obj) return new Response("not found", { status: 404 });
   const name = (obj.customMetadata && obj.customMetadata.name) || "file";
   const ct = (obj.httpMetadata && obj.httpMetadata.contentType) || "application/octet-stream";
+  const disp = u.searchParams.get("inline") === "1" ? "inline" : "attachment";
   return new Response(obj.body, {
     headers: {
       "content-type": ct,
       "content-length": String(obj.size),
-      "content-disposition": "attachment; filename*=UTF-8''" + encodeURIComponent(name),
+      "content-disposition": disp + "; filename*=UTF-8''" + encodeURIComponent(name),
       "cache-control": "public, max-age=31536000, immutable",
       etag: obj.httpEtag,
     },

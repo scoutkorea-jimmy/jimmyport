@@ -4,7 +4,7 @@
  *  PATCH  /api/jp-assets { id, name?, tags[]?, category? }         (작성자 본인 또는 관리자) 이름·태그·구분 수정
  *  DELETE /api/jp-assets?id=<id>                                  (작성자 본인 또는 관리자)
  * category: plan(운영 계획서) | cardnews(카드뉴스) | photo(사진·기타)
- * KV: "jpa:<id>" = {id,url,name,type,category,ct,tags,author,authorName,createdAt}
+ * KV: "jpa:<id>" = {id,url,name,type,category,ct,size,tags,author,authorName,createdAt}
  */
 import { json, memberOrAdmin, newId, clientIp, appendLog } from "./_lib.js";
 
@@ -43,6 +43,7 @@ export async function onRequestPost({ request, env }) {
     id: newId(), url, name: String(body.name || "").trim().slice(0, 80),
     type: body.type === "cardnews" ? "cardnews" : "photo",
     category, ct: String(body.ct || "").slice(0, 80),
+    size: Number(body.size) > 0 ? Math.floor(Number(body.size)) : 0, // 0 = 구버전 기록(용량 미저장)
     tags: cleanTags(body.tags),
     author: who.admin ? "admin" : who.username,
     authorName: who.admin ? "관리자" : (String(body.authorName || who.username).slice(0, 40)),
