@@ -6,3 +6,8 @@ pages_build_output_dir = "."
 [[kv_namespaces]]
 binding = "SCOUT_KV"
 id = "5b8071435ace47f9a8eccb8ade1b946e"
+
+# 자료실 대용량 첨부(최대 100MB)용 R2 바인딩 — KV 는 값당 25MiB 가 한계라 담을 수 없음
+[[r2_buckets]]
+binding = "SCOUT_R2"
+bucket_name = "jimmyport-assets"

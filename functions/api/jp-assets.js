@@ -1,6 +1,6 @@
 /* 홍보부 자료 라이브러리(아카이브) — 운영 계획서(문서·PDF) · 카드뉴스 · 사진 모음
  *  GET    /api/jp-assets                                         (공개) → { assets } 최신순
- *  POST   /api/jp-assets { url, name, type, category, ct, tags[] } (회원/관리자) 자료 등록 (url=/api/image?id= 또는 /api/file?id=)
+ *  POST   /api/jp-assets { url, name, type, category, ct, tags[] } (회원/관리자) 자료 등록 (url=/api/image?id= · /api/file?id= · /api/r2?id=)
  *  PATCH  /api/jp-assets { id, name?, tags[]?, category? }         (작성자 본인 또는 관리자) 이름·태그·구분 수정
  *  DELETE /api/jp-assets?id=<id>                                  (작성자 본인 또는 관리자)
  * category: plan(운영 계획서) | cardnews(카드뉴스) | photo(사진·기타)
@@ -35,7 +35,7 @@ export async function onRequestPost({ request, env }) {
   if (!who) return json({ ok: false, error: "unauthorized" }, 401);
   let body = {}; try { body = await request.json(); } catch {}
   const url = String(body.url || "");
-  if (!/^\/api\/(image|file)\?id=/.test(url)) return json({ ok: false, error: "bad_url" }, 400);
+  if (!/^\/api\/(image|file|r2)\?id=/.test(url)) return json({ ok: false, error: "bad_url" }, 400);
   const now = new Date().toISOString();
   const CATS = { plan: 1, cardnews: 1, photo: 1 };
   const category = CATS[body.category] ? body.category : (body.type === "cardnews" ? "cardnews" : "photo");
@@ -74,6 +74,9 @@ export async function onRequestDelete({ request, env }) {
   if (!id) return json({ ok: false, error: "missing_id" }, 400);
   const rec = await readAsset(env, id);
   if (rec && !who.admin && rec.author !== who.username) return json({ ok: false, error: "forbidden" }, 403);
+  // R2 자산은 용량이 커서 실물까지 지운다 (KV blob 은 기존대로 남겨둠)
+  const r2key = rec && /^\/api\/r2\?id=/.test(rec.url || "") ? decodeURIComponent(rec.url.split("id=")[1] || "") : "";
+  if (r2key && env.SCOUT_R2) { try { await env.SCOUT_R2.delete(r2key); } catch {} }
   await env.SCOUT_KV.delete(KEY(id));
   await appendLog(env, { ts: new Date().toISOString(), action: "jpa.delete", count: 0, ip: clientIp(request) });
   return json({ ok: true });

@@ -985,7 +985,23 @@ WOSM Region → 국가(NSO) → 단위대
 - ⚠️ env `CC_PASS` 미설정 시 기본 `scout1922`(카드뉴스와 공유). 공개 저장소라 노출되나 내부 운영 게이트 용도. 기존 저장된 TOTP 세션(`{token}`)은 shape 불일치로 자동 무효 → 재로그인.
 - 검증: `node --check`(API) + esbuild(app.jsx) 컴파일 OK. 잔여 `/api/login`·`setCode`·`.token` 참조 0.
 
+### 16.52 v0.9.163 — 자료실 100MB(R2 도입) + 콘텐츠 리스트 UX 4개선
+- 사용자 3건: (1) 원격 동기화, (2) 리스트 보기 개선, (3) 자료실 업로드 1개당 100MB.
+- **원격**: `origin/main` == 로컬(`9607f25`), ahead/behind 0 · working tree clean → 조치 없음.
+- ⚠️ **100MB = KV로 불가** → R2 도입(AskUserQuestion 확정): Cloudflare **KV는 값 1개당 25MiB가 하드 리밋**이라 `file.js`의 MAX만 올리면 25MB 초과 시 `put`이 실패한다. §18.7의 "R2 없음" 방침을 사용자 승인 하에 변경.
+- **R2 인프라**: 버킷 `jimmyport-assets` 생성(`wrangler r2 bucket create`) + `wrangler.toml`에 `[[r2_buckets]] binding="SCOUT_R2"`. 계정에 R2는 이미 활성(타 프로젝트 버킷 4종 존재)이라 사용자 추가 조치 없음.
+- **신규 `functions/api/r2.js`** — **8MiB 청크 멀티파트**(단순 POST 아님): Workers 요청 본문 제한이 Free/Pro 100MB라 100MB 파일 1회 POST는 경계에 걸림 → 청크로 우회 + 진행률 확보. `POST ?action=create` → `PUT ?action=part&part=N` 반복 → `POST ?action=complete`(실패 시 `abort`). GET `?id=<key>`는 공개 스트림(`/api/file`과 동일). 보안: 키는 서버 생성만 허용(`^jpa\/[A-Za-z0-9-]{8,64}$` → 경로 조작 차단), 업로드는 `memberOrAdmin`, **complete 시 실제 `obj.size`로 100MB 재검증**(클라가 create의 size를 속여도 차단 후 delete), 파트 상한 12MiB. 바인딩 없으면 503 `r2_unbound`(조용한 실패 방지).
+- **클라**(`jamboree-plan/app.js`): `uploadAttachment(file,onProg)`가 **8MB 이하=기존 KV(`/api/file`) · 초과=R2 멀티파트**로 분기(`uploadLarge`) → 자료실·콘텐츠 모달 첨부 양쪽이 함께 100MB 지원. `handleAttachments` 10MB 게이트 → `MAX_FILE`(100MB). `uploadAssets`는 **순차 업로드**(큰 파일이 대역폭 경합하지 않게) + **진행률 바**(`#lib-progress`, 100MB는 오래 걸려 토스트만으론 상태 불명). `jp-assets` url 화이트리스트에 `r2` 추가, **DELETE 시 R2 실물까지 삭제**(용량 큼).
+- **콘텐츠 리스트 4개선**(사용자가 4개 모두 선택): ① **빈 슬롯 기본 숨김** — 기존 `isDefaultEdit`(+history/notes) 재사용한 `isBlankSlot`으로 손 안 댄 시드 38개를 숨겨 기획 칼럼 도배 해소(v0.9.21의 '빈 테이블' 문제가 칸반에서 재발했던 것), `빈 슬롯 보기 (n)` 토글(localStorage). ② **필터바 접이식**(기본 접힘) + 활성 필터 요약(`▸ 필터 · 상태 완료 · 검색 “…”`) — 6줄 23버튼이 보드를 밀어내던 문제. ③ **칼럼 간 드래그앤드롭** 상태 이동(`.dropcol` 하이라이트, 카드 하단 세그는 모바일 폴백으로 유지). ④ **정렬 세그**(날짜/마감/담당자/제목, localStorage). 기존 캘린더 DnD(`dragSrc`)와 충돌 없게 `boardDrag`·`.bdragging` 별도 네임스페이스.
+- 검증: `node --check` + ESM 임포트(r2·jp-assets) + **헤드리스 Chrome(puppeteer-core, 로컬 http, /api/* 전부 목업 → 운영 KV 무접촉) 19/19 PASS** — 빈 슬롯 기본 3장·토글 시 41장(3+38)·정렬 세그 4·필터 기본 접힘·요약 표시·드롭 하이라이트·드래그로 기획→완료 이동 / **100MB→8MiB 13파트·complete에 13 etag·abort 0·101MB는 시도 자체 차단** / **콘솔 에러 0** + 스크린샷. ⚠️ 실제 R2 업로드(라이브 바인딩)는 로그인 필요 → 사용자 QA. 운영 KV 파괴적 쓰기 금지(§16.6) 준수.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
+
+### OPS 2026-07-15 — R2 버킷 `jimmyport-assets` 생성 (v0.9.163 자료실 100MB)
+- 지시: "자료실에 파일 업로드 용량을 1개당 최대 100MB로 제한해줘" → KV 25MiB 한계로 불가 → AskUserQuestion에서 **"R2 도입해서 진짜 100MB"** 선택.
+- 전(前): 계정 R2 버킷 4종(banginoja-media·dreampath-attachments·gilwell-media-images·mokgo-photos) — jimmyport용 없음.
+- 조치: `npx wrangler r2 bucket create jimmyport-assets` (Standard) + `wrangler.toml` `[[r2_buckets]] binding="SCOUT_R2"`. 기존 KV·데이터 불변(신규 대용량 첨부만 R2, 기존 `/api/file` KV blob은 그대로 서빙).
+- 후(後)/검증: 버킷 생성 확인. 라이브 바인딩 적용은 배포 후 확인 필요 — 미적용 시 `/api/r2`가 503 `r2_unbound`로 명시적 실패(8MB 이하 업로드는 기존 KV 경로라 영향 없음).
 
 ### OPS 2026-06-25 — krjam-dcount D-Count 신청 데이터 전체 초기화 (사용자 지시)
 - 지시: "dcount 기존 등록된거 모두 삭제하고 전체 신규 받을 준비해줘." 코드/버전 변경 없음, 라이브 KV(`SCOUT_KV`)만 조치.

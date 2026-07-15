@@ -162,8 +162,9 @@
         <label class="btn sm solid" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 카드뉴스·사진 올리기<input type="file" id="lib-file-media" accept="image/*" multiple hidden></label>
       </div>
     </div>
-    <p class="note"><b>잼버리 운영 계획서</b>(문서·PDF)와 <b>카드뉴스·현장 사진</b>을 구분해 보관합니다. 서버에 저장되며, 아래 구분 탭·태그·검색으로 찾아 재사용하세요. (삭제는 올린 사람·관리자)</p>
+    <p class="note"><b>잼버리 운영 계획서</b>(문서·PDF)와 <b>카드뉴스·현장 사진</b>을 구분해 보관합니다. 서버에 저장되며, 아래 구분 탭·태그·검색으로 찾아 재사용하세요. <b>파일 1개당 100MB</b>까지 · 사진은 자동 축소됩니다. (삭제는 올린 사람·관리자)</p>
     <div class="lib-bar"><div class="libcats" id="lib-cats"></div><div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="lib-search" type="search" placeholder="이름·태그 검색"></div><div class="lib-tags" id="lib-tags"></div></div>
+    <div class="libprog" id="lib-progress" style="display:none"><div class="libprog-h"><span id="lib-progress-t"></span><span id="lib-progress-p"></span></div><div class="pbar"><i id="lib-progress-f"></i></div></div>
     <div class="libgrid" id="lib-grid"></div>
   </section>
 
@@ -197,7 +198,13 @@
   <section id="content">
     <div class="sec-head"><h2>콘텐츠 리스트 (상태별)</h2><span class="sub" id="cnt-count"></span></div>
     <div class="progress"><div class="pbar"><i id="pfill"></i></div><span id="ptext"></span></div>
-    <div class="filters" id="filters"></div>
+    <div class="boardbar">
+      <span class="bb-label">정렬</span><div class="seg" id="board-sort"></div>
+      <button class="btn sm" id="toggle-empty"></button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="filters-toggle"></button>
+    </div>
+    <div class="filters" id="filters" style="display:none"></div>
     <div class="tools">
       <button class="btn sm" id="due-notify">🔔 마감 알림 켜기</button>
       <span class="spacer"></span>
@@ -207,7 +214,7 @@
     </div>
     <div class="due-banner" id="due-banner" style="display:none"></div>
     <div class="board" id="board"></div>
-    <p class="note">카드를 클릭하면 <b>종류 · 제목 · 채널 · 링크 · 이미지 · 첨부 · SNS 문구</b>를 편집합니다. 카드 하단으로 <b>기획 · 작성중 · 완료</b> 상태를 옮기고, 위 날짜 선택 후 <b>＋ 콘텐츠 추가</b>로 새 콘텐츠를 만듭니다. 변경은 서버에 자동 동기화됩니다.</p>
+    <p class="note">카드를 클릭하면 <b>종류 · 제목 · 채널 · 링크 · 이미지 · 첨부 · SNS 문구</b>를 편집합니다. 카드를 <b>다른 칼럼으로 끌어다 놓아</b> 상태를 옮기거나(모바일은 카드 하단 버튼), 위 날짜 선택 후 <b>＋ 콘텐츠 추가</b>로 새 콘텐츠를 만듭니다. 아직 작성하지 않은 <b>빈 슬롯은 기본으로 숨겨</b> 두며 <b>빈 슬롯 보기</b>로 펼칩니다. 변경은 서버에 자동 동기화됩니다.</p>
   </section>
 
   <section id="marketing">
