@@ -1020,8 +1020,14 @@ tr.rowdim{opacity:.34}
 .sm-livedot{width:8px;height:8px;border-radius:50%;background:var(--st-ready);box-shadow:0 0 0 3px rgba(47,143,107,.18)}
 
 /* ===== 현장 제보 인박스 ===== */
-.tipgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
-.tipcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;box-shadow:var(--sh-1);display:flex;flex-direction:column}
+/* 제보 = 가로로 긴 행(사진 좌 · 내용 우). 좁은 그리드에선 제목·연락처·도구가 계속 접혀 읽기 나빴음.
+   ≤820px 에선 기존 세로 스택으로 복귀(아래 미디어쿼리). */
+.tipgrid{display:flex;flex-direction:column;gap:12px}
+.tipcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;box-shadow:var(--sh-1);display:flex;flex-direction:row;align-items:stretch}
+.tipcard>.tip-photos{flex:0 0 232px}
+/* 가로 배치에선 사진이 카드 높이를 채운다 — 세로 배치용 min/max-height 를 그대로 두면 아래에 회색 여백이 남음 */
+.tipcard>.tip-photos .tip-thumb{min-height:0;max-height:none;height:100%}
+.tipcard>.tip-main{flex:1 1 auto;min-width:0}   /* min-width:0 = flex 자식 텍스트 말줄임 허용 */
 .tipcard.s-used{border-color:var(--st-ready)}
 .tipcard.s-rejected{opacity:.7}
 .tip-photos{display:grid;gap:2px;background:var(--line-2)}
@@ -1040,7 +1046,14 @@ tr.rowdim{opacity:.34}
 .tip-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
 .tip-meta .ic{vertical-align:-2px}
 .tip-meta .dotsep{color:var(--faint)}
-.tip-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;padding-top:10px;border-top:1px solid var(--line-2)}
+.tip-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line-2)}
+/* 좁은 화면: 사진이 옆에 붙으면 둘 다 좁아져 세로 스택으로 되돌린다 */
+@media(max-width:820px){
+  .tipcard{flex-direction:column}
+  .tipcard>.tip-photos{flex:none}
+  /* 세로 배치에선 사진 열 높이가 auto 라 height:100% 가 무너진다 → 원래 규칙 복원 */
+  .tipcard>.tip-photos .tip-thumb{min-height:110px;max-height:230px;height:auto}
+}
 .tip-who{font-size:13px;color:var(--ink-2);background:var(--accent-soft);border-radius:var(--r-1);padding:8px 11px;margin-bottom:4px}
 
 /* ===== 현장 지도 — 촬영 요청 핀 + 목록 ===== */

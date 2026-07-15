@@ -164,6 +164,9 @@ const SEED = () => {
   console.log('\n[소식 제보 → 일정]');
   await go('tips');
   chk('제보 카드 · 일정 잡기 버튼', await page.$('[data-tip-sched]') !== null);
+  // 가로로 긴 행 레이아웃 (1440px 뷰포트) — ≤820px 에서는 column 으로 되돌아감
+  const tl = await page.evaluate(() => ({ card: getComputedStyle(document.querySelector('.tipcard')).flexDirection, grid: getComputedStyle(document.querySelector('.tipgrid')).flexDirection }));
+  chk('제보 카드 가로 배치(row) · 목록은 세로 스택', tl.card === 'row' && tl.grid === 'column', JSON.stringify(tl));
   await page.click('[data-tip-sched]');
   await new Promise((r) => setTimeout(r, 200));
   const s1 = await page.evaluate(() => ({ date: document.getElementById('tsch-date').value, dest: document.querySelector('.tsch-dest').className }));
