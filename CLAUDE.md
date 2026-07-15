@@ -1058,6 +1058,18 @@ WOSM Region → 국가(NSO) → 단위대
 - 검증: 헤드리스 — 1400px=`row`·430px=`column` 전환, 사진 유/무 카드 스크린샷(회색 여백 해소·모바일 사진 정상), **회귀 34/34**(기존 33 전부 유지 + 레이아웃 항목 1 신규). 회귀 스위트에 `제보 카드 가로 배치(row)` 어서션 추가해 다음에 깨지면 잡히게 함.
 - 관찰(미조치, 별건): ≤430px 에서 syncbar `.orgtag` 가 글자당 줄바꿈됨(버튼들이 안 줄어 폭을 0으로 밀어냄). 이번 변경과 무관한 기존 이슈라 범위 밖으로 두고 기록만.
 
+### 16.57 v0.9.168 — 레거시 파일 정리 + 내부 원본 공개 차단
+- 사용자 "레거시 파일 중 필요없는것들은 모두 지워버리고". 전수 조사 후 **판단 필요 3건은 AskUserQuestion 으로 확정**하고 삭제(임의 삭제 금지 — 2건은 CLAUDE.md 에 '보존' 결정이 기록돼 있었음).
+- **삭제**:
+  - `박지민 포트폴리오 사이트/`(9파일 1.5MB) — 코드 참조 0. 최우선규칙②의 '포트폴리오 예정(새 repo)' 자료였으나 **사용자가 완전 삭제 선택**(처음부터 새로 만들 계획). ⚠️ 라이브에 **공개(200)** 돼 있던 것도 함께 해소. 과거 커밋에는 남아 복구 가능.
+  - `.github/workflows/deploy-on-push.yml` — `CLOUDFLARE_API_TOKEN`/`ACCOUNT_ID` secrets 가 **등록된 적이 없어 모든 push 마다 실패**(최근 5회 전부 failure, 14~19s 만에 'Missing secret' 종료). 존재하지 않는 `ADMIN_VERSION` 을 검증하고 이름도 구 도메인(jimmypark.net) 기준. 수동 `wrangler pages deploy`(§8)와 중복이라 제거 → 실패 알림·빨간 배지 노이즈 해소.
+  - `.nojekyll`(빈 파일)·`CNAME`(내용 `scoutingapp.net`) — **GitHub Pages 관례 파일**. Cloudflare Pages 는 둘 다 읽지 않고 커스텀 도메인은 대시보드 설정. 참조 0 확인 후 제거. **삭제 후 두 도메인 200 재확인**(아래 검증).
+- **보존 + 비공개**(사용자 선택): 루트 `KakaoTalk_Photo_2026-06-26-15-09-57.png`(872KB, 야영장 배치도 원본 · 시설물자관리본부 제작) — §16.43 의 '루트 원본 보존' 결정 유지하되 **라이브 공개(200)는 차단**. `_middleware.js` BLOCKED 에 `/^\/KakaoTalk_Photo_[\d-]+\.png$/i` 추가. 앱이 실제로 쓰는 건 `jamboree-plan/assets/sitemap.png`(다운스케일본)이라 동작 영향 0.
+- **유지 판정**(레거시로 오해하기 쉬우나 사용 중): `privacy.html`(index·tour/index 에서 링크) · `functions/api/auth-config.js`·`me.js`(admin.js 사용) · 루트 `app.js`/`admin.js`/`styles.css`/`data.js`(§18.4 — `tour/*` 가 루트 절대경로로 참조) · `data.js` 의 `SCOUT_NSOS`/`SCOUT_REGION_COLORS`(SCOUT_UNITS 만 비어 있음).
+- **이미 정리됨 확인**: §17.4 가 남긴 죽은 편집기 CSS(`edit-form`·`ef-l`·`edit-panel`·`card-tools` 등) 는 v0.9.62 styles.css 전면 교체로 **이미 0건**.
+- 미조치(코드 내 dormant, 파일 아님): `jp:placement`(§16.20 UI 미사용) · `launch`(§16.32 발대식 UI 제거 후 함수/데이터 잔존) — app.js 안의 죽은 경로라 파일 삭제 범위 밖. 도메인 분리(§16.55 부채 2) 때 함께 걷어내는 것이 안전.
+- 검증: **회귀 34/34**(앱 무영향) + 배포 후 라이브 — 포트폴리오 경로 404 · 배치도 원본 404 · `sitemap.png` 200 · **scoutingapp.net / jimmypark.net 둘 다 200**(CNAME 삭제가 도메인에 영향 없음 확인) · 5개 앱 200.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-15 — R2 버킷 `jimmyport-assets` 생성 (v0.9.163 자료실 100MB)

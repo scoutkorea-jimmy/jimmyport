@@ -9,9 +9,12 @@ const BLOCKED = [
   /^\/package(-lock)?\.json$/i,
   /^\/\.gitignore$/i,
   /^\/\.assetsignore$/i,
-  /^\/CNAME$/i,              // legacy GitHub Pages domain file
   /^\/\.claude(\/|$)/i,      // local tooling/settings
   /^\/test(\/|$)/i,          // regression suite — internal only (*.md is covered above, but the .js is not)
+  // Site-map original from 시설물자관리본부 (internal doc). Kept in the repo as the
+  // high-res source for jamboree-plan/assets/sitemap.png, which is what the app
+  // actually serves — the original itself must not be public.
+  /^\/KakaoTalk_Photo_[\d-]+\.png$/i,
 ];
 
 export async function onRequest(context) {
