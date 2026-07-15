@@ -11,6 +11,7 @@ const BLOCKED = [
   /^\/\.assetsignore$/i,
   /^\/CNAME$/i,              // legacy GitHub Pages domain file
   /^\/\.claude(\/|$)/i,      // local tooling/settings
+  /^\/test(\/|$)/i,          // regression suite — internal only (*.md is covered above, but the .js is not)
 ];
 
 export async function onRequest(context) {

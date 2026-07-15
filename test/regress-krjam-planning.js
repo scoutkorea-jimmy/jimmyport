@@ -1,0 +1,216 @@
+/* krjam-planning 회귀 스위트 — 리팩터링 전/후 동작 동일성 고정용.
+ * 로컬 http + 실제 Chrome, /api/* 전부 목업(운영 KV 무접촉).
+ * 리팩터링 각 단계마다 실행 → 결과가 baseline 과 같아야 한다. */
+const puppeteer = require('puppeteer-core');
+const http = require('http'); const fs = require('fs'); const path = require('path');
+
+const ROOT = '/Users/jimmy/Desktop/VS_Code/jimmyport';
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const PORT = 8801;
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const server = http.createServer((req, res) => {
+  let p = decodeURIComponent(req.url.split('?')[0]);
+  if (p === '/krjam-planning') p = '/krjam-planning.html';
+  const f = path.join(ROOT, p);
+  if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
+  res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
+  res.end(fs.readFileSync(f));
+});
+
+const R = [];
+const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d !== undefined && d !== '' ? ' — ' + d : '')); };
+
+const SEED = () => {
+  localStorage.setItem('jamboree-plan:session', JSON.stringify({ token: 'T', name: '테스터', username: 'tester', role: 'admin', type: '홍보부', tabs: [], exp: Date.now() + 9e6 }));
+  localStorage.setItem('jamboree-plan:ttmode', 'day');
+  localStorage.setItem('jamboree-plan:ttday', '2026-08-05');
+  localStorage.removeItem('jamboree-plan:show-empty');
+  localStorage.setItem('jamboree-plan:board-sort', 'date');
+  window.__put = []; window.__tipPatch = []; window.__r2 = { creates: 0, parts: [], completed: null, aborted: 0 };
+  window.__tip0 = { id: 'tip1', reporterName: '정성윤', phone: '01035520587', org: '국제본부', zone: 'food',
+    text: 'IST Culture Night 취재 바랍니다', photos: [], status: 'new', assignee: '', source: 'public',
+    date: '2026-08-05', time: '20:00', scheduled: null, createdAt: '2026-07-14T06:27:00Z' };
+  window.__assets = [
+    { id: 'a1', url: '/api/file?id=f1', name: '브랜드 가이드라인', type: 'photo', category: 'plan', ct: 'application/pdf', size: 3348000, tags: ['브랜드'], author: 'admin', authorName: '관리자', createdAt: '2026-07-13T07:07:00Z' },
+    { id: 'a2', url: '/api/image?id=i1', name: '개영식 사진', type: 'photo', category: 'photo', ct: 'image/jpeg', size: 820000, tags: [], author: 'admin', authorName: '관리자', createdAt: '2026-07-12T05:00:00Z' },
+  ];
+  const rf = window.fetch;
+  window.fetch = (u, o) => {
+    u = String(u && u.url ? u.url : u);
+    const J = (d, s) => Promise.resolve(new Response(JSON.stringify(d), { status: s || 200, headers: { 'content-type': 'application/json' } }));
+    if (u.startsWith('/api/me')) return J({ ok: true });
+    if (u.startsWith('/api/jp-news')) return J({ ok: true, articles: [] });
+    if (u.startsWith('/api/jp-assets')) { if (o && o.method === 'DELETE') return J({ ok: true }); if (o && o.method === 'POST') return J({ ok: true, asset: { id: 'new', url: '/api/file?id=n', name: 'n', category: 'plan', ct: 'application/pdf', tags: [], authorName: '관리자', createdAt: '2026-07-15T00:00:00Z' } }); return J({ ok: true, assets: window.__assets }); }
+    if (u.startsWith('/api/jp-tips')) { if (o && o.method === 'PATCH') { const b = JSON.parse(o.body); window.__tipPatch.push(b); return J({ ok: true, tip: Object.assign({}, window.__tip0, b) }); } return J({ ok: true, tips: [window.__tip0] }); }
+    if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
+    if (u.startsWith('/api/r2?action=create')) { window.__r2.creates++; return J({ ok: true, key: 'jpa/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', uploadId: 'U1' }); }
+    if (u.startsWith('/api/r2?action=part')) { const n = +new URL(u, location.origin).searchParams.get('part');
+      return Promise.resolve(o.body.arrayBuffer()).then((b) => { window.__r2.parts.push(b.byteLength); return J({ ok: true, partNumber: n, etag: 'e' + n }); }); }
+    if (u.startsWith('/api/r2?action=complete')) { window.__r2.completed = JSON.parse(o.body); return J({ ok: true, url: '/api/r2?id=k', name: 'f', ct: 'application/pdf', size: 1 }); }
+    if (u.startsWith('/api/r2?action=abort')) { window.__r2.aborted++; return J({ ok: true }); }
+    if (u.startsWith('/api/image') || u.startsWith('/api/file')) return J({ ok: true, url: '/api/file?id=x', name: 'f', ct: 'application/pdf' });
+    if (u.startsWith('/api/jamboree-plan')) {
+      if (o && o.method === 'PUT') { window.__put.push(JSON.parse(o.body)); return J({ ok: true }); }
+      return J({ ok: true, types: [], events: [], marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], ttcats: [], offtimes: {},
+        roster: [{ id: 'r1', name: '김기자', role: '취재', team: 't1' }, { id: 'r2', name: '이사진', role: '사진', team: 't2' }],
+        timetable: [
+          { id: 't1', day: '2026-08-05', start: '20:00', end: '21:30', title: '개영식', place: '메인무대', zone: 'stage', cat: '개·폐영식', assignees: ['r1'], contacts: [], rundown: [{ time: '20:00', title: '개회 선언', note: '' }], noCover: false },
+          { id: 't2', day: '2026-08-05', start: '12:00', end: '13:00', title: '중식', place: '급식소', zone: 'food', cat: '식사', assignees: [], contacts: [], rundown: [], noCover: true },
+          { id: 't3', day: '2026-08-06', start: '09:00', end: '10:00', title: '분단 회의', place: 'JHQ 본부', zone: 'jhq', cat: '회의', assignees: ['r2'], contacts: [], rundown: [], noCover: false },
+        ],
+        slots: {
+          '2026-07-01#dcount': { edit: { title: '가나 대표단 소개', status: 'planned', owner: '박지민', due: '2026-07-20', channels: ['페이스북'] } },
+          '2026-07-02#dcount': { edit: { title: '나이지리아 대표단', status: 'draft', owner: '김철수', due: '2026-07-05', channels: ['인스타그램'] } },
+          '2026-07-03#dcount': { edit: { title: '다낭 서브캠프', status: 'ready', owner: '이영희', due: '2026-08-01', posted: true, channels: ['유튜브'] } },
+        } });
+    }
+    if (u.startsWith('/api/')) return J({ ok: true });
+    return rf(u, o);
+  };
+};
+
+(async () => {
+  await new Promise((r) => server.listen(PORT, r));
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'] });
+  const page = await browser.newPage(); await page.setViewport({ width: 1440, height: 1000 });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errors.push('console: ' + m.text()); });
+  await page.evaluateOnNewDocument(SEED);
+  await page.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
+  await page.waitForSelector('.tabbar', { timeout: 10000 });
+
+  const go = async (v) => { await page.evaluate((x) => document.querySelector('[data-v="' + x + '"]').click(), v); await new Promise((r) => setTimeout(r, 250)); };
+
+  console.log('\n[부팅 · 탭]');
+  chk('게이트 통과 · 탭바 렌더', await page.$('.tabbar') !== null);
+  chk('탭 그룹 4개(개요·콘텐츠·현장·인원)', (await page.$$('.tabgroup')).length === 4, (await page.$$('.tabgroup')).length + '개');
+
+  console.log('\n[콘텐츠 리스트(보드)]');
+  await go('list');
+  const b = await page.evaluate(() => ({ cards: document.querySelectorAll('#board .card').length, cols: document.querySelectorAll('#board .col').length,
+    toggle: document.getElementById('toggle-empty').textContent, sorts: document.querySelectorAll('#board-sort [data-bsort]').length,
+    filtersHidden: document.getElementById('filters').style.display === 'none' }));
+  chk('칼럼 3개', b.cols === 3);
+  chk('빈 슬롯 기본 숨김 → 실제 3장', b.cards === 3, b.cards + '장');
+  chk('빈 슬롯 토글 라벨(38)', /\(38\)/.test(b.toggle), b.toggle);
+  chk('정렬 4종 · 필터바 접힘', b.sorts === 4 && b.filtersHidden);
+  await page.click('#toggle-empty');
+  chk('빈 슬롯 보기 → 41장', (await page.evaluate(() => document.querySelectorAll('#board .card').length)) === 41);
+  await page.click('#toggle-empty');
+  const dnd = await page.evaluate(() => {
+    const c = document.querySelector('#board .col[data-st="planned"] .card'); const t0 = c.querySelector('.ctitle').textContent.trim();
+    const tgt = document.querySelector('#board .col[data-st="ready"]'); const dt = new DataTransfer();
+    c.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    tgt.dispatchEvent(new DragEvent('dragover', { bubbles: true, dataTransfer: dt }));
+    tgt.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: dt }));
+    return [...document.querySelectorAll('#board .col[data-st="ready"] .ctitle')].map((x) => x.textContent.trim()).includes(t0);
+  });
+  chk('드래그로 상태 이동', dnd === true);
+
+  console.log('\n[캘린더]');
+  await go('calendar');
+  chk('캘린더 셀 렌더', (await page.$$('#calendar .cell')).length > 40, (await page.$$('#calendar .cell')).length + '칸');
+
+  console.log('\n[일정표]');
+  await go('timetable');
+  const tt = await page.evaluate(() => ({
+    evs: document.querySelectorAll('.ttg-ev[data-id]').length,
+    t1: !!document.querySelector('.ttg-ev[data-id="t1"]'), t2: !!document.querySelector('.ttg-ev[data-id="t2"]'),
+    nocover: document.querySelectorAll('.ttg-ev.nocover').length,
+    nctag: !!document.querySelector('.ttg-ev[data-id="t2"] .nctag'),
+    cov: document.querySelectorAll('.ttg-cov').length,
+    rd: document.querySelectorAll('.ttg-ev[data-id="t1"] .ttg-rd-row').length,
+    who: (document.querySelector('.ttg-ev[data-id="t1"] .ttg-evp') || {}).textContent || '',
+    bg: getComputedStyle(document.querySelector('.ttg-ev[data-id="t2"]')).backgroundColor,
+    t1bg: getComputedStyle(document.querySelector('.ttg-ev[data-id="t1"]')).backgroundColor,
+    top: document.querySelector('.ttg-ev[data-id="t1"]').style.top,
+    height: document.querySelector('.ttg-ev[data-id="t1"]').style.height,
+  }));
+  chk('8/5 일정 2건 렌더(t1·t2)', tt.evs === 2 && tt.t1 && tt.t2, tt.evs + '건');
+  chk('취재 불필요(t2) 회색 · 배지', tt.nocover === 1 && tt.nctag);
+  chk('취재 불필요 배경 = 회색', /237|238|239|230/.test(tt.bg), tt.bg);
+  chk('일반 일정(t1) 은 카테고리색 유지', !/237, 239, 240/.test(tt.t1bg), tt.t1bg);
+  chk('토글 버튼 2개', tt.cov === 2);
+  chk('식순 인라인(일간뷰) 1행', tt.rd === 1, tt.rd + '행');
+  chk('담당 인원 표기', /김기자/.test(tt.who), tt.who.trim());
+  // 20:00 × TT_HH_DAY(84px/h) = 1680 · 1.5h × 84 − 3(gap) = 123 — 리팩터링 후에도 픽셀 동일해야 함
+  chk('블록 좌표 계산(top/height)', tt.top === '1680px' && tt.height === '123px', tt.top + ' / ' + tt.height);
+
+  // 취재 불필요 토글 (hover 후 클릭)
+  await page.hover('.ttg-ev[data-id="t1"]');
+  await page.click('.ttg-ev[data-id="t1"] .ttg-cov');
+  await new Promise((r) => setTimeout(r, 700));
+  const tog = await page.evaluate(() => { const p = window.__put.filter((x) => x.timetable).pop(); return { cls: document.querySelector('.ttg-ev[data-id="t1"]').className, saved: p.timetable.filter((x) => x.id === 't1')[0].noCover }; });
+  chk('토글 → .nocover + 서버 저장', /nocover/.test(tog.cls) && tog.saved === true);
+  await page.hover('.ttg-ev[data-id="t1"]'); await page.click('.ttg-ev[data-id="t1"] .ttg-cov'); await new Promise((r) => setTimeout(r, 700));
+  chk('재토글 → 해제', !/nocover/.test(await page.evaluate(() => document.querySelector('.ttg-ev[data-id="t1"]').className)));
+
+  // 모달
+  await page.evaluate(() => openTT('t1'));
+  await new Promise((r) => setTimeout(r, 200));
+  const m = await page.evaluate(() => ({ title: document.getElementById('tt-f-title').value, nc: !!document.getElementById('tt-f-nocover'),
+    zone: document.getElementById('tt-f-zone').value, asg: document.querySelectorAll('#tt-asg .evkind').length, rd: document.querySelectorAll('#tt-rundown .rd-row').length }));
+  chk('일정 모달 필드(제목·구역·담당·식순·취재불필요)', m.title === '개영식' && m.nc && m.zone === 'stage' && m.asg === 2 && m.rd === 1, JSON.stringify(m));
+  await page.click('#tt-cancel');
+
+  // 전체기간 뷰
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /전체/.test(x.textContent)); b && b.click(); });
+  await new Promise((r) => setTimeout(r, 300));
+  chk('전체기간 뷰 → 3건 전부 렌더', (await page.$$('.ttg-ev[data-id]')).length === 3, (await page.$$('.ttg-ev[data-id]')).length + '건');
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /일간/.test(x.textContent)); b && b.click(); });
+  await new Promise((r) => setTimeout(r, 250));
+
+  console.log('\n[소식 제보 → 일정]');
+  await go('tips');
+  chk('제보 카드 · 일정 잡기 버튼', await page.$('[data-tip-sched]') !== null);
+  await page.click('[data-tip-sched]');
+  await new Promise((r) => setTimeout(r, 200));
+  const s1 = await page.evaluate(() => ({ date: document.getElementById('tsch-date').value, dest: document.querySelector('.tsch-dest').className }));
+  chk('희망일시 프리필 + 8/5 → 일정표 분기', s1.date === '2026-08-05' && /jam/.test(s1.dest), s1.date + ' ' + s1.dest);
+  await page.evaluate(() => { const d = document.getElementById('tsch-date'); d.value = '2026-07-20'; d.dispatchEvent(new Event('change', { bubbles: true })); });
+  chk('7/20 → 캘린더 분기(라이브 전환)', /cal/.test(await page.evaluate(() => document.querySelector('.tsch-dest').className)));
+  await page.click('[data-tsch-p="r1"]'); await page.click('#tsch-save');
+  await new Promise((r) => setTimeout(r, 500));
+  const s2 = await page.evaluate(() => { const p = window.__tipPatch.pop(); const sp = window.__put.filter((x) => x.slotKey).pop(); return { kind: p && p.scheduled && p.scheduled.kind, slot: sp && sp.slotKey, owner: sp && sp.edit && sp.edit.owner }; });
+  chk('캘린더 경로 → 슬롯 생성 + 제보 링크', s2.kind === 'slot' && /2026-07-20/.test(s2.slot || '') && s2.owner === '김기자', JSON.stringify(s2));
+
+  console.log('\n[자료실]');
+  await go('library');
+  const L = await page.evaluate(() => ({ cards: document.querySelectorAll('.libcard').length, open: document.querySelectorAll('.libcard[data-lib-open]').length, cats: document.querySelectorAll('#lib-cats .libcat').length }));
+  chk('자료 2건 · 카드 클릭 가능 · 구분 탭', L.cards === 2 && L.open === 2 && L.cats === 4, JSON.stringify(L));
+  await page.click('.libcard[data-lib-open="a1"] .libimg');
+  await new Promise((r) => setTimeout(r, 250));
+  const P = await page.evaluate(() => ({ shown: document.getElementById('asset-scrim').classList.contains('show'),
+    iframe: (document.querySelector('.apv-pdf iframe') || {}).src || '', meta: document.querySelectorAll('.apv-meta dd').length }));
+  chk('PDF 미리보기(iframe inline=1) + 메타 5행', P.shown && /inline=1/.test(P.iframe) && P.meta === 5, P.iframe);
+  await page.click('#asset-close');
+  await page.click('.libcard[data-lib-open="a2"] .libimg'); await new Promise((r) => setTimeout(r, 200));
+  chk('이미지 자료 → 이미지 미리보기', await page.$('.apv-img img') !== null);
+  await page.click('#asset-close');
+  // 업로드 모달 + R2 청크
+  const U = await page.evaluate(async () => {
+    openLibUpload([new File([new ArrayBuffer(2 * 1024 * 1024)], 'a.pdf', { type: 'application/pdf' }), new File([new ArrayBuffer(101 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' })], 'plan');
+    await new Promise((r) => setTimeout(r, 120));
+    return { shown: document.getElementById('lib-scrim').classList.contains('show'), rows: document.querySelectorAll('.libup-row').length, over: document.querySelectorAll('.libup-row.over').length, btn: document.getElementById('lib-upload').textContent };
+  });
+  chk('업로드 모달(prompt 아님) · 100MB 초과 표시', U.shown && U.rows === 2 && U.over === 1 && /업로드 \(1\)/.test(U.btn), U.btn);
+  await page.evaluate(() => document.getElementById('lib-cancel').click());
+  const U2 = await page.evaluate(async () => { await uploadAssets([new File([new ArrayBuffer(100 * 1024 * 1024)], 'p.pdf', { type: 'application/pdf' })], 'plan', ['t']); await new Promise((r) => setTimeout(r, 800)); return { parts: window.__r2.parts.length, creates: window.__r2.creates, aborted: window.__r2.aborted }; });
+  chk('100MB → R2 8MiB 청크 13파트', U2.parts === 13 && U2.creates === 1 && U2.aborted === 0, JSON.stringify(U2));
+
+  console.log('\n[대시보드 · 인원]');
+  await go('dashboard');
+  chk('대시보드 통계 카드', (await page.$$('#dashboard .statcard, #dashboard .stat')).length > 0 || (await page.$('#dashboard')) !== null);
+  await go('staff');
+  chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
+
+  console.log('\n[콘솔]');
+  chk('콘솔/페이지 에러 0', errors.length === 0, errors.slice(0, 3).join(' | ') || 'clean');
+
+  await browser.close(); server.close();
+  const f = R.filter((x) => !x.p);
+  console.log('\n=== ' + (R.length - f.length) + '/' + R.length + ' PASS ===');
+  if (f.length) console.log('FAILED: ' + f.map((x) => x.n).join(' | '));
+  process.exit(f.length ? 1 : 0);
+})().catch((e) => { console.error('HARNESS ERROR', e); server.close(); process.exit(2); });

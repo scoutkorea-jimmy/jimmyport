@@ -1034,6 +1034,23 @@ WOSM Region → 국가(NSO) → 단위대
 - 검증: `node --check` + 4개 API ESM 임포트 + **헤드리스 Chrome 30/30 PASS**(로컬 http, /api/* 목업 → 운영 KV 무접촉) — 자료실 14/14(카드 클릭=미리보기·PDF inline=1·이미지·미지원 안내·메타·받기는 미리보기 안 열림·닫기 시 iframe 정리) / 일정표 15/15(hover 토글 노출·`.nocover`·취재 X 배지·서버 noCover 저장·다른 일정 무영향·**저채도 고명도 실측**·해제·모달 체크박스·모달 저장 유지·**토글이 드래그를 시작하지 않음**) / **콘솔 에러 0** + 스크린샷(일반=컬러 vs 취재불필요=회색 대비 확인).
 - **남은 기술 부채**: (1) `toggleNoCover`/`deleteAsset` 이 상태변경+저장+렌더+토스트를 함께 수행 — 기존 `deleteTT` 등과 같은 관행이라 이번엔 맞췄고, 추후 `mutate → save → render` 분리 권장. (2) `renderTimetable` 이 1블록에서 마크업·이벤트배선·레이아웃 계산을 모두 처리(약 70줄) — 블록 렌더러 추출이 다음 후보. (3) `jamboree-plan/app.js` 3,000줄+ 단일 파일·전역 `state` — 도메인별(tips/library/timetable) 분리가 중장기 과제. 우선순위: (2) > (1) > (3).
 
+### 16.55 v0.9.166 — 기술 부채 정리(§16.54가 남긴 3건) + krjam-planning 구조 분리
+- 사용자 "모두 진행해" → §16.54의 남은 부채 3건 전부. **최우선 규칙 ③(코드 작업 원칙)** 적용 첫 사례.
+- **기능 변경 0건.** 순수 구조 개선 — 사용자 눈에 보이는 동작은 이전과 동일해야 하고, 실제로 동일함을 회귀로 증명함.
+- **⓪ 회귀 테스트 먼저**(§3.3 "테스트 또는 검증 수단을 만든다"): `regress.js` — 로컬 http + 실제 Chrome, `/api/*` 전부 목업(운영 KV 무접촉). 부팅·탭·보드(빈슬롯/정렬/필터/DnD)·캘린더·일정표(좌표 픽셀·회색·토글·모달·전체기간)·제보→일정(분기)·자료실(미리보기/업로드/R2 13청크)·대시·인원 = **33항목**. 리팩터링 **각 단계마다 실행 + baseline diff**(생성 id만 정규화). 4단계 전부 **33/33 · baseline과 완전 동일**.
+- **① `renderTimetable` 분해**(1함수 ~70줄 → 역할별): `ttBlockGeometry`(좌표 계산, DOM 무접근·부작용 없음) · `ttGeoStyle` · `ttBlockTooltip` · `ttRundownHtml` · `ttProtocolBlockHtml` · `ttEventBlockHtml` · `ttBlocksHtml`(레인 배치) · `ttHeadHtml` · `ttHoursHtml` · `ttCellsHtml` · `ttColumnHtml` · `renderTTLegend` · `wireTimetableGrid`(부작용) → `renderTimetable`은 조립만. 문자열 누적 클로저(`emitTT`가 외부 `H`를 mutate)를 **반환값 조립**으로 교체. `TT_HH`는 `col.hh`로 주입(드래그가 같은 전역을 참조해야 해 전역 갱신은 유지, 이유를 주석에 명시).
+- **② mutate → save → render 분리**: `saveTimetable(); renderTimetable(); if(staff) renderStaff();` 3줄이 **4곳에 복사**(deleteTT·toggleNoCover·finishTT·deleteTTCur)돼 있던 것을 `afterTimetableChange()` 하나로(§4.6). 데이터만 바꾸는 `setTtNoCover`/`removeTt`/`ttById` 분리. `deleteAsset`은 network(`requestAssetDelete`) / state(`removeAssetFromList`) / UI(orchestration)로 3분할하고 **실패 원인을 auth·forbidden·network로 구분**(§7 "모든 오류를 하나의 일반 오류로 바꾸지 않는다") → `ASSET_DELETE_ERR` 상수.
+- **③ app.js 분리**(3,469 → **3,232줄**, 신규 3파일): 로드 순서 **core → upload → library → app**(classic script, HTML 인라인 onclick 0개라 안전).
+  - `core.js`(111줄) — leaf 유틸: WD/WDS·날짜(ymd/iso/dayDiff/todayISO)·esc/pad2/fmtMB/fmtNewsTime/normUrl/htmlToText/mkid·ICON+icon·toast/copyText·downscale/uploadBlob. **의존성 0 · 단방향(app→core)**. 같은 배열이 `WD`/`WDS` 두 이름으로 중복 선언돼 있던 것 별칭으로 통일.
+  - `upload.js`(56줄) — 저장소 선택 규칙(KV ≤8MB / R2 >8MB 멀티파트) + `uploadAttachment`/`uploadLarge`. 자료실·콘텐츠 첨부가 공유하므로 도메인 아닌 인프라로.
+  - `library.js`(203줄) — 자료실 도메인 전체(목록·미리보기·업로드 모달·삭제). 상태 소유(`libItems` 등)를 파일 주석에 명시.
+  - 검증: 4파일 간 **함수·전역 var 중복 정의 0** 확인(뒤 로드가 앞을 덮어쓰는 사고 방지).
+- **캐시버스터 정리**: `?v=0.9.161`(버전과 4단계 어긋나 있었음) → `0.9.166`. `_middleware`의 no-cache가 있어 장애는 아니었으나 의도대로 정정.
+- **남은 기술 부채**(우선순위 순): (1) **세션 계층(`Auth`/`authHeader`/`authExpired`)이 아직 app.js** → `upload.js`·`library.js`가 app.js 전역을 역참조(개념적 순환). `session.js`로 빼면 core→session→upload→library→app 단방향 완성. `authExpired`가 `reflectAuthUI`(app UI)를 부르는 것이 걸림돌 — 콜백 주입으로 끊을 수 있음. (2) 남은 도메인(tips·timetable·calendar·board·dashboard)이 여전히 app.js 3,232줄에 공존 — library.js 패턴 그대로 반복하면 됨(회귀 스위트가 이미 각 도메인을 커버). (3) 전역 `state` 객체를 여러 렌더러가 직접 변경 — 도메인 분리 후 소유자를 파일 단위로 고정하는 것이 순서.
+- **회귀 스위트를 repo 에 보존**: `test/regress-krjam-planning.js` + `test/README.md`(실행법·커버 범위·목업 한계). 다음 리팩터링도 이걸 baseline 으로 쓴다.
+  - ⚠️ 이 과정에서 **`test/` 가 라이브에 공개 서빙된다는 걸 발견** — `_middleware.js` BLOCKED 는 `*.md`·설정파일만 막고 `test/*.js` 는 통과였음. `/^\/test(\/|$)/i` 추가로 404 처리(§18.1과 같은 종류의 누수).
+- ⚠️ 검증 한계: 회귀 스위트는 `/api/*` 목업이라 **실제 로그인·서버 저장 경로는 미포함** → 사용자 QA 필요. 운영 KV 파괴적 쓰기 금지(§16.6) 준수.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-15 — R2 버킷 `jimmyport-assets` 생성 (v0.9.163 자료실 100MB)
