@@ -37,8 +37,10 @@ export async function onRequestPost({ request, env }) {
   const url = String(body.url || "");
   if (!/^\/api\/(image|file|r2)\?id=/.test(url)) return json({ ok: false, error: "bad_url" }, 400);
   const now = new Date().toISOString();
-  const CATS = { plan: 1, cardnews: 1, photo: 1 };
-  const category = CATS[body.category] ? body.category : (body.type === "cardnews" ? "cardnews" : "photo");
+  // 카테고리 자유 입력 — 기본 3종(plan/cardnews/photo) 외 사용자 정의 카테고리 허용(≤40자). 빈 값은 타입으로 폴백
+  const category = (body.category != null && String(body.category).trim())
+    ? String(body.category).trim().slice(0, 40)
+    : (body.type === "cardnews" ? "cardnews" : "photo");
   const rec = {
     id: newId(), url, name: String(body.name || "").trim().slice(0, 80),
     type: body.type === "cardnews" ? "cardnews" : "photo",
@@ -63,7 +65,7 @@ export async function onRequestPatch({ request, env }) {
   if (!who.admin && rec.author !== who.username) return json({ ok: false, error: "forbidden" }, 403);
   if (body.name != null) rec.name = String(body.name).trim().slice(0, 80);
   if (body.tags != null) rec.tags = cleanTags(body.tags);
-  if (body.category != null && { plan: 1, cardnews: 1, photo: 1 }[body.category]) rec.category = body.category;
+  if (body.category != null) { const c = String(body.category).trim().slice(0, 40); if (c) rec.category = c; }   // 자유 카테고리(작성자 본인/관리자·마스터)
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
   return json({ ok: true, asset: rec });
 }

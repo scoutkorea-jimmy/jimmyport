@@ -1305,6 +1305,9 @@ tr.rowdim{opacity:.34}
 .libup-row.over .libup-s{color:var(--st-draft);font-weight:700}
 .libup-warn{font-size:12px;color:var(--st-draft);font-weight:600;margin:2px 0 4px;display:flex;align-items:center;gap:5px}
 .libup-hint{font-size:11px;color:var(--faint);margin-top:7px}
+.libup-cathint{font-size:11px;font-weight:500;color:var(--muted)}
+.ae-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#asset-edit .ti{margin-bottom:2px}
 .tip-assign{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--pill);background:var(--surface);color:var(--ink-2);max-width:140px}
 .tip-assign:focus{outline:none;border-color:var(--accent)}
 .jebo-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border:1px dashed var(--accent);border-radius:var(--r-2);background:var(--accent-soft-2);font-size:13px;color:var(--ink-2)}

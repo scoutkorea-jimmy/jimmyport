@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.191"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.191">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.191">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.192"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.192">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.192">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -486,8 +486,10 @@
       <button class="x" id="asset-close" aria-label="닫기"><span data-ic="x" data-ic-size="17"></span></button>
     </div>
     <div class="mbody" id="asset-body"></div>
+    <div class="mbody" id="asset-edit" style="display:none"></div>
     <div class="mfoot">
       <button class="btn ghost sm danger" id="asset-del">삭제</button>
+      <button class="btn ghost sm" id="asset-edit-btn" style="display:none"><span data-ic="edit" data-ic-size="13"></span> 수정</button>
       <span class="spacer"></span>
       <button class="btn ghost sm" id="asset-open">새 탭에서 열기</button>
       <a class="btn solid" id="asset-dl" download>받기</a>
@@ -559,12 +561,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.191"></script>
+<script src="jamboree-plan/core.js?v=0.9.192"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.191"></script>
+<script src="jamboree-plan/upload.js?v=0.9.192"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.191"></script>
-<script src="jamboree-plan/app.js?v=0.9.191"></script>
-<script src="version-watch.js?v=0.9.191"></script>
+<script src="jamboree-plan/library.js?v=0.9.192"></script>
+<script src="jamboree-plan/app.js?v=0.9.192"></script>
+<script src="version-watch.js?v=0.9.192"></script>
 </body>
 </html>

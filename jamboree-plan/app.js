@@ -3375,7 +3375,7 @@ function init(){
   var lbu=document.getElementById('lib-upload'); if(lbu) lbu.onclick=commitLibUpload;
   var lbs=document.getElementById('lib-scrim');
   if(lbs){ lbs.addEventListener('click',function(e){ if(e.target===lbs) closeLibUpload(); });
-    lbs.addEventListener('click',function(e){ var d=e.target.closest('[data-libup-del]'); if(d&&libUp){ var di=+d.getAttribute('data-libup-del'); libUp.files.splice(di,1); libUp.names.splice(di,1); if(!libUp.files.length){ closeLibUpload(); return; } renderLibUpload(); } });
+    lbs.addEventListener('click',function(e){ var d=e.target.closest('[data-libup-del]'); if(d&&libUp){ captureLibUp(); var di=+d.getAttribute('data-libup-del'); libUp.files.splice(di,1); libUp.names.splice(di,1); if(!libUp.files.length){ closeLibUpload(); return; } renderLibUpload(); } });
     // 문서명 입력은 데이터만 갱신(재렌더 없음 — 포커스 유지)
     lbs.addEventListener('input',function(e){ var n=e.target.closest('[data-libup-name]'); if(n&&libUp) libUp.names[+n.getAttribute('data-libup-name')]=n.value; }); }
   var ls=document.getElementById('lib-search'); if(ls) ls.addEventListener('input',function(){ libSearch=this.value; renderLibrary(); });
@@ -3397,6 +3397,7 @@ function init(){
   var asc=document.getElementById('asset-scrim'); if(asc) asc.addEventListener('click',function(e){ if(e.target===asc) closeAsset(); });
   var aop=document.getElementById('asset-open'); if(aop) aop.onclick=function(){ if(assetCur) window.open(inlineUrl(assetCur.url),'_blank','noopener'); };
   var ad=document.getElementById('asset-del'); if(ad) ad.onclick=function(){ if(assetCur) deleteAsset(assetCur.id); };   // 성공 시 deleteAsset 이 모달을 닫는다
+  var aeb=document.getElementById('asset-edit-btn'); if(aeb) aeb.onclick=function(){ openAssetEdit(); };
   // 현장 제보 인박스 배선
   var tipAdd=document.getElementById('tip-add'); if(tipAdd) tipAdd.onclick=openTipEditor;
   var tipClose=document.getElementById('tip-close'); if(tipClose) tipClose.onclick=closeTipEditor;

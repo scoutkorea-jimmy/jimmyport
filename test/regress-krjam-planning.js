@@ -244,6 +244,20 @@ const SEED = () => {
   await page.evaluate(() => document.getElementById('lib-cancel').click());
   const U2 = await page.evaluate(async () => { await uploadAssets([new File([new ArrayBuffer(100 * 1024 * 1024)], 'p.pdf', { type: 'application/pdf' })], 'plan', ['t']); await new Promise((r) => setTimeout(r, 800)); return { parts: window.__r2.parts.length, creates: window.__r2.creates, aborted: window.__r2.aborted }; });
   chk('100MB → R2 8MiB 청크 13파트', U2.parts === 13 && U2.creates === 1 && U2.aborted === 0, JSON.stringify(U2));
+  // 자료 편집(이름·카테고리·태그) + 자유 카테고리 — 관리자/업로더
+  const assetPatch = await page.evaluate(async () => {
+    window.__patch = []; const of = window.fetch;
+    window.fetch = (u, o) => { u = String(u && u.url ? u.url : u); if (u.startsWith('/api/jp-assets') && o && o.method === 'PATCH') { const b = JSON.parse(o.body); window.__patch.push(b); return Promise.resolve(new Response(JSON.stringify({ ok: true, asset: Object.assign({}, window.__assets[0], { name: b.name, category: b.category, tags: b.tags }) }), { headers: { 'content-type': 'application/json' } })); } return of(u, o); };
+    openAsset('a1'); await new Promise((r) => setTimeout(r, 100));
+    const editVis = getComputedStyle(document.getElementById('asset-edit-btn')).display !== 'none';
+    openAssetEdit(); await new Promise((r) => setTimeout(r, 100));
+    const hasFields = !!(document.getElementById('ae-name') && document.getElementById('ae-cat') && document.getElementById('ae-tags'));
+    document.getElementById('ae-name').value = '수정된 이름'; document.getElementById('ae-cat').value = '홍보물'; document.getElementById('ae-tags').value = '태그1, 태그2';
+    document.getElementById('ae-save').click(); await new Promise((r) => setTimeout(r, 150));
+    return { editVis, hasFields, patch: window.__patch[window.__patch.length - 1] };
+  });
+  chk('자료 수정 UI(이름·카테고리·태그 필드)', assetPatch.editVis && assetPatch.hasFields);
+  chk('자유 카테고리 저장(PATCH category=홍보물)', assetPatch.patch && assetPatch.patch.category === '홍보물' && assetPatch.patch.name === '수정된 이름', JSON.stringify(assetPatch.patch));
 
   console.log('\n[대시보드 · 인원]');
   await go('dashboard');
