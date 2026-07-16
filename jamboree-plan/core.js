@@ -25,7 +25,8 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function fmtMB(b){ return (b/1048576).toFixed(b<10485760?1:0)+'MB'; }
 // 사이트 전역 24시간제 규칙 — toLocaleTimeString 은 OS 로케일에 따라 12h 가 되어 쓰지 않는다
 function fmtNewsTime(isoStr){
-  try{ var d=new Date(isoStr); return d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+  try{ var d=new Date(isoStr); if(isNaN(d.getTime())) return '';   // Invalid Date 는 throw 하지 않아 catch 로 못 잡는다
+    return d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }
   catch(e){ return ''; }
 }
 // 사용자가 'example.com' 처럼 스킴 없이 넣는 경우가 많아 https 를 보완

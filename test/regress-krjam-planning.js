@@ -4,7 +4,7 @@
 const puppeteer = require('puppeteer-core');
 const http = require('http'); const fs = require('fs'); const path = require('path');
 
-const ROOT = '/Users/jimmy/Desktop/VS_Code/jimmyport';
+const ROOT = path.resolve(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8801;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
@@ -198,6 +198,16 @@ const SEED = () => {
     return { shown: document.getElementById('lib-scrim').classList.contains('show'), rows: document.querySelectorAll('.libup-row').length, over: document.querySelectorAll('.libup-row.over').length, btn: document.getElementById('lib-upload').textContent };
   });
   chk('업로드 모달(prompt 아님) · 100MB 초과 표시', U.shown && U.rows === 2 && U.over === 1 && /업로드 \(1\)/.test(U.btn), U.btn);
+  // v0.9.180: 목록형 레이아웃 + 파일별 문서명 입력
+  const LL = await page.evaluate(() => {
+    const card = document.querySelector('.libcard');
+    const names = document.querySelectorAll('#lib-body [data-libup-name]');
+    const inp = names[0]; if (inp) { inp.value = '개영식 계획서'; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+    return { dir: getComputedStyle(card).flexDirection, gridDir: getComputedStyle(document.querySelector('.libgrid')).flexDirection,
+             nameInputs: names.length, stored: (typeof libUp !== 'undefined' && libUp) ? libUp.names[0] : '' };
+  });
+  chk('자료실 목록형(행) 레이아웃', LL.dir === 'row' && LL.gridDir === 'column', LL.dir + '/' + LL.gridDir);
+  chk('업로드 파일별 문서명 입력(초과 파일 제외)', LL.nameInputs === 1 && LL.stored === '개영식 계획서', JSON.stringify({ n: LL.nameInputs, v: LL.stored }));
   await page.evaluate(() => document.getElementById('lib-cancel').click());
   const U2 = await page.evaluate(async () => { await uploadAssets([new File([new ArrayBuffer(100 * 1024 * 1024)], 'p.pdf', { type: 'application/pdf' })], 'plan', ['t']); await new Promise((r) => setTimeout(r, 800)); return { parts: window.__r2.parts.length, creates: window.__r2.creates, aborted: window.__r2.aborted }; });
   chk('100MB → R2 8MiB 청크 13파트', U2.parts === 13 && U2.creates === 1 && U2.aborted === 0, JSON.stringify(U2));

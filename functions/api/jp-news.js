@@ -53,7 +53,8 @@ export async function onRequestPost({ request, env }) {
     const ctext = String(body.text || "").trim().slice(0, 1000);
     if (!ctext) return json({ ok: false, error: "empty" }, 400);
     if (!Array.isArray(rec.comments)) rec.comments = [];
-    rec.comments.push({ id: newId(), text: ctext, author: who.admin ? "관리자" : (String(body.authorName || who.username).slice(0, 40)), username: who.admin ? "admin" : who.username, ts: new Date().toISOString(), ip: maskIp(clientIp(request)) });
+    // 표시명은 세션에 서명된 name 만 신뢰 — body.authorName 은 '관리자' 사칭에 쓰일 수 있어 무시
+    rec.comments.push({ id: newId(), text: ctext, author: who.username ? String(who.name || who.username).slice(0, 40) : "관리자", username: who.username || "admin", ts: new Date().toISOString(), ip: maskIp(clientIp(request)) });
     rec.comments = rec.comments.slice(-200);
     await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
     await appendLog(env, { ts: new Date().toISOString(), action: "jpn.comment", count: 0, ip: clientIp(request) });
@@ -75,8 +76,8 @@ export async function onRequestPost({ request, env }) {
   const now = new Date().toISOString();
   const rec = {
     id: newId(), title, body: text, images: cleanImages(body.images),
-    author: who.admin ? "admin" : who.username,
-    authorName: who.admin ? "관리자" : (String(body.authorName || who.username).slice(0, 40)),
+    author: who.username || "admin",
+    authorName: who.username ? String(who.name || who.username).slice(0, 40) : "관리자",   // 세션 서명값만 — body.authorName 무시(사칭 차단)
     createdAt: now, updatedAt: now, ip: maskIp(clientIp(request)),
   };
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));

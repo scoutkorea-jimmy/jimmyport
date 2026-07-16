@@ -17,7 +17,8 @@ var MAX_FILE=100*1024*1024, R2_SWITCH=8*1024*1024, R2_CHUNK=8*1024*1024;
    KV 는 값 1개당 25MiB 가 한계라 큰 파일은 R2 로만 갈 수 있다. */
 function uploadAttachment(file, onProg){
   if(file.size>R2_SWITCH) return uploadLarge(file,onProg);
-  return fetch('/api/file',{method:'POST',headers:{'content-type':(file.type||'application/octet-stream'),'x-filename':encodeURIComponent(file.name)},body:file})
+  var h=Object.assign({'content-type':(file.type||'application/octet-stream'),'x-filename':encodeURIComponent(file.name)}, authHeader());
+  return fetch('/api/file',{method:'POST',headers:h,body:file})
     .then(function(r){return r.json();}).then(function(j){ return j&&j.url?j:null; });
 }
 /* R2 멀티파트: create → 8MiB 청크 PUT 반복 → complete. 실패 시 abort.

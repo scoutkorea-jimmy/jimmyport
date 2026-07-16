@@ -149,8 +149,9 @@ export async function onRequestPost({ request, env }) {
 
     if (action === "photos") {   // 승인된 신청만 사진 등록(최대 3장, 업로드는 /api/image)
       if (rec.status !== "승인") return json({ ok: false, error: "not_approved" }, 409);
+      // 접두어만 검사하면 "…id=x\" onerror=…" 같은 속성 탈출 문자열이 통과한다 — id 전체 형식을 강제
       const photos = (Array.isArray(b.photos) ? b.photos : [])
-        .filter((u) => typeof u === "string" && /^\/api\/image\?id=/.test(u)).slice(0, 3);
+        .filter((u) => typeof u === "string" && /^\/api\/image\?id=[A-Za-z0-9_-]+$/.test(u)).slice(0, 3);
       rec.photos = photos; rec.updatedAt = new Date().toISOString();
       await env.SCOUT_KV.put(APP(no), JSON.stringify(rec));
       await appendLog(env, { ts: rec.updatedAt, action: "dcount.photos", count: photos.length, ip: clientIp(request) });

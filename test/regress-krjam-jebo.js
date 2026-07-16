@@ -1,7 +1,7 @@
 /* 제보 페이지 전면 재작성 검증 — 동작(계약·검증·i18n)이 그대로인지 + 새 구조가 의도대로인지 */
 const puppeteer = require('puppeteer-core');
 const http = require('http'); const fs = require('fs'); const path = require('path');
-const ROOT = '/Users/jimmy/Desktop/VS_Code/jimmyport';
+const ROOT = path.resolve(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8861;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };

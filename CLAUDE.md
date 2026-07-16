@@ -1092,6 +1092,22 @@ WOSM Region → 국가(NSO) → 단위대
 - **STEP 4(행사 후, 미실시)**: 제보 데스크톱 프리앰블 333px·언어 토글 78px 바 정리, 탭 12개 재편 — 운영자가 위치를 외운 상태라 **행사 중 이동 금지**.
 - 산출물: 디자인 진단·로드맵 / 디자인 시스템·운영계획 아티팩트 2종. 검증: 회귀 **40/40** · 모바일 24/24 · 두 화면 토큰 일치 · 콘솔 에러 0.
 
+### 16.59 v0.9.180 — 버그 일괄 수정(멀티에이전트 리뷰) + 보안 게이트 + 자료실 목록형/문서명 + 마스터 계정 + dormant 정리
+- 사용자: "버그 수정이랑 부채정리부터" + 추가 3건(자료실 목록형·업로드 문서명·박지민 마스터). 병렬 리뷰 에이전트 3개(프런트/서버API/크로스파일)로 버그 헌팅 후 일괄 반영.
+- **회귀 스위트 실행환경 복구**: `test/*.js` 3파일의 `ROOT` 가 `/Users/jimmy/...`로 하드코딩(다른 머신 경로) → `path.resolve(__dirname,'..')`. puppeteer-core 는 스크래치 설치+`NODE_PATH`. ⚠️ 쉘 내장 grep 이 간헐 무출력 — `/usr/bin/grep` 사용.
+- **HIGH 버그 수정**:
+  - **자료실 이미지 업로드 전멸**(v0.9.145부터): `uploadBlob`(core.js)은 URL **문자열**로 resolve 하는데 library.js 가 `.json()` 재호출 → TypeError → 전건 "실패" 집계. 문자열 그대로 받아 `record({url},…)` 로 수정.
+  - **모든 저장 작성자 '익명'**: `authorVal()` 이 v0.9.27에서 제거된 `#author` 입력을 계속 읽음 → `Auth.name||Auth.username||'익명'` 으로 연결(카드/메모/문구/일정 전부 실명 기록 복구).
+  - **세션 만료 후 게이트 재표시 시 로그인 불능**: `wireAuthGate` 가 세션 있으면 조기 반환해 폼 미배선 → 배선은 항상 수행.
+  - **sanitizeHtml 우회 XSS**: 정규식(`\son\w+=`)이 `<img/src=x/onerror=…>` 통과 → DOMParser 파스 후 태그/속성 화이트리스트 방식으로 재작성.
+- **보안 게이트(서버)**: ① `/api/jamboree-plan` GET/PUT/DELETE 에 `memberOrAdmin` 필수(기존 완전 무인증 — 비로그인 wipe·연락처/실명 공개 노출). 캐시 조회보다 먼저 검사. 클라 전 호출부 `authJsonHeaders()`/`authHeader()` + 401→`authExpired`, 보드 로드는 `loadBoard()`(로그인 후·`onAuthed`). ② `/api/file` POST 인증 필수, `/api/image` POST IP 레이트리밋(40/10분, `_lib.uploadRateOk`). ③ **authorName 사칭 차단**: jp-news/jp-assets/jp-tips 표시명을 body 가 아닌 **세션 서명값**(`who.name`)으로. ④ 예약 아이디(`admin` 등) 가입 차단(관리자 sentinel 탈취 방지). ⑤ dcount 사진 URL `^\/api\/image\?id=[A-Za-z0-9_-]+$` 전체형식 강제 + planning 캘린더 디데이 칩 esc()(속성 탈출 XSS).
+- **MEDIUM/LOW**: 일정잡기 모달 날짜 변경 시 구역·소요 초기화(재렌더 전 회수), 자정 `parseInt||10`→NaN 검사, 첨부 진행률 `svg.nodeValue` no-op→textContent, `fmtNewsTime` Invalid Date 가드.
+- **자료실**: **카드 그리드→목록형(행)**(CSS만, 클래스 유지 — 64px 썸네일·이름/태그/메타·우측 도구, ≤640px 랩). 업로드 모달에 **파일별 "검색될 문서명" 입력**(기본=파일명, input 위임으로 포커스 유지, 초과 파일과 인덱스 동기 필터) + `size` 저장.
+- **마스터 계정**: 회원 레코드 `master` 플래그 — 로그인 시 세션에 `{username,name,master}` **서명**, `memberOrAdmin` 이 master→`admin:true` 판정(TOTP `adminUser` 는 불변 — tour/dcount 무영향). jp-members GET/PATCH 게이트 = TOTP 또는 마스터. PATCH `action:'master'` + 회원관리 모달 "마스터 지정/해제" 버튼·배지. 클라 `Auth.master`(isAdmin 포함, 15분 유휴 로그아웃은 TOTP 전용, 비번변경 가능). ⚠️ **박지민(tsak1420) 지정은 KV 직접 쓰기가 권한정책상 차단** → 배포 후 관리자(TOTP) 로그인 → 회원 관리 → "마스터 지정" 1클릭 → 본인 재로그인.
+- **dormant 정리**(§16.55 부채 ①대응): launch(발대식) 함수·API 분기·KV 분기, placement(수동 배치표) 전부, `saveAll`/`openDay`/`timeOptions`/`smSelectPerson`/`updatePendingUI`/`contactSub`/`contactPhoneLine`, 죽은 CSS(.viewtabs·.addslot·.cdot·.sc-bar·.smchip). KV `jp:launch`/`jp:placement` 데이터는 잔존(무해).
+- **미해결(기록)**: 공유 배열 lost-update(timetable 등 12키 통짜 덮어쓰기 — 동시 편집 유실 가능, 아키텍처 과제) · jp-tips GET 이 일반 회원에게도 제보자 전화 노출(승인 회원 한정이라 중위험, 제품 결정 필요) · session.js 분리(부채 ②)는 다음 회차.
+- 검증: **회귀 42/42**(목록형·문서명 어서션 2개 신설) · nav 20/20 · jebo 29/29 · `node --check` 전 파일 · `_lib` ESM 임포트. ⚠️ 구세션(이름 미서명)은 표시명이 아이디로 폴백 — 재로그인 시 정상.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-16 — krjam-planning 라이브 KV 일정표 종류 색 정정 (v0.9.171 STEP3)

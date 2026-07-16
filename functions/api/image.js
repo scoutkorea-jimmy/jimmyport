@@ -3,7 +3,7 @@
  *                    KV에 img:<id> 로 저장, { url: "/api/image?id=<id>" } 반환.
  * GET  /api/image?id=...  → 이미지 바이트 + content-type (장기 캐시)
  * (다운스케일하는 댓글/잼버리 앱은 1~2MB 미만이라 한도 상향 영향 없음. D-count 승인 후 원본 사진 최대 5MB.) */
-import { json, newId } from "./_lib.js";
+import { json, newId, uploadRateOk } from "./_lib.js";
 
 var MAX = 10 * 1024 * 1024; // 10MB (현장 제보 고화질 사진 대응)
 var ALLOWED = { "image/jpeg": 1, "image/png": 1, "image/gif": 1, "image/webp": 1 };
@@ -11,6 +11,8 @@ var ALLOWED = { "image/jpeg": 1, "image/png": 1, "image/gif": 1, "image/webp": 1
 export async function onRequestPost({ request, env }) {
   var ct = (request.headers.get("content-type") || "").split(";")[0].trim();
   if (!ALLOWED[ct]) return json({ error: "unsupported_type" }, 415);
+  // 공개 엔드포인트(제보·디데이 사진) — IP당 업로드 상한이 없으면 KV 를 무한정 채울 수 있다
+  if (!(await uploadRateOk(env, request, "img"))) return json({ error: "too_many" }, 429);
   var buf = await request.arrayBuffer();
   if (!buf || buf.byteLength === 0) return json({ error: "empty" }, 400);
   if (buf.byteLength > MAX) return json({ error: "too_large" }, 413);

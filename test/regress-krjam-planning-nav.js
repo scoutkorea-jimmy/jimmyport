@@ -2,7 +2,7 @@
    가장 중요한 것: 12개 탭이 전부 도달 가능한가 · 권한이 새지 않는가 */
 const puppeteer = require('puppeteer-core');
 const http = require('http'); const fs = require('fs'); const path = require('path');
-const ROOT = '/Users/jimmy/Desktop/VS_Code/jimmyport';
+const ROOT = path.resolve(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8881;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };

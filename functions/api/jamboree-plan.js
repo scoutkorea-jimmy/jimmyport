@@ -9,7 +9,7 @@
  *  - PUT  /api/jamboree-plan  (마케팅)    → body { marketing:[...], author }
  *  - DELETE /api/jamboree-plan?slotKey=…  → 카드 KV 삭제(완전 제거)
  */
-import { json, jsonCacheable, cacheMatch, cachePut, cachePurge, clientIp, maskIp, appendLog } from "./_lib.js";
+import { json, jsonCacheable, cacheMatch, cachePut, cachePurge, clientIp, maskIp, appendLog, memberOrAdmin } from "./_lib.js";
 
 const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
@@ -18,13 +18,11 @@ const TYPES = "jp:types";
 const EVENTS = "jp:events";
 const TIMETABLE = "jp:timetable";
 const ROSTER = "jp:roster";
-const PLACEMENT = "jp:placement";
 const TTCATS = "jp:ttcats";
 const OFFTIMES = "jp:offtimes";
 const CONTACTS = "jp:contacts";
 const DIVISIONS = "jp:divisions";
 const PROTOCOL = "jp:protocol";
-const LAUNCH = "jp:launch";
 const MAPPOS = "jp:mappos";
 const SHOOTS = "jp:shoots";
 
@@ -84,21 +82,6 @@ function cleanProtocol(e) {
     memo: (e.memo || "").toString().slice(0, 400),
   };
 }
-function cleanLaunch(o) {
-  o = o && typeof o === "object" ? o : {};
-  const steps = Array.isArray(o.steps) ? o.steps.slice(0, 40).map((s) => {
-    s = s && typeof s === "object" ? s : {};
-    return {
-      id: (s.id || "").toString().slice(0, 40),
-      time: (s.time || "").toString().slice(0, 40),
-      dur: (s.dur || "").toString().slice(0, 20),
-      title: (s.title || "").toString().slice(0, 200),
-      note: (s.note || "").toString().slice(0, 200),
-    };
-  }) : [];
-  return { when: (o.when || "").toString().slice(0, 80), place: (o.place || "").toString().slice(0, 120), steps };
-}
-
 function cleanContact(e) {
   e = e && typeof e === "object" ? e : {};
   return {
@@ -184,17 +167,6 @@ function cleanTeams(t) {
   ["t1", "t2"].forEach((k) => { if (t[k] != null) out[k] = (t[k] || "").toString().slice(0, 40); });
   return out;
 }
-function cleanPlace(e) {
-  e = e && typeof e === "object" ? e : {};
-  return {
-    id: (e.id || "").toString().slice(0, 40),
-    name: (e.name || "").toString().slice(0, 60),
-    day: (e.day || "").toString().slice(0, 40),
-    zone: (e.zone || "").toString().slice(0, 120),
-    time: (e.time || "").toString().slice(0, 40),
-    task: (e.task || "").toString().slice(0, 300),
-  };
-}
 function cleanEvent(e) {
   e = e && typeof e === "object" ? e : {};
   return {
@@ -250,6 +222,9 @@ function cleanEdit(e) {
 
 export async function onRequestGet(ctx) {
   const { env } = ctx;
+  // 내부 운영 보드 — 연락처(전화·이메일)·인원 실명이 담기므로 로그인(회원 세션) 필수.
+  // 캐시 조회보다 먼저 검사해야 무인증 요청이 캐시 히트로 새지 않는다.
+  if (!(await memberOrAdmin(ctx.request, env))) return json({ error: "unauthorized" }, 401);
   const hit = await cacheMatch(ctx.request);  // the board GET takes no query params → one cache key
   if (hit) return hit;
   let cursor, names = [];
@@ -286,10 +261,6 @@ export async function onRequestGet(ctx) {
   const rraw = await env.SCOUT_KV.get(ROSTER);
   if (rraw) { try { const rj = JSON.parse(rraw); roster = rj.roster; teams = rj.teams || null; } catch {} }
 
-  let placement = null;
-  const praw = await env.SCOUT_KV.get(PLACEMENT);
-  if (praw) { try { placement = JSON.parse(praw).placement; } catch {} }
-
   let ttcats = null;
   const tcraw = await env.SCOUT_KV.get(TTCATS);
   if (tcraw) { try { ttcats = JSON.parse(tcraw).ttcats; } catch {} }
@@ -310,10 +281,6 @@ export async function onRequestGet(ctx) {
   const proraw = await env.SCOUT_KV.get(PROTOCOL);
   if (proraw) { try { protocol = JSON.parse(proraw).protocol; } catch {} }
 
-  let launch = null;
-  const lraw = await env.SCOUT_KV.get(LAUNCH);
-  if (lraw) { try { launch = JSON.parse(lraw).launch; } catch {} }
-
   let mappos = null;
   const mpraw = await env.SCOUT_KV.get(MAPPOS);
   if (mpraw) { try { mappos = JSON.parse(mpraw).mappos; } catch {} }
@@ -322,12 +289,15 @@ export async function onRequestGet(ctx) {
   const shraw = await env.SCOUT_KV.get(SHOOTS);
   if (shraw) { try { shoots = JSON.parse(shraw).shoots; } catch {} }
 
-  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, teams, placement, ttcats, offtimes, contacts, divisions, protocol, launch, mappos, shoots }, 30);  // short TTL; writes purge it
+  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
 
 export async function onRequestPut(ctx) {
+  // 과거 "작성자 이름 기반·토큰 없음" 설계(§16.5)의 잔재 — 개별 로그인 도입(v0.9.103) 후에도
+  // 쓰기가 무인증이라 비로그인 상태로 보드 전체를 덮어쓸 수 있었다. 회원 세션 필수로 전환.
+  if (!(await memberOrAdmin(ctx.request, ctx.env))) return json({ error: "unauthorized" }, 401);
   const resp = await putImpl(ctx);
   cachePurge(ctx, "/api/jamboree-plan");  // edits show on the next load (within the GET TTL)
   return resp;
@@ -378,13 +348,6 @@ async function putImpl(ctx) {
     return json({ ok: true, updatedAt: now });
   }
 
-  // 배치표(placement) 저장
-  if (Array.isArray(body.placement)) {
-    const placement = body.placement.slice(0, 300).map(cleanPlace);
-    await env.SCOUT_KV.put(PLACEMENT, JSON.stringify({ placement, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
-  }
-
   // 일정 종류(ttcats) 저장
   if (Array.isArray(body.ttcats)) {
     const ttcats = cleanTtCats(body.ttcats);
@@ -417,13 +380,6 @@ async function putImpl(ctx) {
   if (Array.isArray(body.protocol)) {
     const protocol = body.protocol.slice(0, 200).map(cleanProtocol);
     await env.SCOUT_KV.put(PROTOCOL, JSON.stringify({ protocol, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
-  }
-
-  // 운영요원 발대식(launch) 저장 — 객체(배열 아님)
-  if (body.launch && typeof body.launch === "object" && !Array.isArray(body.launch)) {
-    const launch = cleanLaunch(body.launch);
-    await env.SCOUT_KV.put(LAUNCH, JSON.stringify({ launch, updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 
@@ -476,6 +432,7 @@ async function putImpl(ctx) {
 
 export async function onRequestDelete(ctx) {
   const { request, env } = ctx;
+  if (!(await memberOrAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   const k = new URL(request.url).searchParams.get("slotKey");
   if (!k) return json({ error: "slotKey required" }, 400);
   await env.SCOUT_KV.delete(SLOT(k));

@@ -45,8 +45,8 @@ export async function onRequestPost({ request, env }) {
     category, ct: String(body.ct || "").slice(0, 80),
     size: Number(body.size) > 0 ? Math.floor(Number(body.size)) : 0, // 0 = 구버전 기록(용량 미저장)
     tags: cleanTags(body.tags),
-    author: who.admin ? "admin" : who.username,
-    authorName: who.admin ? "관리자" : (String(body.authorName || who.username).slice(0, 40)),
+    author: who.username || "admin",
+    authorName: who.username ? String(who.name || who.username).slice(0, 40) : "관리자",   // 세션 서명값만 — body.authorName 무시(사칭 차단)
     createdAt: now,
   };
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));

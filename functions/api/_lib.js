@@ -177,7 +177,9 @@ export async function verifyMemberSession(env, token) {
 }
 
 // Resolve the caller's identity from the Bearer token: an admin (TOTP) session
-// wins, else a member session. Returns { admin:true } | { username, admin:false } | null.
+// wins, else a member session. Member payload may carry {name, master} (signed at login):
+// master members get admin:true — full board admin without the shared TOTP code.
+// Returns { admin:true } | { username, name, admin, master } | null.
 export async function memberOrAdmin(request, env) {
   const auth = request.headers.get("Authorization") || "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
@@ -185,7 +187,18 @@ export async function memberOrAdmin(request, env) {
   const tok = m[1];
   if (await verifySession(env, tok)) return { admin: true };
   const p = await verifyMemberSession(env, tok);
-  return p ? { username: p.username, admin: false } : null;
+  return p ? { username: p.username, name: p.name || "", admin: !!p.master, master: !!p.master } : null;
+}
+
+// 공개 업로드 엔드포인트용 IP 레이트리밋 (KV TTL 카운터, 40건/10분)
+export async function uploadRateOk(env, request, bucket) {
+  const ip = clientIp(request) || "noip";
+  const key = bucket + ":rl:" + ip;
+  let n = 0;
+  try { n = parseInt((await env.SCOUT_KV.get(key)) || "0", 10) || 0; } catch {}
+  if (n >= 40) return false;   // 제보 사진 10장 + 여유
+  try { await env.SCOUT_KV.put(key, String(n + 1), { expirationTtl: 600 }); } catch {}
+  return true;
 }
 
 export function clientIp(request) {

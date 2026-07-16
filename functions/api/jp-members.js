@@ -39,6 +39,9 @@ function cleanTypes(t) {
 function normUser(s) {
   return String(s || "").toLowerCase().trim().replace(/[^a-z0-9_]/g, "");
 }
+// "admin" 은 관리자(TOTP) 소유 레코드의 author sentinel 로 쓰인다 — 회원이 선점하면
+// jp-news/jp-assets/jp-tips 의 소유권 검사(rec.author===who.username)를 전부 통과해버린다.
+const RESERVED_USERNAMES = { admin: 1, administrator: 1, system: 1, master: 1, root: 1 };
 
 async function readUser(env, username) {
   try { const raw = await env.SCOUT_KV.get(USER(username)); return raw ? JSON.parse(raw) : null; }
@@ -47,7 +50,7 @@ async function readUser(env, username) {
 async function writeIndex(env, rec) {
   const idx = await getArr(env, INDEX);
   const i = idx.findIndex((m) => m.username === rec.username);
-  const row = { username: rec.username, name: rec.name, status: rec.status, createdAt: rec.createdAt, type: rec.type || "일반" };
+  const row = { username: rec.username, name: rec.name, status: rec.status, createdAt: rec.createdAt, type: rec.type || "일반", master: rec.master === true };
   if (i >= 0) idx[i] = row; else idx.push(row);
   await putArr(env, INDEX, idx);
 }
@@ -62,7 +65,7 @@ export async function onRequestPost({ request, env }) {
     const username = normUser(body.username);
     const name = String(body.name || "").trim().slice(0, 40);
     const password = String(body.password || "");
-    if (username.length < 3 || username.length > 24) return json({ ok: false, error: "bad_username" }, 400);
+    if (username.length < 3 || username.length > 24 || RESERVED_USERNAMES[username]) return json({ ok: false, error: "bad_username" }, 400);
     if (!name) return json({ ok: false, error: "name_required" }, 400);
     if (password.length < 4) return json({ ok: false, error: "weak_password" }, 400);
     if (body.consent !== true) return json({ ok: false, error: "consent_required" }, 400);
@@ -104,15 +107,16 @@ export async function onRequestPost({ request, env }) {
     if (rec.status !== "approved") return json({ ok: false, error: "pending_approval" }, 403);
 
     try { await env.SCOUT_KV.delete(rlKey); } catch {}
-    const s = await issueMemberSession(env, { username });
+    // name·master 를 세션에 서명해 넣는다 — 이후 API 들이 KV 재조회 없이 표시명/권한을 신뢰할 수 있다
+    const s = await issueMemberSession(env, { username, name: rec.name, master: rec.master === true });
     const types = await readTypes(env);
-    const tabs = types[rec.type] || types[Object.keys(types)[0]] || CONTENT_TABS;
-    return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반", tabs });
+    const tabs = rec.master === true ? ALL_TABS.slice() : (types[rec.type] || types[Object.keys(types)[0]] || CONTENT_TABS);
+    return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반", tabs, master: rec.master === true });
   }
 
   if (action === "change_password") {   // 본인 비밀번호 변경 (로그인 회원)
     const who = await memberOrAdmin(request, env);
-    if (!who || who.admin || !who.username) return json({ ok: false, error: "unauthorized" }, 401);
+    if (!who || !who.username) return json({ ok: false, error: "unauthorized" }, 401);   // 마스터도 회원 — username 있으면 본인 변경 허용
     const rec = await readUser(env, who.username);
     if (!rec || rec.status !== "approved") return json({ ok: false, error: "invalid" }, 400);
     if (!(await verifyPassword(String(body.oldPassword || ""), rec.salt, rec.hash))) return json({ ok: false, error: "wrong_password" }, 403);
@@ -128,15 +132,22 @@ export async function onRequestPost({ request, env }) {
   return json({ ok: false, error: "bad_action" }, 400);
 }
 
+// 회원 관리 권한 = TOTP 관리자 또는 마스터 회원 (memberOrAdmin 이 둘 다 admin:true 로 판정)
+async function isManager(request, env) {
+  if (await adminUser(request, env)) return true;
+  const who = await memberOrAdmin(request, env);
+  return !!(who && who.admin);
+}
+
 export async function onRequestGet({ request, env }) {
-  if (!(await adminUser(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
+  if (!(await isManager(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
   const idx = await getArr(env, INDEX);
   idx.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   return json({ ok: true, members: idx, types: await readTypes(env) });
 }
 
 export async function onRequestPatch({ request, env }) {
-  if (!(await adminUser(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
+  if (!(await isManager(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
   let body = {};
   try { body = await request.json(); } catch {}
   const username = normUser(body.username);
@@ -181,6 +192,10 @@ export async function onRequestPatch({ request, env }) {
     await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
   } else if (action === "type") {
     rec.type = (String(body.type || "").trim()) || "일반";   // 회원 유형 지정(관리자)
+    await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
+    await writeIndex(env, rec);
+  } else if (action === "master") {   // 마스터 지정/해제 — 재로그인 시 세션에 반영
+    rec.master = body.master === true;
     await env.SCOUT_KV.put(USER(username), JSON.stringify(rec));
     await writeIndex(env, rec);
   } else {

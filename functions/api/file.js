@@ -3,11 +3,13 @@
  *                         KV에 file:<id> 저장 → { url:"/api/file?id=<id>", name, ct, size }
  * GET  /api/file?id=... → 파일 바이트 + content-type + 다운로드(content-disposition)
  *      &inline=1 을 붙이면 inline 으로 내려 미리보기(iframe)에 띄울 수 있다. */
-import { json, newId } from "./_lib.js";
+import { json, newId, memberOrAdmin } from "./_lib.js";
 
 var MAX = 10 * 1024 * 1024; // 10MB
 
 export async function onRequestPost({ request, env }) {
+  // 일반 파일 첨부는 로그인 흐름(콘텐츠 모달·자료실)에서만 쓰인다 — 무인증 공개 호스팅 차단
+  if (!(await memberOrAdmin(request, env))) return json({ error: "unauthorized" }, 401);
   var ct = (request.headers.get("content-type") || "application/octet-stream").split(";")[0].trim() || "application/octet-stream";
   var name = "";
   try { name = decodeURIComponent(request.headers.get("x-filename") || ""); } catch (e) { name = request.headers.get("x-filename") || ""; }

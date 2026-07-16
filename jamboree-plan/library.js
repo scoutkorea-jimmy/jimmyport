@@ -115,14 +115,15 @@ function libProgress(label, pct){
   document.getElementById('lib-progress-f').style.width=(pct||0)+'%';
 }
 /* 업로드 모달 — 파일 목록·구분·태그를 한 화면에서 확인 후 올린다 (기존 window.prompt 대체) */
-var libUp=null;   // {files:[], category, tags}
+var libUp=null;   // {files:[], names:[], category, tags} — names[i] = 검색될 문서명(기본 = 파일명)
+function fileBaseName(f){ return (f.name||'').replace(/\.[a-z0-9]+$/i,''); }
 function openLibUpload(files, category){
   if(!Auth.authed()){ toast('로그인 후 올릴 수 있습니다'); return; }
   var arr=Array.prototype.slice.call(files||[]); if(!arr.length) return;
-  libUp={ files:arr, category:category, tags:'' };
+  libUp={ files:arr, names:arr.map(fileBaseName), category:category, tags:'' };
   renderLibUpload();
   document.getElementById('lib-scrim').classList.add('show');
-  setTimeout(function(){ var t=document.getElementById('libup-tags'); t&&t.focus(); },30);
+  setTimeout(function(){ var t=document.querySelector('#lib-body [data-libup-name="0"]'); t&&t.focus(); },30);
 }
 function closeLibUpload(){ document.getElementById('lib-scrim').classList.remove('show'); libUp=null; }
 function renderLibUpload(){
@@ -134,15 +135,16 @@ function renderLibUpload(){
     return '<div class="libup-row'+(over?' over':'')+'">'+icon(/^image\//i.test(f.type||'')?'image':'fileText',14)+
       '<span class="libup-n">'+esc(f.name)+'</span>'+
       '<span class="libup-s">'+fmtMB(f.size)+(over?' · 100MB 초과':'')+'</span>'+
-      '<button class="btn xs ghost" data-libup-del="'+i+'" aria-label="빼기">'+icon('x',12)+'</button></div>';
+      '<button class="btn xs ghost" data-libup-del="'+i+'" aria-label="빼기">'+icon('x',12)+'</button></div>'+
+      (over?'':'<input class="ti libup-name" type="text" data-libup-name="'+i+'" value="'+esc(libUp.names[i]||'')+'" maxlength="80" placeholder="검색될 문서명">');
   }).join('');
   var over=libUp.files.filter(function(f){return f.size>MAX_FILE;}).length;
   document.getElementById('lib-body').innerHTML=
-    '<div class="fl">파일 ('+libUp.files.length+')</div><div class="libup-list">'+rows+'</div>'+
+    '<div class="fl">파일 ('+libUp.files.length+') — 파일마다 <b>검색될 문서명</b>을 정하세요</div><div class="libup-list">'+rows+'</div>'+
     (over?'<div class="libup-warn">'+icon('clock',13)+' 100MB를 넘는 파일 '+over+'개는 업로드에서 제외됩니다.</div>':'')+
     '<div class="fl">태그 (쉼표로 구분 · 선택)</div>'+
     '<input class="ti" id="libup-tags" type="text" placeholder="예: 개영식, 운영, 카드뉴스" value="'+esc(libUp.tags)+'">'+
-    '<div class="libup-hint">파일 1개당 <b>100MB</b>까지 · 사진은 자동 축소(1600px) 후 저장됩니다.</div>';
+    '<div class="libup-hint">파일 1개당 <b>100MB</b>까지 · 사진은 자동 축소(1600px) 후 저장됩니다. 문서명·태그로 자료실에서 검색됩니다.</div>';
   var btn=document.getElementById('lib-upload');
   var n=libUp.files.filter(function(f){return f.size<=MAX_FILE;}).length;
   btn.disabled=!n; btn.textContent=n?('업로드 ('+n+')'):'올릴 파일 없음';
@@ -151,32 +153,37 @@ function commitLibUpload(){
   if(!libUp) return;
   var t=document.getElementById('libup-tags'); if(t) libUp.tags=t.value;
   var files=libUp.files, cat=libUp.category, tags=(libUp.tags||'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var names=libUp.names.slice();
   closeLibUpload();
-  uploadAssets(files, cat, tags);
+  uploadAssets(files, cat, tags, names);
 }
-function uploadAssets(files, category, tags){
+function uploadAssets(files, category, tags, names){
   if(!Auth.authed()){ toast('로그인 후 올릴 수 있습니다'); return; }
   var arr=Array.prototype.slice.call(files||[]); if(!arr.length) return;
-  tags=tags||[];
+  tags=tags||[]; names=names||[];
   var over=arr.filter(function(f){ return f.size>MAX_FILE; });
-  if(over.length){ toast(over[0].name+' : '+fmtMB(over[0].size)+' — 파일 1개당 100MB까지'); arr=arr.filter(function(f){ return f.size<=MAX_FILE; }); }
-  if(!arr.length){ return; }
+  if(over.length){ toast(over[0].name+' : '+fmtMB(over[0].size)+' — 파일 1개당 100MB까지'); }
+  // names[i] 는 파일과 같은 인덱스 — 초과 파일을 걸러도 쌍이 어긋나지 않게 함께 거른다
+  var pairs=arr.map(function(f,i){ return {f:f, name:(names[i]||'').trim()||fileBaseName(f)}; })
+    .filter(function(p){ return p.f.size<=MAX_FILE; });
+  if(!pairs.length){ return; }
   var ok=0, fail=0;
-  function record(d, f, ct){
+  function record(d, p, ct){
     if(!(d&&d.url)) return Promise.resolve(null);
-    var cat = category==='plan' ? 'plan' : (/\.png$/i.test(f.name||'')?'cardnews':'photo');  // 미디어 업로드는 PNG=카드뉴스, 그 외=사진
+    var cat = category==='plan' ? 'plan' : (/\.png$/i.test(p.f.name||'')?'cardnews':'photo');  // 미디어 업로드는 PNG=카드뉴스, 그 외=사진
     var type = cat==='cardnews' ? 'cardnews' : 'photo';
-    return fetch('/api/jp-assets',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({url:d.url,name:(f.name||'').replace(/\.[a-z0-9]+$/i,''),type:type,category:cat,ct:ct||'',tags:tags,authorName:Auth.name||Auth.username})}).then(function(r){return r.json();});
+    return fetch('/api/jp-assets',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({url:d.url,name:p.name,type:type,category:cat,ct:ct||'',size:p.f.size,tags:tags,authorName:Auth.name||Auth.username})}).then(function(r){return r.json();});
   }
   // 큰 파일이 서로 대역폭을 뺏지 않도록 순차 업로드
   (function next(i){
-    if(i>=arr.length){ libProgress(null); renderLibrary(); toast(fail?('자료 '+ok+'개 추가 · '+fail+'개 실패'):('자료 '+ok+'개 추가됨')); return; }
-    var f=arr[i], isImg=/^image\//i.test(f.type||'');
-    var lbl=(arr.length>1?('('+(i+1)+'/'+arr.length+') '):'')+f.name+' · '+fmtMB(f.size);
+    if(i>=pairs.length){ libProgress(null); renderLibrary(); toast(fail?('자료 '+ok+'개 추가 · '+fail+'개 실패'):('자료 '+ok+'개 추가됨')); return; }
+    var p0=pairs[i], f=p0.f, isImg=/^image\//i.test(f.type||'');
+    var lbl=(pairs.length>1?('('+(i+1)+'/'+pairs.length+') '):'')+f.name+' · '+fmtMB(f.size);
     libProgress(lbl,0);
+    // uploadBlob 은 URL "문자열"로 resolve — 여기서 r.json() 을 다시 부르면 안 된다(과거 버그: 이미지 업로드 전건 실패)
     var p = isImg
-      ? downscale(f,1600,0.85).then(function(blob){ libProgress(lbl,50); return uploadBlob(blob).then(function(r){return r.json();}); }).then(function(d){ libProgress(lbl,90); return record(d,f,'image/jpeg'); })
-      : uploadAttachment(f,function(pc){ libProgress(lbl,Math.round(pc*0.9)); }).then(function(d){ libProgress(lbl,95); return record(d,f,(d&&d.ct)||f.type||'application/octet-stream'); });
+      ? downscale(f,1600,0.85).then(function(blob){ libProgress(lbl,50); return uploadBlob(blob); }).then(function(url){ libProgress(lbl,90); return record(url?{url:url}:null,p0,'image/jpeg'); })
+      : uploadAttachment(f,function(pc){ libProgress(lbl,Math.round(pc*0.9)); }).then(function(d){ libProgress(lbl,95); return record(d,p0,(d&&d.ct)||f.type||'application/octet-stream'); });
     p.then(function(j){ if(j&&j.ok&&j.asset){ libItems.unshift(j.asset); ok++; } else fail++; next(i+1); })
      .catch(function(){ fail++; next(i+1); });
   })(0);

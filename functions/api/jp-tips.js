@@ -76,8 +76,8 @@ export async function onRequestPost({ request, env }) {
   const now = new Date().toISOString();
   const rec = {
     id: newId(),
-    reporterUser: who ? (who.admin ? "admin" : who.username) : "public",
-    reporterName: reporterName || (who ? (who.admin ? "관리자" : who.username) : "익명"),
+    reporterUser: who ? (who.username || "admin") : "public",
+    reporterName: reporterName || (who ? (who.username ? String(who.name || who.username).slice(0, 40) : "관리자") : "익명"),
     phone, org, zone: String(body.zone || "").slice(0, 40),
     text, photos, status: "new", note: "", assignee: "",
     date: cleanDate(body.date), time: cleanTime(body.time), // 제보자 희망 일시(선택)
@@ -104,7 +104,7 @@ export async function onRequestPatch({ request, env }) {
   if (body.date != null) rec.date = cleanDate(body.date);
   if (body.time != null) rec.time = cleanTime(body.time);
   if (body.scheduled !== undefined) rec.scheduled = cleanScheduled(body.scheduled); // null = 일정 해제
-  rec.triagedBy = who.admin ? "관리자" : who.username;
+  rec.triagedBy = who.username ? String(who.name || who.username).slice(0, 40) : "관리자";
   rec.triagedAt = new Date().toISOString();
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
   return json({ ok: true, tip: rec });
