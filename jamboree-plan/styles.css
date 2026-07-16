@@ -36,7 +36,36 @@ h1{font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:-.03em;line-heig
 .clock .sub{color:rgba(255,255,255,.82);font-size:12px}
 
 /* ---- view tabs ---- */
+/* ===== 내비게이션 =====
+ * PC(≥1024): 좌측 사이드바. 12개 항목 4그룹은 가로로 늘어놓기엔 많고, 세로로 세우면
+ *   그룹 라벨이 제 역할을 한다. .wrap 을 그리드로 만들어 DOM 은 그대로 두고 배치만 바꾼다
+ *   (숨은 섹션은 grid item 이 아니라 자리를 차지하지 않는다).
+ * 모바일(<1024): 상단 탭바를 숨기고 하단 고정 탭 5개(+더보기 시트). 4그룹을 세로로 쌓으면
+ *   화면 380px 을 먹어 정작 내용이 안 보였다.
+ * 항목의 순서·이름·data-v 는 그대로 — 운영자가 외운 것은 위치가 아니라 이름이다. */
 .tabbar{display:flex;flex-wrap:wrap;gap:13px 22px;align-items:flex-start;margin-bottom:16px;padding-bottom:15px;border-bottom:1px solid var(--line)}
+@media(min-width:1024px){
+  .wrap{display:grid;grid-template-columns:214px minmax(0,1fr);column-gap:30px;align-items:start;max-width:1240px}
+  /* 상단 2줄은 전폭. 행을 명시해야 자동배치가 사이드바를 헤더 위로 올리지 않는다. */
+  .wrap > .syncbar{grid-column:1/-1;grid-row:1}
+  .wrap > header.top{grid-column:1/-1;grid-row:2}
+  /* 사이드바는 본문 전체 높이를 덮어야 sticky 가 끝까지 따라온다.
+     `3 / -1` 은 명시적 행이 없으면 해석되지 않으므로 넉넉히 span 한다(빈 행은 0 높이). */
+  .tabbar{grid-column:1;grid-row:3/span 99;position:sticky;top:70px;flex-direction:column;flex-wrap:nowrap;
+          gap:18px;margin:0;padding:0;border-bottom:0;align-self:start}
+  /* 본문·푸터는 오른쪽 열에 흐른다. 푸터를 전폭으로 두면 사이드바가 점유한 행 뒤로 밀려 빈 공간이 생긴다. */
+  .wrap > section,.wrap > .foot{grid-column:2}
+  /* 간격은 그리드(row-gap)가 담당한다. section 이 자기 margin-top:34px 을 들고 있으면
+     사이드바(row 3 시작)와 본문이 34px 어긋난다 — 대시보드 패널이 14px 어긋났던 것과 같은 원인. */
+  .wrap{row-gap:34px}
+  .wrap > section{margin-top:0}
+  .wrap > .foot{margin-top:8px}
+  .tg-tabs{flex-direction:column;flex-wrap:nowrap;gap:3px;align-items:stretch}
+  .vtab{justify-content:flex-start;width:100%;border-color:transparent;background:transparent;box-shadow:none}
+  .vtab:hover{background:var(--surface);border-color:var(--line)}
+  .vtab.active{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink);box-shadow:none;font-weight:800}
+  .vtab.active .ic{color:var(--accent)}
+}
 .tabgroup{display:flex;flex-direction:column;gap:6px}
 .tg-label{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);padding-left:3px;text-transform:uppercase}
 .tg-tabs{display:flex;flex-wrap:wrap;gap:7px}
@@ -48,6 +77,41 @@ h1{font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:-.03em;line-heig
 .vtab:hover{border-color:var(--accent);color:var(--accent)}
 .vtab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--sh-1)}
 .vtab .ic{font-size:16px}
+
+/* ── 모바일 하단 탭 ── 자주 쓰는 4개 + 더보기. 나머지는 시트로. */
+.botnav{display:none}
+@media(max-width:1023px){
+  .tabbar{display:none}
+  .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;
+          background:rgba(255,255,255,.94);backdrop-filter:saturate(1.4) blur(10px);border-top:1px solid var(--line);
+          padding-bottom:env(safe-area-inset-bottom)}
+  .bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+      min-height:58px;border:0;background:none;font:inherit;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer;
+      padding:6px 2px;transition:var(--ease)}
+  .bn .ic{width:21px;height:21px}
+  .bn.on{color:var(--accent)}
+  .bn.on .ic{stroke-width:2.2}
+  .wrap{padding-bottom:calc(58px + 24px + env(safe-area-inset-bottom))}
+}
+/* 더보기 시트 — 나머지 탭 */
+.sheet{position:fixed;inset:0;z-index:60;display:none}
+.sheet.show{display:block}
+.sheet-bg{position:absolute;inset:0;background:rgba(22,32,26,.4)}
+.sheet-in{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;
+          padding:8px 16px calc(20px + env(safe-area-inset-bottom));max-height:80vh;overflow-y:auto;
+          animation:sheetUp .22s var(--ease)}
+@keyframes sheetUp{from{transform:translateY(14px);opacity:.7}to{transform:none;opacity:1}}
+.sheet-grip{width:38px;height:4px;border-radius:999px;background:var(--line);margin:6px auto 14px}
+.sheet-grp{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin:14px 0 7px 3px}
+.sheet-grp:first-of-type{margin-top:0}
+.sheet-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sheet-item{display:flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 13px;border:1px solid var(--line);
+            border-radius:var(--r-field);background:var(--surface-2);font:inherit;font-size:13.5px;font-weight:700;
+            color:var(--ink-2);cursor:pointer;text-align:left;transition:var(--ease)}
+.sheet-item .ic{flex:0 0 auto;color:var(--muted)}
+.sheet-item.on{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.sheet-item.on .ic{color:var(--accent)}
+@media (prefers-reduced-motion: reduce){ .sheet-in{animation:none} }
 
 /* ---- sections ---- */
 section{margin-top:34px}

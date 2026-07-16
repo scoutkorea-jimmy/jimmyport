@@ -2212,7 +2212,45 @@ function reflectAuthUI(){
     var any=Array.prototype.some.call(g.querySelectorAll('.vtab[data-v]'), function(b){ return b.style.display!=='none'; });
     g.style.display=any?'':'none';
   });
+  renderBotNav();
 }
+
+/* ===== 모바일 하단 탭 + 더보기 시트 =====
+   항목을 여기에 다시 적지 않고 .vtab 목록에서 읽어온다 — 두 곳에 적으면 반드시 갈라진다.
+   권한(canSee)도 .vtab 의 표시 상태를 그대로 따르므로 규칙이 한 벌만 존재한다. */
+var BOTNAV_PRIMARY=['dashboard','calendar','timetable','tips'];   // 자주 쓰는 4개 + 더보기
+function navItems(){
+  return Array.prototype.map.call(document.querySelectorAll('.vtab[data-v]'), function(b){
+    var g=b.closest('.tabgroup');
+    return { v:b.getAttribute('data-v'), label:(b.textContent||'').trim(),
+             ic:(b.querySelector('[data-ic]')||{}).dataset ? b.querySelector('[data-ic]').dataset.ic : '',
+             grp:g?((g.querySelector('.tg-label')||{}).textContent||'').trim():'',
+             shown:b.style.display!=='none' };
+  }).filter(function(x){ return x.shown; });
+}
+function renderBotNav(){
+  var bn=document.getElementById('botnav'); if(!bn) return;
+  var items=navItems();
+  var prim=BOTNAV_PRIMARY.filter(function(v){ return items.some(function(x){ return x.v===v; }); });
+  var html=prim.map(function(v){
+    var it=items.filter(function(x){ return x.v===v; })[0];
+    return '<button class="bn'+(curViewMode===v?' on':'')+'" data-bn="'+v+'" role="tab">'+icon(it.ic,21)+'<span>'+esc(it.label)+'</span></button>';
+  }).join('');
+  var restOn=items.some(function(x){ return prim.indexOf(x.v)<0 && x.v===curViewMode; });
+  html+='<button class="bn'+(restOn?' on':'')+'" data-bn="__more" aria-haspopup="dialog">'+icon('grid',21)+'<span>더보기</span></button>';
+  bn.innerHTML=html;
+}
+function openNavSheet(){
+  var items=navItems(), grps=[], byG={};
+  items.forEach(function(x){ if(!byG[x.grp]){ byG[x.grp]=[]; grps.push(x.grp); } byG[x.grp].push(x); });
+  document.getElementById('navsheet-in').innerHTML='<div class="sheet-grip"></div>'+grps.map(function(g){
+    return '<div class="sheet-grp">'+esc(g)+'</div><div class="sheet-list">'+byG[g].map(function(x){
+      return '<button class="sheet-item'+(curViewMode===x.v?' on':'')+'" data-sheet="'+x.v+'">'+icon(x.ic,17)+'<span>'+esc(x.label)+'</span></button>';
+    }).join('')+'</div>';
+  }).join('');
+  document.getElementById('navsheet').classList.add('show');
+}
+function closeNavSheet(){ document.getElementById('navsheet').classList.remove('show'); }
 function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); resetAdminIdle(); }
 
 function wireAuthGate(){
@@ -2973,6 +3011,7 @@ function setView(v){
   // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
+  renderBotNav();   // 하단 탭 활성 상태도 같은 시점에 갱신
   try{localStorage.setItem('jamboree-plan:view',v);}catch(e){}
   if(v==='dashboard') renderDashboard();
   if(v==='news') renderNews();
@@ -3017,6 +3056,17 @@ function init(){
   document.getElementById('ev-scrim').addEventListener('click',function(e){ if(e.target===this) closeEvent(); });
   // view tabs
   document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+  // 하단 탭 · 더보기 시트 (모바일)
+  var bn=document.getElementById('botnav');
+  if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bn]'); if(!b) return;
+    var v=b.getAttribute('data-bn');
+    if(v==='__more'){ openNavSheet(); return; }
+    setView(v); window.scrollTo({top:0,behavior:'smooth'}); });
+  var sh=document.getElementById('navsheet');
+  if(sh){ sh.addEventListener('click',function(e){
+      if(e.target.id==='navsheet-bg'){ closeNavSheet(); return; }
+      var it=e.target.closest('[data-sheet]'); if(it){ closeNavSheet(); setView(it.getAttribute('data-sheet')); window.scrollTo({top:0,behavior:'smooth'}); } });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape' && sh.classList.contains('show')) closeNavSheet(); }); }
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
   setView(['dashboard','news','tips','calendar','list','timetable','library','staff','contacts','orginfo','protocol','sitemap'].indexOf(savedView)>=0?savedView:'dashboard');
   // 인증 · 기사 · 홍보부원 회원 배선
