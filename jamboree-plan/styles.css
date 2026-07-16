@@ -783,7 +783,11 @@ html.pw-ok #auth-gate{display:none}
 .wxh-deg{font-size:14px;font-weight:700}
 .wxh-pop{font-size:10.5px;color:var(--ch-fb)}
 
-.dashgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+/* 대시보드 세로 간격은 컨테이너 gap 이 담당한다.
+   이전에는 `.dashpanel+.dashpanel{margin-top:14px}` 로 형제 margin 을 썼는데, 이 선택자가
+   2열 그리드(.dashcols) 안에서도 걸려 오른쪽 패널만 14px 내려앉아 좌우 top 이 어긋났다. */
+#dash-stats{display:flex;flex-direction:column;gap:14px}
+.dashgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .statcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);box-shadow:var(--sh-1);padding:14px 16px}
 .sc-lab{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.01em}
 .sc-big{font-size:26px;font-weight:760;letter-spacing:-.02em;margin:4px 0 2px;line-height:1.1}
@@ -816,7 +820,7 @@ html.pw-ok #auth-gate{display:none}
 .dp-more:hover{background:var(--accent-soft);border-color:var(--accent)}
 .dp-empty.ok{color:var(--st-ready);font-weight:600}
 /* B. 실시간 D-day 배너 */
-.dash-dday{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:linear-gradient(100deg,var(--accent),var(--accent-ink));color:#fff;border-radius:var(--r-2);padding:16px 20px;margin-bottom:16px;box-shadow:var(--sh-2)}
+.dash-dday{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:linear-gradient(100deg,var(--accent),var(--accent-ink));color:#fff;border-radius:var(--r-2);padding:16px 20px;box-shadow:var(--sh-2)}
 .dd-lab{font-size:12px;font-weight:600;opacity:.85;display:block}
 .dd-big{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .dd-big .hms{font-variant-numeric:tabular-nums;opacity:.95}
@@ -825,7 +829,7 @@ html.pw-ok #auth-gate{display:none}
 .dd-over{color:#FFD3D1;font-weight:700}
 .dd-sub{font-size:11.5px;opacity:.8}
 /* A. 액션 큐 */
-.actq{margin-bottom:16px}
+/* .actq 의 margin-bottom 제거 — #dash-stats gap 이 담당 */
 .actq-list{display:flex;flex-direction:column;gap:7px}
 .actq-item{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-1);padding:9px 12px;cursor:pointer;font-family:inherit;font-size:13.5px;color:var(--ink);font-weight:600}
 .actq-item:hover{border-color:var(--accent);background:var(--accent-soft-2)}
@@ -833,7 +837,7 @@ html.pw-ok #auth-gate{display:none}
 .actq-lab{flex:1;min-width:0}
 .actq-arw{flex:0 0 auto;color:var(--muted);font-weight:700}
 /* E. 파이프라인 */
-.dashpanel+.dashpanel,.dashcols+.dashpanel,.dashpanel+.dashcols,.dashcols+.dashcols,.dashgrid+.dashpanel{margin-top:14px}
+/* (형제 margin 제거 — #dash-stats 의 gap 이 대신한다. 그리드 자식에 margin 이 붙으면 정렬이 깨진다) */
 .pipebar{display:flex;height:16px;border-radius:999px;overflow:hidden;background:var(--line-2);gap:2px}
 .pipeseg{height:100%;min-width:3px;transition:width .3s var(--ease)}
 .pipelegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;color:var(--ink-2)}
@@ -860,7 +864,7 @@ html.pw-ok #auth-gate{display:none}
 .rlib-doc{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:var(--r-1);background:var(--surface-2);border:1px solid var(--line);color:var(--accent)}
 .rlib-n{display:block;font-size:11px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* D. 디데이 요약 */
-.dcsum{margin-top:14px}
+/* .dcsum 의 margin-top 제거 — #dash-stats gap 이 담당 */
 .dcsum-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
 .dcsum-stat{font-size:13px;color:var(--ink-2)} .dcsum-stat b{font-size:20px;font-weight:760;color:var(--ink);margin-right:3px}
 .dcsum .dp-more{width:auto;margin:0 0 0 auto;padding:6px 12px;border-style:solid;text-decoration:none}
