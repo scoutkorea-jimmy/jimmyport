@@ -19,6 +19,7 @@ const TYPES_KEY = "jpm:types";
 // 회원 유형별 접근 가능한 탭. 관리자가 유형을 추가/편집(jpm:types)할 수 있다.
 const ALL_TABS = ["dashboard", "news", "calendar", "list", "timetable", "staff", "contacts", "orginfo", "protocol"];
 const CONTENT_TABS = ["dashboard", "news", "calendar", "list", "timetable"];
+const MANAGE_TABS = ["staff", "contacts", "orginfo", "protocol"];   // 이 중 하나라도 있으면 홍보부(staff)
 const DEFAULT_TYPES = { "일반": CONTENT_TABS.slice(), "홍보부": ALL_TABS.slice() };
 async function readTypes(env) {
   const raw = await env.SCOUT_KV.get(TYPES_KEY);
@@ -107,10 +108,11 @@ export async function onRequestPost({ request, env }) {
     if (rec.status !== "approved") return json({ ok: false, error: "pending_approval" }, 403);
 
     try { await env.SCOUT_KV.delete(rlKey); } catch {}
-    // name·master 를 세션에 서명해 넣는다 — 이후 API 들이 KV 재조회 없이 표시명/권한을 신뢰할 수 있다
-    const s = await issueMemberSession(env, { username, name: rec.name, master: rec.master === true });
     const types = await readTypes(env);
     const tabs = rec.master === true ? ALL_TABS.slice() : (types[rec.type] || types[Object.keys(types)[0]] || CONTENT_TABS);
+    const staff = rec.master === true || tabs.some((t) => MANAGE_TABS.indexOf(t) >= 0);
+    // name·master·staff 를 세션에 서명해 넣는다 — 이후 API 들이 KV 재조회 없이 표시명/권한을 신뢰할 수 있다
+    const s = await issueMemberSession(env, { username, name: rec.name, master: rec.master === true, staff });
     return json({ ok: true, token: s.token, exp: s.exp, name: rec.name, username, type: rec.type || "일반", tabs, master: rec.master === true });
   }
 

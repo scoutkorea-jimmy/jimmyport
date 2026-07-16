@@ -138,11 +138,14 @@ const SEED = function (role, type, tabs) {
   await p.click('[data-bn="__more"]'); await new Promise((r) => setTimeout(r, 250));
   const perm = await p.evaluate(() => {
     const inSheet = [...document.querySelectorAll('#navsheet [data-sheet]')].map((x) => x.getAttribute('data-sheet'));
-    return { inSheet, staff: inSheet.includes('staff'), contacts: inSheet.includes('contacts'), sitemap: inSheet.includes('sitemap') };
+    return { inSheet, staff: inSheet.includes('staff'), contacts: inSheet.includes('contacts'), sitemap: inSheet.includes('sitemap'), tips: inSheet.includes('tips') };
   });
   chk('일반 회원 시트에 관리 탭 없음', !perm.staff && !perm.contacts && !perm.sitemap, '보이는 탭: ' + perm.inSheet.join(','));
+  chk('일반 회원은 소식 제보 탭 없음(홍보부 전용)', !perm.tips, '보이는 탭: ' + perm.inSheet.join(','));
   const blocked = await p.evaluate(() => { setView('staff'); return curViewMode; });
   chk('직접 호출해도 관리 탭 차단', blocked === 'dashboard', blocked);
+  const blockedTip = await p.evaluate(() => { setView('tips'); return curViewMode; });
+  chk('일반 회원 tips 직접 호출 차단', blockedTip === 'dashboard', blockedTip);
   await p.close();
 
   console.log('\n[콘솔]');

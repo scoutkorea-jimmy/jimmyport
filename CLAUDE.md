@@ -1108,6 +1108,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **미해결(기록)**: 공유 배열 lost-update(timetable 등 12키 통짜 덮어쓰기 — 동시 편집 유실 가능, 아키텍처 과제) · jp-tips GET 이 일반 회원에게도 제보자 전화 노출(승인 회원 한정이라 중위험, 제품 결정 필요) · session.js 분리(부채 ②)는 다음 회차.
 - 검증: **회귀 42/42**(목록형·문서명 어서션 2개 신설) · nav 20/20 · jebo 29/29 · `node --check` 전 파일 · `_lib` ESM 임포트. ⚠️ 구세션(이름 미서명)은 표시명이 아이디로 폴백 — 재로그인 시 정상.
 
+### 16.60 v0.9.181 — 소식 제보(jp-tips)를 홍보부 전용으로 (§16.59 미해결 마감)
+- 사용자: "홍보부 유형만 보도록 조치해놔." §16.59에서 중위험으로 남겼던 제보자 전화·실명 노출(일반 회원도 GET 가능)을 마감.
+- **staff 판정을 세션에 서명**: `jp-members` 로그인이 `tabs` 에 관리 탭(staff/contacts/orginfo/protocol) 하나라도 있으면(=홍보부 유형) 또는 master 면 `staff:true` 를 세션 payload 에 서명. `_lib.memberOrAdmin` 이 `staff` 반환(TOTP 관리자·마스터는 항상 true) — KV 재조회 없이 판정.
+- **서버 게이트**(`jp-tips.js`): GET·PATCH 를 `who.staff` 요구(기존 `memberOrAdmin` = 모든 회원 → 일반 회원 통과였음). 비-staff 는 403. DELETE 는 staff 또는 본인 제보. POST(제보 등록)는 공개/회원 그대로(제보 창구라 열림).
+- **프런트**: `Auth.canSee('tips')` 를 sitemap 과 함께 `isStaff()` 게이트(기존 무조건 true). `loadTips` 는 staff 일 때만 호출, 대시보드 액션 큐 '미처리 소식 제보'도 staff 게이트. setView 는 이미 canSee 로 막혀 일반 회원은 tips 뷰 도달 불가.
+- 검증: 회귀 nav 20→22(일반 회원 소식 제보 탭 없음·직접 호출 차단 신설) · planning 42/42 · jebo 29/29 · `node --check`·ESM. ⚠️ 구세션(staff 미서명)은 재로그인해야 홍보부 탭 노출 — 서버는 세션 staff 없으면 403이라 데이터는 안전.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-16 — krjam-planning 라이브 KV 일정표 종류 색 정정 (v0.9.171 STEP3)

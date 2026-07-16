@@ -43,7 +43,8 @@ function cleanScheduled(s) {
 
 export async function onRequestGet({ request, env }) {
   const who = await memberOrAdmin(request, env);
-  if (!who) return json({ ok: false, error: "unauthorized" }, 401);
+  // 제보 레코드엔 제보자 실명·전화·마스킹 IP 가 들어 있다 → 홍보부(staff)/관리자만 열람
+  if (!who || !who.staff) return json({ ok: false, error: "forbidden" }, 403);
   const tips = []; let cursor;
   do {
     const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });
@@ -94,7 +95,8 @@ export async function onRequestPost({ request, env }) {
 
 export async function onRequestPatch({ request, env }) {
   const who = await memberOrAdmin(request, env);
-  if (!who) return json({ ok: false, error: "unauthorized" }, 401);
+  // 검토(채택/반려)·담당 배정·일정 링크는 홍보부 업무 → staff 전용
+  if (!who || !who.staff) return json({ ok: false, error: "forbidden" }, 403);
   let body = {}; try { body = await request.json(); } catch {}
   const rec = await readTip(env, String(body.id || ""));
   if (!rec) return json({ ok: false, error: "not_found" }, 404);
@@ -116,7 +118,8 @@ export async function onRequestDelete({ request, env }) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ ok: false, error: "missing_id" }, 400);
   const rec = await readTip(env, id);
-  if (rec && !who.admin && rec.reporterUser !== who.username) return json({ ok: false, error: "forbidden" }, 403);
+  // 홍보부(모더레이션) 또는 본인 제보만 삭제
+  if (rec && !who.staff && rec.reporterUser !== who.username) return json({ ok: false, error: "forbidden" }, 403);
   await env.SCOUT_KV.delete(KEY(id));
   await appendLog(env, { ts: new Date().toISOString(), action: "jpt.delete", count: 0, ip: clientIp(request) });
   return json({ ok: true });

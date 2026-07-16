@@ -177,17 +177,18 @@ export async function verifyMemberSession(env, token) {
 }
 
 // Resolve the caller's identity from the Bearer token: an admin (TOTP) session
-// wins, else a member session. Member payload may carry {name, master} (signed at login):
+// wins, else a member session. Member payload may carry {name, master, staff} (signed at login):
 // master members get admin:true — full board admin without the shared TOTP code.
-// Returns { admin:true } | { username, name, admin, master } | null.
+// staff = 홍보부(관리 탭 보유) 또는 마스터 — 제보자 개인정보 등 홍보부 전용 데이터 접근 판정용.
+// Returns { admin:true, staff:true } | { username, name, admin, master, staff } | null.
 export async function memberOrAdmin(request, env) {
   const auth = request.headers.get("Authorization") || "";
   const m = auth.match(/^Bearer\s+(.+)$/i);
   if (!m) return null;
   const tok = m[1];
-  if (await verifySession(env, tok)) return { admin: true };
+  if (await verifySession(env, tok)) return { admin: true, staff: true };
   const p = await verifyMemberSession(env, tok);
-  return p ? { username: p.username, name: p.name || "", admin: !!p.master, master: !!p.master } : null;
+  return p ? { username: p.username, name: p.name || "", admin: !!p.master, master: !!p.master, staff: !!(p.master || p.staff) } : null;
 }
 
 // 공개 업로드 엔드포인트용 IP 레이트리밋 (KV TTL 카운터, 40건/10분)

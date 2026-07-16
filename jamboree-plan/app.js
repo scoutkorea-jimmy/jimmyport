@@ -2138,7 +2138,8 @@ Auth.authed=function(){ return !!(this.token && this.exp>Date.now()); };
 // 마스터 회원 = 관리자와 동일 권한(서버도 세션의 master 서명을 검증) — 개인 계정이라 TOTP 코드 없이 관리 가능
 Auth.isAdmin=function(){ return this.role==='admin' || !!this.master; };
 // 유형(type)이 가진 탭만. tabs 비어있으면(구버전 세션) 콘텐츠 탭만 폴백 → 잠금 방지.
-Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news'||v==='tips') return true; if(v==='sitemap') return this.isStaff(); return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
+// tips(소식 제보)는 제보자 개인정보가 담겨 홍보부 전용 — sitemap 과 함께 isStaff 게이트
+Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news') return true; if(v==='sitemap'||v==='tips') return this.isStaff(); return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
 Auth.isStaff=function(){ var me=this; return this.isAdmin() || ((this.tabs&&this.tabs.length) ? MANAGE_TABS.some(function(t){ return me.tabs.indexOf(t)>=0; }) : false); };
 function authHeader(){ return Auth.token ? {'Authorization':'Bearer '+Auth.token} : {}; }
 function authJsonHeaders(){ var h={'content-type':'application/json'}; if(Auth.token) h['Authorization']='Bearer '+Auth.token; return h; }
@@ -2787,7 +2788,7 @@ function renderDashboard(){
   loadWeather();
   var box=document.getElementById('dash-stats'); if(!box) return;
   // 대시보드 위젯용 지연 로드(탭 방문 전이라도 채움)
-  if(Auth.authed()){ if(!tipLoaded) loadTips(); if(!newsLoaded) loadNews(); if(!libLoaded) loadLibrary(); }
+  if(Auth.authed()){ if(Auth.isStaff() && !tipLoaded) loadTips(); if(!newsLoaded) loadNews(); if(!libLoaded) loadLibrary(); }
   if(Auth.isAdmin() && dashMembersPending===null) loadDashMembers();
   var today=todayISO(), isJamboree=(today>='2026-08-02' && today<='2026-08-09');
   var total=0, planned=0, draft=0, ready=0, meetings=0, upcoming=[];
@@ -2851,7 +2852,7 @@ function renderDashboard(){
   var acts=[];
   if(staff && approvalReq) acts.push({n:approvalReq, lab:'검수·승인 대기 콘텐츠', go:'list', c:'#C0492F'});
   if(overdue) acts.push({n:overdue, lab:'마감 지난 미게시 콘텐츠', go:'list', c:'var(--danger)'});
-  if(tipsNew) acts.push({n:tipsNew, lab:'미처리 소식 제보'+(tipsUnassigned?(' (미배정 '+tipsUnassigned+')'):''), go:'tips', c:'var(--st-planned)'});
+  if(staff && tipsNew) acts.push({n:tipsNew, lab:'미처리 소식 제보'+(tipsUnassigned?(' (미배정 '+tipsUnassigned+')'):''), go:'tips', c:'var(--st-planned)'});
   if(staff && newsComments) acts.push({n:newsComments, lab:'기사 검수 의견', go:'news', c:'var(--c-intl)'});
   if(admin && dashMembersPending) acts.push({n:dashMembersPending, lab:'회원가입 승인 대기', go:'members', c:'var(--accent)'});
   html+='<div class="dashpanel actq"><div class="dp-h">지금 처리할 일</div>';
