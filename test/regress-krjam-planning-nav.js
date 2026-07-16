@@ -39,7 +39,7 @@ const SEED = function (role, type, tabs) {
   const errors = [];
 
   // ── PC 사이드바 ──
-  console.log('\n[PC 1440 — 좌측 사이드바]');
+  console.log('\n[PC 1440 — 상단 가로 메뉴]');
   let p = await b.newPage(); await p.setViewport({ width: 1440, height: 1000 });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -52,26 +52,25 @@ const SEED = function (role, type, tabs) {
     const hdr = document.querySelector('header.top').getBoundingClientRect();
     return { navL: Math.round(nav.left), navW: Math.round(nav.width), navTop: Math.round(nav.top),
       hdrBot: Math.round(hdr.bottom), secTop: Math.round(sec.top),
-      secL: Math.round(sec.left), sticky: getComputedStyle(document.querySelector('.tabbar')).position,
+      secL: Math.round(sec.left),
       dir: getComputedStyle(document.querySelector('.tabbar')).flexDirection,
       botnav: getComputedStyle(document.getElementById('botnav')).display,
       sw: document.documentElement.scrollWidth, iw: window.innerWidth };
   });
-  chk('탭바가 좌측 세로 사이드바', pc.dir === 'column' && pc.navW < 260, pc.navW + 'px · ' + pc.dir);
-  chk('사이드바가 헤더 아래에 (위로 안 올라감)', pc.navTop > pc.hdrBot - 2, '헤더끝 ' + pc.hdrBot + ' / 나브 ' + pc.navTop);
-  chk('사이드바-본문 세로 시작 일치', Math.abs(pc.navTop - pc.secTop) < 4, '나브 ' + pc.navTop + ' / 본문 ' + pc.secTop);
-  chk('본문이 사이드바 오른쪽에', pc.secL > pc.navL + pc.navW - 5, '나브 ' + pc.navL + '+' + pc.navW + ' / 본문 ' + pc.secL);
-  chk('사이드바 sticky', pc.sticky === 'sticky', pc.sticky);
+  chk('메뉴가 상단 가로 (사이드바 아님)', pc.dir === 'row' && pc.navW > 600, pc.navW + 'px · ' + pc.dir);
+  chk('메뉴가 헤더 아래에', pc.navTop > pc.hdrBot - 2, '헤더끝 ' + pc.hdrBot + ' / 나브 ' + pc.navTop);
+  chk('본문이 메뉴 아래에 (좌우 분할 아님)', pc.secTop > pc.navTop, '나브 ' + pc.navTop + ' / 본문 ' + pc.secTop);
+  chk('본문이 전폭 사용', pc.secL < 200, '본문 left=' + pc.secL);
   chk('하단 탭은 PC 에서 숨김', pc.botnav === 'none');
   chk('PC 가로 넘침 없음', pc.sw <= pc.iw, 'scrollW=' + pc.sw);
-  // PC 에서 12탭 전부 이동되는가
+  // 상단 메뉴로 12탭 전부 이동되는가
   let pcOk = 0;
   for (const v of ALL) {
     await p.evaluate((x) => document.querySelector('.vtab[data-v="' + x + '"]').click(), v);
     await new Promise((r) => setTimeout(r, 160));
     const cur = await p.evaluate(() => curViewMode); if (cur === v) pcOk++;
   }
-  chk('PC 사이드바로 12탭 전부 이동', pcOk === 12, pcOk + '/12');
+  chk('PC 상단 메뉴로 12탭 전부 이동', pcOk === 12, pcOk + '/12');
   await p.evaluate(() => document.querySelector('.vtab[data-v="dashboard"]').click());
   await new Promise((r) => setTimeout(r, 300));
   await p.screenshot({ path: '/tmp/nav-pc.png' });

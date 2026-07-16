@@ -44,28 +44,8 @@ h1{font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:-.03em;line-heig
  *   화면 380px 을 먹어 정작 내용이 안 보였다.
  * 항목의 순서·이름·data-v 는 그대로 — 운영자가 외운 것은 위치가 아니라 이름이다. */
 .tabbar{display:flex;flex-wrap:wrap;gap:13px 22px;align-items:flex-start;margin-bottom:16px;padding-bottom:15px;border-bottom:1px solid var(--line)}
-@media(min-width:1024px){
-  .wrap{display:grid;grid-template-columns:214px minmax(0,1fr);column-gap:30px;align-items:start;max-width:1240px}
-  /* 상단 2줄은 전폭. 행을 명시해야 자동배치가 사이드바를 헤더 위로 올리지 않는다. */
-  .wrap > .syncbar{grid-column:1/-1;grid-row:1}
-  .wrap > header.top{grid-column:1/-1;grid-row:2}
-  /* 사이드바는 본문 전체 높이를 덮어야 sticky 가 끝까지 따라온다.
-     `3 / -1` 은 명시적 행이 없으면 해석되지 않으므로 넉넉히 span 한다(빈 행은 0 높이). */
-  .tabbar{grid-column:1;grid-row:3/span 99;position:sticky;top:70px;flex-direction:column;flex-wrap:nowrap;
-          gap:18px;margin:0;padding:0;border-bottom:0;align-self:start}
-  /* 본문·푸터는 오른쪽 열에 흐른다. 푸터를 전폭으로 두면 사이드바가 점유한 행 뒤로 밀려 빈 공간이 생긴다. */
-  .wrap > section,.wrap > .foot{grid-column:2}
-  /* 간격은 그리드(row-gap)가 담당한다. section 이 자기 margin-top:34px 을 들고 있으면
-     사이드바(row 3 시작)와 본문이 34px 어긋난다 — 대시보드 패널이 14px 어긋났던 것과 같은 원인. */
-  .wrap{row-gap:34px}
-  .wrap > section{margin-top:0}
-  .wrap > .foot{margin-top:8px}
-  .tg-tabs{flex-direction:column;flex-wrap:nowrap;gap:3px;align-items:stretch}
-  .vtab{justify-content:flex-start;width:100%;border-color:transparent;background:transparent;box-shadow:none}
-  .vtab:hover{background:var(--surface);border-color:var(--line)}
-  .vtab.active{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink);box-shadow:none;font-weight:800}
-  .vtab.active .ic{color:var(--accent)}
-}
+/* PC 는 기존대로 상단 가로 메뉴. 좌측 사이드바(2단 구조)를 시도했다가 되돌렸다 —
+   화면을 좌우로 가르는 것보다, 보던 자리에 그대로 있는 편이 이 보드에는 낫다는 사용자 판단. */
 .tabgroup{display:flex;flex-direction:column;gap:6px}
 .tg-label{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);padding-left:3px;text-transform:uppercase}
 .tg-tabs{display:flex;flex-wrap:wrap;gap:7px}
