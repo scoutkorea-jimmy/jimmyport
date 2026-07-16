@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>제16회 한국잼버리 소식 제보 / Share Jamboree News</title>
 <link rel="icon" type="image/png" href="jamboree/assets/logo.png">
+<meta name="theme-color" content="#F3F4F1">
 <meta name="description" content="제16회 한국잼버리의 특별한 소식·사연을 누구나 미리 제보하세요. / Share special news & stories about the 16th Korea National Jamboree — even before it begins.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="제16회 한국잼버리">
@@ -17,153 +18,283 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 <!-- 토큰은 보드와 같은 원본을 쓴다 — 두 화면은 한 사이트다. 여기에 :root 를 복사해 두면 또 갈라진다. -->
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.172">
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.173">
 <style>
+/* 제보 페이지 — 모바일 우선.
+   구조 원칙
+   1) 사람은 "이야기를 하러" 왔지 서류를 쓰러 온 게 아니다 → 소식(내용·사진)이 맨 위.
+   2) 필수만 펼치고 선택은 접는다 → 첫 화면에서 할 일이 3개로 보인다.
+   3) 주요 동작은 하단 고정 — 폼이 길어도 항상 손가락 근처에 있다.
+   4) 오류는 해당 필드 옆에 — 아래 한 줄로 몰면 어디가 틀렸는지 못 찾는다.
+   데스크톱은 같은 한 칸을 넓게 쓰되 여백만 키운다(별도 레이아웃을 만들지 않는다). */
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-height:1.55;-webkit-text-size-adjust:100%}
-.wrap{max-width:560px;margin:0 auto;padding:0 16px 48px}
-/* 언어 토글 (상단, 크게) */
-.langbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;justify-content:center;padding:12px 0;background:linear-gradient(var(--bg) 70%,transparent)}
-.langbtn{flex:1;max-width:200px;font:inherit;font-size:17px;font-weight:800;padding:12px 0;border:2px solid var(--accent);border-radius:var(--pill);background:var(--surface);color:var(--accent);cursor:pointer;transition:var(--ease)}
-.langbtn.on{background:var(--accent);color:#fff;box-shadow:var(--sh-1)}
-.top{text-align:center;padding:14px 0 18px}
-.top img{width:72px;height:72px;border-radius:50%;background:#fff;box-shadow:var(--sh-1);padding:4px;border:1px solid var(--line-2)}
-.eyebrow{font-size:12px;font-weight:800;letter-spacing:.02em;color:var(--accent);margin:14px 0 4px}
-h1{font-size:24px;font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
-.lead{font-size:14px;color:var(--muted);margin:0;line-height:1.6}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);box-shadow:var(--sh-1);padding:20px 18px;margin-top:18px}
-label.fl{display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin:16px 0 7px}
-label.fl:first-child{margin-top:0}
-label.fl .req{color:var(--danger);margin-left:3px}
-label.fl .opt{font-weight:500;color:var(--faint);margin-left:3px}
-.in,.ta,.sel{width:100%;font:inherit;font-size:15px;padding:12px 13px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
-.ta{resize:vertical;min-height:96px}
-.whenrow{display:flex;align-items:center;gap:7px}
-.whenrow #f-date{flex:1 1 auto;min-width:0}
-.whenrow .tnum{flex:0 0 62px;text-align:center;padding:12px 6px}
-.whensep{font-size:15px;font-weight:700;color:var(--faint);flex:0 0 auto}
-.in:focus,.ta:focus,.sel:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.hint{font-size:12px;color:var(--faint);margin:6px 0 0}
-.slots{display:flex;flex-wrap:wrap;gap:9px;margin-top:4px}
-.slot{position:relative;width:84px;height:84px;border-radius:var(--r-1);overflow:hidden;border:1px solid var(--line);background:var(--line-2)}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-height:1.55;
+     -webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased}
+
+/* ── 헤더 ── 이전에는 언어 토글(78px 바)+엠블럼+제목이 333px 를 먹고 폼이 화면 밖에 있었다.
+   토글은 헤더 안 세그먼트로 접고, 엠블럼은 제목과 한 줄로 세운다. */
+.hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+     padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));
+     background:rgba(243,244,241,.9);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.hdr img{width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid var(--line-2);flex:0 0 auto}
+.hdr .hn{font-size:13px;font-weight:700;color:var(--accent-ink);line-height:1.25;min-width:0}
+.hdr .sp{flex:1}
+.seg{display:inline-flex;background:var(--surface-3);border:1px solid var(--line);border-radius:var(--pill);padding:2px;flex:0 0 auto}
+.seg button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 12px;border:0;border-radius:var(--pill);
+            background:none;color:var(--muted);cursor:pointer;min-height:32px;transition:var(--ease)}
+.seg button.on{background:var(--accent);color:#fff}
+
+.wrap{max-width:600px;margin:0 auto;padding:0 16px;padding-bottom:calc(var(--h-btn) + 46px + env(safe-area-inset-bottom))}
+
+/* ── 히어로 ── 짧게. 여기서 붙잡는 게 아니라 바로 쓰게 한다. */
+.hero{padding:26px 2px 20px}
+.hero h1{font-size:26px;line-height:1.28;font-weight:800;letter-spacing:-.03em;margin:0 0 8px;text-wrap:balance}
+.hero p{font-size:15px;color:var(--ink-2);margin:0;text-wrap:pretty}
+.hero b{color:var(--accent-ink);font-weight:700}
+
+/* ── 섹션 ── 카드 하나 = 할 일 하나 */
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:18px 16px;margin-bottom:12px}
+.sec-h{display:flex;align-items:center;gap:8px;margin:0 0 14px}
+.sec-h h2{font-size:16px;font-weight:700;margin:0;letter-spacing:-.01em}
+.sec-h .need{font-size:11px;font-weight:800;color:var(--danger);background:var(--danger-bg);border-radius:var(--pill);padding:2px 8px}
+.sec-h .opt{font-size:11.5px;font-weight:700;color:var(--muted);background:var(--surface-3);border-radius:var(--pill);padding:2px 8px}
+
+.f{margin-bottom:14px}
+.f:last-child{margin-bottom:0}
+.f > label{display:block;font-size:13.5px;font-weight:700;color:var(--ink-2);margin:0 0 7px}
+.f .sub{font-weight:500;color:var(--muted);margin-left:4px}
+.in,.ta,.sel{width:100%;font:inherit;font-size:16px;/* 16px 미만이면 iOS 가 확대한다 */
+  min-height:var(--h-field);padding:14px;border:1px solid var(--line);border-radius:var(--r-field);
+  background:var(--surface-2);color:var(--ink);transition:var(--ease)}
+.ta{resize:vertical;min-height:132px;line-height:1.6}
+.sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235E6A5F' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;background-size:18px;padding-right:40px}
+.in:focus,.ta:focus,.sel:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft)}
+.f.bad .in,.f.bad .ta{border-color:var(--danger);background:var(--danger-bg)}
+.fe{display:none;font-size:12.5px;font-weight:600;color:var(--danger);margin:6px 0 0}
+.f.bad .fe{display:block}
+.hint{font-size:12.5px;color:var(--muted);margin:7px 0 0;line-height:1.5}
+
+/* 날짜·시간 */
+.when{display:flex;align-items:center;gap:7px}
+.when #f-date{flex:1 1 auto;min-width:0}
+.when .tnum{flex:0 0 66px;text-align:center;padding:14px 4px}
+.when .sep{font-size:15px;font-weight:700;color:var(--faint)}
+
+/* ── 사진 ── 손가락으로 누르는 것이라 크게 */
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.slot{position:relative;aspect-ratio:1;border-radius:var(--r-field);overflow:hidden;border:1px solid var(--line);background:var(--surface-3)}
 .slot img{width:100%;height:100%;object-fit:cover;display:block}
-.slot .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;cursor:pointer;line-height:22px;padding:0}
-.slot.add{display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);border-style:dashed;background:var(--surface);gap:3px;font-size:12px;font-weight:600;text-align:center}
+.slot .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border:0;border-radius:50%;
+         background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:26px;padding:0;cursor:pointer}
+.slot.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+          color:var(--accent);border:1.5px dashed var(--line);background:var(--surface-2);font-size:12px;font-weight:700}
+.slot.add:hover{border-color:var(--accent);background:var(--accent-soft-2)}
 .slot.add svg{width:22px;height:22px}
-.chks{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-2);display:flex;flex-direction:column;gap:12px}
-.chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:13px;color:var(--ink-2);line-height:1.5}
-.chk input{width:20px;height:20px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
+
+/* ── 선택 항목 접기 ── 첫 화면에서 할 일을 줄인다 */
+.more{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+      font:inherit;font-size:14px;font-weight:700;color:var(--ink-2);background:var(--surface);
+      border:1px solid var(--line);border-radius:var(--r-card);padding:0 16px;min-height:var(--tap);
+      cursor:pointer;margin-bottom:12px;transition:var(--ease)}
+.more:hover{border-color:var(--accent);color:var(--accent)}
+.more .cnt{font-size:12px;font-weight:600;color:var(--muted)}
+.more svg{width:18px;height:18px;transition:transform .18s var(--ease);flex:0 0 auto}
+.more[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* ── 동의 ── */
+.chk{display:flex;gap:11px;align-items:flex-start;cursor:pointer;font-size:13px;color:var(--ink-2);line-height:1.55;
+     padding:10px 0;min-height:var(--tap)}
+.chk+.chk{border-top:1px solid var(--line-2)}
+.chk input{width:22px;height:22px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
 .chk b{color:var(--ink);font-weight:700}
-.btn{display:block;width:100%;font:inherit;font-size:16px;font-weight:800;padding:15px;border:none;border-radius:var(--r-2);background:var(--accent);color:#fff;cursor:pointer;margin-top:18px;box-shadow:var(--sh-1);transition:var(--ease)}
+.sec.bad{border-color:var(--danger)}
+
+/* ── 하단 고정 CTA ── 폼이 길어도 항상 손가락 근처 */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:10px 16px;
+     padding-bottom:calc(10px + env(safe-area-inset-bottom));
+     background:rgba(243,244,241,.94);backdrop-filter:saturate(1.4) blur(10px);border-top:1px solid var(--line)}
+.bar-in{max-width:600px;margin:0 auto}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;font:inherit;font-size:16.5px;font-weight:800;
+     min-height:var(--h-btn);border:0;border-radius:var(--r-field);background:var(--accent);color:#fff;cursor:pointer;
+     transition:var(--ease);letter-spacing:-.01em}
 .btn:hover{background:var(--accent-ink)}
-.btn:disabled{opacity:.6;cursor:default}
-.err{color:var(--danger);font-size:13.5px;font-weight:600;margin:14px 0 0;text-align:center;min-height:18px}
-.foot{font-size:11.5px;color:var(--faint);line-height:1.6;margin:18px 4px 0;text-align:center}
-.done{text-align:center;padding:40px 20px}
-.done .big{font-size:54px;line-height:1}
-.done h2{font-size:21px;font-weight:800;margin:14px 0 8px}
-.done p{color:var(--muted);font-size:14px;margin:0 0 22px}
-.done .btn{max-width:240px;margin:0 auto;background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
-.busy{position:fixed;inset:0;background:rgba(243,244,241,.8);display:none;align-items:center;justify-content:center;z-index:10;font-weight:700;color:var(--accent-ink)}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.5;cursor:default;transform:none}
+.err{color:var(--danger);font-size:13px;font-weight:700;margin:0 0 8px;text-align:center;display:none}
+.err.show{display:block}
+
+.foot{font-size:11.5px;color:var(--muted);line-height:1.6;margin:6px 2px 0}
+
+/* ── 완료 ── */
+.done{text-align:center;padding:44px 20px}
+.done .big{font-size:52px;line-height:1}
+.done h2{font-size:22px;font-weight:800;margin:16px 0 8px;letter-spacing:-.02em}
+.done p{color:var(--ink-2);font-size:14.5px;margin:0 0 24px}
+.done .btn{max-width:260px;margin:0 auto;background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
+.done .btn:hover{background:var(--accent-soft)}
+
+.busy{position:fixed;inset:0;background:rgba(243,244,241,.86);display:none;align-items:center;justify-content:center;
+      z-index:40;font-weight:700;color:var(--accent-ink);font-size:15px}
 .busy.show{display:flex}
+
+/* 데스크톱 — 별도 레이아웃을 만들지 않는다. 같은 한 칸을 여유 있게 쓰고 CTA 만 흐름 안으로. */
+@media(min-width:720px){
+  .hero{padding:40px 2px 26px}
+  .hero h1{font-size:32px}
+  .sec{padding:22px 20px}
+  .wrap{padding-bottom:56px}
+  .bar{position:static;background:none;backdrop-filter:none;border-top:0;padding:14px 0 0}
+  .bar-in{max-width:none}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 </style>
 </head>
 <body>
 <div class="busy" id="busy"></div>
+
+<header class="hdr">
+  <img src="jamboree/assets/logo.png" alt="제16회 한국잼버리 엠블럼" width="30" height="30">
+  <span class="hn" id="t-org"></span>
+  <span class="sp"></span>
+  <div class="seg" role="group" aria-label="Language">
+    <button type="button" id="lang-ko" data-lang="ko">한국어</button>
+    <button type="button" id="lang-en" data-lang="en">EN</button>
+  </div>
+</header>
+
 <div class="wrap">
-  <div class="langbar">
-    <button type="button" class="langbtn" id="lang-ko" data-lang="ko">한국어</button>
-    <button type="button" class="langbtn" id="lang-en" data-lang="en">English</button>
-  </div>
-
-  <div class="top">
-    <img src="jamboree/assets/logo.png" alt="제16회 한국잼버리 엠블럼" width="72" height="72">
-    <p class="eyebrow" id="t-eyebrow"></p>
+  <div class="hero">
     <h1 id="t-title"></h1>
-    <p class="lead" id="t-lead"></p>
+    <p id="t-lead"></p>
   </div>
 
-  <form class="card" id="form" autocomplete="on">
-    <label class="fl" for="f-name"><span id="l-name"></span><span class="req">*</span></label>
-    <input class="in" id="f-name" type="text" maxlength="40" autocomplete="name">
+  <form id="form" autocomplete="on" novalidate>
+    <!-- 1. 소식 — 사람이 하러 온 일 -->
+    <section class="sec" id="sec-news">
+      <div class="sec-h"><h2 id="t-h-news"></h2><span class="need" id="t-need"></span></div>
+      <div class="f" id="f-text-w">
+        <label for="f-text" id="l-text"></label>
+        <textarea class="ta" id="f-text" maxlength="2000"></textarea>
+        <p class="fe" id="e-text"></p>
+      </div>
+      <div class="f">
+        <label id="l-photo"></label>
+        <div class="slots" id="slots"></div>
+        <p class="hint" id="t-photohint"></p>
+      </div>
+    </section>
 
-    <label class="fl" for="f-phone"><span id="l-phone"></span><span class="req">*</span></label>
-    <input class="in" id="f-phone" type="tel" maxlength="40" autocomplete="tel" inputmode="tel">
+    <!-- 2. 연락처 — 홍보부가 확인하려면 필요 -->
+    <section class="sec" id="sec-me">
+      <div class="sec-h"><h2 id="t-h-me"></h2><span class="need" id="t-need2"></span></div>
+      <div class="f" id="f-name-w">
+        <label for="f-name" id="l-name"></label>
+        <input class="in" id="f-name" type="text" maxlength="40" autocomplete="name">
+        <p class="fe" id="e-name"></p>
+      </div>
+      <div class="f" id="f-phone-w">
+        <label for="f-phone" id="l-phone"></label>
+        <input class="in" id="f-phone" type="tel" maxlength="40" autocomplete="tel" inputmode="tel">
+        <p class="fe" id="e-phone"></p>
+      </div>
+    </section>
 
-    <label class="fl" for="f-org"><span id="l-org"></span><span class="opt" id="l-org-opt"></span></label>
-    <input class="in" id="f-org" type="text" maxlength="60">
+    <!-- 3. 선택 — 접어 둔다 -->
+    <button type="button" class="more" id="more" aria-expanded="false" aria-controls="sec-opt">
+      <span id="t-more"></span>
+      <span class="cnt" id="t-more-sub"></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <section class="sec" id="sec-opt" hidden>
+      <div class="f">
+        <label for="f-org" id="l-org"></label>
+        <input class="in" id="f-org" type="text" maxlength="60">
+      </div>
+      <div class="f">
+        <label for="f-zone" id="l-zone"></label>
+        <select class="sel" id="f-zone"></select>
+      </div>
+      <div class="f">
+        <label for="f-date" id="l-when"></label>
+        <div class="when">
+          <input class="in" id="f-date" type="date" min="2026-06-15" max="2026-08-09">
+          <input class="in tnum" id="f-hh" type="number" min="0" max="23" inputmode="numeric" placeholder="00" aria-label="시">
+          <span class="sep">:</span>
+          <input class="in tnum" id="f-mm" type="number" min="0" max="59" step="5" inputmode="numeric" placeholder="00" aria-label="분">
+        </div>
+        <p class="hint" id="t-whenhint"></p>
+      </div>
+    </section>
 
-    <label class="fl" for="f-zone"><span id="l-zone"></span><span class="opt" id="l-zone-opt"></span></label>
-    <select class="sel" id="f-zone"></select>
-
-    <label class="fl" for="f-date"><span id="l-when"></span><span class="opt" id="l-when-opt"></span></label>
-    <div class="whenrow">
-      <input class="in" id="f-date" type="date" min="2026-06-15" max="2026-08-09">
-      <span class="whensep" id="l-whenat"></span>
-      <input class="in tnum" id="f-hh" type="number" min="0" max="23" inputmode="numeric" placeholder="00">
-      <span class="whensep">:</span>
-      <input class="in tnum" id="f-mm" type="number" min="0" max="59" step="5" inputmode="numeric" placeholder="00">
-    </div>
-    <p class="hint" id="t-whenhint"></p>
-
-    <label class="fl" for="f-text"><span id="l-text"></span></label>
-    <textarea class="ta" id="f-text" maxlength="2000"></textarea>
-
-    <label class="fl"><span id="l-photo"></span> <span class="opt" id="l-photo-sub"></span></label>
-    <div class="slots" id="slots"></div>
-    <p class="hint" id="t-photohint"></p>
-
-    <div class="chks">
+    <!-- 4. 동의 -->
+    <section class="sec" id="sec-agree">
       <label class="chk"><input type="checkbox" id="c-consent"><span id="t-consent"></span></label>
       <label class="chk"><input type="checkbox" id="c-participant"><span id="t-participant"></span></label>
-    </div>
+    </section>
 
-    <button class="btn" id="submit" type="submit"></button>
-    <p class="err" id="err"></p>
+    <p class="foot" id="t-foot"></p>
+
+    <div class="bar">
+      <div class="bar-in">
+        <p class="err" id="err"></p>
+        <button class="btn" id="submit" type="submit"></button>
+      </div>
+    </div>
   </form>
 
-  <div class="card" id="done" style="display:none">
-    <div class="done">
-      <div class="big">🏕️</div>
-      <h2 id="t-donetitle"></h2>
-      <p id="t-donetext"></p>
-      <button class="btn" id="again" type="button"></button>
+  <div id="done" style="display:none">
+    <div class="sec">
+      <div class="done">
+        <div class="big">🏕️</div>
+        <h2 id="t-donetitle"></h2>
+        <p id="t-donetext"></p>
+        <button class="btn" id="again" type="button"></button>
+      </div>
     </div>
   </div>
-
-  <p class="foot" id="t-foot"></p>
 </div>
 
 <script>
 var T={
   ko:{
-    eyebrow:'제16회 한국잼버리 · 기획조정본부 홍보부', title:'잼버리 소식 제보',
-    lead:'잼버리를 준비하며 생긴 <b>특별한 소식이나 사연</b>, 자랑하고 싶은 이야기를 보내주세요.<br><b>잼버리 시작 전부터</b> 언제든 환영합니다 — 홍보부가 모아 카드뉴스·기사로 만듭니다.',
-    name:'이름', namePh:'제보자 이름', phone:'전화번호', phonePh:'예: 010-1234-5678', org:'소속 · 분단', opt:'(선택)', orgPh:'예: 평화숲분단 · 운영본부 · 일본 대표단',
-    zone:'관련 위치', zoneNone:'— 위치 선택 안 함 —', text:'소식 내용', textPh:'어떤 소식인가요? 잼버리 준비 이야기, 참가자 사연, 자랑거리 등 자유롭게 적어주세요.',
-    when:'희망 날짜 · 시간', whenAt:'', whenHint:'취재를 원하는 날짜·시각이 있으면 알려주세요. 홍보부가 확인 후 일정을 확정합니다. (24시간 기준)',
-    photo:'사진', photoSub:'(최대 10장)', photoAdd:'사진 추가', photoHint:'사진 또는 내용 중 하나는 입력해 주세요. 사진은 고화질로 전송됩니다.',
-    consent:'<b>[필수] 개인정보 수집·이용에 동의합니다.</b> 이름·소속·사진·접속 IP를 홍보 콘텐츠 제작·검토 목적으로 수집하며, 잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.',
+    org:'제16회 한국잼버리 · 홍보부', title:'잼버리 소식,<br>먼저 알려주세요',
+    lead:'준비하며 생긴 <b>특별한 소식이나 사연</b>을 보내주세요. 홍보부가 모아 카드뉴스·기사로 만듭니다. <b>잼버리 시작 전부터</b> 언제든 환영해요.',
+    hNews:'어떤 소식인가요?', hMe:'연락처', need:'필수',
+    text:'소식 내용', textPh:'잼버리 준비 이야기, 참가자 사연, 자랑거리 등 자유롭게 적어주세요.',
+    photo:'사진', photoSub:'최대 10장', photoAdd:'사진 추가',
+    photoHint:'사진 또는 내용 중 하나는 꼭 넣어주세요. 원본 화질에 가깝게 전송됩니다.',
+    name:'이름', namePh:'제보자 이름', phone:'전화번호', phonePh:'010-1234-5678',
+    more:'더 알려주기', moreSub:'소속 · 위치 · 희망 날짜',
+    org2:'소속 · 분단', orgPh:'예: 평화숲분단 · 운영본부 · 일본 대표단',
+    zone:'관련 위치', zoneNone:'선택 안 함', when:'취재 희망 날짜 · 시간',
+    whenHint:'원하는 날짜·시각이 있으면 알려주세요. 홍보부가 확인 후 확정합니다. (24시간 기준)',
+    consent:'<b>[필수] 개인정보 수집·이용에 동의합니다.</b> 이름·전화·소속·사진·접속 IP를 홍보 콘텐츠 제작·검토 목적으로 수집하며, 잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제합니다.',
     participant:'<b>[필수] 본인은 제16회 한국잼버리 참가자임을 확인합니다.</b>',
-    submit:'제보 보내기', busy:'전송 중…',
+    submit:'제보 보내기', busy:'보내는 중…',
     donetitle:'제보 감사합니다!', donetext:'홍보부가 확인 후 콘텐츠로 활용합니다.<br>소중한 잼버리 소식 고맙습니다.', again:'새 제보 작성',
-    foot:'제보하신 이름·소속·사진·접속 IP는 홍보 콘텐츠 제작·검토 목적으로 수집되며, 제16회 한국잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제됩니다. 타인의 초상이 포함된 사진은 동의를 받아 제보해 주세요.',
-    err:{empty:'사진 또는 내용을 입력해 주세요.', name_required:'이름을 입력해 주세요.', phone_required:'전화번호를 입력해 주세요.', consent_required:'개인정보 수집·이용 동의가 필요합니다.', participant_required:'잼버리 참가자 확인이 필요합니다.', too_many:'제보가 너무 많습니다. 잠시 후 다시 시도해 주세요.', blocked_keyword:'허용되지 않는 표현이 포함되어 있습니다.', network:'네트워크 오류입니다. 다시 시도해 주세요.', generic:'전송에 실패했습니다. 다시 시도해 주세요.'}
+    foot:'제보하신 이름·전화·소속·사진·접속 IP는 홍보 콘텐츠 제작·검토 목적으로 수집되며, 제16회 한국잼버리 종료 후 3개월(~2026-11-09)까지 보관 후 삭제됩니다. 타인의 초상이 포함된 사진은 동의를 받아 제보해 주세요.',
+    err:{empty:'사진 또는 내용을 넣어주세요.', name_required:'이름을 입력해 주세요.', phone_required:'전화번호를 입력해 주세요.', consent_required:'개인정보 수집·이용 동의가 필요합니다.', participant_required:'잼버리 참가자 확인이 필요합니다.', too_many:'제보가 너무 많습니다. 잠시 후 다시 시도해 주세요.', blocked_keyword:'허용되지 않는 표현이 포함되어 있습니다.', network:'네트워크 오류입니다. 다시 시도해 주세요.', generic:'전송에 실패했습니다. 다시 시도해 주세요.'}
   },
   en:{
-    eyebrow:'16th Korea National Jamboree · Media Team', title:'Share Jamboree News',
-    lead:'Share <b>special news or stories</b> about your Jamboree journey — even <b>before the Jamboree begins</b>.<br>The Media Team collects them and turns them into cards & articles.',
-    name:'Name', namePh:'Your name', phone:'Phone', phonePh:'e.g. +82 10-1234-5678', org:'Unit · Division', opt:'(optional)', orgPh:'e.g. Pyeonghwasup Div. · Operations · Japan Contingent',
-    zone:'Related location', zoneNone:'— No location selected —', text:'Your news', textPh:'What is your news? Preparation stories, participant tales, things to share — anything is welcome.',
-    when:'Preferred date · time', whenAt:'', whenHint:'If you have a preferred date/time for coverage, let us know. The Media Team will confirm the schedule. (24-hour clock)',
-    photo:'Photos', photoSub:'(up to 10)', photoAdd:'Add photo', photoHint:'Please provide at least a photo or a message. Photos are sent in high quality.',
-    consent:'<b>[Required] I agree to the collection and use of my personal data.</b> Name, unit, photos and IP are collected for media content production/review and kept until 3 months after the Jamboree (until 2026-11-09), then deleted.',
+    org:'16th Korea National Jamboree · Media Team', title:'Share your<br>Jamboree news',
+    lead:'Send us the <b>special news or stories</b> from your Jamboree journey. The Media Team turns them into cards & articles. Welcome <b>even before the Jamboree begins</b>.',
+    hNews:'What is your news?', hMe:'Contact', need:'Required',
+    text:'Your news', textPh:'Preparation stories, participant tales, things to share — anything is welcome.',
+    photo:'Photos', photoSub:'up to 10', photoAdd:'Add photo',
+    photoHint:'Please include at least a photo or a message. Photos are sent in near-original quality.',
+    name:'Name', namePh:'Your name', phone:'Phone', phonePh:'+82 10-1234-5678',
+    more:'Tell us more', moreSub:'Unit · Location · Preferred date',
+    org2:'Unit · Division', orgPh:'e.g. Pyeonghwasup Div. · Operations · Japan Contingent',
+    zone:'Related location', zoneNone:'Not selected', when:'Preferred date · time',
+    whenHint:'If you have a preferred date/time for coverage, let us know. The Media Team will confirm. (24-hour clock)',
+    consent:'<b>[Required] I agree to the collection and use of my personal data.</b> Name, phone, unit, photos and IP are collected for media content production/review and kept until 3 months after the Jamboree (until 2026-11-09), then deleted.',
     participant:'<b>[Required] I confirm that I am a participant of the 16th Korea National Jamboree.</b>',
     submit:'Send report', busy:'Sending…',
     donetitle:'Thank you for your report!', donetext:'The Media Team will review and use it.<br>Thank you for sharing.', again:'New report',
-    foot:'Your name, unit, photos and IP are collected for media content production/review and kept until 3 months after the 16th Korea National Jamboree (until 2026-11-09), then deleted. For photos including other people, please obtain their consent before submitting.',
-    err:{empty:'Please enter a photo or a message.', name_required:'Please enter your name.', phone_required:'Please enter your phone number.', consent_required:'Consent to data collection is required.', participant_required:'Participant confirmation is required.', too_many:'Too many submissions. Please try again later.', blocked_keyword:'Your message contains words that are not allowed.', network:'Network error. Please try again.', generic:'Failed to send. Please try again.'}
+    foot:'Your name, phone, unit, photos and IP are collected for media content production/review and kept until 3 months after the 16th Korea National Jamboree (until 2026-11-09), then deleted. For photos including other people, please obtain their consent before submitting.',
+    err:{empty:'Please add a photo or a message.', name_required:'Please enter your name.', phone_required:'Please enter your phone number.', consent_required:'Consent to data collection is required.', participant_required:'Participant confirmation is required.', too_many:'Too many submissions. Please try again later.', blocked_keyword:'Your message contains words that are not allowed.', network:'Network error. Please try again.', generic:'Failed to send. Please try again.'}
   }
 };
 var ZONES=[
@@ -176,41 +307,59 @@ var ZONES=[
 ];
 var MAXP=10;
 var LANG='ko'; try{ LANG=(localStorage.getItem('jebo:lang')==='en')?'en':'ko'; }catch(e){}
-var errKey=null;
-function setText(id,v){ var el=document.getElementById(id); if(el) el.innerHTML=v; }
+var $=function(id){ return document.getElementById(id); };
+function setText(id,v){ var el=$(id); if(el) el.innerHTML=v; }
+
 function applyLang(){
   var t=T[LANG]; document.documentElement.lang=LANG;
-  document.getElementById('lang-ko').classList.toggle('on',LANG==='ko');
-  document.getElementById('lang-en').classList.toggle('on',LANG==='en');
-  setText('t-eyebrow',t.eyebrow); setText('t-title',t.title); setText('t-lead',t.lead);
-  setText('l-name',t.name); document.getElementById('f-name').placeholder=t.namePh;
-  setText('l-phone',t.phone); document.getElementById('f-phone').placeholder=t.phonePh;
-  setText('l-org',t.org); setText('l-org-opt',t.opt); document.getElementById('f-org').placeholder=t.orgPh;
-  setText('l-zone',t.zone); setText('l-zone-opt',t.opt); document.getElementById('f-text').placeholder=t.textPh;
-  setText('l-when',t.when); setText('l-when-opt',t.opt); setText('l-whenat',t.whenAt); setText('t-whenhint',t.whenHint);
-  setText('l-text',t.text); setText('l-photo',t.photo); setText('l-photo-sub',t.photoSub);
-  setText('t-photohint',t.photoHint); setText('t-consent',t.consent); setText('t-participant',t.participant);
-  setText('submit',t.submit); setText('t-donetitle',t.donetitle); setText('t-donetext',t.donetext);
-  setText('again',t.again); setText('t-foot',t.foot);
-  document.getElementById('busy').textContent=t.busy;
-  // zones (선택값 유지)
-  var zs=document.getElementById('f-zone'), cur=zs.value;
-  var li=(LANG==='en')?2:1;
-  zs.innerHTML='<option value="">'+t.zoneNone+'</option>'+ZONES.map(function(z){return '<option value="'+z[0]+'">'+z[li]+'</option>';}).join('');
+  $('lang-ko').classList.toggle('on',LANG==='ko');
+  $('lang-en').classList.toggle('on',LANG==='en');
+  setText('t-org',t.org); setText('t-title',t.title); setText('t-lead',t.lead);
+  setText('t-h-news',t.hNews); setText('t-h-me',t.hMe); setText('t-need',t.need); setText('t-need2',t.need);
+  setText('l-text',t.text); $('f-text').placeholder=t.textPh;
+  setText('l-photo',t.photo+' <span class="sub">'+t.photoSub+'</span>'); setText('t-photohint',t.photoHint);
+  setText('l-name',t.name); $('f-name').placeholder=t.namePh;
+  setText('l-phone',t.phone); $('f-phone').placeholder=t.phonePh;
+  setText('t-more',t.more); setText('t-more-sub',t.moreSub);
+  setText('l-org',t.org2); $('f-org').placeholder=t.orgPh;
+  setText('l-zone',t.zone); setText('l-when',t.when); setText('t-whenhint',t.whenHint);
+  setText('t-consent',t.consent); setText('t-participant',t.participant);
+  setText('submit',t.submit); $('busy').textContent=t.busy;
+  setText('t-donetitle',t.donetitle); setText('t-donetext',t.donetext); setText('again',t.again);
+  setText('t-foot',t.foot);
+  var zs=$('f-zone'), cur=zs.value, li=(LANG==='en')?2:1;
+  zs.innerHTML='<option value="">'+t.zoneNone+'</option>'+ZONES.map(function(z){ return '<option value="'+z[0]+'">'+z[li]+'</option>'; }).join('');
   zs.value=cur;
   renderSlots();
-  if(errKey) setErr(errKey);
+  // 열려 있던 오류 문구도 새 언어로
+  document.querySelectorAll('.f.bad .fe').forEach(function(el){ var k=el.dataset.k; if(k) el.textContent=t.err[k]||t.err.generic; });
+  var e=$('err'); if(e.classList.contains('show')&&e.dataset.k) e.textContent=t.err[e.dataset.k]||t.err.generic;
 }
 function setLang(v){ LANG=(v==='en')?'en':'ko'; try{ localStorage.setItem('jebo:lang',LANG); }catch(e){} applyLang(); }
 
+/* ── 오류 표시 ── 필드 옆에 붙인다. 어느 필드인지 못 찾는 게 제일 나쁘다. */
+function clearErrs(){
+  document.querySelectorAll('.f.bad').forEach(function(f){ f.classList.remove('bad'); });
+  $('sec-agree').classList.remove('bad');
+  var e=$('err'); e.classList.remove('show'); e.textContent=''; delete e.dataset.k;
+}
+function fieldErr(wrapId, errId, key, focusId){
+  var w=$(wrapId), e=$(errId);
+  w.classList.add('bad'); e.dataset.k=key; e.textContent=T[LANG].err[key]||T[LANG].err.generic;
+  var f=$(focusId); if(f){ f.focus({preventScroll:true}); w.scrollIntoView({block:'center',behavior:'smooth'}); }
+}
+function barErr(key){
+  var e=$('err'); e.dataset.k=key; e.textContent=T[LANG].err[key]||T[LANG].err.generic; e.classList.add('show');
+}
+
 var images=[];
-var ADD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+var ADD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
 function renderSlots(){
-  var box=document.getElementById('slots');
-  var html=images.map(function(u,i){ return '<div class="slot"><img src="'+u+'" alt=""><button type="button" class="x" data-del="'+i+'" aria-label="x">×</button></div>'; }).join('');
+  var box=$('slots');
+  var html=images.map(function(u,i){ return '<div class="slot"><img src="'+u+'" alt=""><button type="button" class="x" data-del="'+i+'" aria-label="remove">×</button></div>'; }).join('');
   if(images.length<MAXP) html+='<label class="slot add">'+ADD_SVG+'<span>'+T[LANG].photoAdd+'</span><input type="file" accept="image/*" multiple id="file" hidden></label>';
   box.innerHTML=html;
-  var fi=document.getElementById('file'); if(fi) fi.onchange=function(){ handleFiles(this.files); };
+  var fi=$('file'); if(fi) fi.onchange=function(){ handleFiles(this.files); };
 }
 function downscale(file,max,q){
   return new Promise(function(res,rej){
@@ -229,44 +378,57 @@ function handleFiles(files){
     // 고화질(최장 2800px, q0.92) — 사실상 용량 걱정 없이 전송
     downscale(f,2800,0.92).then(uploadBlob).then(function(url){ if(url&&images.length<MAXP) images.push(url); next(); }).catch(function(){ next(); }); })();
 }
-function setBusy(on){ document.getElementById('busy').classList.toggle('show',on); document.getElementById('submit').disabled=on; }
-function setErr(key){ errKey=key||null; document.getElementById('err').textContent=key?(T[LANG].err[key]||T[LANG].err.generic):''; }
+function setBusy(on){ $('busy').classList.toggle('show',on); $('submit').disabled=on; }
 
-document.getElementById('lang-ko').onclick=function(){ setLang('ko'); };
-document.getElementById('lang-en').onclick=function(){ setLang('en'); };
-document.getElementById('slots').addEventListener('click',function(e){ var d=e.target.closest('[data-del]'); if(d){ images.splice(+d.getAttribute('data-del'),1); renderSlots(); } });
 /* 희망 시각 — 시/분 둘 다 유효할 때만 HH:MM (24시간 기준, 선택 항목) */
 function wishTime(){
-  var h=document.getElementById('f-hh').value, m=document.getElementById('f-mm').value;
+  var h=$('f-hh').value, m=$('f-mm').value;
   if(h===''||m==='') return '';
   h=parseInt(h,10); m=parseInt(m,10);
   if(!(h>=0&&h<=23)||!(m>=0&&m<=59)) return '';
   return ('0'+h).slice(-2)+':'+('0'+m).slice(-2);
 }
-document.getElementById('form').addEventListener('submit',function(e){
-  e.preventDefault(); setErr(null);
-  var name=document.getElementById('f-name').value.trim();
-  var phone=document.getElementById('f-phone').value.trim();
-  var text=document.getElementById('f-text').value.trim();
-  if(!name){ setErr('name_required'); document.getElementById('f-name').focus(); return; }
-  if(!phone){ setErr('phone_required'); document.getElementById('f-phone').focus(); return; }
-  if(!text && !images.length){ setErr('empty'); return; }
-  if(!document.getElementById('c-consent').checked){ setErr('consent_required'); return; }
-  if(!document.getElementById('c-participant').checked){ setErr('participant_required'); return; }
+
+$('lang-ko').onclick=function(){ setLang('ko'); };
+$('lang-en').onclick=function(){ setLang('en'); };
+$('slots').addEventListener('click',function(e){ var d=e.target.closest('[data-del]'); if(d){ images.splice(+d.getAttribute('data-del'),1); renderSlots(); } });
+$('more').onclick=function(){
+  var open=this.getAttribute('aria-expanded')==='true';
+  this.setAttribute('aria-expanded', open?'false':'true');
+  $('sec-opt').hidden=open;
+};
+// 고치는 즉시 오류 표시를 걷는다 — 다 채웠는데 빨간 채로 남아 있으면 불안하다
+['f-text','f-name','f-phone'].forEach(function(id){
+  $(id).addEventListener('input',function(){ var w=this.closest('.f'); if(w) w.classList.remove('bad'); });
+});
+['c-consent','c-participant'].forEach(function(id){
+  $(id).addEventListener('change',function(){ if($('c-consent').checked&&$('c-participant').checked) $('sec-agree').classList.remove('bad'); });
+});
+
+$('form').addEventListener('submit',function(e){
+  e.preventDefault(); clearErrs();
+  var text=$('f-text').value.trim(), name=$('f-name').value.trim(), phone=$('f-phone').value.trim();
+  // 화면에 보이는 순서대로 검사한다 — 순서가 다르면 "어디가 틀렸지" 하고 위아래를 헤맨다
+  if(!text && !images.length){ fieldErr('f-text-w','e-text','empty','f-text'); return; }
+  if(!name){ fieldErr('f-name-w','e-name','name_required','f-name'); return; }
+  if(!phone){ fieldErr('f-phone-w','e-phone','phone_required','f-phone'); return; }
+  if(!$('c-consent').checked){ $('sec-agree').classList.add('bad'); barErr('consent_required'); $('sec-agree').scrollIntoView({block:'center',behavior:'smooth'}); return; }
+  if(!$('c-participant').checked){ $('sec-agree').classList.add('bad'); barErr('participant_required'); $('sec-agree').scrollIntoView({block:'center',behavior:'smooth'}); return; }
   setBusy(true);
   fetch('/api/jp-tips',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
-    reporterName:name, phone:phone, org:document.getElementById('f-org').value.trim(), zone:document.getElementById('f-zone').value,
-    date:document.getElementById('f-date').value||'', time:wishTime(),
+    reporterName:name, phone:phone, org:$('f-org').value.trim(), zone:$('f-zone').value,
+    date:$('f-date').value||'', time:wishTime(),
     text:text, photos:images, consent:true, participant:true
   })}).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
     .then(function(res){ setBusy(false);
-      if(res.ok && res.j && res.j.ok){ document.getElementById('form').style.display='none'; document.getElementById('done').style.display=''; window.scrollTo(0,0); }
-      else { setErr((res.j&&res.j.error&&T[LANG].err[res.j.error])?res.j.error:'generic'); }
-    }).catch(function(){ setBusy(false); setErr('network'); });
+      if(res.ok && res.j && res.j.ok){ $('form').style.display='none'; $('done').style.display=''; window.scrollTo(0,0); }
+      else { barErr((res.j&&res.j.error&&T[LANG].err[res.j.error])?res.j.error:'generic'); }
+    }).catch(function(){ setBusy(false); barErr('network'); });
 });
-document.getElementById('again').onclick=function(){
-  images=[]; document.getElementById('form').reset(); renderSlots(); setErr(null);
-  document.getElementById('done').style.display='none'; document.getElementById('form').style.display=''; window.scrollTo(0,0);
+$('again').onclick=function(){
+  images=[]; $('form').reset(); renderSlots(); clearErrs();
+  $('more').setAttribute('aria-expanded','false'); $('sec-opt').hidden=true;
+  $('done').style.display='none'; $('form').style.display=''; window.scrollTo(0,0);
 };
 applyLang();
 </script>

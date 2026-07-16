@@ -60,6 +60,15 @@
   --font-sans:Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;   /* 자리가 맞아야 읽히는 값 — 시각 · D카운트 · 용량 */
 
+  /* ── 폼 · 컨트롤 ── 손가락 기준으로 잡은 값.
+     이 보드·제보의 주 사용 환경은 야영장의 스마트폰이다. 터치 타깃은 최소 48px,
+     입력·버튼은 그보다 크게 잡아 장갑 낀 손·흔들리는 상황에서도 눌리게 한다. */
+  --tap:48px;            /* 최소 터치 타깃 — 이보다 작은 조작 요소를 만들지 말 것 */
+  --h-field:54px;        /* 입력 높이 */
+  --h-btn:56px;          /* 주요 버튼 */
+  --r-field:12px;        /* 입력 모서리 */
+  --r-card:16px;         /* 카드 모서리 */
+
   /* ── 간격 · 모서리 · 그림자 ── */
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
   --r-1:8px; --r-2:12px; --r-3:16px; --pill:999px;
