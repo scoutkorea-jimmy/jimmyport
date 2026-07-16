@@ -16,16 +16,12 @@
 <meta property="og:url" content="https://scoutingapp.net/krjam-jebo">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
+<!-- 토큰은 보드와 같은 원본을 쓴다 — 두 화면은 한 사이트다. 여기에 :root 를 복사해 두면 또 갈라진다. -->
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.170">
 <style>
-:root{
-  --bg:#F3F4F1; --surface:#fff; --ink:#1B211D; --ink-2:#3E453F; --muted:#697066; --faint:#AAB0A8;
-  --line:#E4E7E1; --line-2:#EDEFEA; --accent:#2F5D4A; --accent-ink:#234636; --accent-soft:#E8F0EB;
-  --danger:#B5503C; --r-1:8px; --r-2:13px; --pill:999px; --sh-1:0 1px 3px rgba(22,32,26,.07);
-  --sh-2:0 8px 26px rgba(22,32,26,.12); --ease:.16s cubic-bezier(.4,0,.2,1);
-}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.55;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-height:1.55;-webkit-text-size-adjust:100%}
 .wrap{max-width:560px;margin:0 auto;padding:0 16px 48px}
 /* 언어 토글 (상단, 크게) */
 .langbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;justify-content:center;padding:12px 0;background:linear-gradient(var(--bg) 70%,transparent)}
