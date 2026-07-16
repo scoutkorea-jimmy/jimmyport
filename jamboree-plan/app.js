@@ -101,7 +101,8 @@ var JAM_DAYS=[
   ['2026-08-05','개영'],['2026-08-06',''],['2026-08-07',''],['2026-08-08',''],['2026-08-09','폐영']
 ];
 var TTCAT_PALETTE=['#C0492F','#2F5D4A','#6B4FA0','#0F8A8A','#B07A1E','#2E6FAE','#7A6A57','#A33A24','#3E7C59','#8E5BB5','#127C7C','#9A6310','#3D6FB0','#6E5E4C'];
-function defaultTtCats(){ return [['개·폐영식','#C0492F'],['프로그램','#2F5D4A'],['행사','#6B4FA0'],['홍보활동','#0F8A8A'],['식사','#B07A1E'],['회의','#2E6FAE'],['이동·기타','#7A6A57']]; }
+// 블록에 흰 글씨를 얹으므로 전부 대비 4.5 이상. 홍보활동(#0F8A8A 4.18)·식사(#B07A1E 3.72)가 미달이라 어둡게 조정.
+function defaultTtCats(){ return [['개·폐영식','#B03E24'],['프로그램','#2F5D4A'],['행사','#6B4FA0'],['홍보활동','#0B6E6E'],['식사','#8A5A0B'],['회의','#2E6FAE'],['이동·기타','#6B5C4A']]; }
 function ttCats(){ if(!state.ttcats) state.ttcats=defaultTtCats(); return state.ttcats; }
 function ttCatColor(c){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]===c) return L[i][1]; return '#7A6A57'; }
 function saveTtCats(){ debouncedPut('ttcatTimer', {ttcats: ttCats()}, '종류 저장됨'); }
@@ -627,7 +628,8 @@ function addContent(date){
   return date+'#extra#'+x.id;
 }
 var curFilter={kind:'all'};
-var STCOL={planned:'#9AA09A',draft:'#C8821C',ready:'#2F8F6B'};
+var STCOL={planned:'#4C554D',draft:'#8A5A0B',ready:'#1F6B4F'};   // 솔리드·점 — 흰 글씨 7.74/5.92/6.41 (이전 2.67/3.15/3.99 미달)
+var STCHIP={planned:['#EDEFEA','#4C554D'],draft:['#FBF0DC','#8A5A0B'],ready:['#E2F0E9','#1F6B4F']};   // [연배경, 잉크] — 배지용
 var STAGES=[['planned','기획'],['draft','작성중'],['ready','완료']];
 function matchFilter(d,s,e){
   var f=curFilter; if(!f||f.kind==='all') return true;
@@ -2404,7 +2406,8 @@ function deleteNews(id){
 
 /* ===== 현장 제보 인박스 ===== */
 var tipItems=[], tipLoaded=false, tipFilter='all', tipEdit=null;
-var TIP_STATUS={ 'new':['새 제보','var(--st-planned)'], 'used':['채택','var(--st-ready)'], 'rejected':['반려','var(--danger)'] };
+// [라벨, 연배경, 잉크] — 흰 글씨 솔리드였으나 대비 미달이라 연한 칩으로
+var TIP_STATUS={ 'new':['새 제보','var(--st-planned-bg)','var(--st-planned)'], 'used':['채택','var(--st-ready-bg)','var(--st-ready)'], 'rejected':['반려','#F9EBE7','var(--danger)'] };
 function loadTips(){
   fetch('/api/jp-tips',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
     .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); })
@@ -2453,7 +2456,7 @@ function renderTips(){
     return '<article class="tipcard s-'+esc(t.status)+'">'+
       (photos?('<div class="tip-photos n'+(t.photos||[]).length+'">'+photos+'</div>'):'')+
       '<div class="tip-main">'+
-        '<div class="tip-top"><span class="tip-badge" style="background:'+st[1]+'">'+st[0]+'</span>'+srcBadge+asgChip+scChip+'<span class="tip-time">'+esc(fmtNewsTime(t.createdAt))+'</span></div>'+
+        '<div class="tip-top"><span class="tip-badge" style="background:'+st[1]+';color:'+st[2]+'">'+st[0]+'</span>'+srcBadge+asgChip+scChip+'<span class="tip-time">'+esc(fmtNewsTime(t.createdAt))+'</span></div>'+
         (t.text?('<div class="tip-text">'+esc(t.text).replace(/\n/g,'<br>')+'</div>'):'')+
         (meta.length?('<div class="tip-meta">'+meta.join('<span class="dotsep">·</span>')+'</div>'):'')+
         (tools?('<div class="tip-tools">'+tools+'</div>'):'')+
@@ -2868,7 +2871,7 @@ function renderDashboard(){
     html+='<button class="dp-item" data-date="'+it.d.date+'" data-sk="'+esc(it.s.k)+'">'+
       '<span class="dp-d">'+it.d.label+' '+it.d.weekday+'</span>'+
       '<span class="dp-t">'+(it.e.ctype?ctchip(it.e.ctype)+' ':'')+esc(it.e.title)+'</span>'+
-      '<span class="dp-st" style="background:'+STCOL[it.e.status||'planned']+'">'+STATUS_LABEL[it.e.status||'planned']+'</span></button>';
+      '<span class="dp-st" style="background:'+STCHIP[it.e.status||'planned'][0]+';color:'+STCHIP[it.e.status||'planned'][1]+'">'+STATUS_LABEL[it.e.status||'planned']+'</span></button>';
   }); html+='</div>'; }
   html+='</div>';
   html+='<div class="dashpanel"><div class="dp-h">다가오는 운영 일정</div>';
