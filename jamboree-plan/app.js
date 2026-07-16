@@ -1533,11 +1533,14 @@ function ttRundownHtml(t, dayView){
   return '';
 }
 // 의전 블록 — 읽기 전용(클릭 시 의전 탭으로 이동)
-function ttProtocolBlockHtml(p, geo, dayView){
-  var pw=prWho(p);
-  return '<div class="ttg-ev ttg-pr'+(dayView?' big':'')+'" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+pw+' · '+(p.activity||'')+(p.place?(' @ '+p.place):''))+'" style="'+ttGeoStyle(geo)+'">'+
-    '<div class="ttg-evt"><span class="prtag">의전</span> '+esc(p.activity||pw||p.role||'')+'</div>'+
-    '<div class="ttg-evm">'+esc(p.time)+(pw?(' · '+esc(pw)):'')+(p.place?(' · '+esc(p.place)):'')+'</div>'+
+// g: 이벤트 그룹 {time, endTime, activity, place, people:[{role,name}...], ids:[]}. 같은 활동=한 블록, 참여자=구분(대회장)+이름(직책 X)
+function ttProtocolBlockHtml(g, geo, dayView){
+  var ppl=(g.people||[]).slice().sort(function(a,b){ var ra=protRoleRank(a.role), rb=protRoleRank(b.role); if(ra!==rb) return ra-rb; return (a.name||'').localeCompare(b.name||'','ko'); })
+    .map(function(x){ return ((x.role||'')+' '+(x.name||'')).trim(); });
+  var pplTxt=ppl.join(', '), evName=g.activity||ppl[0]||'의전', pid=(g.ids&&g.ids[0])||'';
+  return '<div class="ttg-ev ttg-pr'+(dayView?' big':'')+'" data-pid="'+esc(pid)+'" title="'+esc('의전 · '+(g.time||'')+' '+evName+(pplTxt?(' · '+pplTxt):'')+(g.place?(' @ '+g.place):''))+'" style="'+ttGeoStyle(geo)+'">'+
+    '<div class="ttg-evt"><span class="prtag">의전</span> '+esc(evName)+'</div>'+
+    '<div class="ttg-evm">'+esc(g.time||'')+(pplTxt?(' · '+esc(pplTxt)):'')+(g.place?(' · '+esc(g.place)):'')+'</div>'+
   '</div>';
 }
 // 시간 일정 블록 — 배경은 인라인 카테고리색(취재 불필요면 CSS .nocover 가 !important 로 덮음)
@@ -1586,8 +1589,18 @@ function ttColumnHtml(d, dayView, hh){
   var items=ttList().filter(function(t){ return t.day===d[0] && t2h(t.start)!=null && ttTrackOn(ttTrackOfItem(t)); });
   var jam=items.filter(function(t){ return t.track!=='cub'; });   // 잼버리 일정
   var cub=items.filter(function(t){ return t.track==='cub'; });    // 컵 참관단(1·2기)
-  var prs=ttTrackOn('pr') ? protocolList().filter(function(p){ return p.date===d[0] && t2h(p.time)!=null; })
-    .map(function(p){ var sh=t2h(p.time); return {id:'pr:'+p.id, start:p.time, end:(p.endTime&&t2h(p.endTime)!=null)?p.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:p}; }) : [];   // 종료 미입력 시 +30분
+  // 의전 pseudo-이벤트 — 같은 활동+시각은 한 블록으로 묶고 참여자를 구분(대회장)+이름으로. (종료 미입력 시 +30분)
+  var prs=[];
+  if(ttTrackOn('pr')){
+    var prRaw=protocolList().filter(function(p){ return p.date===d[0] && t2h(p.time)!=null; });
+    var pmap={}, pord=[];
+    prRaw.forEach(function(p){ var pk=JSON.stringify([p.time||'', p.activity||'']);
+      if(!pmap[pk]){ pmap[pk]={time:p.time, endTime:p.endTime, activity:p.activity, place:p.place, people:[], ids:[]}; pord.push(pk); }
+      pmap[pk].people.push(p); pmap[pk].ids.push(p.id); if(!pmap[pk].endTime&&p.endTime) pmap[pk].endTime=p.endTime;
+    });
+    prs=pord.map(function(pk){ var g=pmap[pk], sh=t2h(g.time);
+      return {id:'pr:'+g.ids[0], start:g.time, end:(g.endTime&&t2h(g.endTime)!=null)?g.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:g}; });
+  }
   var body;
   if(dayView && (prs.length || cub.length)){
     var tracks=[{lab:'잼버리 일정', cls:'', items:jam}];
