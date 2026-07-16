@@ -435,7 +435,8 @@ function renderHeader(){
   document.getElementById('m-title').textContent=h.title;
   document.getElementById('m-slogan').textContent=h.slogan;
   document.getElementById('m-meta').innerHTML =
-    '<span><b>회기</b> '+h.period+'</span><span><b>장소</b> '+h.place+'</span>';
+    '<span><b>행사기간</b> '+h.period+'</span><span><b>장소</b> '+h.place+'</span>';
+  loadWeather();   // 헤더 컴팩트 날씨(회기와 D-day 사이) — 모든 뷰에서 항상 보이게
   renderClock();
 }
 // 개영식 = 2026-08-05 20:00 (KST). 시·분·초 라이브 카운트다운.
@@ -1371,7 +1372,7 @@ function ttCellsHtml(day, hh){
 function ttColumnHtml(d, dayView, hh){
   var real=ttList().filter(function(t){ return t.day===d[0] && t2h(t.start)!=null; });
   var prs=protocolList().filter(function(p){ return p.date===d[0] && t2h(p.time)!=null; })
-    .map(function(p){ return {id:'pr:'+p.id, start:p.time, end:'', _pr:p}; });
+    .map(function(p){ var sh=t2h(p.time); return {id:'pr:'+p.id, start:p.time, end:(p.endTime&&t2h(p.endTime)!=null)?p.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:p}; });   // 종료 미입력 시 +30분
   var body;
   if(dayView && prs.length){
     body='<div class="ttg-grouplab L">프로그램</div><div class="ttg-grouplab R">의전</div><div class="ttg-vsplit"></div>'+
@@ -2108,18 +2109,27 @@ function renderProtocol(){
     tr.querySelectorAll('td.mk:not(.pr-person)').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveProtocol(); if(td.dataset.f==='activity') refreshProtocolViews(); }); });
     var dt=tr.querySelector('input.prin[data-f="date"]'); if(dt) dt.addEventListener('change',function(){ m.date=this.value; saveProtocol(); refreshProtocolViews(); });
     var pl=tr.querySelector('select.prplace'); if(pl) pl.addEventListener('change',function(){ m.place=this.value; saveProtocol(); refreshProtocolViews(); });
-    var prtH=tr.querySelector('.prtime-h'), prtM=tr.querySelector('.prtime-m');
+    var prtH=tr.querySelector('.prtime-h'), prtM=tr.querySelector('.prtime-m'), prtEH=tr.querySelector('.prtime-eh'), prtEM=tr.querySelector('.prtime-em');
     if(prtH&&prtM){
-      [prtH,prtM].forEach(function(inp){ inp.addEventListener('input',function(){ this.value=this.value.replace(/\D/g,'').slice(0,2); }); });   // 숫자만
-      var updT=function(){ if(prtH.value===''&&prtM.value===''){ m.time=''; } else { var h=Math.max(0,Math.min(23,parseInt(prtH.value,10)||0)), mm=Math.max(0,Math.min(59,parseInt(prtM.value,10)||0)); m.time=pad2(h)+':'+pad2(mm); } saveProtocol(); refreshProtocolViews(); };
-      prtH.addEventListener('change',updT); prtM.addEventListener('change',updT); prtH.addEventListener('blur',updT); prtM.addEventListener('blur',updT);
+      [prtH,prtM,prtEH,prtEM].forEach(function(inp){ if(inp) inp.addEventListener('input',function(){ this.value=this.value.replace(/\D/g,'').slice(0,2); }); });   // 숫자만
+      var updT=function(){
+        if(prtH.value===''&&prtM.value===''){ m.time=''; } else { var h=Math.max(0,Math.min(23,parseInt(prtH.value,10)||0)), mm=Math.max(0,Math.min(59,parseInt(prtM.value,10)||0)); m.time=pad2(h)+':'+pad2(mm); }
+        if(prtEH.value===''&&prtEM.value===''){ m.endTime=''; } else { var eh=Math.max(0,Math.min(23,parseInt(prtEH.value,10)||0)), em=Math.max(0,Math.min(59,parseInt(prtEM.value,10)||0)); m.endTime=pad2(eh)+':'+pad2(em); }
+        saveProtocol(); refreshProtocolViews();
+      };
+      [prtH,prtM,prtEH,prtEM].forEach(function(inp){ if(inp){ inp.addEventListener('change',updT); inp.addEventListener('blur',updT); } });
     }
     tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); saveProtocol(); renderProtocol(); refreshProtocolViews(); };
   }
   function eventCells(m){
     var prh=t2h(m.time), prHH=prh!=null?Math.floor(prh):'', prMM=prh!=null?Math.round((prh-Math.floor(prh))*60):'';
+    var peh=t2h(m.endTime), pEH=peh!=null?Math.floor(peh):'', pEM=peh!=null?Math.round((peh-Math.floor(peh))*60):'';
     return '<td><input type="date" class="prin" data-f="date" min="2026-06-15" max="2026-08-09" value="'+esc(m.date||'')+'"></td>'+
-      '<td><span class="evtimegrp pr-timegrp"><input type="text" class="evtime prtime-h" inputmode="numeric" maxlength="2" value="'+prHH+'" aria-label="시" placeholder="시"><span class="evcolon">:</span><input type="text" class="evtime prtime-m" inputmode="numeric" maxlength="2" value="'+prMM+'" aria-label="분" placeholder="분"></span></td>'+
+      '<td><span class="evtimegrp pr-timegrp">'+
+        '<input type="text" class="evtime prtime-h" inputmode="numeric" maxlength="2" value="'+prHH+'" aria-label="시작 시" placeholder="시"><span class="evcolon">:</span><input type="text" class="evtime prtime-m" inputmode="numeric" maxlength="2" value="'+prMM+'" aria-label="시작 분" placeholder="분">'+
+        '<span class="evtilde">~</span>'+
+        '<input type="text" class="evtime prtime-eh" inputmode="numeric" maxlength="2" value="'+pEH+'" aria-label="종료 시" placeholder="시"><span class="evcolon">:</span><input type="text" class="evtime prtime-em" inputmode="numeric" maxlength="2" value="'+pEM+'" aria-label="종료 분" placeholder="분">'+
+      '</span></td>'+
       '<td class="mk" contenteditable data-f="activity">'+esc(m.activity||'')+'</td>'+
       '<td><select class="prin prplace" data-f="place">'+protPlaceOptions(m.place||'')+'</select></td>'+
       '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
@@ -2773,40 +2783,20 @@ function loadWeather(force){
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'+
     '&hourly=temperature_2m,weather_code,precipitation_probability&forecast_days=3';
   fetch(url).then(function(r){return r.json();}).then(function(j){ wxData=j; wxLoadedAt=Date.now(); wxLoading=false; renderWeather(); })
-  .catch(function(){ wxLoading=false; var el=document.getElementById('wx'); if(el){ el.innerHTML='<div class="wxerr">날씨를 불러오지 못했어요. <button class="btn sm" id="wx-retry">다시 시도</button></div>'; var b=document.getElementById('wx-retry'); if(b) b.onclick=function(){ loadWeather(true); }; } });
+  .catch(function(){ wxLoading=false; var el=document.getElementById('wx-head'); if(el){ el.innerHTML='<span class="wxc-load">날씨 불러오기 실패 · <button class="btn xs" id="wx-retry">다시 시도</button></span>'; var b=document.getElementById('wx-retry'); if(b) b.onclick=function(){ loadWeather(true); }; } });
 }
+// 헤더 컴팩트 날씨 — 회기(행사기간)와 D-day 사이 한 줄. 현재 + 오늘 최고/최저 + 강수확률.
 function renderWeather(){
-  var el=document.getElementById('wx'); if(!el) return;
-  if(!wxData){ el.innerHTML='<div class="wxload">'+(wxLoading?'날씨 불러오는 중…':'날씨 준비 중…')+'</div>'; return; }
-  var d=wxData.daily||{}, cur=wxData.current||{};
-  var ci=wxInfo(cur.weather_code);
-  var html='<div class="wxhead">'+
-    '<div class="wxnow"><span class="wxnow-ic">'+ci[0]+'</span><div><div class="wxnow-t">'+(cur.temperature_2m!=null?Math.round(cur.temperature_2m)+'°':'—')+'</div>'+
-      '<div class="wxnow-s">'+ci[1]+(cur.apparent_temperature!=null?(' · 체감 '+Math.round(cur.apparent_temperature)+'°'):'')+(cur.relative_humidity_2m!=null?(' · 습도 '+Math.round(cur.relative_humidity_2m)+'%'):'')+'</div></div></div>'+
-    '<div class="wxloc">강원 고성 · 잼버리로 244<br><span>실시간 기상 · Open-Meteo</span></div></div>';
-  var times=d.time||[];
-  html+='<div class="wxdays">';
-  for(var i=0;i<times.length && i<3;i++){
-    var wi=wxInfo((d.weather_code||[])[i]);
-    var pop=(d.precipitation_probability_max||[])[i];
-    html+='<div class="wxday'+(i===0?' today':'')+'">'+
-      '<div class="wxd-lab">'+wxDayLabel(i)+'</div><div class="wxd-ic">'+wi[0]+'</div><div class="wxd-desc">'+wi[1]+'</div>'+
-      '<div class="wxd-temp"><b>'+Math.round((d.temperature_2m_max||[])[i])+'°</b> <span>'+Math.round((d.temperature_2m_min||[])[i])+'°</span></div>'+
-      '<div class="wxd-pop">💧 '+(pop!=null?pop:0)+'%</div></div>';
-  }
-  html+='</div>';
-  var H=wxData.hourly||{}, ht=H.time||[], nowMs=Date.now(), startIdx=0;
-  for(var j=0;j<ht.length;j++){ if(new Date(ht[j]).getTime() >= nowMs-1800000){ startIdx=j; break; } }
-  var hours='';
-  for(var k=startIdx;k<ht.length && k<startIdx+12;k++){
-    var hi=wxInfo((H.weather_code||[])[k]); var hh=new Date(ht[k]).getHours();
-    var pp=(H.precipitation_probability||[])[k];
-    hours+='<div class="wxh'+(k===startIdx?' now':'')+'"><div class="wxh-t">'+(k===startIdx?'지금':(hh+'시'))+'</div>'+
-      '<div class="wxh-ic">'+hi[0]+'</div><div class="wxh-deg">'+Math.round((H.temperature_2m||[])[k])+'°</div>'+
-      '<div class="wxh-pop">'+(pp!=null?pp:0)+'%</div></div>';
-  }
-  html+='<div class="wxhours-wrap"><div class="wxhours-lab">시간별 예보 · 지금부터</div><div class="wxhours">'+hours+'</div></div>';
-  el.innerHTML=html;
+  var el=document.getElementById('wx-head'); if(!el) return;
+  if(!wxData){ el.innerHTML=wxLoading?'<span class="wxc-load">날씨 불러오는 중…</span>':''; return; }
+  var cur=wxData.current||{}, d=wxData.daily||{}, ci=wxInfo(cur.weather_code);
+  var hi=(d.temperature_2m_max||[])[0], lo=(d.temperature_2m_min||[])[0], pop=(d.precipitation_probability_max||[])[0];
+  el.innerHTML='<span class="wxc-ic">'+ci[0]+'</span>'+
+    '<b class="wxc-t">'+(cur.temperature_2m!=null?Math.round(cur.temperature_2m)+'°':'—')+'</b>'+
+    '<span class="wxc-d">'+ci[1]+'</span>'+
+    (hi!=null?('<span class="wxc-hl">↑'+Math.round(hi)+'° ↓'+Math.round(lo)+'°</span>'):'')+
+    (pop!=null?('<span class="wxc-pop">💧'+pop+'%</span>'):'')+
+    '<span class="wxc-loc">강원 고성</span>';
 }
 
 /* ===== dashboard ===== */
@@ -2975,9 +2965,6 @@ function renderDashboard(){
   html+='</div>';
 
   box.innerHTML=html;
-  // 날씨는 참고 정보라 대시보드 맨 아래로 — 업무(할 일·콘텐츠 진행)가 먼저 보이게. (idempotent: 이미 끝이면 그대로)
-  var wxEl=document.getElementById('wx'), dsec=document.getElementById('dashboard');
-  if(wxEl && dsec && dsec.lastElementChild!==wxEl) dsec.appendChild(wxEl);
   startDashClock();
   box.querySelectorAll('.dp-item[data-sk],.pubrow[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
   box.querySelectorAll('.dp-item[data-eid]').forEach(function(b){ b.onclick=function(){ openEvent(b.getAttribute('data-eid')); }; });

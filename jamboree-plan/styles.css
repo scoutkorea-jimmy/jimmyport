@@ -73,6 +73,17 @@ h1{font-size:30px;font-weight:800;margin:0 0 6px;letter-spacing:-.035em;line-hei
 .sub{color:var(--muted);font-size:13px;margin:0}
 .metarow{display:flex;flex-wrap:wrap;gap:5px 20px;margin-top:13px;font-size:13px;color:var(--muted)}
 .metarow b{color:var(--ink-2);font-weight:600;margin-right:5px}
+/* 헤더 컴팩트 날씨 — 행사기간(metarow)과 D-day(clock) 사이 한 줄 */
+.wxc{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--pill);padding:6px 15px;width:fit-content}
+.wxc:empty{display:none}
+.wxc-ic{font-size:17px;line-height:1}
+.wxc-t{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
+.wxc-d{color:var(--muted)}
+.wxc-hl{color:var(--muted);font-variant-numeric:tabular-nums}
+.wxc-pop{color:var(--ch-fb)}
+.wxc-loc{color:var(--faint);font-size:12px}
+.wxc-load{color:var(--muted);font-size:12px}
 .clock{display:inline-flex;align-items:baseline;gap:9px;margin-top:14px;padding:8px 15px;background:var(--accent);color:#fff;border-radius:var(--r-2);box-shadow:var(--sh-1)}
 .clock .big{font-size:16px;font-weight:700;letter-spacing:.01em}
 .clock .hms{font-family:ui-monospace,Menlo,monospace;font-size:16px;font-weight:600;letter-spacing:.02em}
@@ -1088,8 +1099,11 @@ tr.rowdim{opacity:.34}
 #prtbl .pr-person{vertical-align:top;background:var(--surface-2);border-left:2px solid var(--line-2)}
 #prtbl .pr-grouprow>td{border-top:2px solid var(--line)}
 #prtbl .prplace{width:100%;min-width:80px}
-.pr-timegrp .prtime-h,.pr-timegrp .prtime-m{-moz-appearance:textfield}
-.pr-timegrp input::-webkit-outer-spin-button,.pr-timegrp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+/* 의전 시간: 시작~종료 4칸이 좁은 열에 맞게 */
+.pr-timegrp{flex-wrap:nowrap;gap:2px}
+.pr-timegrp .evtime{width:32px;padding:6px 2px;text-align:center}
+.pr-timegrp .evtilde{margin:0 2px;color:var(--muted)}
+.pr-timegrp .evcolon{margin:0 1px}
 .smzone{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;z-index:2}
 .smzone .smdot{width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.4)}
 .smzone:hover .smdot{background:var(--accent)}

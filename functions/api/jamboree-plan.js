@@ -77,6 +77,7 @@ function cleanProtocol(e) {
     title: (e.title || "").toString().slice(0, 80),
     date: (e.date || "").toString().slice(0, 10),
     time: (e.time || "").toString().slice(0, 5),
+    endTime: (e.endTime || "").toString().slice(0, 5),
     activity: (e.activity || "").toString().slice(0, 300),
     place: (e.place || "").toString().slice(0, 120),
     memo: (e.memo || "").toString().slice(0, 400),
