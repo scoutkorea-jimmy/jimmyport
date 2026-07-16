@@ -173,6 +173,27 @@ const SEED = () => {
   await page.evaluate(() => { const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /일간/.test(x.textContent)); b && b.click(); });
   await new Promise((r) => setTimeout(r, 250));
 
+  console.log('\n[컵 참관단 트랙 — 일간뷰 3열 분리 · 1·2기 · 범례]');
+  const cubv = await page.evaluate(() => ({
+    labs: [...document.querySelectorAll('.ttg-col .ttg-grouplab')].map((x) => x.textContent),
+    tags: [...document.querySelectorAll('.ttg-ev.cub .cubtag')].map((x) => x.textContent),
+    cubBg: (document.querySelector('.ttg-ev.cub') && getComputedStyle(document.querySelector('.ttg-ev.cub')).backgroundColor) || '',
+    legend: [...document.querySelectorAll('#tt-legend .li')].map((x) => x.textContent.trim()),
+    catHasCub: (state.ttcats || []).some((c) => c[0] === '컵 참관단') }));
+  chk('일간뷰 3열(잼버리·의전·컵 참관단)', cubv.labs.includes('잼버리 일정') && cubv.labs.includes('의전 일정') && cubv.labs.includes('컵 참관단'), cubv.labs.join('|'));
+  chk('컵 블록에 기수 태그(1기)', cubv.tags.length > 0 && cubv.tags.every((t) => /^[12]기$/.test(t)), cubv.tags.slice(0, 4).join(','));
+  chk('컵 색 = 빨강 아님(개·폐영식과 구분)', cubv.cubBg && !/176, 62, 36/.test(cubv.cubBg), cubv.cubBg);
+  chk('범례: 컵 참관단 카테고리 제거 · 컵 1기/2기 스와치', !cubv.catHasCub && cubv.legend.includes('컵 1기') && cubv.legend.includes('컵 2기'), cubv.legend.join('·'));
+
+  console.log('\n[식사 메뉴]');
+  await go('meals');
+  const ml = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#mealbody tr').length,
+    seg: [...document.querySelectorAll('#meal-groupseg button')].map((b) => b.textContent + (b.classList.contains('on') ? '*' : '')),
+    cells: document.querySelectorAll('#mealbody td.mk[contenteditable]').length }));
+  chk('식사 메뉴 7일(8/3~8/9) × 3끼', ml.rows === 7 && ml.cells === 21, ml.rows + '행 · ' + ml.cells + '칸');
+  chk('대원/운영요원 토글(대원 기본)', ml.seg.length === 2 && ml.seg[0] === '대원*', ml.seg.join(' '));
+
   console.log('\n[소식 제보 → 일정]');
   await go('tips');
   chk('제보 카드 · 일정 잡기 버튼', await page.$('[data-tip-sched]') !== null);

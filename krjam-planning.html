@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.189"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.189">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.189">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.190"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.190">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.190">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -105,6 +105,7 @@
     <button class="vtab" data-v="timetable" data-ws="field" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
     <button class="vtab" data-v="sitemap" data-ws="field" role="tab"><span data-ic="mapPin"></span> 현장 위치 지도</button>
     <button class="vtab" data-v="protocol" data-ws="field" role="tab"><span data-ic="grid"></span> 의전 일정</button>
+    <button class="vtab" data-v="meals" data-ws="field" role="tab"><span data-ic="utensils"></span> 식사 메뉴</button>
     <button class="vtab" data-v="staff" data-ws="team" role="tab"><span data-ic="users"></span> 홍보부 인원</button>
     <button class="vtab" data-v="contacts" data-ws="team" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
     <button class="vtab" data-v="orginfo" data-ws="team" role="tab"><span data-ic="users"></span> 분단 연락망</button>
@@ -359,6 +360,23 @@
     <p class="note">언제·어디서 촬영이 필요한지 등록하면 지도에 <b>카메라 핀</b>으로 표시됩니다. 구역을 지정하면 핀이 그 위치에 찍히고, 핀을 클릭하면 해당 요청으로 이동합니다. 촬영을 마치면 <b>완료</b>로 전환하세요.</p>
   </section>
 
+  <section id="meals" style="display:none">
+    <div class="sec-head"><h2>잼버리식당 식사 메뉴</h2>
+      <div class="seg" id="meal-groupseg" role="tablist" aria-label="식사 대상">
+        <button type="button" data-mg="crew" class="on">대원</button><button type="button" data-mg="staff">운영요원</button>
+      </div>
+    </div>
+    <div class="tblscroll">
+      <table id="mealtbl">
+        <thead><tr>
+          <th style="width:132px">날짜</th><th>조식</th><th>중식</th><th>석식</th>
+        </tr></thead>
+        <tbody id="mealbody"></tbody>
+      </table>
+    </div>
+    <p class="note">잼버리식당 일자별 식사 메뉴(8/3~8/9). 위 토글로 <b>대원 / 운영요원</b> 메뉴를 구분해 편집합니다. 칸을 클릭해 직접 입력하세요.</p>
+  </section>
+
   <!-- 날씨 상세 모달 (헤더 날씨 클릭) -->
   <div class="scrim" id="wx-scrim">
     <div class="modal" style="max-width:520px">
@@ -540,12 +558,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.189"></script>
+<script src="jamboree-plan/core.js?v=0.9.190"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.189"></script>
+<script src="jamboree-plan/upload.js?v=0.9.190"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.189"></script>
-<script src="jamboree-plan/app.js?v=0.9.189"></script>
-<script src="version-watch.js?v=0.9.189"></script>
+<script src="jamboree-plan/library.js?v=0.9.190"></script>
+<script src="jamboree-plan/app.js?v=0.9.190"></script>
+<script src="version-watch.js?v=0.9.190"></script>
 </body>
 </html>

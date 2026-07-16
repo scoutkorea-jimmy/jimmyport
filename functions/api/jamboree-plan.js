@@ -14,6 +14,7 @@ import { json, jsonCacheable, cacheMatch, cachePut, cachePurge, clientIp, maskIp
 const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
 const MKT = "jp:marketing";
+const MEALS = "jp:meals";
 const TYPES = "jp:types";
 const EVENTS = "jp:events";
 const TIMETABLE = "jp:timetable";
@@ -67,6 +68,26 @@ function cleanDivision(e) {
     safety: (e.safety || "").toString().slice(0, 60),
     support: (e.support || "").toString().slice(0, 60),
   };
+}
+// 식사 메뉴: { crew:{ "YYYY-MM-DD":{b,l,d} }, staff:{...} } — 그룹 2개·날짜 31개·끼니 3개로 제한
+function cleanMeals(m) {
+  const out = {};
+  ["crew", "staff"].forEach((g) => {
+    const src = m && m[g] && typeof m[g] === "object" ? m[g] : {};
+    const days = {};
+    Object.keys(src).slice(0, 31).forEach((d) => {
+      const date = (d || "").toString().slice(0, 10);
+      if (!date) return;
+      const r = src[d] && typeof src[d] === "object" ? src[d] : {};
+      days[date] = {
+        b: (r.b || "").toString().slice(0, 400),
+        l: (r.l || "").toString().slice(0, 400),
+        d: (r.d || "").toString().slice(0, 400),
+      };
+    });
+    out[g] = days;
+  });
+  return out;
 }
 function cleanProtocol(e) {
   e = e && typeof e === "object" ? e : {};
@@ -147,6 +168,8 @@ function cleanTT(e) {
     rundown,
     series: (e.series || "").toString().slice(0, 40),
     tipId: (e.tipId || "").toString().slice(0, 40),   // 소식 제보에서 만들어진 취재 일정이면 그 제보 id
+    track: (e.track || "").toString().slice(0, 16),   // 'cub'=컵 참관단 트랙(잼버리 일정·의전과 별도 열)
+    batch: (e.batch === 2 || e.batch === "2") ? 2 : (e.batch === 1 || e.batch === "1") ? 1 : 0,  // 컵 참관단 기수(1·2)
     noCover: !!e.noCover,                              // 취재 불필요 — 일정표에서 흐리게 표시
   };
 }
@@ -290,7 +313,11 @@ export async function onRequestGet(ctx) {
   const shraw = await env.SCOUT_KV.get(SHOOTS);
   if (shraw) { try { shoots = JSON.parse(shraw).shoots; } catch {} }
 
-  const resp = jsonCacheable({ slots, marketing, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots }, 30);  // short TTL; writes purge it
+  let meals = null;
+  const mlraw = await env.SCOUT_KV.get(MEALS);
+  if (mlraw) { try { meals = JSON.parse(mlraw).meals; } catch {} }
+
+  const resp = jsonCacheable({ slots, marketing, meals, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
@@ -315,6 +342,12 @@ async function putImpl(ctx) {
   if (Array.isArray(body.marketing)) {
     await env.SCOUT_KV.put(MKT, JSON.stringify({ marketing: body.marketing.slice(0, 300), updatedAt: now }));
     await appendLog(env, { ts: now, action: "jp.marketing", count: 0, ip: clientIp(request) });
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 식사 메뉴 저장 (대원/운영요원 × 날짜 × 조·중·석식)
+  if (body.meals && typeof body.meals === "object" && !Array.isArray(body.meals)) {
+    await env.SCOUT_KV.put(MEALS, JSON.stringify({ meals: cleanMeals(body.meals), updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 
