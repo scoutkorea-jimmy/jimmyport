@@ -1,4 +1,4 @@
-# 회귀 테스트 (krjam-planning)
+# 회귀 테스트 (krjam-planning · krjam-jebo)
 
 구조 변경 전후의 동작 동일성을 확인한다. **리팩터링 전에 baseline 을 찍고, 각 단계마다 다시 돌려 diff 가 없어야 한다.**
 
@@ -13,3 +13,10 @@ node test/regress-krjam-planning.js
   `diff <(grep -E "PASS|FAIL" base.txt | sed -E 's/#extra#[a-z0-9]+/#extra#ID/g') <(...)`
 
 ⚠️ 목업이라 **실제 로그인·서버 저장 경로는 검증하지 않는다.** 그 부분은 배포 후 수동 QA.
+
+## krjam-jebo
+
+```bash
+node test/regress-krjam-jebo.js
+```
+제보 페이지 전면 재작성(v0.9.173) 후 동작 동일성을 지킨다 — POST 바디 계약 · 검증 순서 · ko/en(오류 문구 재번역) · 희망 시각 zero-pad · 사진 파이프라인 · 모바일/데스크톱 레이아웃(터치 타깃·CTA 위치·넘침).
