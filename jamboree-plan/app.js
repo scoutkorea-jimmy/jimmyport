@@ -2307,7 +2307,10 @@ function defaultProtocol(){
 // → 공유 보드에 확실히 반영·영속. 상세본은 시각이 있어 재실행되지 않음(멱등). 사용자 실제 편집(서버 저장 + 시각 있음)은 보존.
 function upgradeProtocol(){
   var L=protocolList();   // 서버에 없으면 여기서 상세 default 로 채워짐
-  if(!state._protoFromServer || L.every(function(e){ return !e.time; })){ state.protocol=defaultProtocol(); saveProtocol(); state._protoFromServer=true; }
+  // 상세본은 고유 id(prot-NN)를 쓴다. 그 id가 하나도 없으면 = 구 개략 시드(random id) → 상세 41건으로 확정 + 서버 저장.
+  // (구 시드에 사용자가 시각을 한둘 채워 넣었어도 상세본으로 교체된다. 상세본을 편집한 경우엔 prot-NN 이 있어 보존.)
+  var hasDetailed = L.some(function(e){ return /^prot-\d/.test(e.id||''); });
+  if(!hasDetailed){ state.protocol=defaultProtocol(); saveProtocol(); state._protoFromServer=true; }
 }
 function protocolList(){
   if(!state.protocol) state.protocol=defaultProtocol();
