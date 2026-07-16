@@ -1426,8 +1426,9 @@ function defaultMeals(){
   };
 }
 function mealsHasContent(){ var m=mealsData(); return MEAL_GROUPS.some(function(g){ var gg=m[g[0]]||{}; return Object.keys(gg).some(function(d){ var r=gg[d]||{}; return !!(r.b||r.l||r.d); }); }); }
-// 서버에 저장본이 없고 비어 있으면 사용자 제공 메뉴로 시드 + 저장(공유 보드 반영). 내용이 하나라도 있으면 보존.
-function upgradeMeals(){ if(!state._mealsFromServer && !mealsHasContent()){ state.meals=defaultMeals(); saveMeals(); state._mealsFromServer=true; } }
+// 내용(음식명)이 하나도 없으면 사용자 제공 메뉴로 시드 + 저장(공유 보드 반영). 빈 구조만 저장돼 있어도 시드된다.
+// 내용이 하나라도 있으면 보존(사용자 편집 유지). — 서버에 빈 meals 가 저장돼 seed 가 막히던 문제 대응.
+function upgradeMeals(){ if(!mealsHasContent()){ state.meals=defaultMeals(); saveMeals(); } }
 function renderMeals(){
   var seg=document.getElementById('meal-groupseg');
   if(seg) seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.mg===mealGroup); });
