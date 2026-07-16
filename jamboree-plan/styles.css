@@ -2,21 +2,41 @@
    통합 디자인 시스템 (field-guide / editorial green). 단일 톤·일관 토큰. */
 /* 디자인 토큰은 tokens.css 하나가 원본이다 — 이 파일보다 먼저 로드된다. 색·타입은 여기서 재정의하지 말 것. */
 
-/* ===== 토스풍 리디자인 토큰 오버라이드 (v0.9.182) — 이 보드(krjam-planning)에만 적용 =====
- * tokens.css 는 krjam-jebo(공개 제보)와 공유하는 단일 원본이라, 그 파일의 모서리·그림자를 바꾸면
- * 제보 페이지 룩도 함께 바뀐다. 사용자 지시("이 대화에서는 /krjam-planning 만")를 지키기 위해
- * 토스 레이아웃 언어(더 큰 모서리 · 부드럽게 번지는 그림자 · 채워진 입력 배경)는 여기서만 덮는다.
- * 색 토큰(브랜드·상태·대비 검증값)은 건드리지 않는다 — 형태만 토스, 색은 스카우트 유지. */
+/* ===== 다크 관제 리디자인 (v0.9.183) — krjam-planning 전용 =====
+ * tokens.css 는 krjam-jebo(공개 제보)와 공유하는 단일 원본이라, 그 파일을 바꾸면 제보 페이지도 바뀐다.
+ * "이 대화에서는 /krjam-planning 만" 지시를 지키기 위해 다크 관제 색·형태는 여기서만 덮는다(jebo 무영향).
+ *
+ * 토큰 계약: 라이트 전제로 짜인 앱을 다크로 뒤집을 때 색이 이중 역할(솔리드 배경 vs 지면 위 텍스트)을 한다.
+ *  - 상태/단계 솔리드(--st-*, --c-*, --danger)는 "흰 글씨를 얹는 배경"이라 어둡게 유지(흰 글씨 대비 4.5+).
+ *  - 텍스트 역할(--muted, --ink-2)은 어두운 지면(--bg) 위에서 읽혀야 하므로 밝게.
+ *  - 채널(--ch-*)은 어두운 칩 위 밝은 글씨색으로.
+ * 회귀 대비 테스트도 이 계약(솔리드=흰글씨 / 텍스트=지면대비)에 맞춰 갱신했다. */
 :root{
-  --r-1:10px; --r-2:16px; --r-3:20px;      /* 작은 요소 10 · 카드 기본 16 · 큰 컨테이너·모달 20 */
-  --r-field:14px; --r-card:18px;
-  /* 그림자 = 낮은 대비로 넓게 번지는 2단(가까운 접지 + 먼 확산). 하드 테두리 대신 이 부드러운 부양감이 토스 룩의 핵심 */
-  --sh-1:0 1px 2px rgba(22,32,26,.04), 0 4px 14px rgba(22,32,26,.05);
-  --sh-2:0 4px 12px rgba(22,32,26,.06), 0 12px 32px rgba(22,32,26,.10);
-  --sh-3:0 12px 28px rgba(22,32,26,.12), 0 32px 72px rgba(22,32,26,.20);
-  --ease:.18s cubic-bezier(.32,.72,0,1);   /* 토스식 감속 — 빠르게 시작해 부드럽게 안착 */
-  /* 채워진 입력 배경 — 테두리가 아니라 옅은 회색 채움 + 큰 모서리로 "누를 곳"을 알린다. 포커스에서 흰색으로 부상 */
-  --field-bg:#F1F3F0; --field-bg-focus:#FFFFFF;
+  /* 바탕·글자 */
+  --bg:#0F1311; --surface:#161C18; --surface-2:#1C231E; --surface-3:#232B25;
+  --ink:#E7EDE8; --ink-2:#B7C0B8; --muted:#8B968C; --faint:#616B62;
+  --line:rgba(255,255,255,.085); --line-2:rgba(255,255,255,.05);
+  /* 브랜드 — accent 는 흰 글씨를 얹는 배경이라 어둡게(대비 4.8), accent-ink 는 지면 위 밝은 초록 텍스트 */
+  --accent:#1F7350; --accent-ink:#66DDA0; --accent-soft:rgba(59,227,138,.13); --accent-soft-2:rgba(59,227,138,.07);
+  /* 진행 상태 — 솔리드는 흰 글씨용(유지), -bg 는 어두운 틴트로 */
+  --st-planned:#4C554D; --st-draft:#8A5A0B; --st-ready:#1F6B4F;
+  --st-planned-bg:rgba(255,255,255,.07); --st-draft-bg:rgba(232,165,75,.14); --st-ready-bg:rgba(59,227,138,.13);
+  /* D-count 단계 — 솔리드 띠(흰 글씨), 유지 */
+  --c-rest:#5F665F; --c-intl:#2E6FAE; --c-sub:#1F6B4F; --c-app:#8A5A0B; --c-fin:#B03E24; --c-during:#6B716A;
+  /* 채널 — 어두운 칩 위 밝은 글씨 */
+  --ch-fb:#6BB0FF; --ch-fb-bg:rgba(107,176,255,.14); --ch-ig:#B69BFF; --ch-ig-bg:rgba(182,155,255,.14);
+  --ch-yt:#FF8A7E; --ch-yt-bg:rgba(255,107,94,.14); --ch-etc:#9AA79C; --ch-etc-bg:rgba(255,255,255,.06);
+  /* 위험 — 흰 글씨를 얹는 배경 역할이라 흰색 대비 4.5+ 유지(어두운 레드). 텍스트로 쓰이는 배지는 위 보정 블록에서 밝게 덮음 */
+  --danger:#C0492F; --danger-bg:rgba(192,73,47,.16);
+  /* 채워진 입력 — 어두운 채움, 포커스 시 한 톤 밝게 */
+  --field-bg:#1C231E; --field-bg-focus:#232B25;
+  /* 형태 — 관제 톤: 헤어라인 + 적당한 모서리 */
+  --r-1:10px; --r-2:14px; --r-3:18px; --r-field:12px; --r-card:16px;
+  /* 그림자 — 다크에선 어둡게 깊게 */
+  --sh-1:0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.3);
+  --sh-2:0 10px 30px rgba(0,0,0,.5);
+  --sh-3:0 24px 64px rgba(0,0,0,.62);
+  --ease:.18s cubic-bezier(.32,.72,0,1);
 }
 
 *{box-sizing:border-box}
@@ -1203,3 +1223,48 @@ tr.rowdim{opacity:.34}
 
 .tip-phone{color:var(--ch-fb);text-decoration:none;font-weight:600}
 .tip-phone:hover{text-decoration:underline}
+
+/* ===== 다크 관제: 하드코딩 라이트 색 보정 (v0.9.183) =====
+   라이트 전제로 박혀 있던 배경·텍스트 색을 다크 지면에 맞게 덮는다.
+   상태색이 "지면 위 텍스트"로 쓰이던 배지는 밝은 값으로 올려 가독성 확보. */
+.syncbar{background:rgba(15,19,17,.86)}
+.guard{background:rgba(15,19,17,.82)}
+.emblem,.auth-box img{background:var(--surface-2)}
+.cell .cline.filled{background:var(--surface-2)}
+.evkind,.libtag,.libcat,.rd-del,.shoot-status{background:var(--surface-2)}
+.pubrow.due:hover{background:var(--surface-3)}
+.mem-type,.mtype-name{background:var(--field-bg);color:var(--ink)}
+.smpop,.smpop::after{background:var(--surface-2)}
+.apv-pdf iframe{background:#fff}   /* PDF 페이지는 흰색이 정상 — 유지 */
+/* 유형 배지 (어두운 틴트 + 밝은 글씨) */
+.t-dcount{background:var(--ch-fb-bg)!important;color:var(--ch-fb)!important}
+.t-sosik{background:rgba(232,165,75,.14)!important;color:#E8A54B!important}
+.t-event{background:rgba(210,84,60,.14)!important;color:#E68A7C!important}
+.t-extra{background:rgba(255,255,255,.06)!important;color:#9AA79C!important}
+/* 상태를 텍스트로 쓰는 배지 → 밝은 값 */
+.postbadge{background:var(--st-ready-bg);color:#66DDA0}
+.apbadge.ap-approved,.apnow.ap-approved{color:#66DDA0}
+.apbadge.ap-requested,.apnow.ap-requested,.duebadge.soon{color:#E8A54B}
+.apbadge.ap-rejected,.apnow.ap-rejected,.duebadge.over{background:rgba(210,84,60,.15);color:#E68A7C;border-color:transparent}
+.mem-status.pend{background:rgba(232,165,75,.14);color:#E8A54B}
+/* 의전(캘린더/일정표) — 어두운 골드 틴트 */
+.cell .cline.protocol{background:rgba(216,162,74,.13);color:#E3C07E}
+.ttg-ev.ttg-pr{background:rgba(216,162,74,.16);border-color:#8A6A1E;color:#E3C07E}
+.ttg-ev.ttg-pr .ttg-evt,.ttg-ev.ttg-pr .ttg-evm{color:#E3C07E}
+.ttg-grouplab{background:rgba(10,14,12,.72)}
+/* 취재 불필요(비활성)·검색 고스트 — 어두운 회색 */
+.ttg-ev.nocover{background:#232B25!important;color:#7E8A80!important;border:1px solid rgba(255,255,255,.08)!important}
+.ttg-ev.nocover:hover{background:#2A332C!important}
+.ttg-ev.nocover .ttg-evt,.ttg-ev.nocover .ttg-evm,.ttg-ev.nocover .ttg-evp,.ttg-ev.nocover .ttg-rd{color:#7E8A80!important}
+.cline.ghost{background:rgba(255,255,255,.03)!important;border-left-color:rgba(255,255,255,.08)!important;color:#6E776E!important}
+.cline.ghost .ctchip,.cline.ghost .prtag{background:#3A423C!important;color:#c7cdc7!important}
+/* 제보/일정 링크 칩 — 어두운 틴트 + 밝은 글씨 */
+.tip-src{background:rgba(107,176,255,.14)}
+.tip-sch.tt,.tsch-dest.jam{background:rgba(95,213,213,.12);color:#5FD5D5}
+.tip-sch.slot,.tsch-dest.cal{background:rgba(182,155,255,.12);color:#B69BFF}
+.libup-row.over{background:rgba(232,165,75,.1)}
+/* D-day 배너·진행바 그라데이션은 어두운 초록으로(밝은 accent-ink 끝에 흰 글씨가 묻힘) */
+.dash-dday{background:linear-gradient(100deg,#1F7350,#134B33)}
+.progress .pbar i,.libprog .pbar i{background:linear-gradient(90deg,#1F6B4F,#2FA96E)}
+/* 상단 D-day 시계는 어두운 초록 솔리드로 고정(흰 글씨 대비 확보) */
+.clock{background:#1B5F42}

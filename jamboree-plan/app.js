@@ -549,10 +549,10 @@ function renderCalendar(){
     dcountApproved.filter(function(a){ return a.targetDate===rec.date; }).forEach(function(a){
       // 사진 URL 도 외부 입력(디데이 신청자 업로드) — esc 없이 넣으면 속성 탈출 XSS 경로가 된다
       var ph=(a.photos||[]).slice(0,3).map(function(u){ return /^\/api\/image\?id=[A-Za-z0-9_-]+$/.test(u||'') ? '<img src="'+esc(u)+'" data-img="'+esc(u)+'" class="dcph" alt="">' : ''; }).join('');
-      html+='<div class="cline dcard" title="'+esc('디데이 카드 D-'+a.dNumber+(a.name?(' · '+a.name):'')+(a.teaser?(' — '+a.teaser):''))+'" style="cursor:pointer;border-left:3px solid #C8821C;background:#FBF3E6;color:#7a4d12;font-weight:700">'
+      html+='<div class="cline dcard" title="'+esc('디데이 카드 D-'+a.dNumber+(a.name?(' · '+a.name):'')+(a.teaser?(' — '+a.teaser):''))+'" style="cursor:pointer;border-left:3px solid #C8821C;background:rgba(216,162,74,.14);color:#E3C07E;font-weight:700">'
         +'★ 디데이 D-'+a.dNumber+(a.name?(' · '+esc(a.name)):'')
-        +(a.teaser?('<div style="font-weight:400;font-size:11px;color:#8a5a1a;white-space:normal;margin-top:2px">'+esc(a.teaser)+'</div>'):'')
-        +(ph?('<div class="dcphs">'+ph+'</div>'):'<div style="font-weight:400;font-size:10px;color:#a9762a;margin-top:2px">사진 업로드 대기</div>')
+        +(a.teaser?('<div style="font-weight:400;font-size:11px;color:#CBA968;white-space:normal;margin-top:2px">'+esc(a.teaser)+'</div>'):'')
+        +(ph?('<div class="dcphs">'+ph+'</div>'):'<div style="font-weight:400;font-size:10px;color:#B99458;margin-top:2px">사진 업로드 대기</div>')
         +'</div>';
     });
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
@@ -612,7 +612,7 @@ function addContent(date){
 }
 var curFilter={kind:'all'};
 var STCOL={planned:'#4C554D',draft:'#8A5A0B',ready:'#1F6B4F'};   // 솔리드·점 — 흰 글씨 7.74/5.92/6.41 (이전 2.67/3.15/3.99 미달)
-var STCHIP={planned:['#EDEFEA','#4C554D'],draft:['#FBF0DC','#8A5A0B'],ready:['#E2F0E9','#1F6B4F']};   // [연배경, 잉크] — 배지용
+var STCHIP={planned:['rgba(255,255,255,.07)','#B7C0B8'],draft:['rgba(232,165,75,.14)','#E8A54B'],ready:['rgba(59,227,138,.13)','#66DDA0']};   // [연배경, 잉크] — 배지용
 var STAGES=[['planned','기획'],['draft','작성중'],['ready','완료']];
 function matchFilter(d,s,e){
   var f=curFilter; if(!f||f.kind==='all') return true;
@@ -2415,7 +2415,7 @@ function deleteNews(id){
 /* ===== 현장 제보 인박스 ===== */
 var tipItems=[], tipLoaded=false, tipFilter='all', tipEdit=null;
 // [라벨, 연배경, 잉크] — 흰 글씨 솔리드였으나 대비 미달이라 연한 칩으로
-var TIP_STATUS={ 'new':['새 제보','var(--st-planned-bg)','var(--st-planned)'], 'used':['채택','var(--st-ready-bg)','var(--st-ready)'], 'rejected':['반려','#F9EBE7','var(--danger)'] };
+var TIP_STATUS={ 'new':['새 제보','var(--st-planned-bg)','#C2CBC3'], 'used':['채택','var(--st-ready-bg)','#66DDA0'], 'rejected':['반려','rgba(210,84,60,.15)','#E68A7C'] };
 function loadTips(){
   fetch('/api/jp-tips',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
     .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); })

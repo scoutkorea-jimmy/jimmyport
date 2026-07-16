@@ -129,7 +129,8 @@ const SEED = () => {
   }));
   chk('8/5 일정 2건 렌더(t1·t2)', tt.evs === 2 && tt.t1 && tt.t2, tt.evs + '건');
   chk('취재 불필요(t2) 회색 · 배지', tt.nocover === 1 && tt.nctag);
-  chk('취재 불필요 배경 = 회색', /237|238|239|230/.test(tt.bg), tt.bg);
+  // 취재 불필요 = 저채도 비활성 블록. 라이트=고명도 회색 / 다크=저명도 회색 둘 다 통과하도록 채도로 검사.
+  chk('취재 불필요 배경 = 저채도 회색(비활성)', (() => { const m = (tt.bg.match(/\d+/g) || []).map(Number); if (m.length < 3) return false; return Math.max(m[0], m[1], m[2]) - Math.min(m[0], m[1], m[2]) <= 16; })(), tt.bg);
   chk('일반 일정(t1) 은 카테고리색 유지', !/237, 239, 240/.test(tt.t1bg), tt.t1bg);
   chk('토글 버튼 2개', tt.cov === 2);
   chk('식순 인라인(일간뷰) 1행', tt.rd === 1, tt.rd + '행');
@@ -241,12 +242,20 @@ const SEED = () => {
   chk('흰 글씨를 얹는 요소 전부 대비 4.5+', wbad.length === 0,
     wbad.length ? wbad.map((w) => w.what + ' ' + CR(w.fg, w.bg).toFixed(2)).join(' | ') : white.length + '개 검사');
 
-  const tok = await page.evaluate(() => { const cs = getComputedStyle(document.documentElement);
-    return ['--st-planned', '--st-draft', '--st-ready', '--muted', '--danger', '--c-sub', '--c-app', '--c-fin', '--c-rest']
-      .map((k) => [k, cs.getPropertyValue(k).trim()]); });
+  // 다크 관제(v0.9.183): 토큰이 이중 역할이라 대비 계약을 둘로 나눈다 —
+  //  솔리드(상태·단계·위험)는 "흰 글씨를 얹는 배경"이라 흰색 대비 4.5+,
+  //  텍스트 역할(muted/ink-2)은 어두운 지면(--bg) 위에서 4.5+.
+  const themed = await page.evaluate(() => { const cs = getComputedStyle(document.documentElement);
+    const g = (k) => cs.getPropertyValue(k).trim();
+    return { bg: g('--bg'),
+      solids: ['--st-planned', '--st-draft', '--st-ready', '--danger', '--c-sub', '--c-app', '--c-fin', '--c-rest'].map((k) => [k, g(k)]),
+      texts: ['--muted', '--ink-2', '--ink'].map((k) => [k, g(k)]) }; });
   const h2 = (h) => { h = h.replace('#', ''); return 'rgb(' + [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',') + ')'; };
-  const tbad = tok.filter(([, v]) => v.startsWith('#') && CR(h2(v), 'rgb(255,255,255)') < 4.5);
-  chk('상태·단계 토큰 전부 흰 글씨 4.5+', tbad.length === 0, tbad.map(([k, v]) => k + ' ' + v).join(' | ') || tok.length + '개 검사');
+  const sbad = themed.solids.filter(([, v]) => v.startsWith('#') && CR(h2(v), 'rgb(255,255,255)') < 4.5);
+  chk('상태·단계 솔리드 전부 흰 글씨 4.5+', sbad.length === 0, sbad.map(([k, v]) => k + ' ' + v).join(' | ') || themed.solids.length + '개 검사');
+  const ground = themed.bg.startsWith('#') ? h2(themed.bg) : themed.bg;
+  const xbad = themed.texts.filter(([, v]) => v.startsWith('#') && CR(h2(v), ground) < 4.5);
+  chk('텍스트 토큰 전부 지면 대비 4.5+', xbad.length === 0, xbad.map(([k, v]) => k + ' ' + v + ' vs ' + themed.bg).join(' | ') || themed.texts.length + '개 검사(지면 ' + themed.bg + ')');
 
   console.log('\n[디자인 — 레이아웃]');
   for (const W of [390, 430]) {
