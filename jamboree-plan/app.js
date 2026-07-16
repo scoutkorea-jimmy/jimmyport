@@ -397,7 +397,8 @@ function applyServer(j){
     if(isExtra){ var p=k.split('#'), date=p[0], id=p[2]; if(!state.extra[date]) state.extra[date]=[]; if(!state.extra[date].some(function(x){return x.id===id;})) state.extra[date].push({id:id,category:(r.edit&&r.edit.category)||'콘텐츠'}); }
   });
   if(j&&j.marketing) state.marketing=j.marketing;
-  if(j&&j.meals&&typeof j.meals==='object') state.meals=j.meals;
+  state._mealsFromServer=!!(j&&j.meals&&typeof j.meals==='object'&&Object.keys(j.meals).length);
+  if(state._mealsFromServer) state.meals=j.meals;
   if(j&&j.types) state.types=j.types;
   if(j&&j.events) state.events=j.events;
   if(j&&j.timetable) state.timetable=j.timetable;
@@ -616,20 +617,19 @@ function renderCalendar(){
       }
     });
     if(minis) html+='<div class="cminis">'+minis+'</div>';
-    // 의전 일정 — 같은 사람은 한 줄로 뭉치고 사람 이름으로 구분(시간 지정 항목만). 검색 비일치=회색
+    // 의전 일정 — 이벤트(활동)별로 묶고, 참여자를 '구분(대회장 등)+이름'으로 표기(직책 총재 X). 시간 지정 항목만. 검색 비일치=회색
     var prToday=protocolList().filter(function(p){ return p.date===rec.date && (p.time||'').trim(); });
     if(prToday.length){
-      var prGroups={};
-      prToday.forEach(function(p){ var k=protPersonKey(p); if(!prGroups[k]) prGroups[k]={p:p, items:[]}; prGroups[k].items.push(p); });
-      Object.keys(prGroups).map(function(k){ return prGroups[k]; })
-        .sort(function(a,b){ var ra=protRoleRank(a.p.role), rb=protRoleRank(b.p.role); if(ra!==rb) return ra-rb; return (a.p.name||'').localeCompare(b.p.name||'','ko'); })
-        .forEach(function(g){
-          var name=g.p.name||g.p.role||'의전';
-          var acts=g.items.slice().sort(function(x,y){ return (x.time||'').localeCompare(y.time||''); })
-            .map(function(x){ return esc(x.time)+' '+esc(x.activity||x.role||''); });
-          var pg=q&&((name+' '+g.items.map(function(x){return (x.activity||'');}).join(' ')+' '+(g.p.role||'')).toLowerCase().indexOf(ql)<0);
-          html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(g.p.id)+'" title="'+esc('의전 · '+prWho(g.p)+' · '+g.items.map(function(x){return (x.time||'')+' '+(x.activity||'');}).join(', '))+'"><span class="prtag">의전</span><b class="pr-name">'+esc(name)+'</b> '+acts.join(' · ')+'</div>';
-        });
+      var evGroups={}, evOrder=[];
+      prToday.forEach(function(p){ var k=JSON.stringify([p.time||'', p.activity||'']); if(!evGroups[k]){ evGroups[k]={time:p.time, activity:p.activity, people:[], first:p}; evOrder.push(k); } evGroups[k].people.push(p); });
+      evOrder.sort(function(a,b){ return (evGroups[a].time||'').localeCompare(evGroups[b].time||''); }).forEach(function(k){
+        var g=evGroups[k];
+        var ppl=g.people.slice().sort(function(x,y){ var ra=protRoleRank(x.role), rb=protRoleRank(y.role); if(ra!==rb) return ra-rb; return (x.name||'').localeCompare(y.name||'','ko'); });
+        var pplRaw=ppl.map(function(x){ return ((x.role||'')+' '+(x.name||'')).trim(); });
+        var evName=g.activity||g.first.role||'의전';
+        var pg=q&&((evName+' '+pplRaw.join(' ')).toLowerCase().indexOf(ql)<0);
+        html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(g.first.id)+'" title="'+esc('의전 · '+(g.time||'')+' '+evName+' · '+pplRaw.join(', '))+'"><span class="prtag">의전</span>'+(g.time?('<span class="pr-time">'+esc(g.time)+'</span> '):'')+'<b class="pr-name">'+esc(evName)+'</b> '+pplRaw.map(function(t){return esc(t);}).join(' · ')+'</div>';
+      });
     }
     // 디데이 프로젝트 승인 카드(자동 연동) — 사진·문구 표시(홍보부 SNS 카드뉴스 준비용)
     dcountApproved.filter(function(a){ return a.targetDate===rec.date; }).forEach(function(a){
@@ -1383,24 +1383,65 @@ function renderMarketing(){
   });
 }
 
-/* ===== 잼버리식당 식사 메뉴 (meals) — 대원/운영요원 × 날짜 × 조·중·석식 편집표 ===== */
+/* ===== 잼버리식당 식사 메뉴 (meals) — 대원 일반식/특별식 · 운영요원 × 날짜 × 조·중·석식 ===== */
 var MEAL_DAYS=['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07','2026-08-08','2026-08-09'];
 var MEAL_COLS=[['b','조식'],['l','중식'],['d','석식']];
-var mealGroup='crew';   // crew=대원 · staff=운영요원
-function mealsData(){ if(!state.meals||typeof state.meals!=='object') state.meals={}; if(!state.meals.crew) state.meals.crew={}; if(!state.meals.staff) state.meals.staff={}; return state.meals; }
+var MEAL_GROUPS=[['crew_n','대원 일반식'],['crew_s','대원 특별식'],['staff','운영요원']];
+var MEAL_NOTE={ staff:'조식 고정메뉴: 그린샐러드&드레싱 · 식빵&모닝빵&딸기잼 · 우유(흰·딸기·초코) / 중식·석식: 제철과일 제공' };
+var mealGroup='crew_n';
+function mealsData(){
+  if(!state.meals||typeof state.meals!=='object') state.meals={};
+  MEAL_GROUPS.forEach(function(g){ if(!state.meals[g[0]]) state.meals[g[0]]={}; });
+  if(state.meals.crew){ Object.keys(state.meals.crew).forEach(function(d){ if(!state.meals.crew_n[d]) state.meals.crew_n[d]=state.meals.crew[d]; }); delete state.meals.crew; }   // 구버전 crew→crew_n 이관
+  return state.meals;
+}
 function saveMeals(){ debouncedPut('mealTimer', {meals: mealsData()}, '식사 메뉴 저장됨'); }
+// 사용자 제공 메뉴표(대원 일반식·특별식 8/5~8/9 · 운영요원 8/3~8/9). 여러 품목은 줄바꿈으로 저장.
+function defaultMeals(){
+  function C(){ return Array.prototype.slice.call(arguments).filter(Boolean).join('\n'); }
+  return {
+    crew_n:{
+      '2026-08-06':{ b:C('롤유부초밥','미역된장국','직화구이맛후랑크구이','요거트','청포도랑사과랑주스'), l:C('달콤화이트패스츄리빵','빅요구르트','허쉬초코퍼지휘낭시애','쫄깃한메추리알','미니팝콘','복숭아곤약젤리'), d:C('돼지김치찌개&라면사리','클로렐라쌀밥','쇠고기장조림','포켓몬스틱김자반','콘샐러드','스위트애플망고주스','계절과일') },
+      '2026-08-07':{ b:C('모닝빵&딸기잼','초코우유','고칼슘꼬마약과','고단백에너지바','계절과일'), l:C('초코칩머핀','아침에주스포도','우리밀바나나빵','뽀로로두부북','국산콩두부칩','쭈욱짜먹는애플'), d:C('삼겹살구이','클로렐라쌀밥','우거지된장국','상추,쌈무&쌈장','볶음김치','제로사이다','스테비아방울토마토') },
+      '2026-08-08':{ b:C('셀프햄치즈토스트','바나나맛우유','꿈을꿔요아몬드림','골드키위퓨레'), l:C('미니딸기샌드','레몬에이드','크림치즈휘낭시애','구운계란','그레인미니바이트초코','감귤퐁당컵과일'), d:C('치킨마크네거리','클로렐라쌀밥','종합어묵탕','김치','메추리알장조림','제주한라봉퓨레','계절과일') },
+      '2026-08-09':{ b:C('컵시리얼&흰우유','촉촉한반숙란','샐러드주스오렌지','딸기구겔호프','액티비아딸기요거트'), l:'', d:'' },
+      '2026-08-05':{ b:'', l:'', d:C('비프유니짜장덮밥','햇반','계란북엇국','고메함박스테이크','반달단무지','복숭아퐁당컵과일','쥬시쿨자두') }
+    },
+    crew_s:{
+      '2026-08-06':{ b:C('롤유부초밥','미역된장국','스크래블에그','요거트','청포도랑사과랑주스'), l:C('달콤화이트패스츄리빵','빅요구르트','허쉬초코퍼지휘낭시애','쫄깃한메추리알','미니팝콘','복숭아곤약젤리'), d:C('황태미역국','클로렐라쌀밥','직화순살삼치구이','포켓몬스틱김자반','저당콘감자샐러드','스위트애플망고주스','계절과일') },
+      '2026-08-07':{ b:C('모닝빵&딸기잼','초코우유','고칼슘꼬마약과','고단백에너지바','계절과일'), l:C('초코칩머핀','아침에주스포도','우리밀바나나빵','뽀로로두부북','국산콩두부칩','쭈욱짜먹는애플'), d:C('직화순살고등어구이','클로렐라쌀밥','우거지된장국','저당콘감자샐러드','볶음김치','제로사이다','스테비아방울토마토') },
+      '2026-08-08':{ b:C('스크램블토스트','바나나맛우유','꿈을꿔요아몬드림','골드키위퓨레'), l:C('미니딸기샌드','레몬에이드','크림치즈휘낭시애','구운계란','그레인미니바이트초코','감귤퐁당컵과일'), d:C('직화가자미구이','클로렐라쌀밥','미역미소된장국','김치','메추리알장조림','제주한라봉퓨레','계절과일') },
+      '2026-08-09':{ b:C('컵시리얼&흰우유','촉촉한반숙란','샐러드주스오렌지','딸기구겔호프','액티비아딸기요거트'), l:'', d:'' },
+      '2026-08-05':{ b:'', l:'', d:C('동원짜장참치캔','햇반','계란북엇국','직화가자미구이','반달단무지','복숭아퐁당컵과일','쥬시쿨자두') }
+    },
+    staff:{
+      '2026-08-03':{ b:C('쌀밥','소고기미역국','떡갈비&양송이','김치'), l:C('쌀밥','비프카레','맑은김치국','통등심돈까스','시금치나물','블루베리샐러드','김치'), d:C('[망고음료]','쌀밥','닭개장','오징어야채핫바','메추리알조림','건파래볶음','김치') },
+      '2026-08-04':{ b:C('쌀밥','소고기우거지국','고등어무조림','김치'), l:C('쌀밥','황태무국','닭볶음탕','김말이강정','오이양파무침','김치'), d:C('[포도음료]','쌀밥','건새우아욱국','파채소불고기','야채계란찜','무말랭이무침','김치') },
+      '2026-08-05':{ b:C('쌀밥','쑥갓어묵탕','미트볼야채볶음','김치'), l:'', d:C('[요거트푸딩]','쌀밥','사골떡국','단호박순살갈비찜','갈비만두찜','치커리유자청무침','김치') },
+      '2026-08-06':{ b:C('쌀밥','소고기무국','메추리알장조림','김치'), l:C('화이트패스츄리빵','빅요구르트','초코퍼지휘낭시애','쫄깃한메추리알','미니팝콘','복숭아곤약젤리'), d:C('[오색경단]','장각삼계탕','쌀밥','김치전','오이고추짱장무침','요구르트','김치') },
+      '2026-08-07':{ b:C('돈육짜장덮밥','팽이장국','등심탕수육','김치'), l:C('초코칩머핀','아침에주스포도','우리밀바나나빵','뽀로로두부북','국산콩두부칩','쭈욱짜먹는애플'), d:C('[사과주스]','삼겹보쌈','쌀밥','얼갈이된장국','비빔막국수','배추된장무침','김치') },
+      '2026-08-08':{ b:'', l:C('미니딸기샌드','레몬에이드','크림치즈휘낭시애','구운계란','그레인미니바이트초코','감귤퐁당컵과일'), d:C('[카프리썬]','쌀밥','된장찌개','제육볶음','한식잡채','부추걸절이','김치') },
+      '2026-08-09':{ b:C('쌀밥','얼큰 무채어묵탕','떡갈비야채조림','김치'), l:'', d:'' }
+    }
+  };
+}
+function mealsHasContent(){ var m=mealsData(); return MEAL_GROUPS.some(function(g){ var gg=m[g[0]]||{}; return Object.keys(gg).some(function(d){ var r=gg[d]||{}; return !!(r.b||r.l||r.d); }); }); }
+// 서버에 저장본이 없고 비어 있으면 사용자 제공 메뉴로 시드 + 저장(공유 보드 반영). 내용이 하나라도 있으면 보존.
+function upgradeMeals(){ if(!state._mealsFromServer && !mealsHasContent()){ state.meals=defaultMeals(); saveMeals(); state._mealsFromServer=true; } }
 function renderMeals(){
   var seg=document.getElementById('meal-groupseg');
   if(seg) seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.mg===mealGroup); });
+  var note=document.getElementById('meal-note');
+  if(note){ var nt=MEAL_NOTE[mealGroup]||''; note.textContent=nt; note.style.display=nt?'':'none'; }
   var tb=document.getElementById('mealbody'); if(!tb) return; tb.innerHTML='';
   var g=mealsData()[mealGroup]||{};
   MEAL_DAYS.forEach(function(d){
     var row=g[d]||{}, wd=WD[new Date(d+'T00:00:00').getDay()];
     var tr=document.createElement('tr');
     tr.innerHTML='<td class="mealdate">'+d.slice(5).replace('-','/')+' <span class="wd">('+wd+')</span></td>'+
-      MEAL_COLS.map(function(c){ return '<td class="mk" contenteditable data-c="'+c[0]+'">'+esc(row[c[0]]||'')+'</td>'; }).join('');
+      MEAL_COLS.map(function(c){ return '<td class="mk mealcell" contenteditable data-c="'+c[0]+'">'+esc(row[c[0]]||'')+'</td>'; }).join('');
     tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){
-      var data=mealsData(); if(!data[mealGroup][d]) data[mealGroup][d]={}; data[mealGroup][d][td.dataset.c]=td.textContent.trim(); saveMeals();
+      var data=mealsData(); if(!data[mealGroup][d]) data[mealGroup][d]={}; data[mealGroup][d][td.dataset.c]=(td.innerText||'').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'').trim(); saveMeals();
     }); });
     tb.appendChild(tr);
   });
@@ -1506,7 +1547,7 @@ function ttEventBlockHtml(t, geo, dayView){
   var cubTag=isCub?('<span class="cubtag">'+esc(CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1])+'</span> '):'';
   return '<div class="ttg-ev'+(dayView?' big':'')+(t.noCover?' nocover':'')+(isCub?' cub':'')+'" data-id="'+esc(t.id)+'" title="'+esc((isCub?('컵 '+CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1]+' · '):'')+ttBlockTooltip(t,who,cons))+'" style="'+ttGeoStyle(geo)+';background:'+bg+'">'+
     '<div class="ttg-rz top" data-id="'+esc(t.id)+'" title="시작 시간 조절"></div>'+
-    '<button class="ttg-cov'+(t.noCover?' on':'')+'" data-cov="'+esc(t.id)+'" title="'+(t.noCover?'취재 불필요 해제':'취재 불필요로 표시')+'" aria-label="취재 불필요 토글" aria-pressed="'+(t.noCover?'true':'false')+'">'+icon('camera',11)+'</button>'+
+    '<button class="ttg-cov'+(t.noCover?' on':'')+'" data-cov="'+esc(t.id)+'" title="'+(t.noCover?'취재 불필요 해제':'취재 불필요로 표시')+'" aria-label="취재 불필요 토글" aria-pressed="'+(t.noCover?'true':'false')+'">'+icon('edit',11)+'</button>'+
     '<button class="ttg-del" data-id="'+esc(t.id)+'" title="이 일정 삭제" aria-label="일정 삭제">'+icon('x',12)+'</button>'+
     '<div class="ttg-evt">'+cubTag+(t.noCover?'<span class="nctag">취재 X</span> ':'')+esc(t.title||'(제목 없음)')+'</div>'+
     '<div class="ttg-evm">'+esc(t.start||'')+(t.end?('–'+esc(t.end)):'')+(t.place?(' · '+esc(t.place)):'')+'</div>'+
@@ -1781,7 +1822,7 @@ function afterTimetableChange(){
 /* --- 데이터 변경만 담당 (저장·렌더·알림은 호출부 책임) --- */
 function setTtNoCover(id, on){ var t=ttById(id); if(!t) return null; t.noCover=!!on; return t; }
 function removeTt(id){ state.timetable=ttList().filter(function(t){ return t.id!==id; }); }
-function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', zone:ttDraft.zone||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', tipId:ttDraft.tipId||'', noCover:!!ttDraft.noCover, rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
+function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', zone:ttDraft.zone||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', tipId:ttDraft.tipId||'', track:ttDraft.track||'', batch:ttDraft.batch||0, noCover:!!ttDraft.noCover, rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
 /* 취재 불필요 — 그리드 블록에서 바로 토글(여러 건을 빠르게 표시하려고 모달 없이) */
 function toggleNoCover(id){
   var t=setTtNoCover(id, !((ttById(id)||{}).noCover));
@@ -3308,7 +3349,7 @@ function setView(v){
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); upgradeMeals(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 }

@@ -192,7 +192,7 @@ const SEED = () => {
     seg: [...document.querySelectorAll('#meal-groupseg button')].map((b) => b.textContent + (b.classList.contains('on') ? '*' : '')),
     cells: document.querySelectorAll('#mealbody td.mk[contenteditable]').length }));
   chk('식사 메뉴 7일(8/3~8/9) × 3끼', ml.rows === 7 && ml.cells === 21, ml.rows + '행 · ' + ml.cells + '칸');
-  chk('대원/운영요원 토글(대원 기본)', ml.seg.length === 2 && ml.seg[0] === '대원*', ml.seg.join(' '));
+  chk('식사 3그룹 토글(대원 일반식·특별식·운영요원)', ml.seg.length === 3 && ml.seg[0] === '대원 일반식*', ml.seg.join(' '));
 
   console.log('\n[소식 제보 → 일정]');
   await go('tips');

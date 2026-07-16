@@ -69,10 +69,11 @@ function cleanDivision(e) {
     support: (e.support || "").toString().slice(0, 60),
   };
 }
-// 식사 메뉴: { crew:{ "YYYY-MM-DD":{b,l,d} }, staff:{...} } — 그룹 2개·날짜 31개·끼니 3개로 제한
+// 식사 메뉴: { crew_n/crew_s/staff:{ "YYYY-MM-DD":{b,l,d} } } — 그룹 3개·날짜 31개·끼니 3개로 제한(구버전 crew 호환)
 function cleanMeals(m) {
   const out = {};
-  ["crew", "staff"].forEach((g) => {
+  ["crew_n", "crew_s", "staff", "crew"].forEach((g) => {
+    if (!(m && m[g])) return;
     const src = m && m[g] && typeof m[g] === "object" ? m[g] : {};
     const days = {};
     Object.keys(src).slice(0, 31).forEach((d) => {
