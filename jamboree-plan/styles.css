@@ -556,6 +556,13 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .ttlegend .li{display:inline-flex;align-items:center;gap:6px}
 .ttlegend .sw{width:11px;height:11px;border-radius:3px;display:inline-block}
 .ttlegend .li-sep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
+.ttfilter{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
+.ttfilter .ttf-lab{font-size:11px;font-weight:700;color:var(--muted);margin-right:2px}
+.ttfchip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:5px 11px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);cursor:pointer;border-radius:var(--pill);transition:var(--ease)}
+.ttfchip .sw{width:9px;height:9px;border-radius:2px;display:inline-block;opacity:.4;transition:var(--ease)}
+.ttfchip.on{background:var(--accent);color:#fff;border-color:transparent}
+.ttfchip.on .sw{opacity:1}
+.ttfchip.all{font-weight:700}
 /* 컵 참관단 기수 태그(블록 안) */
 .ttg-ev.cub .cubtag{display:inline-block;font-size:9px;font-weight:800;line-height:1.5;padding:0 5px;border-radius:var(--pill);background:rgba(255,255,255,.28);color:#fff;vertical-align:1px;margin-right:2px}
 .ttg-grouplab.gl-pr{color:#C89A3E}
