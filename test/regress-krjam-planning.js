@@ -78,13 +78,14 @@ const SEED = () => {
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errors.push('console: ' + m.text()); });
   await page.evaluateOnNewDocument(SEED);
   await page.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
-  await page.waitForSelector('.tabbar', { timeout: 10000 });
+  await page.waitForSelector('.wsbar', { timeout: 10000 });
 
-  const go = async (v) => { await page.evaluate((x) => document.querySelector('[data-v="' + x + '"]').click(), v); await new Promise((r) => setTimeout(r, 250)); };
+  // 2단 내비게이션: 뷰 전환은 setView 로 직접(세부탭은 활성 공간에서만 보이므로) — 이 스위트는 뷰 동작 검증이 목적
+  const go = async (v) => { await page.evaluate((x) => setView(x), v); await new Promise((r) => setTimeout(r, 250)); };
 
   console.log('\n[부팅 · 탭]');
-  chk('게이트 통과 · 탭바 렌더', await page.$('.tabbar') !== null);
-  chk('탭 그룹 4개(개요·콘텐츠·현장·인원)', (await page.$$('.tabgroup')).length === 4, (await page.$$('.tabgroup')).length + '개');
+  chk('게이트 통과 · 공간바 렌더', await page.$('.wsbar') !== null);
+  chk('업무 4공간(대시보드·콘텐츠·현장·팀·자료)', (await page.$$('.wstab')).length === 4, (await page.$$('.wstab')).length + '공간');
 
   console.log('\n[콘텐츠 리스트(보드)]');
   await go('list');

@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.183"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.183">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.183">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.184"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.184">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.184">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -88,40 +88,27 @@
     </div>
   </header>
 
-  <nav class="tabbar" role="tablist" aria-label="메뉴">
-    <div class="tabgroup" data-grp>
-      <span class="tg-label">개요</span>
-      <div class="tg-tabs">
-        <button class="vtab active" data-v="dashboard" role="tab"><span data-ic="grid"></span> 대시보드</button>
-      </div>
-    </div>
-    <div class="tabgroup" data-grp>
-      <span class="tg-label">콘텐츠 · SNS</span>
-      <div class="tg-tabs">
-        <button class="vtab" data-v="calendar" role="tab"><span data-ic="calendar"></span> 캘린더</button>
-        <button class="vtab" data-v="list" role="tab"><span data-ic="list"></span> 콘텐츠 리스트</button>
-        <button class="vtab" data-v="news" role="tab"><span data-ic="fileText"></span> 기사</button>
-        <button class="vtab" data-v="tips" role="tab"><span data-ic="inbox"></span> 소식 제보</button>
-        <button class="vtab" data-v="library" role="tab"><span data-ic="image"></span> 자료실</button>
-      </div>
-    </div>
-    <div class="tabgroup" data-grp>
-      <span class="tg-label">현장 일정</span>
-      <div class="tg-tabs">
-        <button class="vtab" data-v="timetable" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
-        <button class="vtab" data-v="sitemap" role="tab"><span data-ic="mapPin"></span> 현장 위치 지도</button>
-        <button class="vtab" data-v="protocol" role="tab"><span data-ic="grid"></span> 의전 일정</button>
-      </div>
-    </div>
-    <div class="tabgroup" data-grp>
-      <span class="tg-label">인원 · 연락망</span>
-      <div class="tg-tabs">
-        <button class="vtab" data-v="staff" role="tab"><span data-ic="users"></span> 홍보부 인원</button>
-        <button class="vtab" data-v="contacts" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
-        <button class="vtab" data-v="orginfo" role="tab"><span data-ic="users"></span> 분단 연락망</button>
-      </div>
-    </div>
+  <!-- 2단 내비게이션: 업무 공간(primary) → 공간별 세부(sub). 항목/뷰는 그대로, 배치만 업무 중심으로. -->
+  <nav class="wsbar" role="tablist" aria-label="업무 공간">
+    <button class="wstab active" data-ws="dash" role="tab"><span data-ic="grid"></span> 대시보드</button>
+    <button class="wstab" data-ws="content" role="tab"><span data-ic="list"></span> 콘텐츠</button>
+    <button class="wstab" data-ws="field" role="tab"><span data-ic="mapPin"></span> 현장</button>
+    <button class="wstab" data-ws="team" role="tab"><span data-ic="users"></span> 팀·자료</button>
   </nav>
+  <div class="subbar" id="subbar" role="tablist" aria-label="세부 메뉴">
+    <button class="vtab active" data-v="dashboard" data-ws="dash" role="tab"><span data-ic="grid"></span> 대시보드</button>
+    <button class="vtab" data-v="calendar" data-ws="content" role="tab"><span data-ic="calendar"></span> 캘린더</button>
+    <button class="vtab" data-v="list" data-ws="content" role="tab"><span data-ic="list"></span> 콘텐츠</button>
+    <button class="vtab" data-v="news" data-ws="content" role="tab"><span data-ic="fileText"></span> 기사</button>
+    <button class="vtab" data-v="tips" data-ws="content" role="tab"><span data-ic="inbox"></span> 소식 제보</button>
+    <button class="vtab" data-v="timetable" data-ws="field" role="tab"><span data-ic="clock"></span> 잼버리 일정표</button>
+    <button class="vtab" data-v="sitemap" data-ws="field" role="tab"><span data-ic="mapPin"></span> 현장 위치 지도</button>
+    <button class="vtab" data-v="protocol" data-ws="field" role="tab"><span data-ic="grid"></span> 의전 일정</button>
+    <button class="vtab" data-v="staff" data-ws="team" role="tab"><span data-ic="users"></span> 홍보부 인원</button>
+    <button class="vtab" data-v="contacts" data-ws="team" role="tab"><span data-ic="phone"></span> 협조 연락처</button>
+    <button class="vtab" data-v="orginfo" data-ws="team" role="tab"><span data-ic="users"></span> 분단 연락망</button>
+    <button class="vtab" data-v="library" data-ws="team" role="tab"><span data-ic="image"></span> 자료실</button>
+  </div>
 
   <section id="dashboard">
     <div class="sec-head">
@@ -544,12 +531,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.183"></script>
+<script src="jamboree-plan/core.js?v=0.9.184"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.183"></script>
+<script src="jamboree-plan/upload.js?v=0.9.184"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.183"></script>
-<script src="jamboree-plan/app.js?v=0.9.183"></script>
-<script src="version-watch.js?v=0.9.183"></script>
+<script src="jamboree-plan/library.js?v=0.9.184"></script>
+<script src="jamboree-plan/app.js?v=0.9.184"></script>
+<script src="version-watch.js?v=0.9.184"></script>
 </body>
 </html>

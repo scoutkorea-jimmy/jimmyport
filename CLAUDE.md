@@ -1132,6 +1132,15 @@ WOSM Region → 국가(NSO) → 단위대
 - **회귀 다크 계약 갱신**: 토큰 대비 테스트를 솔리드(흰글씨 4.5+)/텍스트(지면 4.5+) 둘로 분리, '취재 불필요' 배경 검사를 특정 밝은값→**저채도(채도차 ≤16)**로(라이트·다크 공용). --danger는 흰글씨 계약 지키게 #C0492F(4.5+), 텍스트 배지는 밝게 별도.
 - 검증: 회귀 **43/43·22/22·29/29**(jebo 라이트 유지 확인) + 헤드리스 실제 보드 스크린샷 육안(대시보드·리스트/칸반·모달·일정표 전부 다크 일관·가독). ⚠️ 목업의 **IA 4공간 재편·콘텐츠 파이프라인·지도 공백구역**은 2단계(JS/HTML 구조 변경)로 별도 실제 구현 예정 — 이번은 테마만.
 
+### 16.63 v0.9.184 — /krjam-planning IA 재편: 12탭 → 업무 4공간(2단 내비게이션) (2단계)
+- 사용자: "구조 재편 들어가". 목업 최종안의 **업무 중심 IA**를 실제 코드에 이식. 뷰 렌더 로직·기능·데이터는 그대로, **내비게이션 셸만 2단 구조**로 바꿔 리스크 최소화.
+- **12개 평평한 탭 → 업무 4공간 + 공간별 세부**: ① 대시보드(dashboard) ② 콘텐츠(calendar·list·news·tips) ③ 현장(timetable·sitemap·protocol) ④ 팀·자료(staff·contacts·orginfo·library). 상단 **공간바(wsbar)** → 선택 공간의 **세부바(subbar)**만 아래 노출(뷰 1개인 대시보드는 세부바 숨김).
+- **HTML**(krjam-planning.html): `.tabbar`(4 tabgroup 전개) → `.wsbar`(4 wstab) + `.subbar`(12 vtab, 각 `data-ws` 태그). 항목 이름·순서·기능 불변.
+- **CSS**: `.tabgroup/.tg-label/.tg-tabs` 제거, `.wsbar/.wstab/.subbar` 신설(다크 관제 톤, wstab=primary·vtab=sub). 모바일: 상단 wsbar 숨김 + subbar 상단 sticky 가로 스크롤.
+- **JS**(app.js): `WS_LIST/WS_VIEWS/wsOfView/wsHasVisible` + `renderNav()`(공간·세부 활성/가시성, canSee 기준) + `setWorkspace(ws)`(그 공간 마지막 뷰/첫 뷰로, `wsLastView` 기억). `setView`가 renderNav 호출·wsLastView 갱신. `reflectAuthUI`는 renderNav+renderBotNav 로 단순화(옛 vtab/그룹 표시 로직 제거). **모바일 하단 탭 = 4공간**(옛 5탭+더보기 시트 폐기 — navItems/openNavSheet/BOTNAV_PRIMARY 제거, 세부는 상단 subbar 스크롤로). 배선: wstab→setWorkspace, vtab→setView, botnav[data-bnws]→setWorkspace.
+- 권한: canSee 그대로 — 공간은 "보이는 뷰가 하나라도 있으면" 노출. 일반 회원 = 대시보드+콘텐츠(캘린더·리스트·기사)+현장(일정표만)+팀·자료(자료실만), 관리 탭(staff/contacts/orginfo/protocol/sitemap/tips) 안 보임·직접호출 차단 유지.
+- 검증: **회귀 nav 18/18 전면 재작성**(2단: 공간→세부로 PC·모바일 12뷰 전부 도달·권한·넘침 0) + planning 43/43(부팅 검사 .tabbar→.wsbar·.tabgroup→.wstab, go()=setView 직접) + jebo 29/29 + 헤드리스 실제 보드(PC 공간바+세부바·모바일 하단 4공간+상단 세부 스크롤) 육안. ⚠️ 옛 navsheet DOM/CSS(.sheet 등)는 dormant 잔존(숨김·무해, 추후 정리). ⏳ 3단계=콘텐츠 파이프라인(제보 인박스+검수 단계) · 4단계=지도 공백구역 — 별도 실제 구현.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-16 — krjam-planning 라이브 KV 일정표 종류 색 정정 (v0.9.171 STEP3)

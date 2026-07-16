@@ -2125,6 +2125,41 @@ function renderProtocol(){
 var SESSION_KEY='jamboree-plan:session';
 // 홍보부 운영·관리 탭(유형 '홍보부' 또는 관리자만 접근) vs 콘텐츠 탭(모든 회원)
 var MANAGE_TABS=['staff','contacts','orginfo','protocol'];
+
+/* ===== 2단 내비게이션 (v0.9.184) — 업무 공간(workspace) → 세부 뷰 =====
+   12개 평평한 탭을 업무 4공간으로 묶는다. 뷰 렌더 로직은 그대로, 배치·탐색만 바꾼다. */
+var WS_LIST=[{ws:'dash',label:'대시보드',ic:'grid'},{ws:'content',label:'콘텐츠',ic:'list'},{ws:'field',label:'현장',ic:'mapPin'},{ws:'team',label:'팀·자료',ic:'users'}];
+var WS_VIEWS={ dash:['dashboard'], content:['calendar','list','news','tips'], field:['timetable','sitemap','protocol'], team:['staff','contacts','orginfo','library'] };
+function wsOfView(v){ for(var k in WS_VIEWS){ if(WS_VIEWS[k].indexOf(v)>=0) return k; } return 'dash'; }
+function wsHasVisible(ws){ return (WS_VIEWS[ws]||[]).some(function(v){ return Auth.authed()&&Auth.canSee(v); }); }
+var curWs='dash', wsLastView={};
+// 공간바/세부바 활성·가시성 갱신 (setView·reflectAuthUI 가 호출)
+function renderNav(){
+  curWs=wsOfView(curViewMode);
+  document.querySelectorAll('.wstab[data-ws]').forEach(function(b){
+    var ws=b.getAttribute('data-ws');
+    b.style.display=wsHasVisible(ws)?'':'none';
+    b.classList.toggle('active', ws===curWs);
+  });
+  var shown=0;
+  document.querySelectorAll('.subbar .vtab[data-v]').forEach(function(b){
+    var v=b.getAttribute('data-v'), ws=b.getAttribute('data-ws');
+    var show=(ws===curWs)&&Auth.authed()&&Auth.canSee(v);
+    b.style.display=show?'':'none';
+    b.classList.toggle('active', v===curViewMode);
+    if(show) shown++;
+  });
+  // 뷰가 1개뿐인 공간(대시보드)은 세부바를 숨긴다(중복 방지)
+  var sub=document.getElementById('subbar'); if(sub) sub.style.display=(shown>1)?'':'none';
+}
+// 공간 전환 → 그 공간에서 마지막으로 본 뷰(없으면 첫 뷰)로
+function setWorkspace(ws){
+  var views=(WS_VIEWS[ws]||[]).filter(function(v){ return Auth.canSee(v); });
+  if(!views.length) return;
+  if(views.indexOf(curViewMode)>=0){ renderNav(); return; }
+  var last=wsLastView[ws];
+  setView(views.indexOf(last)>=0 ? last : views[0]);
+}
 var Auth={ token:null, exp:0, role:null, name:'', username:'', type:'', tabs:[], master:false };
 Auth.load=function(){
   try{ var s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
@@ -2156,59 +2191,25 @@ function reflectAuthUI(){
   } else {
     if(who) who.textContent=''; if(out) out.style.display='none'; if(mb) mb.style.display='none'; if(cp) cp.style.display='none';
   }
-  // 탭 접근: 관리 탭(홍보부 운영)은 홍보부 유형/관리자만 노출
-  document.querySelectorAll('.vtab[data-v]').forEach(function(b){
-    var v=b.getAttribute('data-v');
-    b.style.display=(Auth.authed() && Auth.canSee(v))?'':'none';
-  });
-  // 그룹: 보이는 탭이 하나도 없으면 그룹(라벨 포함) 숨김
-  document.querySelectorAll('.tabgroup[data-grp]').forEach(function(g){
-    var any=Array.prototype.some.call(g.querySelectorAll('.vtab[data-v]'), function(b){ return b.style.display!=='none'; });
-    g.style.display=any?'':'none';
-  });
+  // 탭 접근(공간/세부 가시성)은 renderNav 가 canSee 기준으로 처리 — 관리 탭은 홍보부 유형/관리자만
+  renderNav();
   renderBotNav();
 }
 
-/* ===== 모바일 하단 탭 + 더보기 시트 =====
-   항목을 여기에 다시 적지 않고 .vtab 목록에서 읽어온다 — 두 곳에 적으면 반드시 갈라진다.
-   권한(canSee)도 .vtab 의 표시 상태를 그대로 따르므로 규칙이 한 벌만 존재한다. */
-var BOTNAV_PRIMARY=['dashboard','calendar','timetable','tips'];   // 자주 쓰는 4개 + 더보기
-function navItems(){
-  return Array.prototype.map.call(document.querySelectorAll('.vtab[data-v]'), function(b){
-    var g=b.closest('.tabgroup');
-    return { v:b.getAttribute('data-v'), label:(b.textContent||'').trim(),
-             ic:(b.querySelector('[data-ic]')||{}).dataset ? b.querySelector('[data-ic]').dataset.ic : '',
-             grp:g?((g.querySelector('.tg-label')||{}).textContent||'').trim():'',
-             shown:b.style.display!=='none' };
-  }).filter(function(x){ return x.shown; });
-}
+/* ===== 모바일 하단 탭 = 업무 4공간 =====
+   하단 탭은 공간(workspace)만 — 공간 안 세부는 상단 subbar(가로 스크롤)로 전환한다.
+   공간 목록·권한은 renderNav 와 같은 규칙(canSee)을 따르므로 한 벌만 존재한다. */
 function renderBotNav(){
   var bn=document.getElementById('botnav'); if(!bn) return;
-  var items=navItems();
-  // 그릴 항목이 없으면(로그인 전·권한 없음) 하단 탭을 비우고 상단 탭바를 그대로 둔다 —
-  // 빈 하단 탭 + 숨은 상단 탭바 = 메뉴 없음. 그 상태를 만들지 않는다.
-  if(!items.length){ bn.innerHTML=''; document.documentElement.classList.remove('botnav-ready'); return; }
-  var prim=BOTNAV_PRIMARY.filter(function(v){ return items.some(function(x){ return x.v===v; }); });
-  var html=prim.map(function(v){
-    var it=items.filter(function(x){ return x.v===v; })[0];
-    return '<button class="bn'+(curViewMode===v?' on':'')+'" data-bn="'+v+'" role="tab">'+icon(it.ic,21)+'<span>'+esc(it.label)+'</span></button>';
+  var wss=WS_LIST.filter(function(w){ return wsHasVisible(w.ws); });
+  // 그릴 공간이 없으면(로그인 전) 하단 탭을 비우고 상단 공간바를 그대로 둔다 — 메뉴가 통째로 사라지지 않게.
+  if(!wss.length){ bn.innerHTML=''; document.documentElement.classList.remove('botnav-ready'); return; }
+  bn.innerHTML=wss.map(function(w){
+    return '<button class="bn'+(curWs===w.ws?' on':'')+'" data-bnws="'+w.ws+'" role="tab">'+icon(w.ic,21)+'<span>'+esc(w.label)+'</span></button>';
   }).join('');
-  var restOn=items.some(function(x){ return prim.indexOf(x.v)<0 && x.v===curViewMode; });
-  html+='<button class="bn'+(restOn?' on':'')+'" data-bn="__more" aria-haspopup="dialog">'+icon('grid',21)+'<span>더보기</span></button>';
-  bn.innerHTML=html;
-  document.documentElement.classList.add('botnav-ready');   // 이 시점부터만 상단 탭바를 숨긴다(CSS)
+  document.documentElement.classList.add('botnav-ready');   // 이 시점부터만 상단 공간바를 숨긴다(CSS)
 }
-function openNavSheet(){
-  var items=navItems(), grps=[], byG={};
-  items.forEach(function(x){ if(!byG[x.grp]){ byG[x.grp]=[]; grps.push(x.grp); } byG[x.grp].push(x); });
-  document.getElementById('navsheet-in').innerHTML='<div class="sheet-grip"></div>'+grps.map(function(g){
-    return '<div class="sheet-grp">'+esc(g)+'</div><div class="sheet-list">'+byG[g].map(function(x){
-      return '<button class="sheet-item'+(curViewMode===x.v?' on':'')+'" data-sheet="'+x.v+'">'+icon(x.ic,17)+'<span>'+esc(x.label)+'</span></button>';
-    }).join('')+'</div>';
-  }).join('');
-  document.getElementById('navsheet').classList.add('show');
-}
-function closeNavSheet(){ document.getElementById('navsheet').classList.remove('show'); }
+function closeNavSheet(){ var s=document.getElementById('navsheet'); if(s) s.classList.remove('show'); }
 function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); loadBoard(); resetAdminIdle(); }
 
 function wireAuthGate(){
@@ -2980,7 +2981,8 @@ function setView(v){
   var smv=document.getElementById('sitemap'); if(smv) smv.style.display = v==='sitemap'?'':'none';
   // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
-  document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b.dataset.v===v); });
+  wsLastView[wsOfView(v)]=v;
+  renderNav();      // 공간·세부 활성/가시성
   renderBotNav();   // 하단 탭 활성 상태도 같은 시점에 갱신
   try{localStorage.setItem('jamboree-plan:view',v);}catch(e){}
   if(v==='dashboard') renderDashboard();
@@ -3028,19 +3030,13 @@ function init(){
   document.getElementById('ev-save').onclick=commitEvent;
   document.getElementById('ev-del').onclick=deleteEventCur;
   document.getElementById('ev-scrim').addEventListener('click',function(e){ if(e.target===this) closeEvent(); });
-  // view tabs
-  document.querySelectorAll('.vtab').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
-  // 하단 탭 · 더보기 시트 (모바일)
+  // 2단 내비게이션: 공간(wstab) → 세부(vtab)
+  document.querySelectorAll('.wstab[data-ws]').forEach(function(b){ b.onclick=function(){ setWorkspace(b.getAttribute('data-ws')); window.scrollTo({top:0,behavior:'smooth'}); }; });
+  document.querySelectorAll('.vtab[data-v]').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+  // 모바일 하단 탭 = 업무 공간
   var bn=document.getElementById('botnav');
-  if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bn]'); if(!b) return;
-    var v=b.getAttribute('data-bn');
-    if(v==='__more'){ openNavSheet(); return; }
-    setView(v); window.scrollTo({top:0,behavior:'smooth'}); });
-  var sh=document.getElementById('navsheet');
-  if(sh){ sh.addEventListener('click',function(e){
-      if(e.target.id==='navsheet-bg'){ closeNavSheet(); return; }
-      var it=e.target.closest('[data-sheet]'); if(it){ closeNavSheet(); setView(it.getAttribute('data-sheet')); window.scrollTo({top:0,behavior:'smooth'}); } });
-    document.addEventListener('keydown',function(e){ if(e.key==='Escape' && sh.classList.contains('show')) closeNavSheet(); }); }
+  if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bnws]'); if(!b) return;
+    setWorkspace(b.getAttribute('data-bnws')); window.scrollTo({top:0,behavior:'smooth'}); });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
   setView(['dashboard','news','tips','calendar','list','timetable','library','staff','contacts','orginfo','protocol','sitemap'].indexOf(savedView)>=0?savedView:'dashboard');
   // 인증 · 기사 · 홍보부원 회원 배선

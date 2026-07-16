@@ -86,20 +86,29 @@ h1{font-size:30px;font-weight:800;margin:0 0 6px;letter-spacing:-.035em;line-hei
  * 모바일(<1024): 상단 탭바를 숨기고 하단 고정 탭 5개(+더보기 시트). 4그룹을 세로로 쌓으면
  *   화면 380px 을 먹어 정작 내용이 안 보였다.
  * 항목의 순서·이름·data-v 는 그대로 — 운영자가 외운 것은 위치가 아니라 이름이다. */
-.tabbar{display:flex;flex-wrap:wrap;gap:13px 22px;align-items:flex-start;margin-bottom:16px;padding-bottom:15px;border-bottom:1px solid var(--line)}
-/* PC 는 기존대로 상단 가로 메뉴. 좌측 사이드바(2단 구조)를 시도했다가 되돌렸다 —
-   화면을 좌우로 가르는 것보다, 보던 자리에 그대로 있는 편이 이 보드에는 낫다는 사용자 판단. */
-.tabgroup{display:flex;flex-direction:column;gap:6px}
-.tg-label{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);padding-left:3px;text-transform:uppercase}
-.tg-tabs{display:flex;flex-wrap:wrap;gap:7px}
-.vtab{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:700;padding:0 18px;min-height:44px;letter-spacing:-.01em;
+/* ===== 2단 내비게이션 (v0.9.184) — 업무 공간(wsbar) → 세부(subbar) =====
+   12개를 한 줄에 펼치는 대신 업무 4공간으로 묶고, 선택한 공간의 세부만 아래 줄에 보인다.
+   항목의 이름·순서·기능은 그대로 — 배치만 업무 중심. */
+.wsbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:0;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.wstab{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:800;padding:0 20px;min-height:46px;letter-spacing:-.015em;
+  border:1px solid transparent;background:var(--surface-2);color:var(--ink-2);border-radius:var(--pill);cursor:pointer;
+  transition:transform .12s var(--ease),background var(--ease),color var(--ease),box-shadow var(--ease)}
+.wstab:hover{background:var(--accent-soft-2);color:var(--accent-ink)}
+.wstab:active{transform:scale(.97)}
+.wstab.active{background:var(--accent);color:#fff;box-shadow:var(--sh-1)}
+.wstab.active:hover{background:var(--accent);color:#fff}
+.wstab .ic{font-size:17px}
+/* 세부 탭 줄 — 현재 공간의 뷰만. 공간에 뷰가 1개뿐이면 JS 가 숨긴다. */
+.subbar{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 16px}
+.subbar:empty{display:none}
+.vtab{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:700;padding:0 15px;min-height:40px;letter-spacing:-.01em;
   border:1px solid transparent;background:var(--surface-2);color:var(--ink-2);border-radius:var(--pill);cursor:pointer;
   transition:transform .12s var(--ease),background var(--ease),color var(--ease),box-shadow var(--ease)}
 .vtab:hover{background:var(--accent-soft-2);color:var(--accent-ink)}
 .vtab:active{transform:scale(.97)}
 .vtab.active{background:var(--accent);color:#fff;box-shadow:var(--sh-1)}
 .vtab.active:hover{background:var(--accent);color:#fff}
-.vtab .ic{font-size:16px}
+.vtab .ic{font-size:15px}
 
 /* ── 하단 탭 ── 폰 전용(<768). 태블릿부터는 PC 와 같은 상단 메뉴를 쓴다 —
    태블릿은 화면이 넓어 12개를 가로로 펼쳐도 되고, 하단 탭은 오히려 손이 멀다. */
@@ -108,7 +117,10 @@ h1{font-size:30px;font-weight:800;margin:0 0 6px;letter-spacing:-.035em;line-hei
   /* ⚠️ 상단 탭바는 하단 탭이 "실제로 그려진 뒤에만" 숨긴다.
      무조건 숨기면 JS 가 낡았거나(캐시) 실패했을 때 메뉴가 통째로 사라진다 — 실제로 그랬다.
      내비게이션은 JS 에 기대어 없어지면 안 되므로, JS 가 성공했을 때만 교체한다. */
-  html.botnav-ready .tabbar{display:none}
+  /* 모바일: 상단 공간바(wsbar)는 하단 탭이 대신하므로 숨기고, 세부(subbar)는 상단 가로 스크롤로 남긴다. */
+  html.botnav-ready .wsbar{display:none}
+  .subbar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -13px 14px;padding:2px 13px 6px;
+    position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
   /* 반투명 대신 불투명 + 그림자 — 스크롤되는 내용이 비쳐 라벨과 섞이면 안 읽힌다. */
   .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;
           background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 20px rgba(22,32,26,.07);

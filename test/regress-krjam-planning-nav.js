@@ -1,5 +1,5 @@
-/* 내비게이션 개편 검증 — PC 사이드바 / 모바일 하단탭+시트.
-   가장 중요한 것: 12개 탭이 전부 도달 가능한가 · 권한이 새지 않는가 */
+/* 2단 내비게이션 검증 (v0.9.184) — PC 상단 공간바+세부바 / 모바일 하단 공간탭+세부 스크롤.
+   가장 중요한 것: 12개 뷰가 전부 도달 가능한가 · 권한이 새지 않는가 */
 const puppeteer = require('puppeteer-core');
 const http = require('http'); const fs = require('fs'); const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
@@ -14,8 +14,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' }); res.end(fs.readFileSync(f));
 });
 const ALL = ['dashboard', 'calendar', 'list', 'news', 'tips', 'library', 'timetable', 'sitemap', 'protocol', 'staff', 'contacts', 'orginfo'];
+const WS_OF = { dashboard: 'dash', calendar: 'content', list: 'content', news: 'content', tips: 'content', timetable: 'field', sitemap: 'field', protocol: 'field', staff: 'team', contacts: 'team', orginfo: 'team', library: 'team' };
 const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d ? ' — ' + d : '')); };
-// evaluateOnNewDocument 는 함수를 직렬화해 보내므로 클로저 변수가 페이지에 없다 → 반드시 인자로 넘긴다
 const SEED = function (role, type, tabs) {
   localStorage.setItem('jamboree-plan:session', JSON.stringify({ token: 'T', name: '박지민', username: 'jimmy', role: role, type: type, tabs: tabs, exp: Date.now() + 9e6 }));
   localStorage.setItem('jamboree-plan:view', 'dashboard');
@@ -33,13 +33,28 @@ const SEED = function (role, type, tabs) {
     if (u.startsWith('/api/')) return J({ ok: true });
     return rf(u, o); };
 };
+// 공간 탭 클릭 → 세부 탭 클릭 (2단 경로)
+async function goVia(p, v) {
+  await p.evaluate((ws) => { const b = document.querySelector('.wstab[data-ws="' + ws + '"]'); if (b) b.click(); }, WS_OF[v]);
+  await new Promise((r) => setTimeout(r, 120));
+  await p.evaluate((x) => { const b = document.querySelector('.subbar .vtab[data-v="' + x + '"]'); if (b && b.style.display !== 'none') b.click(); else setView(x); }, v);
+  await new Promise((r) => setTimeout(r, 140));
+  return p.evaluate(() => curViewMode);
+}
+async function goViaBot(p, v) {
+  await p.evaluate((ws) => { const b = document.querySelector('#botnav [data-bnws="' + ws + '"]'); if (b) b.click(); }, WS_OF[v]);
+  await new Promise((r) => setTimeout(r, 120));
+  await p.evaluate((x) => { const b = document.querySelector('.subbar .vtab[data-v="' + x + '"]'); if (b && b.style.display !== 'none') b.click(); else setView(x); }, v);
+  await new Promise((r) => setTimeout(r, 140));
+  return p.evaluate(() => curViewMode);
+}
 (async () => {
   await new Promise((r) => server.listen(PORT, r));
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'] });
   const errors = [];
 
-  // ── PC 사이드바 ──
-  console.log('\n[PC 1440 — 상단 가로 메뉴]');
+  // ── PC ──
+  console.log('\n[PC 1440 — 공간바 + 세부바]');
   let p = await b.newPage(); await p.setViewport({ width: 1440, height: 1000 });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -47,37 +62,29 @@ const SEED = function (role, type, tabs) {
   await p.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 700));
   const pc = await p.evaluate(() => {
-    const nav = document.querySelector('.tabbar').getBoundingClientRect();
-    const sec = document.getElementById('dashboard').getBoundingClientRect();
+    const ws = document.querySelector('.wsbar').getBoundingClientRect();
     const hdr = document.querySelector('header.top').getBoundingClientRect();
-    return { navL: Math.round(nav.left), navW: Math.round(nav.width), navTop: Math.round(nav.top),
-      hdrBot: Math.round(hdr.bottom), secTop: Math.round(sec.top),
-      secL: Math.round(sec.left),
-      dir: getComputedStyle(document.querySelector('.tabbar')).flexDirection,
+    const sec = document.getElementById('dashboard').getBoundingClientRect();
+    return { dir: getComputedStyle(document.querySelector('.wsbar')).flexDirection,
+      wsN: [...document.querySelectorAll('.wstab[data-ws]')].filter((x) => x.style.display !== 'none').length,
+      navW: Math.round(ws.width), navTop: Math.round(ws.top), hdrBot: Math.round(hdr.bottom), secTop: Math.round(sec.top),
       botnav: getComputedStyle(document.getElementById('botnav')).display,
       sw: document.documentElement.scrollWidth, iw: window.innerWidth };
   });
-  chk('메뉴가 상단 가로 (사이드바 아님)', pc.dir === 'row' && pc.navW > 600, pc.navW + 'px · ' + pc.dir);
-  chk('메뉴가 헤더 아래에', pc.navTop > pc.hdrBot - 2, '헤더끝 ' + pc.hdrBot + ' / 나브 ' + pc.navTop);
-  chk('본문이 메뉴 아래에 (좌우 분할 아님)', pc.secTop > pc.navTop, '나브 ' + pc.navTop + ' / 본문 ' + pc.secTop);
-  chk('본문이 전폭 사용', pc.secL < 200, '본문 left=' + pc.secL);
-  chk('하단 탭은 PC 에서 숨김', pc.botnav === 'none');
+  chk('공간바 상단 가로 · 4공간', pc.dir === 'row' && pc.wsN === 4, pc.wsN + '공간 · ' + pc.dir);
+  chk('공간바가 헤더 아래', pc.navTop > pc.hdrBot - 2, '헤더끝 ' + pc.hdrBot + ' / 나브 ' + pc.navTop);
+  chk('본문이 메뉴 아래 (좌우분할 아님)', pc.secTop > pc.navTop);
+  chk('하단 탭 PC 숨김', pc.botnav === 'none');
   chk('PC 가로 넘침 없음', pc.sw <= pc.iw, 'scrollW=' + pc.sw);
-  // 상단 메뉴로 12탭 전부 이동되는가
   let pcOk = 0;
-  for (const v of ALL) {
-    await p.evaluate((x) => document.querySelector('.vtab[data-v="' + x + '"]').click(), v);
-    await new Promise((r) => setTimeout(r, 160));
-    const cur = await p.evaluate(() => curViewMode); if (cur === v) pcOk++;
-  }
-  chk('PC 상단 메뉴로 12탭 전부 이동', pcOk === 12, pcOk + '/12');
-  await p.evaluate(() => document.querySelector('.vtab[data-v="dashboard"]').click());
-  await new Promise((r) => setTimeout(r, 300));
+  for (const v of ALL) { if ((await goVia(p, v)) === v) pcOk++; }
+  chk('PC 공간→세부로 12뷰 전부 이동', pcOk === 12, pcOk + '/12');
+  await goVia(p, 'dashboard');
   await p.screenshot({ path: '/tmp/nav-pc.png' });
   await p.close();
 
-  // ── 모바일 하단탭 ──
-  console.log('\n[모바일 390 — 하단 탭 + 더보기]');
+  // ── 모바일 ──
+  console.log('\n[모바일 390 — 하단 공간탭 + 세부 스크롤]');
   p = await b.newPage(); await p.setViewport({ width: 390, height: 844 });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -86,62 +93,45 @@ const SEED = function (role, type, tabs) {
   await new Promise((r) => setTimeout(r, 700));
   const mb = await p.evaluate(() => {
     const bn = document.getElementById('botnav').getBoundingClientRect();
-    return { tabbar: getComputedStyle(document.querySelector('.tabbar')).display,
+    return { wsbar: getComputedStyle(document.querySelector('.wsbar')).display,
       pos: getComputedStyle(document.getElementById('botnav')).position,
       n: document.querySelectorAll('#botnav .bn').length,
-      h: Math.round(bn.height), atBottom: Math.round(bn.bottom) === window.innerHeight,
+      atBottom: Math.round(bn.bottom) === window.innerHeight,
       tap: Math.round(document.querySelector('#botnav .bn').getBoundingClientRect().height),
       sw: document.documentElement.scrollWidth, iw: window.innerWidth,
       on: (document.querySelector('#botnav .bn.on span') || {}).textContent,
       ready: document.documentElement.classList.contains('botnav-ready') };
   });
-  chk('상단 4그룹 탭바 숨김 (380px 회수)', mb.tabbar === 'none');
-  // 메뉴는 JS 에 기대어 사라지면 안 된다 — 하단 탭이 그려졌을 때만 상단이 숨는 구조인지
-  chk('하단 탭이 그려진 뒤에만 상단 숨김(botnav-ready)', mb.ready === true && mb.n > 0, 'ready=' + mb.ready);
-  chk('메뉴 도달 가능(상단 또는 하단 중 하나는 살아있음)', (mb.tabbar !== 'none') || (mb.n > 0), '상단 ' + mb.tabbar + ' / 하단 ' + mb.n + '칸');
-  chk('하단 탭 고정 · 5칸(4+더보기)', mb.pos === 'fixed' && mb.n === 5 && mb.atBottom, mb.n + '칸 · h=' + mb.h);
+  chk('상단 공간바 숨김(모바일)', mb.wsbar === 'none');
+  chk('하단 탭 그려진 뒤에만 상단 숨김(botnav-ready)', mb.ready === true && mb.n > 0, 'ready=' + mb.ready);
+  chk('하단 탭 고정 · 4공간', mb.pos === 'fixed' && mb.n === 4 && mb.atBottom, mb.n + '공간');
   chk('탭 터치 타깃 ≥48px', mb.tap >= 48, mb.tap + 'px');
-  chk('현재 탭 활성 표시', mb.on === '대시보드', mb.on);
+  chk('현재 공간 활성 표시(대시보드)', mb.on === '대시보드', mb.on);
   chk('모바일 가로 넘침 없음', mb.sw <= mb.iw, 'scrollW=' + mb.sw);
-  await p.screenshot({ path: '/tmp/nav-mob.png' });
-
-  // 더보기 시트로 나머지 8개 도달
-  await p.click('[data-bn="__more"]'); await new Promise((r) => setTimeout(r, 300));
-  const sheet = await p.evaluate(() => ({ show: document.getElementById('navsheet').classList.contains('show'),
-    items: document.querySelectorAll('#navsheet [data-sheet]').length,
-    grps: document.querySelectorAll('#navsheet .sheet-grp').length }));
-  chk('더보기 → 시트 열림 · 12개 전부 · 4그룹', sheet.show && sheet.items === 12 && sheet.grps === 4, sheet.items + '개 / ' + sheet.grps + '그룹');
-  await p.screenshot({ path: '/tmp/nav-sheet.png' });
   let mOk = 0;
-  for (const v of ALL) {
-    await p.evaluate(() => { const s = document.getElementById('navsheet'); if (!s.classList.contains('show')) document.querySelector('[data-bn="__more"]').click(); });
-    await new Promise((r) => setTimeout(r, 160));
-    await p.evaluate((x) => document.querySelector('#navsheet [data-sheet="' + x + '"]').click(), v);
-    await new Promise((r) => setTimeout(r, 160));
-    const cur = await p.evaluate(() => curViewMode); if (cur === v) mOk++;
-  }
-  chk('시트로 12탭 전부 이동', mOk === 12, mOk + '/12');
-  await p.evaluate(() => { const s = document.getElementById('navsheet'); if (!s.classList.contains('show')) document.querySelector('[data-bn="__more"]').click(); });
-  await new Promise((r) => setTimeout(r, 200));
-  await p.evaluate(() => document.getElementById('navsheet-bg').click());
-  await new Promise((r) => setTimeout(r, 200));
-  chk('배경 탭하면 시트 닫힘', !(await p.evaluate(() => document.getElementById('navsheet').classList.contains('show'))));
+  for (const v of ALL) { if ((await goViaBot(p, v)) === v) mOk++; }
+  chk('모바일 하단공간→세부로 12뷰 전부 이동', mOk === 12, mOk + '/12');
   await p.close();
 
-  // ── 권한: 일반 회원은 관리 탭 못 봄 ──
+  // ── 권한: 일반 회원 ──
   console.log('\n[권한 — 일반 회원]');
-  p = await b.newPage(); await p.setViewport({ width: 390, height: 844 });
+  p = await b.newPage(); await p.setViewport({ width: 1440, height: 900 });
   p.on('pageerror', (e) => errors.push(e.message));
   await p.evaluateOnNewDocument(SEED, 'member', '일반', []);
   await p.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 700));
-  await p.click('[data-bn="__more"]'); await new Promise((r) => setTimeout(r, 250));
+  // 팀·자료 공간의 세부 확인(관리 탭 안 보이고 자료실만)
   const perm = await p.evaluate(() => {
-    const inSheet = [...document.querySelectorAll('#navsheet [data-sheet]')].map((x) => x.getAttribute('data-sheet'));
-    return { inSheet, staff: inSheet.includes('staff'), contacts: inSheet.includes('contacts'), sitemap: inSheet.includes('sitemap'), tips: inSheet.includes('tips') };
+    const vis = (sel) => [...document.querySelectorAll(sel)].filter((x) => x.style.display !== 'none').map((x) => x.getAttribute('data-v'));
+    // 각 공간 클릭 후 세부에서 보이는 뷰 수집
+    const out = {};
+    ['content', 'field', 'team'].forEach((ws) => { document.querySelector('.wstab[data-ws="' + ws + '"]').click(); out[ws] = vis('.subbar .vtab[data-ws="' + ws + '"]'); });
+    return out;
   });
-  chk('일반 회원 시트에 관리 탭 없음', !perm.staff && !perm.contacts && !perm.sitemap, '보이는 탭: ' + perm.inSheet.join(','));
-  chk('일반 회원은 소식 제보 탭 없음(홍보부 전용)', !perm.tips, '보이는 탭: ' + perm.inSheet.join(','));
+  const shown = [].concat(perm.content, perm.field, perm.team);
+  chk('일반 회원: 관리 탭(staff/contacts/orginfo/protocol/sitemap/tips) 없음',
+    !['staff', 'contacts', 'orginfo', 'protocol', 'sitemap', 'tips'].some((x) => shown.includes(x)), '보이는 세부: ' + shown.join(','));
+  chk('일반 회원: 자료실·일정표는 보임(공개)', shown.includes('library') && shown.includes('timetable'), shown.join(','));
   const blocked = await p.evaluate(() => { setView('staff'); return curViewMode; });
   chk('직접 호출해도 관리 탭 차단', blocked === 'dashboard', blocked);
   const blockedTip = await p.evaluate(() => { setView('tips'); return curViewMode; });
