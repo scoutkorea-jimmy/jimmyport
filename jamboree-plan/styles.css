@@ -16,6 +16,11 @@ body{background:var(--bg);color:var(--ink);
 .syncbar{position:sticky;top:0;z-index:30;background:rgba(243,244,241,.86);backdrop-filter:saturate(1.4) blur(10px);
   border-bottom:1px solid var(--line);margin:0 -22px;padding:11px 22px;display:flex;gap:12px;align-items:center}
 .orgtag{font-weight:700;color:var(--accent);font-size:13px;letter-spacing:-.01em}
+/* 배포 버전 — 현장에서 "지금 보는 게 최신인가"를 묻지 않고 눈으로 확인하게. 자리를 뺏지 않게 작게.
+   숫자라 자리가 흔들리지 않도록 mono. 비어 있으면(로드 전·실패) 아예 숨겨 빈 칩이 남지 않게. */
+.vertag{flex:0 0 auto;font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--muted);
+        background:var(--surface-3);border:1px solid var(--line);border-radius:var(--pill);padding:2px 7px;letter-spacing:0}
+.vertag:empty{display:none}
 .syncbar .st{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px}
 .syncbar .st b{color:var(--accent);font-weight:600}
 .syncbar .st.ok::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--st-ready)}
@@ -61,7 +66,10 @@ h1{font-size:28px;font-weight:800;margin:0 0 6px;letter-spacing:-.03em;line-heig
 /* ── 모바일 하단 탭 ── 자주 쓰는 4개 + 더보기. 나머지는 시트로. */
 .botnav{display:none}
 @media(max-width:1023px){
-  .tabbar{display:none}
+  /* ⚠️ 상단 탭바는 하단 탭이 "실제로 그려진 뒤에만" 숨긴다.
+     무조건 숨기면 JS 가 낡았거나(캐시) 실패했을 때 메뉴가 통째로 사라진다 — 실제로 그랬다.
+     내비게이션은 JS 에 기대어 없어지면 안 되므로, JS 가 성공했을 때만 교체한다. */
+  html.botnav-ready .tabbar{display:none}
   .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;
           background:rgba(255,255,255,.94);backdrop-filter:saturate(1.4) blur(10px);border-top:1px solid var(--line);
           padding-bottom:env(safe-area-inset-bottom)}
@@ -633,7 +641,10 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
      sticky 도 푼다 — 3행이 되면 작은 화면을 영구히 먹는다. 모바일에서 관리 버튼이 늘 붙어 있을 이유는 없다. */
   .syncbar{position:static;margin:0 -13px;padding:10px 13px;flex-wrap:wrap;gap:8px}
   .syncbar .spacer{display:none}
-  .orgtag{flex:1 1 100%;font-size:12px}
+  /* 라벨은 자기 줄을 갖되(한국어 min-content=한 글자 → 짓눌림 방지), 버전 칩은 그 옆에 남는다.
+     둘이 한 줄에 안 들어가면 라벨만 말줄임 — 칩이 아래로 떨어져 홀로 놓이지 않게. */
+  .orgtag{flex:1 1 auto;min-width:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vertag{order:1}
   .whoami,.syncbar .btn,.syncbar .st{flex:0 0 auto}
   .progress .pbar{flex-basis:130px}
   header.top{gap:14px;padding:20px 0 18px} .emblem{width:60px;height:60px}

@@ -2231,6 +2231,9 @@ function navItems(){
 function renderBotNav(){
   var bn=document.getElementById('botnav'); if(!bn) return;
   var items=navItems();
+  // 그릴 항목이 없으면(로그인 전·권한 없음) 하단 탭을 비우고 상단 탭바를 그대로 둔다 —
+  // 빈 하단 탭 + 숨은 상단 탭바 = 메뉴 없음. 그 상태를 만들지 않는다.
+  if(!items.length){ bn.innerHTML=''; document.documentElement.classList.remove('botnav-ready'); return; }
   var prim=BOTNAV_PRIMARY.filter(function(v){ return items.some(function(x){ return x.v===v; }); });
   var html=prim.map(function(v){
     var it=items.filter(function(x){ return x.v===v; })[0];
@@ -2239,6 +2242,7 @@ function renderBotNav(){
   var restOn=items.some(function(x){ return prim.indexOf(x.v)<0 && x.v===curViewMode; });
   html+='<button class="bn'+(restOn?' on':'')+'" data-bn="__more" aria-haspopup="dialog">'+icon('grid',21)+'<span>더보기</span></button>';
   bn.innerHTML=html;
+  document.documentElement.classList.add('botnav-ready');   // 이 시점부터만 상단 탭바를 숨긴다(CSS)
 }
 function openNavSheet(){
   var items=navItems(), grps=[], byG={};

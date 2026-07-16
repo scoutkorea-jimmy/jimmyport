@@ -92,9 +92,13 @@ const SEED = function (role, type, tabs) {
       h: Math.round(bn.height), atBottom: Math.round(bn.bottom) === window.innerHeight,
       tap: Math.round(document.querySelector('#botnav .bn').getBoundingClientRect().height),
       sw: document.documentElement.scrollWidth, iw: window.innerWidth,
-      on: (document.querySelector('#botnav .bn.on span') || {}).textContent };
+      on: (document.querySelector('#botnav .bn.on span') || {}).textContent,
+      ready: document.documentElement.classList.contains('botnav-ready') };
   });
   chk('상단 4그룹 탭바 숨김 (380px 회수)', mb.tabbar === 'none');
+  // 메뉴는 JS 에 기대어 사라지면 안 된다 — 하단 탭이 그려졌을 때만 상단이 숨는 구조인지
+  chk('하단 탭이 그려진 뒤에만 상단 숨김(botnav-ready)', mb.ready === true && mb.n > 0, 'ready=' + mb.ready);
+  chk('메뉴 도달 가능(상단 또는 하단 중 하나는 살아있음)', (mb.tabbar !== 'none') || (mb.n > 0), '상단 ' + mb.tabbar + ' / 하단 ' + mb.n + '칸');
   chk('하단 탭 고정 · 5칸(4+더보기)', mb.pos === 'fixed' && mb.n === 5 && mb.atBottom, mb.n + '칸 · h=' + mb.h);
   chk('탭 터치 타깃 ≥48px', mb.tap >= 48, mb.tap + 'px');
   chk('현재 탭 활성 표시', mb.on === '대시보드', mb.on);

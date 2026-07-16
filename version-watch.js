@@ -42,17 +42,25 @@
     requestAnimationFrame(function () { el.style.transform = "translateY(0)"; el.style.opacity = "1"; });
   }
 
+  // 페이지에 #app-version 이 있으면 현재 버전을 찍는다. /VERSION 의 주인이 이 파일이므로
+  // 각 페이지가 따로 fetch 하지 않는다(요청도, 표기 규칙도 한 군데).
+  function stamp(v) {
+    var el = document.getElementById("app-version");
+    if (el && v) el.textContent = "v" + v;
+  }
+
   function check() {
     if (document.hidden) return;
     fetchVersion().then(function (v) {
       if (!v) return;
+      stamp(v);
       if (baseline === null) { baseline = v; return; }
       if (v !== baseline) showToast();
     });
   }
 
   function init() {
-    fetchVersion().then(function (v) { baseline = v; });
+    fetchVersion().then(function (v) { baseline = v; stamp(v); });
     setInterval(check, POLL_MS);
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) check();
