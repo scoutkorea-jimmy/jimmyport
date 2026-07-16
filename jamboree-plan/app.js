@@ -146,6 +146,62 @@ function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-09',start:'19:00',end:'20:30',title:'폐영식',place:'메인 스타디움',cat:'개·폐영식',owner:'',memo:'★ 마무리 콘텐츠 · 하이라이트'}
 ]; }
 function ttList(){ if(!state.timetable) state.timetable=defaultTimetable(); return state.timetable; }
+/* 컵 참관단 일정표(사용자 제공 표, 8/4~8/9) — 종류 '컵 참관단'.
+   안정 id(cub-MMDD-HHMM)로 시드 병합해 라이브 일정표에 비파괴 추가(이미 있으면 건너뜀). */
+var CUB_CAT='컵 참관단';
+function cubObserverSeeds(){
+  function it(day,s,e,title){ return {id:'cub-'+day.slice(5).replace('-','')+'-'+s.replace(':',''),
+    day:day, start:s, end:e, title:title, place:'', cat:CUB_CAT, assignees:[], contacts:[], rundown:[], memo:'', noCover:false}; }
+  return [
+    // 8/4 (화)
+    it('2026-08-04','09:00','14:00','운영요원 입영'),
+    it('2026-08-04','14:00','15:00','등록·입소식'),
+    it('2026-08-04','15:00','18:00','과정활동'),
+    it('2026-08-04','18:00','20:00','저녁식사'),
+    it('2026-08-04','20:00','22:00','개영식'),
+    it('2026-08-04','22:00','23:00','정리 및 취침'),
+    // 8/5 (수)
+    it('2026-08-05','14:00','18:00','워터파크'),
+    it('2026-08-05','18:00','20:00','저녁식사'),
+    it('2026-08-05','20:00','22:00','K-POP 콘서트'),
+    it('2026-08-05','22:00','23:00','정리 및 취침'),
+    // 8/6 (목)
+    it('2026-08-06','06:00','07:00','기상 및 세면'),
+    it('2026-08-06','07:00','09:00','아침식사 및 정리'),
+    it('2026-08-06','09:00','12:00','과정활동'),
+    it('2026-08-06','12:00','14:00','점심식사'),
+    it('2026-08-06','14:00','18:00','워터파크'),
+    it('2026-08-06','18:00','20:00','저녁식사'),
+    it('2026-08-06','20:00','22:00','컵스나잇'),
+    it('2026-08-06','22:00','23:00','정리 및 취침'),
+    // 8/7 (금)
+    it('2026-08-07','06:00','07:00','기상 및 세면'),
+    it('2026-08-07','07:00','09:00','아침식사 및 정리·퇴소식'),
+    it('2026-08-07','09:00','12:00','DMZ 견학'),
+    it('2026-08-07','12:00','14:00','점심 및 귀가'),
+    it('2026-08-07','14:00','15:00','등록·입소식'),
+    it('2026-08-07','15:00','18:00','과정활동'),
+    it('2026-08-07','18:00','20:00','저녁식사'),
+    it('2026-08-07','20:00','22:00','폐영식'),
+    // 8/8 (토)
+    it('2026-08-08','06:00','07:00','기상 및 세면'),
+    it('2026-08-08','07:00','09:00','아침식사 및 정리/퇴소식·종교활동'),
+    it('2026-08-08','09:00','12:00','과정활동'),
+    it('2026-08-08','12:00','14:00','점심식사'),
+    it('2026-08-08','14:00','18:00','워터파크'),
+    // 8/9 (일)
+    it('2026-08-09','06:00','07:00','기상 및 세면'),
+    it('2026-08-09','07:00','09:00','아침식사 및 정리/퇴소식·종교활동'),
+    it('2026-08-09','09:00','12:00','DMZ 견학'),
+    it('2026-08-09','12:00','14:00','점심 및 귀가')
+  ];
+}
+function mergeCubObservers(){
+  if(!ttCats().some(function(x){return x[0]===CUB_CAT;})) addTtCat(CUB_CAT);   // 종류 색 보장(비파괴 append)
+  var list=ttList(), have={}; list.forEach(function(t){ have[t.id]=1; });
+  var added=0; cubObserverSeeds().forEach(function(s){ if(!have[s.id]){ list.push(s); added++; } });
+  if(added) saveTimetable();
+}
 
 /* ===== 홍보부 인원 R&R + 배치표 ===== */
 function defaultRoster(){ return [
@@ -728,38 +784,88 @@ function enableDueNotify(){
   if(Notification.permission==='granted'){ toast('마감 알림이 이미 켜져 있습니다'); scanDueNotify(); return; }
   Notification.requestPermission().then(function(p){ updateNotifyBtn(); if(p==='granted'){ toast('마감 알림이 켜졌습니다'); scanDueNotify(); } else toast('알림 권한이 허용되지 않았습니다'); });
 }
+/* 콘텐츠 파이프라인 — 상태(status) + 검수(approval)를 합쳐 5단계로 파생.
+   제보 인박스(tips) → 기획 → 작성중 → 검수 → 완료·게시. 검수는 기존 승인 필드에서 파생(중복 상태값 안 만듦). */
+function pipelineStage(e){
+  var st=e.status||'planned', ap=(e.approval&&e.approval.state)||'none';
+  if(ap==='requested') return 'review';
+  if(e.posted || st==='ready' || ap==='approved') return 'done';
+  if(st==='draft') return 'draft';
+  return 'planned';
+}
+var PIPE=[['planned','기획','var(--st-planned)'],['draft','작성중','var(--st-draft)'],['review','검수','#B69BFF'],['done','완료·게시','var(--st-ready)']];
+function setPipelineStage(k,stage){
+  var e=getEdit(k), a=normApproval(e.approval);
+  if(stage==='planned'){ e.status='planned'; a.state='none'; }
+  else if(stage==='draft'){ e.status='draft'; a.state='none'; }
+  else if(stage==='review'){ a.state='requested'; if(e.status==='planned') e.status='draft'; }
+  else if(stage==='done'){ e.status='ready'; if(a.state==='requested') a.state='approved'; }
+  e.approval=a;
+}
+// 제보 인박스 카드 — 파이프라인 입구(홍보부만). "콘텐츠로 전환"이 제보를 콘텐츠 일정으로.
+function inboxCard(t){
+  var el=document.createElement('div'); el.className='card card-inbox';
+  var meta=(t.date||'')+(t.time?(' '+t.time):'')+(t.zone?(' · '+tipZoneLabel(t.zone)):'');
+  el.innerHTML='<div class="ic-src">'+icon('inbox',11)+' '+esc(t.source==='public'?'외부 제보':'제보')+(t.reporterName?(' · '+esc(t.reporterName)):'')+'</div>'+
+    '<div class="ctitle">'+esc((t.text||'').replace(/\s+/g,' ').slice(0,64)||'(내용 없음)')+'</div>'+
+    (meta.trim()?('<div class="crow1">'+esc(meta)+'</div>'):'')+
+    '<button class="btn xs solid ic-conv" data-tipconv="'+esc(t.id)+'">콘텐츠로 전환 →</button>';
+  return el;
+}
+var boardMStage='planned';   // 모바일: 한 번에 한 단계만
 function renderBoard(){
   var board=document.getElementById('board'); if(!board) return;
   board.innerHTML='';
-  var cols={planned:[],draft:[],ready:[]}, total=0, ready=0, started=0, meetings=0, blank=0;
+  var cols={planned:[],draft:[],review:[],done:[]}, total=0, ready=0, started=0, meetings=0, blank=0;
   DAYS.forEach(function(d){
     daySlots(d).forEach(function(s){
       var e=peek(s.k), st=e.status||'planned';
-      if(isMeeting(e)){ meetings++; } else { total++; if(st==='ready') ready++; if(st!=='planned') started++; }
+      if(isMeeting(e)){ meetings++; } else { total++; if(st==='ready'||e.posted) ready++; if(st!=='planned') started++; }
       if(isBlankSlot(s.k,e)){ blank++; if(!showEmpty) return; }
-      (cols[st]||cols.planned).push({d:d,s:s,e:e});
+      var stg=pipelineStage(e);
+      (cols[stg]||cols.planned).push({d:d,s:s,e:e});
     });
   });
-  STAGES.forEach(function(def){
+  var staff=Auth.isStaff();
+  // 제보 인박스 컬럼(홍보부만) — 파이프라인 맨 앞
+  if(staff){
+    if(!tipLoaded) loadTips();
+    var newTips=tipLoaded?tipItems.filter(function(t){ return t.status==='new'; }):[];
+    var ibx=document.createElement('div'); ibx.className='col col-inbox'; ibx.setAttribute('data-st','inbox');
+    if(boardMStage==='inbox') ibx.classList.add('msel');
+    ibx.innerHTML='<div class="colh"><span class="pin" style="background:var(--ch-fb)"></span>제보 인박스<span class="cnt">'+newTips.length+'</span></div>';
+    var ic=document.createElement('div'); ic.className='cards';
+    if(!tipLoaded){ ic.innerHTML='<div class="colempty">불러오는 중…</div>'; }
+    else if(!newTips.length){ ic.innerHTML='<div class="colempty">새 제보 없음</div>'; }
+    else newTips.forEach(function(t){ try{ ic.appendChild(inboxCard(t)); }catch(err){} });
+    ibx.appendChild(ic); board.appendChild(ibx);
+  }
+  PIPE.forEach(function(def){
     var items=sortCards(cols[def[0]].filter(function(it){ return matchKind(it.e) && matchFilter(it.d, it.s, it.e) && matchSearch(it.d, it.s, it.e); }));
     var col=document.createElement('div'); col.className='col'; col.setAttribute('data-st',def[0]);
-    col.innerHTML='<div class="colh"><span class="pin" style="background:'+STCOL[def[0]]+'"></span>'+def[1]+'<span class="cnt">'+items.length+'</span></div>';
+    if(boardMStage===def[0]) col.classList.add('msel');
+    col.innerHTML='<div class="colh"><span class="pin" style="background:'+def[2]+'"></span>'+def[1]+'<span class="cnt">'+items.length+'</span></div>';
     var cards=document.createElement('div'); cards.className='cards';
     if(!items.length){ var em=document.createElement('div'); em.className='colempty'; em.textContent=(!showEmpty&&blank)?'없음 — 빈 슬롯은 숨김':'없음'; cards.appendChild(em); }
     items.forEach(function(it){ try{ cards.appendChild(cardEl(it.d,it.s,it.e)); }catch(err){ console.warn('card render skip',err); } });
     col.appendChild(cards);
-    // 칼럼에 드롭 = 그 상태로 이동 (모바일은 카드 하단 세그로)
+    // 칼럼에 드롭 = 그 단계로 이동
     col.addEventListener('dragover',function(ev){ if(!boardDrag) return; ev.preventDefault(); try{ev.dataTransfer.dropEffect='move';}catch(e){} col.classList.add('dropcol'); });
     col.addEventListener('dragleave',function(ev){ if(ev.target===col) col.classList.remove('dropcol'); });
     col.addEventListener('drop',function(ev){
       ev.preventDefault(); col.classList.remove('dropcol');
       if(!boardDrag) return;
       var bd=boardDrag; boardDrag=null;
-      if((peek(bd.s.k).status||'planned')===def[0]) return;
-      getEdit(bd.s.k).status=def[0]; renderAfterEdit(bd.s.k,bd.s);
+      if(pipelineStage(peek(bd.s.k))===def[0]) return;
+      setPipelineStage(bd.s.k, def[0]); renderAfterEdit(bd.s.k,bd.s);
     });
     board.appendChild(col);
   });
+  // 모바일 단계 세그먼트
+  var mseg=document.getElementById('board-mseg');
+  if(mseg){ var segs=(staff?[['inbox','인박스']]:[]).concat(PIPE.map(function(p){return [p[0],p[1]];}));
+    mseg.innerHTML=segs.map(function(s){ return '<button data-mstage="'+s[0]+'"'+(boardMStage===s[0]?' class="on"':'')+'>'+s[1]+'</button>'; }).join('');
+  }
   renderBoardBar(blank);
   document.getElementById('cnt-count').textContent='콘텐츠 '+total+' · 회의 '+meetings;
   var pct= total? Math.round(ready/total*100):0;
@@ -2070,15 +2176,69 @@ function renderDivisions(){
 
 /* ===== 의전 일정 (protocol) — 별도 페이지 + (시간 지정 시) 캘린더 노출 ===== */
 function defaultProtocol(){
+  // 대회장/부대회장/야영장/부야영장 의전 상세 일정(사용자 제공, 8/5~8/9). 시각·장소 포함, memo '(안)'=종료시각 미확정.
   var P=[
-    ['대회장','이찬희','총재',{'2026-08-05':'리셉션(인사말) · 개영식(인사말)','2026-08-06':'과정활동 방문 · K-POP 콘서트','2026-08-07':'분단 방문 · 아침 배식봉사(식당)','2026-08-08':'과정활동 방문 · 폐영식(인사말)','2026-08-09':'환송'}],
-    ['부대회장','정복현','강원연맹장(부총재)',{'2026-08-05':'리셉션 및 개영식','2026-08-06':'저녁 배식 봉사(급식배급소) · K-POP 콘서트','2026-08-07':'영지방문','2026-08-08':'과정활동 방문 · 폐영식','2026-08-09':'환송'}],
-    ['야영장','김시범','중앙치프커미셔너',{'2026-08-05':'리셉션 · 개영식(기수단 선언)','2026-08-06':'과정활동 방문 · K-POP 콘서트','2026-08-07':'아침 배식봉사(식당) · 영지방문','2026-08-08':'과정활동 방문 · 폐영식(폐영선언)','2026-08-09':'환송'}],
-    ['부야영장','김상협','국제커미셔너',{'2026-08-05':'리셉션 · 개영식','2026-08-06':'K-POP 콘서트','2026-08-07':'영지방문','2026-08-08':'과정활동 방문 · 폐영식','2026-08-09':'환송'}],
-    ['부야영장','최유석','중앙훈련원장',{'2026-08-05':'리셉션 및 개영식','2026-08-06':'저녁 배식 봉사(급식배급소) · K-POP 콘서트','2026-08-07':'영지방문','2026-08-08':'과정활동 방문 · 폐영식','2026-08-09':'환송'}]
+    ['대회장','이찬희','총재',[
+      ['2026-08-05','18:30','19:40','환영 리셉션 인사말','D동 대강당',''],
+      ['2026-08-05','20:00','21:30','개영식 인사말','대집회장',''],
+      ['2026-08-06','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-06','20:00','21:30','K-POP 콘서트','대집회장','(안)'],
+      ['2026-08-07','07:00','08:30','아침 배식봉사','D동 식당',''],
+      ['2026-08-07','09:00','11:00','분단 방문','각 분단 영지',''],
+      ['2026-08-08','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-08','20:00','21:30','폐영식 인사말','대집회장','(안)'],
+      ['2026-08-09','09:00','11:00','참가자 환송','주 출입구·퇴영장','(안)']
+    ]],
+    ['부대회장','정복현','강원연맹장(부총재)',[
+      ['2026-08-05','18:30','19:40','환영 리셉션','D동 대강당',''],
+      ['2026-08-05','20:00','21:30','개영식','대집회장',''],
+      ['2026-08-06','17:30','19:00','저녁 배식봉사','급식배급소',''],
+      ['2026-08-06','20:00','21:30','K-POP 콘서트','대집회장','(안)'],
+      ['2026-08-07','09:00','11:00','영지 방문','각 분단 영지',''],
+      ['2026-08-08','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-08','20:00','21:30','폐영식','대집회장','(안)'],
+      ['2026-08-09','09:00','11:00','참가자 환송','주 출입구·퇴영장','(안)']
+    ]],
+    ['야영장','김시범','중앙치프커미셔너',[
+      ['2026-08-05','18:30','19:40','환영 리셉션','D동 대강당',''],
+      ['2026-08-05','20:00','21:30','개영식·개회선언','대집회장',''],
+      ['2026-08-06','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-06','20:00','21:30','K-POP 콘서트','대집회장','(안)'],
+      ['2026-08-07','07:00','08:30','아침 배식봉사','D동 식당',''],
+      ['2026-08-07','09:00','11:00','영지 방문','각 분단 영지',''],
+      ['2026-08-08','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-08','20:00','21:30','폐영식·폐영선언','대집회장','(안)'],
+      ['2026-08-09','09:00','11:00','참가자 환송','주 출입구·퇴영장','(안)']
+    ]],
+    ['부야영장','김상협','국제커미셔너',[
+      ['2026-08-05','18:30','19:40','환영 리셉션','D동 대강당',''],
+      ['2026-08-05','20:00','21:30','개영식','대집회장',''],
+      ['2026-08-06','20:00','21:30','K-POP 콘서트','대집회장','(안)'],
+      ['2026-08-07','09:00','11:00','영지 방문','각 분단 영지',''],
+      ['2026-08-08','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-08','20:00','21:30','폐영식','대집회장','(안)'],
+      ['2026-08-09','09:00','11:00','참가자 환송','주 출입구·퇴영장','(안)']
+    ]],
+    ['부야영장','최유석','중앙훈련원장',[
+      ['2026-08-05','18:30','19:40','환영 리셉션','D동 대강당',''],
+      ['2026-08-05','20:00','21:30','개영식','대집회장',''],
+      ['2026-08-06','17:30','19:00','저녁 배식봉사','급식배급소',''],
+      ['2026-08-06','20:00','21:30','K-POP 콘서트','대집회장','(안)'],
+      ['2026-08-07','09:00','11:00','영지 방문','각 분단 영지',''],
+      ['2026-08-08','09:00','11:00','과정활동장 방문','영내 과정활동장',''],
+      ['2026-08-08','20:00','21:30','폐영식','대집회장','(안)'],
+      ['2026-08-09','09:00','11:00','참가자 환송','주 출입구·퇴영장','(안)']
+    ]]
   ];
-  var out=[]; P.forEach(function(r){ var role=r[0],name=r[1],title=r[2],days=r[3]; Object.keys(days).forEach(function(d){ out.push({id:mkid(),role:role,name:name,title:title,date:d,time:'',activity:days[d],place:'',memo:''}); }); });
+  var out=[], n=0;
+  P.forEach(function(r){ var role=r[0],name=r[1],title=r[2],rows=r[3];
+    rows.forEach(function(x){ n++; out.push({id:'prot-'+(n<10?'0':'')+n,role:role,name:name,title:title,date:x[0],time:x[1],endTime:x[2],activity:x[3],place:x[4],memo:x[5]||''}); }); });
   return out;
+}
+// 구 기본 시드(시각 없음) 또는 비어 있으면 상세 의전표로 승격(사용자 '모두 등록'). 상세본은 시각이 있어 재실행되지 않음(멱등).
+function upgradeProtocol(){
+  var L=protocolList();
+  if(!L.length || L.every(function(e){ return !e.time; })){ state.protocol=defaultProtocol(); saveProtocol(); }
 }
 function protocolList(){
   if(!state.protocol) state.protocol=defaultProtocol();
@@ -2096,13 +2256,23 @@ function protPlaceOptions(sel){
   var has=false, opts=ZONES.map(function(z){ if(z.label===sel)has=true; return '<option value="'+esc(z.label)+'"'+(z.label===sel?' selected':'')+'>'+esc(z.label)+'</option>'; }).join('');
   return '<option value=""'+(sel?'':' selected')+'>— 장소 —</option>'+((sel&&!has)?('<option value="'+esc(sel)+'" selected>'+esc(sel)+'</option>'):'')+opts;
 }
-function protPersonKey(m){ return (m.name||'')+''+(m.title||'')+''+(m.role||''); }
+function protPersonKey(m){ return (m.name||'')+'|'+(m.title||'')+'|'+(m.role||''); }
+// 의전 순서: 대회장 → 부대회장 → 야영장 → 부야영장 (부- 접두는 substring 이라 먼저 판정)
+function protRoleRank(role){
+  var r=(role||'').replace(/\s+/g,''); var bu=/^부/.test(r);
+  if(/대회장/.test(r)) return bu?1:0;
+  if(/야영장/.test(r)) return bu?3:2;
+  return 9;
+}
 function renderProtocol(){
   var tb=document.getElementById('pr-body'); if(!tb) return; tb.innerHTML='';
   // 성명/직책(인원)별 그루핑 — 인원 정보(구분·성명·직책)는 rowspan 으로 한 번만, 그 아래 일정들. (헤더 정렬은 그루핑으로 대체)
   document.querySelectorAll('#prtbl thead th.prh').forEach(function(th){ th.classList.remove('sorted'); th.setAttribute('data-dir',''); th.onclick=null; th.style.cursor='default'; });
+  // 구분(대회장→부대회장→야영장→부야영장) 우선 → 성명 가나다순 → 직책 → 날짜·시간
   var rows=protocolList().slice().sort(function(a,b){
-    var ka=protPersonKey(a), kb=protPersonKey(b); if(ka<kb)return -1; if(ka>kb)return 1;
+    var ra=protRoleRank(a.role), rb=protRoleRank(b.role); if(ra!==rb) return ra-rb;
+    var nc=(a.name||'').localeCompare(b.name||'','ko'); if(nc) return nc;
+    var ta=(a.title||''), tt=(b.title||''); if(ta!==tt) return ta<tt?-1:1;
     var da=(a.date||'')+(a.time||''), db=(b.date||'')+(b.time||''); return da<db?-1:da>db?1:0;
   });
   function evEditors(tr,m){
@@ -2454,9 +2624,10 @@ var tipItems=[], tipLoaded=false, tipFilter='all', tipEdit=null;
 var TIP_STATUS={ 'new':['새 제보','var(--st-planned-bg)','#C2CBC3'], 'used':['채택','var(--st-ready-bg)','#66DDA0'], 'rejected':['반려','rgba(210,84,60,.15)','#E68A7C'] };
 function loadTips(){
   fetch('/api/jp-tips',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
-    .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); })
-    .catch(function(){ tipLoaded=true; if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); });
+    .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; afterTipsLoaded(); })
+    .catch(function(){ tipLoaded=true; afterTipsLoaded(); });
 }
+function afterTipsLoaded(){ if(curViewMode==='tips') renderTips(); else if(curViewMode==='dashboard') renderDashboard(); else if(curViewMode==='list') renderBoard(); }
 function tipZoneLabel(z){ var zz=zoneByKey(z); return zz?zz.label:(z||''); }
 function tipZoneOptions(sel){ return '<option value="">— 선택 안 함 —</option>'+ZONES.map(function(z){ return '<option value="'+z.key+'"'+(z.key===sel?' selected':'')+'>'+esc(z.label)+'</option>'; }).join(''); }
 function renderTips(){
@@ -3054,7 +3225,7 @@ function setView(v){
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 }
@@ -3236,6 +3407,13 @@ function init(){
   var bs=document.getElementById('board-sort');
   if(bs) bs.addEventListener('click',function(e){ var b=e.target.closest('[data-bsort]'); if(!b) return;
     boardSort=b.getAttribute('data-bsort'); try{localStorage.setItem('jamboree-plan:board-sort',boardSort);}catch(_){} renderBoard(); });
+  // 콘텐츠 파이프라인 — 모바일 단계 세그먼트 · 인박스(제보) → 콘텐츠 전환
+  var bmseg=document.getElementById('board-mseg');
+  if(bmseg) bmseg.addEventListener('click',function(e){ var b=e.target.closest('[data-mstage]'); if(!b) return;
+    boardMStage=b.getAttribute('data-mstage'); renderBoard(); });
+  var boardEl=document.getElementById('board');
+  if(boardEl) boardEl.addEventListener('click',function(e){ var c=e.target.closest('[data-tipconv]'); if(!c) return;
+    e.stopPropagation(); openTipSchedule(c.getAttribute('data-tipconv')); });
   var tge=document.getElementById('toggle-empty');
   if(tge) tge.onclick=function(){ showEmpty=!showEmpty; try{localStorage.setItem('jamboree-plan:show-empty',showEmpty?'1':'0');}catch(_){} renderBoard(); };
   var fto=document.getElementById('filters-toggle');

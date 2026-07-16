@@ -321,8 +321,19 @@ section{margin-top:34px}
 .boardbar .seg button+button{border-left:1px solid var(--line)}
 .boardbar .seg button:hover{color:var(--accent)}
 .boardbar .seg button.on{background:var(--accent);color:#fff;font-weight:700}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+/* 파이프라인: 컬럼 수가 4(일반)~5(홍보부: 인박스 포함)로 가변 → auto-flow 로 균등 분할 */
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;align-items:start}
+.board-mseg{display:none}
 .col{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-3);padding:12px;transition:var(--ease)}
+/* 제보 인박스 — 콘텐츠로 전환 대기 (홍보부 전용) */
+.col-inbox{border-color:color-mix(in srgb,var(--ch-fb) 34%,var(--line));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ch-fb) 9%,var(--surface-2)),var(--surface-2) 46%)}
+.card-inbox{border-left-color:var(--ch-fb);cursor:default}
+.card-inbox:hover{border-left-color:var(--ch-fb);transform:none}
+.ic-src{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:800;color:var(--ch-fb);letter-spacing:.02em;text-transform:uppercase}
+.ic-src .ic{font-size:12px}
+.ic-conv{width:100%;justify-content:center;margin-top:9px;background:var(--ch-fb);color:#fff;border-color:transparent;font-weight:700}
+.ic-conv:hover{filter:brightness(.94)}
 .col.dropcol{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;background:color-mix(in srgb,var(--accent) 7%,var(--surface-2))}
 .card[draggable=true]{cursor:grab}
 .card.bdragging{opacity:.4;cursor:grabbing}
@@ -717,8 +728,16 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 
 /* ---- responsive ---- */
 @media(max-width:780px){
-  .board{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:11px;padding-bottom:8px;-webkit-overflow-scrolling:touch}
-  .col{flex:0 0 80vw;scroll-snap-align:start}
+  /* 모바일: 가로 스크롤 대신 단계 세그먼트로 한 컬럼씩 (목업대로) */
+  .board{display:block}
+  .board>.col{display:none}
+  .board>.col.msel{display:block}
+  .board-mseg{display:flex;gap:6px;overflow-x:auto;margin-bottom:11px;padding-bottom:3px;-webkit-overflow-scrolling:touch}
+  .board-mseg button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+    color:var(--muted);padding:8px 14px;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--pill);cursor:pointer;white-space:nowrap}
+  .board-mseg button.on{background:var(--accent);color:#fff;border-color:transparent;font-weight:700}
+  .board-mseg button .mc{font-size:11px;font-weight:700;opacity:.85}
+  .board-mseg button .pin{width:8px;height:8px;border-radius:50%;display:inline-block}
 }
 @media(max-width:680px){
   .wrap{padding:0 13px 72px}

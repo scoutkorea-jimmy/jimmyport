@@ -87,27 +87,34 @@ const SEED = () => {
   chk('게이트 통과 · 공간바 렌더', await page.$('.wsbar') !== null);
   chk('업무 4공간(대시보드·콘텐츠·현장·팀·자료)', (await page.$$('.wstab')).length === 4, (await page.$$('.wstab')).length + '공간');
 
-  console.log('\n[콘텐츠 리스트(보드)]');
+  console.log('\n[콘텐츠 파이프라인 보드]');
   await go('list');
-  const b = await page.evaluate(() => ({ cards: document.querySelectorAll('#board .card').length, cols: document.querySelectorAll('#board .col').length,
+  const b = await page.evaluate(() => ({
+    cards: document.querySelectorAll('#board .card:not(.card-inbox)').length,
+    cols: document.querySelectorAll('#board .col').length,
+    inbox: document.querySelectorAll('#board .col-inbox .card-inbox').length,
+    stages: [...document.querySelectorAll('#board .col:not(.col-inbox)')].map((c) => c.getAttribute('data-st')).join(','),
     toggle: document.getElementById('toggle-empty').textContent, sorts: document.querySelectorAll('#board-sort [data-bsort]').length,
-    filtersHidden: document.getElementById('filters').style.display === 'none' }));
-  chk('칼럼 3개', b.cols === 3);
+    filtersHidden: document.getElementById('filters').style.display === 'none',
+    mseg: document.querySelectorAll('#board-mseg button').length }));
+  chk('파이프라인 5칼럼(인박스+기획·작성·검수·완료)', b.cols === 5 && b.stages === 'planned,draft,review,done', b.cols + '칼럼 · ' + b.stages);
+  chk('제보 인박스 카드(홍보부 · 새 제보 1)', b.inbox === 1, b.inbox + '건');
+  chk('모바일 단계 세그먼트 5', b.mseg === 5, b.mseg + '개');
   chk('빈 슬롯 기본 숨김 → 실제 3장', b.cards === 3, b.cards + '장');
   chk('빈 슬롯 토글 라벨(38)', /\(38\)/.test(b.toggle), b.toggle);
   chk('정렬 4종 · 필터바 접힘', b.sorts === 4 && b.filtersHidden);
   await page.click('#toggle-empty');
-  chk('빈 슬롯 보기 → 41장', (await page.evaluate(() => document.querySelectorAll('#board .card').length)) === 41);
+  chk('빈 슬롯 보기 → 41장', (await page.evaluate(() => document.querySelectorAll('#board .card:not(.card-inbox)').length)) === 41);
   await page.click('#toggle-empty');
   const dnd = await page.evaluate(() => {
     const c = document.querySelector('#board .col[data-st="planned"] .card'); const t0 = c.querySelector('.ctitle').textContent.trim();
-    const tgt = document.querySelector('#board .col[data-st="ready"]'); const dt = new DataTransfer();
+    const tgt = document.querySelector('#board .col[data-st="done"]'); const dt = new DataTransfer();
     c.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
     tgt.dispatchEvent(new DragEvent('dragover', { bubbles: true, dataTransfer: dt }));
     tgt.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: dt }));
-    return [...document.querySelectorAll('#board .col[data-st="ready"] .ctitle')].map((x) => x.textContent.trim()).includes(t0);
+    return [...document.querySelectorAll('#board .col[data-st="done"] .ctitle')].map((x) => x.textContent.trim()).includes(t0);
   });
-  chk('드래그로 상태 이동', dnd === true);
+  chk('드래그로 단계 이동(기획→완료)', dnd === true);
 
   console.log('\n[캘린더]');
   await go('calendar');
@@ -117,6 +124,7 @@ const SEED = () => {
   await go('timetable');
   const tt = await page.evaluate(() => ({
     evs: document.querySelectorAll('.ttg-ev[data-id]').length,
+    cub: [...document.querySelectorAll('.ttg-ev[data-id]')].filter((x) => /^cub-/.test(x.getAttribute('data-id'))).length,
     t1: !!document.querySelector('.ttg-ev[data-id="t1"]'), t2: !!document.querySelector('.ttg-ev[data-id="t2"]'),
     nocover: document.querySelectorAll('.ttg-ev.nocover').length,
     nctag: !!document.querySelector('.ttg-ev[data-id="t2"] .nctag'),
@@ -128,12 +136,12 @@ const SEED = () => {
     top: document.querySelector('.ttg-ev[data-id="t1"]').style.top,
     height: document.querySelector('.ttg-ev[data-id="t1"]').style.height,
   }));
-  chk('8/5 일정 2건 렌더(t1·t2)', tt.evs === 2 && tt.t1 && tt.t2, tt.evs + '건');
+  chk('8/5 t1·t2 렌더 + 컵 참관단 병합(워터파크·저녁·K-POP·정리)', tt.t1 && tt.t2 && tt.cub === 4, 't1·t2 + 컵 ' + tt.cub + '건/총 ' + tt.evs);
   chk('취재 불필요(t2) 회색 · 배지', tt.nocover === 1 && tt.nctag);
   // 취재 불필요 = 저채도 비활성 블록. 라이트=고명도 회색 / 다크=저명도 회색 둘 다 통과하도록 채도로 검사.
   chk('취재 불필요 배경 = 저채도 회색(비활성)', (() => { const m = (tt.bg.match(/\d+/g) || []).map(Number); if (m.length < 3) return false; return Math.max(m[0], m[1], m[2]) - Math.min(m[0], m[1], m[2]) <= 16; })(), tt.bg);
   chk('일반 일정(t1) 은 카테고리색 유지', !/237, 239, 240/.test(tt.t1bg), tt.t1bg);
-  chk('토글 버튼 2개', tt.cov === 2);
+  chk('취재 토글 = 편집 블록마다(=총 블록수)', tt.cov === tt.evs && tt.evs >= 2, tt.cov + '/' + tt.evs);
   chk('식순 인라인(일간뷰) 1행', tt.rd === 1, tt.rd + '행');
   chk('담당 인원 표기', /김기자/.test(tt.who), tt.who.trim());
   // 20:00 × TT_HH_DAY(84px/h) = 1680 · 1.5h × 84 − 3(gap) = 123 — 리팩터링 후에도 픽셀 동일해야 함
@@ -159,7 +167,9 @@ const SEED = () => {
   // 전체기간 뷰
   await page.evaluate(() => { const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /전체/.test(x.textContent)); b && b.click(); });
   await new Promise((r) => setTimeout(r, 300));
-  chk('전체기간 뷰 → 3건 전부 렌더', (await page.$$('.ttg-ev[data-id]')).length === 3, (await page.$$('.ttg-ev[data-id]')).length + '건');
+  const wp = await page.evaluate(() => ({ ids: ['t1', 't2', 't3'].every((id) => !!document.querySelector('.ttg-ev[data-id="' + id + '"]')),
+    cub: [...document.querySelectorAll('.ttg-ev[data-id]')].filter((x) => /^cub-/.test(x.getAttribute('data-id'))).length }));
+  chk('전체기간 뷰 → t1·t2·t3 + 컵 참관단 35건 전부 렌더', wp.ids && wp.cub === 35, 't1·t2·t3 + 컵 ' + wp.cub);
   await page.evaluate(() => { const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /일간/.test(x.textContent)); b && b.click(); });
   await new Promise((r) => setTimeout(r, 250));
 
