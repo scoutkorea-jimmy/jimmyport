@@ -2861,15 +2861,13 @@ function renderDashboard(){
   else { html+='<div class="actq-list">'+acts.map(function(a){ return '<button class="actq-item" '+(a.go==='members'?'data-open-members="1"':('data-goto="'+a.go+'"'))+'><span class="actq-n" style="background:'+a.c+'">'+a.n+'</span><span class="actq-lab">'+a.lab+'</span><span class="actq-arw">→</span></button>'; }).join('')+'</div>'; }
   html+='</div>';
 
-  // ===== 통계 카드 =====
+  // ===== 통계 카드 (업무 지표 — D-day 는 위 배너와 중복이라 뺐고, 참고성 인원·연락처도 뺌) =====
   html+='<div class="dashgrid">';
-  html+=statCard('개영까지', dd>0?('D-'+dd):(dd===0?'D-DAY':('D+'+(-dd))), '2026-08-05 개영', 'var(--c-fin)');
   html+=statCard('콘텐츠 진행', ready+' / '+total, '완료 '+pct+'% · 작성중 '+draft+' · 기획 '+planned, 'var(--st-ready)');
   html+=statCard('게시 완료', posted+' / '+titled, titled?(Math.round(posted/titled*100)+'% 게시'):'게시할 콘텐츠 없음', 'var(--c-intl)');
   html+=statCard('운영 일정', evs.length+'건', '다가오는 회의 · 공모전 · 행사', 'var(--c-intl)');
   html+=statCard('시간 일정', ttN+'건', '잼버리 일정표 (8/2~8/9)', 'var(--accent)');
   html+=statCard('디데이 신청', dcApproved+'건', dcWeek?('이번 주 확정 '+dcWeek+'건'):'승인 확정 카드', 'var(--c-sub)');
-  html+=statCard('인원 · 연락처', rosterN+' · '+conN, 'R&R 인원 · 취재 연락처', 'var(--ink-2)');
   html+='</div>';
 
   // ===== E. 콘텐츠 파이프라인 (제목 있는 실제 콘텐츠 기준) =====
@@ -2952,6 +2950,9 @@ function renderDashboard(){
   html+='</div>';
 
   box.innerHTML=html;
+  // 날씨는 참고 정보라 대시보드 맨 아래로 — 업무(할 일·콘텐츠 진행)가 먼저 보이게. (idempotent: 이미 끝이면 그대로)
+  var wxEl=document.getElementById('wx'), dsec=document.getElementById('dashboard');
+  if(wxEl && dsec && dsec.lastElementChild!==wxEl) dsec.appendChild(wxEl);
   startDashClock();
   box.querySelectorAll('.dp-item[data-sk],.pubrow[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
   box.querySelectorAll('.dp-item[data-eid]').forEach(function(b){ b.onclick=function(){ openEvent(b.getAttribute('data-eid')); }; });

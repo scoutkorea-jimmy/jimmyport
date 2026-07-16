@@ -1082,6 +1082,8 @@ tr.rowdim{opacity:.34}
 .smwrap{position:relative;width:100%;border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;background:var(--surface-3);box-shadow:var(--sh-1)}
 .smstage{position:relative;width:100%;line-height:0}
 .smstage img{width:100%;height:auto;display:block;-webkit-user-drag:none;user-select:none}
+/* 밝은 배치도 위에 옅은 검정 오버레이 — 이미지 위, 마커(z-index 2+) 아래. 마커·라벨·핀이 도드라지게. 클릭은 통과 */
+.smstage::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.42);pointer-events:none;z-index:1}
 .smzone{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;z-index:2}
 .smzone .smdot{width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.4)}
 .smzone:hover .smdot{background:var(--accent)}
