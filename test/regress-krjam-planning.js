@@ -208,6 +208,47 @@ const SEED = () => {
   await go('staff');
   chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
 
+  // ===== 디자인 계측 =====
+  // 디자인 변경은 눈으로만 확인하기 쉬워 조용히 무너진다. 규칙을 테스트로 고정한다.
+  console.log('\n[디자인 — 대비]');
+  const CR = (a, b) => { // WCAG 2.1 상대휘도
+    const L = (h) => { const c = h.match(/\d+/g).slice(0, 3).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const l1 = L(a), l2 = L(b); const hi = Math.max(l1, l2), lo = Math.min(l1, l2); return (hi + 0.05) / (lo + 0.05);
+  };
+  await go('timetable');
+  const white = await page.evaluate(() => {
+    // 흰 글씨를 얹는 요소를 실제 계산값으로 수집 (일정표 블록 · 배지 · 선택된 상태 버튼)
+    const out = [];
+    document.querySelectorAll('.ttg-ev:not(.nocover), .solid, .chchip, .tip-src').forEach((el) => {
+      const cs = getComputedStyle(el);
+      if (/255,\s*255,\s*255/.test(cs.color)) out.push({ what: el.className.split(' ')[0] + '·' + (el.textContent || '').trim().slice(0, 8), bg: cs.backgroundColor, fg: cs.color });
+    });
+    return out;
+  });
+  const wbad = white.filter((w) => /rgba?\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(w.bg) ? false : CRx(w.fg, w.bg) < 4.5);
+  function CRx(a, b) { return CR(a, b); }
+  chk('흰 글씨를 얹는 요소 전부 대비 4.5+', wbad.length === 0,
+    wbad.length ? wbad.map((w) => w.what + ' ' + CR(w.fg, w.bg).toFixed(2)).join(' | ') : white.length + '개 검사');
+
+  const tok = await page.evaluate(() => { const cs = getComputedStyle(document.documentElement);
+    return ['--st-planned', '--st-draft', '--st-ready', '--muted', '--danger', '--c-sub', '--c-app', '--c-fin', '--c-rest']
+      .map((k) => [k, cs.getPropertyValue(k).trim()]); });
+  const h2 = (h) => { h = h.replace('#', ''); return 'rgb(' + [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',') + ')'; };
+  const tbad = tok.filter(([, v]) => v.startsWith('#') && CR(h2(v), 'rgb(255,255,255)') < 4.5);
+  chk('상태·단계 토큰 전부 흰 글씨 4.5+', tbad.length === 0, tbad.map(([k, v]) => k + ' ' + v).join(' | ') || tok.length + '개 검사');
+
+  console.log('\n[디자인 — 레이아웃]');
+  for (const W of [390, 430]) {
+    await page.setViewport({ width: W, height: 900 });
+    await new Promise((r) => setTimeout(r, 350));
+    const ov = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth,
+      orgH: Math.round((document.querySelector('.orgtag') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect().height) }));
+    chk(W + 'px 가로 넘침 없음', ov.sw <= ov.iw, 'scrollW=' + ov.sw);
+    chk(W + 'px 상단 라벨 안 무너짐', ov.orgH <= 40, ov.orgH + 'px');
+  }
+  await page.setViewport({ width: 1440, height: 1000 });
+
   console.log('\n[콘솔]');
   chk('콘솔/페이지 에러 0', errors.length === 0, errors.slice(0, 3).join(' | ') || 'clean');
 

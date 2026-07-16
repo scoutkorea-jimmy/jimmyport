@@ -100,7 +100,8 @@ var JAM_DAYS=[
   ['2026-08-02','사전'],['2026-08-03','사전'],['2026-08-04','사전'],
   ['2026-08-05','개영'],['2026-08-06',''],['2026-08-07',''],['2026-08-08',''],['2026-08-09','폐영']
 ];
-var TTCAT_PALETTE=['#C0492F','#2F5D4A','#6B4FA0','#0F8A8A','#B07A1E','#2E6FAE','#7A6A57','#A33A24','#3E7C59','#8E5BB5','#127C7C','#9A6310','#3D6FB0','#6E5E4C'];
+// 새 종류에 자동 배정되는 색 — 전부 흰 글씨 4.5:1 이상만 남겼다(이전엔 4.18·3.72 등 미달 색이 섞여 있었음)
+var TTCAT_PALETTE=['#B03E24','#2F5D4A','#6B4FA0','#0B6E6E','#8A5A0B','#2E6FAE','#6B5C4A','#96341F','#2F6B4B','#7B4CA0','#0F6262','#84550C','#33629B','#5E5344'];
 // 블록에 흰 글씨를 얹으므로 전부 대비 4.5 이상. 홍보활동(#0F8A8A 4.18)·식사(#B07A1E 3.72)가 미달이라 어둡게 조정.
 function defaultTtCats(){ return [['개·폐영식','#B03E24'],['프로그램','#2F5D4A'],['행사','#6B4FA0'],['홍보활동','#0B6E6E'],['식사','#8A5A0B'],['회의','#2E6FAE'],['이동·기타','#6B5C4A']]; }
 function ttCats(){ if(!state.ttcats) state.ttcats=defaultTtCats(); return state.ttcats; }
@@ -108,7 +109,14 @@ function ttCatColor(c){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]==
 function saveTtCats(){ debouncedPut('ttcatTimer', {ttcats: ttCats()}, '종류 저장됨'); }
 function addTtCat(name){ name=(name||'').trim(); if(!name) return false; var L=ttCats(); if(L.some(function(x){return x[0]===name;})){ toast('이미 있는 종류'); return false; } var used=L.map(function(x){return x[1];}); var col=TTCAT_PALETTE.filter(function(c){return used.indexOf(c)<0;})[0]||TTCAT_PALETTE[L.length%TTCAT_PALETTE.length]; L.push([name,col]); saveTtCats(); return true; }
 function deleteTtCat(name){ var L=ttCats(); if(L.length<=1){ toast('최소 1개 종류는 필요합니다'); return false; } if(!confirm('종류 "'+name+'"을(를) 삭제할까요?\n이 종류를 쓰던 일정은 기본색으로 표시됩니다.')) return false; state.ttcats=L.filter(function(x){return x[0]!==name;}); saveTtCats(); return true; }
-function setTtCatColor(name,color){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]===name){ L[i][1]=color; break; } saveTtCats(); }
+/* 블록에 흰 글씨를 얹으므로 대비 미달 색은 그대로 둘 수 없다 → 통과할 때까지 어둡게 보정하고 이유를 알린다.
+   (규칙은 core.js 의 darkenToContrast · 기준 4.5:1) */
+function setTtCatColor(name,color){
+  var safe=darkenToContrast(color);
+  if(safe.toUpperCase()!==String(color).toUpperCase()) toast('글씨가 읽히도록 색을 조금 어둡게 맞췄어요');
+  var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]===name){ L[i][1]=safe; break; }
+  saveTtCats(); return safe;
+}
 /* ----- 인원별 오프타임 (배정 불가 시간) ----- */
 var OFF_BLOCKS=[['am','오전','09–12',9,12],['pm','오후','14–17',14,17],['eve','저녁','19–22',19,22]];
 function offMap(){ if(!state.offtimes) state.offtimes={}; return state.offtimes; }
@@ -1539,7 +1547,7 @@ function renderTTModal(){
       '<button type="button" class="rd-add" id="tt-rd-add">'+icon('plus',13)+' 순서 추가</button>'+
     '</div></div>';
   b.querySelectorAll('#tt-catset .csel').forEach(function(ch){ ch.addEventListener('click',function(e){ if(e.target.closest('.cx')||e.target.closest('.ccolor')) return; ttDraft.cat=ch.dataset.c; renderTTModal(); }); });
-  b.querySelectorAll('#tt-catset .ccolor').forEach(function(cc){ cc.addEventListener('click',function(e){ e.stopPropagation(); }); cc.addEventListener('change',function(e){ e.stopPropagation(); setTtCatColor(cc.dataset.c, cc.value); renderTimetable(); renderTTModal(); }); });
+  b.querySelectorAll('#tt-catset .ccolor').forEach(function(cc){ cc.addEventListener('click',function(e){ e.stopPropagation(); }); cc.addEventListener('change',function(e){ e.stopPropagation(); cc.value=setTtCatColor(cc.dataset.c, cc.value); renderTimetable(); renderTTModal(); }); });
   b.querySelectorAll('#tt-catset .cx').forEach(function(x){ x.addEventListener('click',function(e){ e.stopPropagation(); var nm=x.dataset.c; if(deleteTtCat(nm)){ if(ttDraft.cat===nm) ttDraft.cat=(ttCats()[0]||['프로그램'])[0]; renderTTModal(); } }); });
   var ci=b.querySelector('#tt-catinput'); if(ci) ci.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v && addTtCat(v)) ttDraft.cat=v; this.value=''; renderTTModal(); var ni=document.getElementById('tt-catinput'); if(ni) ni.focus(); } });
   b.querySelectorAll('.evkind.asg').forEach(function(bt){ bt.onclick=function(){ var pid=bt.dataset.pid; var i=ttDraft.assignees.indexOf(pid);

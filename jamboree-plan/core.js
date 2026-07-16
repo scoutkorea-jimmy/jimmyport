@@ -37,6 +37,45 @@ function htmlToText(html){
 }
 var _mk=0; function mkid(){ _mk++; return 'mk'+Date.now().toString(36)+_mk; }
 
+/* ===== 대비 (WCAG 2.1 상대휘도) =====
+ * 왜 여기 있나: 일정표 "종류" 색은 사용자가 피커로 직접 고르는데, 그 색 위에 흰 글씨를 얹는다.
+ * 밝은 색을 고르면 블록 글씨가 안 읽힌다 — 규칙이 코드에 없으면 팔레트는 반드시 다시 무너진다.
+ * 디자인 규칙: 흰 글씨를 얹는 색은 대비 4.5:1(WCAG AA) 이상.
+ */
+var CONTRAST_MIN = 4.5;
+function hexToRgb(hex){
+  hex = String(hex || '').replace('#','');
+  if(hex.length === 3) hex = hex.split('').map(function(c){ return c+c; }).join('');
+  if(!/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+  return [0,2,4].map(function(i){ return parseInt(hex.slice(i,i+2),16); });
+}
+function rgbToHex(rgb){
+  return '#'+rgb.map(function(v){ return ('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); }).join('').toUpperCase();
+}
+function relLuminance(hex){
+  var rgb = hexToRgb(hex); if(!rgb) return 0;
+  var s = rgb.map(function(v){ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
+  return 0.2126*s[0] + 0.7152*s[1] + 0.0722*s[2];
+}
+function contrastRatio(a,b){
+  var l1 = relLuminance(a), l2 = relLuminance(b);
+  var hi = Math.max(l1,l2), lo = Math.min(l1,l2);
+  return (hi+0.05)/(lo+0.05);
+}
+function contrastOnWhite(hex){ return contrastRatio(hex, '#FFFFFF'); }
+/* 흰 글씨가 읽힐 때까지 어둡게 — RGB 를 비례 축소하므로 hue 는 대체로 유지된다.
+   입력이 이미 통과하면 그대로 돌려준다(사용자가 고른 색을 함부로 바꾸지 않는다). */
+function darkenToContrast(hex, min){
+  min = min || CONTRAST_MIN;
+  var rgb = hexToRgb(hex); if(!rgb) return hex;
+  if(contrastOnWhite(hex) >= min) return hex;
+  for(var f=0.96; f>0.02; f-=0.02){
+    var c = rgbToHex(rgb.map(function(v){ return v*f; }));
+    if(contrastOnWhite(c) >= min) return c;
+  }
+  return '#000000';
+}
+
 /* ===== 라인 아이콘 (Feather/Lucide 스타일 인라인 SVG) ===== */
 var ICON={
   calendar:'<rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18"/><path d="M8 2.5v4M16 2.5v4"/>',
