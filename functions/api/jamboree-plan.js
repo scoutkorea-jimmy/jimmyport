@@ -15,6 +15,7 @@ const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
 const MKT = "jp:marketing";
 const MEALS = "jp:meals";
+const SHOOTLIST = "jp:shootlist";
 const TYPES = "jp:types";
 const EVENTS = "jp:events";
 const TIMETABLE = "jp:timetable";
@@ -89,6 +90,19 @@ function cleanMeals(m) {
     out[g] = days;
   });
   return out;
+}
+// 촬영 필요 리스트 항목
+function cleanShoot2(e) {
+  e = e && typeof e === "object" ? e : {};
+  return {
+    id: (e.id || "").toString().slice(0, 40),
+    date: (e.date || "").toString().slice(0, 20),
+    title: (e.title || "").toString().slice(0, 200),
+    place: (e.place || "").toString().slice(0, 120),
+    point: (e.point || "").toString().slice(0, 400),
+    owner: (e.owner || "").toString().slice(0, 60),
+    done: !!e.done,
+  };
 }
 function cleanProtocol(e) {
   e = e && typeof e === "object" ? e : {};
@@ -318,7 +332,11 @@ export async function onRequestGet(ctx) {
   const mlraw = await env.SCOUT_KV.get(MEALS);
   if (mlraw) { try { meals = JSON.parse(mlraw).meals; } catch {} }
 
-  const resp = jsonCacheable({ slots, marketing, meals, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots }, 30);  // short TTL; writes purge it
+  let shootlist = null;
+  const slraw = await env.SCOUT_KV.get(SHOOTLIST);
+  if (slraw) { try { shootlist = JSON.parse(slraw).shootlist; } catch {} }
+
+  const resp = jsonCacheable({ slots, marketing, meals, shootlist, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
@@ -349,6 +367,12 @@ async function putImpl(ctx) {
   // 식사 메뉴 저장 (대원/운영요원 × 날짜 × 조·중·석식)
   if (body.meals && typeof body.meals === "object" && !Array.isArray(body.meals)) {
     await env.SCOUT_KV.put(MEALS, JSON.stringify({ meals: cleanMeals(body.meals), updatedAt: now }));
+    return json({ ok: true, updatedAt: now });
+  }
+
+  // 촬영 필요 리스트 저장
+  if (Array.isArray(body.shootlist)) {
+    await env.SCOUT_KV.put(SHOOTLIST, JSON.stringify({ shootlist: body.shootlist.slice(0, 500).map(cleanShoot2), updatedAt: now }));
     return json({ ok: true, updatedAt: now });
   }
 

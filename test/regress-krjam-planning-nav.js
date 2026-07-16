@@ -13,8 +13,8 @@ const server = http.createServer((req, res) => {
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
   res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' }); res.end(fs.readFileSync(f));
 });
-const ALL = ['dashboard', 'calendar', 'list', 'news', 'tips', 'library', 'timetable', 'sitemap', 'protocol', 'staff', 'contacts', 'orginfo'];
-const WS_OF = { dashboard: 'dash', calendar: 'content', list: 'content', news: 'content', tips: 'content', timetable: 'field', sitemap: 'field', protocol: 'field', staff: 'team', contacts: 'team', orginfo: 'team', library: 'team' };
+const ALL = ['dashboard', 'calendar', 'list', 'news', 'tips', 'shootlist', 'library', 'timetable', 'sitemap', 'protocol', 'staff', 'contacts', 'orginfo'];
+const WS_OF = { dashboard: 'dash', calendar: 'content', list: 'content', news: 'content', tips: 'content', shootlist: 'content', timetable: 'field', sitemap: 'field', protocol: 'field', staff: 'team', contacts: 'team', orginfo: 'team', library: 'team' };
 const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d ? ' — ' + d : '')); };
 const SEED = function (role, type, tabs) {
   localStorage.setItem('jamboree-plan:session', JSON.stringify({ token: 'T', name: '박지민', username: 'jimmy', role: role, type: type, tabs: tabs, exp: Date.now() + 9e6 }));
@@ -78,7 +78,7 @@ async function goViaBot(p, v) {
   chk('PC 가로 넘침 없음', pc.sw <= pc.iw, 'scrollW=' + pc.sw);
   let pcOk = 0;
   for (const v of ALL) { if ((await goVia(p, v)) === v) pcOk++; }
-  chk('PC 공간→세부로 12뷰 전부 이동', pcOk === 12, pcOk + '/12');
+  chk('PC 공간→세부로 13뷰 전부 이동', pcOk === 13, pcOk + '/13');
   await goVia(p, 'dashboard');
   await p.screenshot({ path: '/tmp/nav-pc.png' });
   await p.close();
@@ -110,7 +110,7 @@ async function goViaBot(p, v) {
   chk('모바일 가로 넘침 없음', mb.sw <= mb.iw, 'scrollW=' + mb.sw);
   let mOk = 0;
   for (const v of ALL) { if ((await goViaBot(p, v)) === v) mOk++; }
-  chk('모바일 하단공간→세부로 12뷰 전부 이동', mOk === 12, mOk + '/12');
+  chk('모바일 하단공간→세부로 13뷰 전부 이동', mOk === 13, mOk + '/13');
   await p.close();
 
   // ── 권한: 일반 회원 ──

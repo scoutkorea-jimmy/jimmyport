@@ -397,6 +397,7 @@ function applyServer(j){
     if(isExtra){ var p=k.split('#'), date=p[0], id=p[2]; if(!state.extra[date]) state.extra[date]=[]; if(!state.extra[date].some(function(x){return x.id===id;})) state.extra[date].push({id:id,category:(r.edit&&r.edit.category)||'콘텐츠'}); }
   });
   if(j&&j.marketing) state.marketing=j.marketing;
+  if(j&&Array.isArray(j.shootlist)) state.shootlist=j.shootlist;
   state._mealsFromServer=!!(j&&j.meals&&typeof j.meals==='object'&&Object.keys(j.meals).length);
   if(state._mealsFromServer) state.meals=j.meals;
   if(j&&j.types) state.types=j.types;
@@ -1448,6 +1449,34 @@ function renderMeals(){
   });
 }
 
+/* ===== 촬영 필요 행사·과정활동 리스트 (shootlist) — 콘텐츠 공간 ===== */
+function shootListData(){ if(!Array.isArray(state.shootlist)) state.shootlist=[]; return state.shootlist; }
+function saveShootList(){ debouncedPut('shootlistTimer', {shootlist: shootListData()}, '촬영 리스트 저장됨'); }
+function addShootRow(){ shootListData().push({id:mkid(), date:'', title:'', place:'', point:'', owner:'', done:false}); renderPhotoList(); saveShootList();
+  setTimeout(function(){ var rows=document.querySelectorAll('#shootlist-body tr'); var last=rows[rows.length-1]; var c=last&&last.querySelector('td.mk[data-f="title"]'); if(c) c.focus(); },30); }
+function renderPhotoList(){
+  var tb=document.getElementById('shootlist-body'); if(!tb) return; tb.innerHTML='';
+  var list=shootListData();
+  var done=list.filter(function(x){return x.done;}).length;
+  var ph=document.getElementById('shootlist-count'); if(ph) ph.textContent=list.length?('촬영 완료 '+done+' / '+list.length):'';
+  if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="news-empty" style="padding:20px">사진 촬영이 필요한 행사·과정활동을 추가하세요. 우측 상단 <b>행 추가</b>.</td></tr>'; return; }
+  list.forEach(function(m){
+    var tr=document.createElement('tr'); if(m.done) tr.className='shoot-done';
+    tr.innerHTML=
+      '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
+      '<td class="mk" contenteditable data-f="date">'+esc(m.date||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="point">'+esc(m.point||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="owner">'+esc(m.owner||'')+'</td>'+
+      '<td><button class="rm" title="행 삭제">'+icon('trash',14)+'</button></td>';
+    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveShootList(); }); });
+    tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked; tr.classList.toggle('shoot-done',m.done); if(ph) ph.textContent='촬영 완료 '+shootListData().filter(function(x){return x.done;}).length+' / '+shootListData().length; saveShootList(); });
+    tr.querySelector('.rm').onclick=function(){ state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); };
+    tb.appendChild(tr);
+  });
+}
+
 /* ===== 일자별 시간 일정표 (타임테이블 그리드) ===== */
 var TT_HS=0, TT_HE=24;             // 표시 시작/끝 시각 (24시간 일정표)
 var TT_HH_PERIOD=46, TT_HH_DAY=84; // 시간당 픽셀(전체기간/일간)
@@ -2470,7 +2499,7 @@ var MANAGE_TABS=['staff','contacts','orginfo','protocol'];
 /* ===== 2단 내비게이션 (v0.9.184) — 업무 공간(workspace) → 세부 뷰 =====
    12개 평평한 탭을 업무 4공간으로 묶는다. 뷰 렌더 로직은 그대로, 배치·탐색만 바꾼다. */
 var WS_LIST=[{ws:'dash',label:'대시보드',ic:'grid'},{ws:'content',label:'콘텐츠',ic:'list'},{ws:'field',label:'현장',ic:'mapPin'},{ws:'team',label:'팀·자료',ic:'users'}];
-var WS_VIEWS={ dash:['dashboard'], content:['calendar','list','news','tips'], field:['timetable','sitemap','protocol','meals'], team:['staff','contacts','orginfo','library'] };
+var WS_VIEWS={ dash:['dashboard'], content:['calendar','list','news','tips','shootlist'], field:['timetable','sitemap','protocol','meals'], team:['staff','contacts','orginfo','library'] };
 function wsOfView(v){ for(var k in WS_VIEWS){ if(WS_VIEWS[k].indexOf(v)>=0) return k; } return 'dash'; }
 function wsHasVisible(ws){ return (WS_VIEWS[ws]||[]).some(function(v){ return Auth.authed()&&Auth.canSee(v); }); }
 var curWs='dash', wsLastView={};
@@ -2515,7 +2544,7 @@ Auth.authed=function(){ return !!(this.token && this.exp>Date.now()); };
 Auth.isAdmin=function(){ return this.role==='admin' || !!this.master; };
 // 유형(type)이 가진 탭만. tabs 비어있으면(구버전 세션) 콘텐츠 탭만 폴백 → 잠금 방지.
 // tips(소식 제보)는 제보자 개인정보가 담겨 홍보부 전용 — sitemap 과 함께 isStaff 게이트
-Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news'||v==='meals') return true; if(v==='sitemap'||v==='tips') return this.isStaff(); return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
+Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news'||v==='meals'||v==='shootlist') return true; if(v==='sitemap'||v==='tips') return this.isStaff(); return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
 Auth.isStaff=function(){ var me=this; return this.isAdmin() || ((this.tabs&&this.tabs.length) ? MANAGE_TABS.some(function(t){ return me.tabs.indexOf(t)>=0; }) : false); };
 function authHeader(){ return Auth.token ? {'Authorization':'Bearer '+Auth.token} : {}; }
 function authJsonHeaders(){ var h={'content-type':'application/json'}; if(Auth.token) h['Authorization']='Bearer '+Auth.token; return h; }
@@ -3340,6 +3369,7 @@ function setView(v){
   var tps=document.getElementById('tips'); if(tps) tps.style.display = v==='tips'?'':'none';
   var smv=document.getElementById('sitemap'); if(smv) smv.style.display = v==='sitemap'?'':'none';
   var mlv=document.getElementById('meals'); if(mlv) mlv.style.display = v==='meals'?'':'none';
+  var slv=document.getElementById('shootlist'); if(slv) slv.style.display = v==='shootlist'?'':'none';
   // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   wsLastView[wsOfView(v)]=v;
@@ -3358,6 +3388,7 @@ function setView(v){
   if(v==='protocol') renderProtocol();
   if(v==='sitemap') renderSiteMap();
   if(v==='meals') renderMeals();
+  if(v==='shootlist') renderPhotoList();
 }
 
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
@@ -3406,7 +3437,7 @@ function init(){
   if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bnws]'); if(!b) return;
     setWorkspace(b.getAttribute('data-bnws')); window.scrollTo({top:0,behavior:'smooth'}); });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
-  setView(['dashboard','news','tips','calendar','list','timetable','library','staff','contacts','orginfo','protocol','sitemap','meals'].indexOf(savedView)>=0?savedView:'dashboard');
+  setView(['dashboard','news','tips','calendar','list','timetable','library','staff','contacts','orginfo','protocol','sitemap','meals','shootlist'].indexOf(savedView)>=0?savedView:'dashboard');
   // 인증 · 기사 · 홍보부원 회원 배선
   reflectAuthUI();
   var lo=document.getElementById('logout'); if(lo) lo.onclick=doLogout;
@@ -3473,6 +3504,7 @@ function init(){
   var tipScrim=document.getElementById('tip-scrim'); if(tipScrim) tipScrim.addEventListener('click',function(e){ if(e.target===this) closeTipEditor(); });
   var tipBody=document.getElementById('tip-body'); if(tipBody) tipBody.addEventListener('click',function(e){ var x=e.target.closest('[data-tip-img-del]'); if(x&&tipEdit){ tipEdit.images.splice(+x.getAttribute('data-tip-img-del'),1); renderTipEditor(); } });
   var mealSeg=document.getElementById('meal-groupseg'); if(mealSeg) mealSeg.addEventListener('click',function(e){ var b=e.target.closest('[data-mg]'); if(!b) return; mealGroup=b.getAttribute('data-mg'); renderMeals(); });
+  var slAdd=document.getElementById('shootlist-add'); if(slAdd) slAdd.onclick=addShootRow;
   var tipFil=document.getElementById('tip-filters'); if(tipFil) tipFil.addEventListener('click',function(e){ var b=e.target.closest('[data-tipf]'); if(b){ tipFilter=b.getAttribute('data-tipf'); renderTips(); } });
   var tipGrid=document.getElementById('tip-grid'); if(tipGrid){ tipGrid.addEventListener('click',function(e){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }
