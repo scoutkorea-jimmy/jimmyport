@@ -2090,35 +2090,60 @@ function prWho(p){ return (p.name||'')+(p.title?(' '+p.title):''); }
 function saveProtocol(){ debouncedPut('protoTimer', {protocol: state.protocol||[]}, '의전 일정 저장됨'); }
 function addProtocol(){ protocolList().push({id:mkid(),role:'',name:'',title:'',date:'',time:'',activity:'',place:'',memo:''}); renderProtocol(); saveProtocol(); }
 function refreshProtocolViews(){ saveProtocol(); renderCalendar(); if(typeof renderTimetable==='function') renderTimetable(); }
+// 의전 장소 = 현장 지도 구역(ZONES) 라벨을 공유. 기존에 입력된 커스텀 장소는 상단에 보존.
+function protPlaceOptions(sel){
+  var has=false, opts=ZONES.map(function(z){ if(z.label===sel)has=true; return '<option value="'+esc(z.label)+'"'+(z.label===sel?' selected':'')+'>'+esc(z.label)+'</option>'; }).join('');
+  return '<option value=""'+(sel?'':' selected')+'>— 장소 —</option>'+((sel&&!has)?('<option value="'+esc(sel)+'" selected>'+esc(sel)+'</option>'):'')+opts;
+}
+function protPersonKey(m){ return (m.name||'')+''+(m.title||'')+''+(m.role||''); }
 function renderProtocol(){
   var tb=document.getElementById('pr-body'); if(!tb) return; tb.innerHTML='';
-  // 헤더 클릭 = 그 항목 정렬(재클릭 시 방향 토글)
-  document.querySelectorAll('#prtbl thead th.prh').forEach(function(th){ var f=th.getAttribute('data-sf');
-    th.classList.toggle('sorted', prSort.f===f);
-    th.setAttribute('data-dir', prSort.f===f?(prSort.dir>0?'▲':'▼'):'');
-    th.onclick=function(){ if(prSort.f===f) prSort.dir=-prSort.dir; else { prSort.f=f; prSort.dir=1; } renderProtocol(); };
+  // 성명/직책(인원)별 그루핑 — 인원 정보(구분·성명·직책)는 rowspan 으로 한 번만, 그 아래 일정들. (헤더 정렬은 그루핑으로 대체)
+  document.querySelectorAll('#prtbl thead th.prh').forEach(function(th){ th.classList.remove('sorted'); th.setAttribute('data-dir',''); th.onclick=null; th.style.cursor='default'; });
+  var rows=protocolList().slice().sort(function(a,b){
+    var ka=protPersonKey(a), kb=protPersonKey(b); if(ka<kb)return -1; if(ka>kb)return 1;
+    var da=(a.date||'')+(a.time||''), db=(b.date||'')+(b.time||''); return da<db?-1:da>db?1:0;
   });
-  var rows=protocolList().slice().sort(function(a,b){ var f=prSort.f, av=(a[f]||'').toString(), bv=(b[f]||'').toString(); if(av<bv) return -prSort.dir; if(av>bv) return prSort.dir; return 0; });
-  rows.forEach(function(m){
-    var tr=document.createElement('tr');
+  function evEditors(tr,m){
+    tr.querySelectorAll('td.mk:not(.pr-person)').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveProtocol(); if(td.dataset.f==='activity') refreshProtocolViews(); }); });
+    var dt=tr.querySelector('input.prin[data-f="date"]'); if(dt) dt.addEventListener('change',function(){ m.date=this.value; saveProtocol(); refreshProtocolViews(); });
+    var pl=tr.querySelector('select.prplace'); if(pl) pl.addEventListener('change',function(){ m.place=this.value; saveProtocol(); refreshProtocolViews(); });
+    var prtH=tr.querySelector('.prtime-h'), prtM=tr.querySelector('.prtime-m');
+    if(prtH&&prtM){
+      [prtH,prtM].forEach(function(inp){ inp.addEventListener('input',function(){ this.value=this.value.replace(/\D/g,'').slice(0,2); }); });   // 숫자만
+      var updT=function(){ if(prtH.value===''&&prtM.value===''){ m.time=''; } else { var h=Math.max(0,Math.min(23,parseInt(prtH.value,10)||0)), mm=Math.max(0,Math.min(59,parseInt(prtM.value,10)||0)); m.time=pad2(h)+':'+pad2(mm); } saveProtocol(); refreshProtocolViews(); };
+      prtH.addEventListener('change',updT); prtM.addEventListener('change',updT); prtH.addEventListener('blur',updT); prtM.addEventListener('blur',updT);
+    }
+    tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); saveProtocol(); renderProtocol(); refreshProtocolViews(); };
+  }
+  function eventCells(m){
     var prh=t2h(m.time), prHH=prh!=null?Math.floor(prh):'', prMM=prh!=null?Math.round((prh-Math.floor(prh))*60):'';
-    tr.innerHTML=
-      '<td class="mk" contenteditable data-f="role">'+esc(m.role||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="name">'+esc(m.name||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
-      '<td><input type="date" class="prin" data-f="date" min="2026-06-15" max="2026-08-09" value="'+esc(m.date||'')+'"></td>'+
-      '<td><span class="evtimegrp pr-timegrp"><input type="number" class="evtime prtime-h" min="0" max="23" value="'+prHH+'" inputmode="numeric" aria-label="시"><span class="evcolon">:</span><input type="number" class="evtime prtime-m" min="0" max="59" step="5" value="'+prMM+'" inputmode="numeric" aria-label="분"></span></td>'+
+    return '<td><input type="date" class="prin" data-f="date" min="2026-06-15" max="2026-08-09" value="'+esc(m.date||'')+'"></td>'+
+      '<td><span class="evtimegrp pr-timegrp"><input type="text" class="evtime prtime-h" inputmode="numeric" maxlength="2" value="'+prHH+'" aria-label="시" placeholder="시"><span class="evcolon">:</span><input type="text" class="evtime prtime-m" inputmode="numeric" maxlength="2" value="'+prMM+'" aria-label="분" placeholder="분"></span></td>'+
       '<td class="mk" contenteditable data-f="activity">'+esc(m.activity||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
+      '<td><select class="prin prplace" data-f="place">'+protPlaceOptions(m.place||'')+'</select></td>'+
       '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
       '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
-    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveProtocol(); if(td.dataset.f==='activity') refreshProtocolViews(); }); });
-    tr.querySelectorAll('input.prin').forEach(function(inp){ inp.addEventListener('change',function(){ m[inp.dataset.f]=inp.value; refreshProtocolViews(); }); });
-    var prtH=tr.querySelector('.prtime-h'), prtM=tr.querySelector('.prtime-m');
-    if(prtH&&prtM){ var updT=function(){ if(prtH.value===''&&prtM.value===''){ m.time=''; } else { var h=Math.max(0,Math.min(23,parseInt(prtH.value,10)||0)), mm=Math.max(0,Math.min(59,parseInt(prtM.value,10)||0)); m.time=pad2(h)+':'+pad2(mm); } saveProtocol(); refreshProtocolViews(); }; prtH.addEventListener('change',updT); prtM.addEventListener('change',updT); }
-    tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); renderProtocol(); refreshProtocolViews(); };
-    tb.appendChild(tr);
-  });
+  }
+  var i=0;
+  while(i<rows.length){
+    var key=protPersonKey(rows[i]), group=[];
+    while(i<rows.length && protPersonKey(rows[i])===key){ group.push(rows[i]); i++; }
+    group.forEach(function(m, gi){
+      var tr=document.createElement('tr'); if(gi===0) tr.className='pr-grouprow';
+      if(gi===0){
+        tr.innerHTML='<td class="mk pr-person" contenteditable data-f="role" rowspan="'+group.length+'">'+esc(m.role||'')+'</td>'+
+          '<td class="mk pr-person" contenteditable data-f="name" rowspan="'+group.length+'">'+esc(m.name||'')+'</td>'+
+          '<td class="mk pr-person" contenteditable data-f="title" rowspan="'+group.length+'">'+esc(m.title||'')+'</td>'+eventCells(m);
+        // 인원 셀(구분·성명·직책) 편집 → 그룹 전체에 전파
+        tr.querySelectorAll('td.pr-person').forEach(function(td){ td.addEventListener('blur',function(){ var v=td.textContent.trim(); group.forEach(function(gm){ gm[td.dataset.f]=v; }); saveProtocol(); refreshProtocolViews(); renderProtocol(); }); });
+      } else {
+        tr.innerHTML=eventCells(m);
+      }
+      evEditors(tr,m);
+      tb.appendChild(tr);
+    });
+  }
 }
 
 /* ===== auth (개별 ID/PW 로그인 · 관리자=TOTP) ===== */

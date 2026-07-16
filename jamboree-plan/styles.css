@@ -1084,6 +1084,12 @@ tr.rowdim{opacity:.34}
 .smstage img{width:100%;height:auto;display:block;-webkit-user-drag:none;user-select:none}
 /* 밝은 배치도 위에 옅은 검정 오버레이 — 이미지 위, 마커(z-index 2+) 아래. 마커·라벨·핀이 도드라지게. 클릭은 통과 */
 .smstage::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.42);pointer-events:none;z-index:1}
+/* 의전: 인원(성명/직책)별 그루핑 — rowspan 인원 셀 구분 + 시간 숫자만(스피너 없음) + 장소 드롭다운 */
+#prtbl .pr-person{vertical-align:top;background:var(--surface-2);border-left:2px solid var(--line-2)}
+#prtbl .pr-grouprow>td{border-top:2px solid var(--line)}
+#prtbl .prplace{width:100%;min-width:80px}
+.pr-timegrp .prtime-h,.pr-timegrp .prtime-m{-moz-appearance:textfield}
+.pr-timegrp input::-webkit-outer-spin-button,.pr-timegrp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .smzone{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;z-index:2}
 .smzone .smdot{width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.4)}
 .smzone:hover .smdot{background:var(--accent)}
