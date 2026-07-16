@@ -616,12 +616,21 @@ function renderCalendar(){
       }
     });
     if(minis) html+='<div class="cminis">'+minis+'</div>';
-    // 의전 일정 — 시간 지정된 항목만 표시, 검색 비일치=회색
-    protocolList().filter(function(p){ return p.date===rec.date && (p.time||'').trim(); }).forEach(function(p){
-      var pw=prWho(p);
-      var pg=q&&(((p.activity||'')+' '+pw+' '+(p.role||'')).toLowerCase().indexOf(ql)<0);
-      html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(p.id)+'" title="'+esc('의전 · '+pw+' · '+(p.activity||''))+'"><span class="prtag">의전</span>'+esc(p.time)+' · '+esc(p.activity||pw||p.role)+'</div>';
-    });
+    // 의전 일정 — 같은 사람은 한 줄로 뭉치고 사람 이름으로 구분(시간 지정 항목만). 검색 비일치=회색
+    var prToday=protocolList().filter(function(p){ return p.date===rec.date && (p.time||'').trim(); });
+    if(prToday.length){
+      var prGroups={};
+      prToday.forEach(function(p){ var k=protPersonKey(p); if(!prGroups[k]) prGroups[k]={p:p, items:[]}; prGroups[k].items.push(p); });
+      Object.keys(prGroups).map(function(k){ return prGroups[k]; })
+        .sort(function(a,b){ var ra=protRoleRank(a.p.role), rb=protRoleRank(b.p.role); if(ra!==rb) return ra-rb; return (a.p.name||'').localeCompare(b.p.name||'','ko'); })
+        .forEach(function(g){
+          var name=g.p.name||g.p.role||'의전';
+          var acts=g.items.slice().sort(function(x,y){ return (x.time||'').localeCompare(y.time||''); })
+            .map(function(x){ return esc(x.time)+' '+esc(x.activity||x.role||''); });
+          var pg=q&&((name+' '+g.items.map(function(x){return (x.activity||'');}).join(' ')+' '+(g.p.role||'')).toLowerCase().indexOf(ql)<0);
+          html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(g.p.id)+'" title="'+esc('의전 · '+prWho(g.p)+' · '+g.items.map(function(x){return (x.time||'')+' '+(x.activity||'');}).join(', '))+'"><span class="prtag">의전</span><b class="pr-name">'+esc(name)+'</b> '+acts.join(' · ')+'</div>';
+        });
+    }
     // 디데이 프로젝트 승인 카드(자동 연동) — 사진·문구 표시(홍보부 SNS 카드뉴스 준비용)
     dcountApproved.filter(function(a){ return a.targetDate===rec.date; }).forEach(function(a){
       // 사진 URL 도 외부 입력(디데이 신청자 업로드) — esc 없이 넣으면 속성 탈출 XSS 경로가 된다
