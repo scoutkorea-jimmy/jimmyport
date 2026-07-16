@@ -2780,23 +2780,63 @@ function loadWeather(force){
   wxLoading=true; renderWeather();
   var url='https://api.open-meteo.com/v1/forecast?latitude='+WX_LAT+'&longitude='+WX_LON+
     '&timezone=Asia%2FSeoul&current=temperature_2m,weather_code,apparent_temperature,relative_humidity_2m,wind_speed_10m'+
-    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'+
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset'+
     '&hourly=temperature_2m,weather_code,precipitation_probability&forecast_days=3';
   fetch(url).then(function(r){return r.json();}).then(function(j){ wxData=j; wxLoadedAt=Date.now(); wxLoading=false; renderWeather(); })
   .catch(function(){ wxLoading=false; var el=document.getElementById('wx-head'); if(el){ el.innerHTML='<span class="wxc-load">날씨 불러오기 실패 · <button class="btn xs" id="wx-retry">다시 시도</button></span>'; var b=document.getElementById('wx-retry'); if(b) b.onclick=function(){ loadWeather(true); }; } });
 }
-// 헤더 컴팩트 날씨 — 회기(행사기간)와 D-day 사이 한 줄. 현재 + 오늘 최고/최저 + 강수확률.
+// 헤더 컴팩트 날씨 — 회기(행사기간)와 D-day 사이 한 줄. 클릭하면 상세 모달(현재+시간별). 현재 + 오늘 최고/최저 + 강수확률.
 function renderWeather(){
   var el=document.getElementById('wx-head'); if(!el) return;
-  if(!wxData){ el.innerHTML=wxLoading?'<span class="wxc-load">날씨 불러오는 중…</span>':''; return; }
+  if(!wxData){ el.innerHTML=wxLoading?'<span class="wxc-load">날씨 불러오는 중…</span>':''; el.classList.remove('clickable'); return; }
   var cur=wxData.current||{}, d=wxData.daily||{}, ci=wxInfo(cur.weather_code);
   var hi=(d.temperature_2m_max||[])[0], lo=(d.temperature_2m_min||[])[0], pop=(d.precipitation_probability_max||[])[0];
+  el.classList.add('clickable'); el.setAttribute('role','button'); el.setAttribute('tabindex','0'); el.title='자세한 날씨 보기';
   el.innerHTML='<span class="wxc-ic">'+ci[0]+'</span>'+
     '<b class="wxc-t">'+(cur.temperature_2m!=null?Math.round(cur.temperature_2m)+'°':'—')+'</b>'+
     '<span class="wxc-d">'+ci[1]+'</span>'+
     (hi!=null?('<span class="wxc-hl">↑'+Math.round(hi)+'° ↓'+Math.round(lo)+'°</span>'):'')+
     (pop!=null?('<span class="wxc-pop">💧'+pop+'%</span>'):'')+
     '<span class="wxc-loc">강원 고성</span>';
+}
+function fmtHm(iso){ try{ var d=new Date(iso); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }catch(e){ return '—'; } }
+// 날씨 상세 모달 — 현재(최고/최저·강수·일출·일몰) + 시간별(날씨·온도·강수)
+function openWeatherModal(){
+  if(!wxData){ loadWeather(true); return; }
+  var sc=document.getElementById('wx-scrim'); if(!sc) return;
+  renderWeatherModal();
+  sc.classList.add('show');
+}
+function closeWeatherModal(){ var sc=document.getElementById('wx-scrim'); if(sc) sc.classList.remove('show'); }
+function renderWeatherModal(){
+  var body=document.getElementById('wx-modal-body'); if(!body||!wxData) return;
+  var cur=wxData.current||{}, d=wxData.daily||{}, ci=wxInfo(cur.weather_code);
+  var hi=(d.temperature_2m_max||[])[0], lo=(d.temperature_2m_min||[])[0], pop=(d.precipitation_probability_max||[])[0];
+  var sr=(d.sunrise||[])[0], ss=(d.sunset||[])[0];
+  var html='<div class="wxm-now"><span class="wxm-ic">'+ci[0]+'</span>'+
+    '<div class="wxm-nt"><div class="wxm-temp">'+(cur.temperature_2m!=null?Math.round(cur.temperature_2m)+'°':'—')+'</div>'+
+      '<div class="wxm-desc">'+ci[1]+(cur.apparent_temperature!=null?(' · 체감 '+Math.round(cur.apparent_temperature)+'°'):'')+'</div></div>'+
+    '<div class="wxm-loc">강원 고성<br><span>실시간 · Open-Meteo</span></div></div>';
+  html+='<div class="wxm-grid">'+
+    '<div class="wxm-cell"><span class="wxm-l">최고</span><b>'+(hi!=null?Math.round(hi)+'°':'—')+'</b></div>'+
+    '<div class="wxm-cell"><span class="wxm-l">최저</span><b>'+(lo!=null?Math.round(lo)+'°':'—')+'</b></div>'+
+    '<div class="wxm-cell"><span class="wxm-l">강수확률</span><b>'+(pop!=null?pop+'%':'—')+'</b></div>'+
+    '<div class="wxm-cell"><span class="wxm-l">일출</span><b>'+(sr?fmtHm(sr):'—')+'</b></div>'+
+    '<div class="wxm-cell"><span class="wxm-l">일몰</span><b>'+(ss?fmtHm(ss):'—')+'</b></div>'+
+    '<div class="wxm-cell"><span class="wxm-l">습도</span><b>'+(cur.relative_humidity_2m!=null?Math.round(cur.relative_humidity_2m)+'%':'—')+'</b></div>'+
+  '</div>';
+  var H=wxData.hourly||{}, ht=H.time||[], nowMs=Date.now(), startIdx=0;
+  for(var j=0;j<ht.length;j++){ if(new Date(ht[j]).getTime() >= nowMs-1800000){ startIdx=j; break; } }
+  var hours='';
+  for(var k=startIdx;k<ht.length && k<startIdx+24;k++){
+    var hi2=wxInfo((H.weather_code||[])[k]); var hh=new Date(ht[k]).getHours();
+    var pp=(H.precipitation_probability||[])[k];
+    hours+='<div class="wxm-h'+(k===startIdx?' now':'')+'"><div class="wxm-ht">'+(k===startIdx?'지금':(hh+'시'))+'</div>'+
+      '<div class="wxm-hic">'+hi2[0]+'</div><div class="wxm-hdeg">'+Math.round((H.temperature_2m||[])[k])+'°</div>'+
+      '<div class="wxm-hpop">💧'+(pp!=null?pp:0)+'%</div></div>';
+  }
+  html+='<div class="wxm-hours-lab">시간별 예보 · 지금부터 24시간</div><div class="wxm-hours">'+hours+'</div>';
+  body.innerHTML=html;
 }
 
 /* ===== dashboard ===== */
@@ -3034,6 +3074,12 @@ function init(){
 
   document.getElementById('reload').onclick=reloadServer;
   document.getElementById('export').onclick=exportJSON;
+  // 헤더 날씨 클릭 → 상세 모달
+  var wxh=document.getElementById('wx-head');
+  if(wxh){ wxh.addEventListener('click',function(){ if(wxData) openWeatherModal(); });
+    wxh.addEventListener('keydown',function(e){ if((e.key==='Enter'||e.key===' ')&&wxData){ e.preventDefault(); openWeatherModal(); } }); }
+  var wxc=document.getElementById('wx-modal-close'); if(wxc) wxc.onclick=closeWeatherModal;
+  var wxsc=document.getElementById('wx-scrim'); if(wxsc) wxsc.addEventListener('click',function(e){ if(e.target===this) closeWeatherModal(); });
   var cs=document.getElementById('cal-search');
   if(cs) cs.addEventListener('input',function(){ var v=this.value; if(searchTimer)clearTimeout(searchTimer); searchTimer=setTimeout(function(){ searchQ=v; renderCalendar(); renderBoard(); },120); });
   // 운영 일정(events) 모달

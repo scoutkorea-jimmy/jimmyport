@@ -84,6 +84,29 @@ h1{font-size:30px;font-weight:800;margin:0 0 6px;letter-spacing:-.035em;line-hei
 .wxc-pop{color:var(--ch-fb)}
 .wxc-loc{color:var(--faint);font-size:12px}
 .wxc-load{color:var(--muted);font-size:12px}
+.wxc.clickable{cursor:pointer;transition:var(--ease)}
+.wxc.clickable:hover{border-color:var(--accent);background:var(--surface-2)}
+.wxc.clickable:active{transform:scale(.98)}
+/* 날씨 상세 모달 */
+.wxm-now{display:flex;align-items:center;gap:14px;padding:6px 0 16px;border-bottom:1px solid var(--line-2);margin-bottom:14px}
+.wxm-ic{font-size:44px;line-height:1}
+.wxm-temp{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.wxm-desc{color:var(--muted);font-size:13px;margin-top:3px}
+.wxm-loc{margin-left:auto;text-align:right;font-size:13px;color:var(--ink-2);font-weight:600;line-height:1.5}
+.wxm-loc span{color:var(--faint);font-weight:500;font-size:11px}
+.wxm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;margin-bottom:16px}
+.wxm-cell{background:var(--surface-2);padding:12px 14px}
+.wxm-cell .wxm-l{font-size:11px;color:var(--muted);display:block}
+.wxm-cell b{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.wxm-hours-lab{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.02em;margin-bottom:8px}
+.wxm-hours{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px}
+.wxm-h{flex:0 0 auto;min-width:56px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-2);padding:9px 6px;text-align:center}
+.wxm-h.now{background:var(--accent);border-color:var(--accent)}
+.wxm-h.now .wxm-ht,.wxm-h.now .wxm-hdeg{color:#fff} .wxm-h.now .wxm-hpop{color:rgba(255,255,255,.85)}
+.wxm-ht{font-size:11px;font-weight:700;color:var(--ink-2)}
+.wxm-hic{font-size:20px;line-height:1.3}
+.wxm-hdeg{font-size:14px;font-weight:700}
+.wxm-hpop{font-size:10px;color:var(--ch-fb)}
 .clock{display:inline-flex;align-items:baseline;gap:9px;margin-top:14px;padding:8px 15px;background:var(--accent);color:#fff;border-radius:var(--r-2);box-shadow:var(--sh-1)}
 .clock .big{font-size:16px;font-weight:700;letter-spacing:.01em}
 .clock .hms{font-family:ui-monospace,Menlo,monospace;font-size:16px;font-weight:600;letter-spacing:.02em}
