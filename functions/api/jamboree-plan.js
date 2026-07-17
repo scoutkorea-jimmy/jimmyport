@@ -96,6 +96,7 @@ function cleanShoot2(e) {
   e = e && typeof e === "object" ? e : {};
   return {
     id: (e.id || "").toString().slice(0, 40),
+    ttId: (e.ttId || "").toString().slice(0, 44),   // 캘린더(일정표) 연동 항목 표식 — 중복 로드 방지
     title: (e.title || "").toString().slice(0, 200),
     place: (e.place || "").toString().slice(0, 120),
     point: (e.point || "").toString().slice(0, 400),

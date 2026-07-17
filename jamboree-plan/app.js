@@ -1502,11 +1502,48 @@ function defaultShootList(){
     R('영외활동 출발','영외활동 · R Zone','버스 탑승, 안전 안내, 출발 장면'),
     R('영외활동 복귀','영외활동 · R Zone','활동 후 복귀하는 대원과 단체 전경')
   ];
-  return rows.map(function(r,i){ r.id='shoot-'+(i<9?'0':'')+(i+1); return r; });
+  return rows.map(function(r,i){ r.id='shoot-'+(i<9?'0':'')+(i+1); return r; }).concat(shootGateSeeds());
+}
+// 영문(Gate) 촬영 — 메인 · 분단영지 1~6 · 컵스카우트. 안정 id 로 병합(비파괴).
+function shootGateSeeds(){
+  function G(id,t,p){ return {id:id, title:t, place:'영문 · Gate', point:p, owner:'', sched:'상시', doneDate:'', done:false}; }
+  var g=[G('gate-main','메인 영문','메인 게이트 전경 · 대원·차량 통과 장면')];
+  for(var i=1;i<=6;i++) g.push(G('gate-div-'+i, '분단영지 '+i+' 영문', '분단영지 '+i+' 게이트 전경'));
+  g.push(G('gate-cub','컵스카우트 영문','컵스카우트 영지 게이트 전경'));
+  return g;
+}
+function mergeShootlistGates(){
+  var list=shootListData(), have={}; list.forEach(function(r){ have[r.id]=1; });
+  var added=0; shootGateSeeds().forEach(function(g){ if(!have[g.id]){ list.push(g); added++; } });
+  if(added) saveShootList();
+}
+// 캘린더(잼버리 일정표)의 행사 일정(개·폐영식·프로그램·행사)을 촬영 리스트에 자동 로드. ttId 로 중복 방지.
+var SHOOT_CAL_CATS=['개·폐영식','프로그램','행사'];
+function mergeShootlistFromTimetable(){
+  var list=shootListData(), have={}; list.forEach(function(r){ if(r.ttId) have[r.ttId]=1; });
+  var added=0;
+  ttList().forEach(function(t){
+    if(t.track==='cub') return;                     // 컵 참관단은 별도(과정활동 목록에 이미 포함)
+    if(SHOOT_CAL_CATS.indexOf(t.cat)<0) return;     // 개·폐영식·프로그램·행사만
+    if(!(t.title||'').trim()) return;
+    var key='tt:'+t.id; if(have[key]) return;
+    var dd=t.day?('8/'+(new Date(t.day+'T00:00:00').getDate())):'';
+    list.push({id:mkid(), ttId:key, title:t.title, place:t.place||'잼버리 행사', point:'', owner:'', sched:(dd+' '+(t.start||'')+(t.end?('~'+t.end):'')).trim(), doneDate:'', done:false});
+    added++;
+  });
+  if(added) saveShootList();
 }
 function shootListHasContent(){ return shootListData().some(function(x){ return (x.title||'').trim(); }); }
 // 제목이 있는 행이 하나도 없으면(=비어 있음) 사용자 제공 목록으로 시드 + 서버 저장. 내용이 있으면 보존.
 function upgradeShootList(){ if(!shootListHasContent()){ state.shootlist=defaultShootList(); saveShootList(); } }
+// 담당 선택 — 홍보부 인원(roster)에서 불러오기. 현재 값이 명단에 없으면 그 값도 옵션으로 유지.
+function shootOwnerCell(m){
+  var cur=m.owner||'', opts='<option value="">— 담당 —</option>', found=false;
+  rosterList().forEach(function(p){ var nm=(p.name||'').trim(); if(!nm) return; var sel=nm===cur; if(sel) found=true;
+    opts+='<option value="'+esc(nm)+'"'+(sel?' selected':'')+'>'+esc(nm)+(p.role?(' · '+esc(p.role)):'')+'</option>'; });
+  if(cur && !found) opts+='<option value="'+esc(cur)+'" selected>'+esc(cur)+'</option>';
+  return '<td><select class="shoot-owner">'+opts+'</select></td>';
+}
 function addShootRow(){ shootListData().push({id:mkid(), title:'', place:'', point:'', owner:'', sched:'', doneDate:'', done:false}); renderPhotoList(); saveShootList();
   setTimeout(function(){ var rows=document.querySelectorAll('#shootlist-body tr'); var last=rows[rows.length-1]; var c=last&&last.querySelector('td.mk[data-f="title"]'); if(c) c.focus(); },30); }
 function renderPhotoList(){
@@ -1515,24 +1552,35 @@ function renderPhotoList(){
   var done=list.filter(function(x){return x.done;}).length;
   var ph=document.getElementById('shootlist-count'); if(ph) ph.textContent=list.length?('촬영 완료 '+done+' / '+list.length):'';
   if(!list.length){ tb.innerHTML='<tr><td colspan="8" class="news-empty" style="padding:20px">사진 촬영이 필요한 행사·과정활동을 추가하세요. 우측 상단 <b>행 추가</b>.</td></tr>'; return; }
-  list.forEach(function(m){
-    var tr=document.createElement('tr'); if(m.done) tr.className='shoot-done';
-    tr.innerHTML=
-      '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="point">'+esc(m.point||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="owner">'+esc(m.owner||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="sched">'+esc(m.sched||'')+'</td>'+
-      '<td class="mk" contenteditable data-f="doneDate">'+esc(m.doneDate||'')+'</td>'+
-      '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
-      '<td><button class="rm" title="행 삭제">'+icon('trash',14)+'</button></td>';
-    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveShootList(); }); });
-    tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked;
-      if(m.done && !m.doneDate){ m.doneDate=todayISO(); }   // 완료 체크 시 촬영완료일 자동 기입(비어 있으면 오늘)
-      renderPhotoList(); saveShootList(); });
-    tr.querySelector('.rm').onclick=function(){ state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); };
-    tb.appendChild(tr);
+  // 장소(place)별 그룹 — 첫 등장 순서 유지
+  var groups={}, order=[];
+  list.forEach(function(m){ var k=(m.place||'').trim()||'(장소 미지정)'; if(!groups[k]){ groups[k]=[]; order.push(k); } groups[k].push(m); });
+  order.forEach(function(k){
+    var gDone=groups[k].filter(function(x){return x.done;}).length;
+    var gh=document.createElement('tr'); gh.className='shoot-grouphead';
+    gh.innerHTML='<td colspan="8"><span class="sg-place">'+esc(k)+'</span><span class="sg-count">'+gDone+' / '+groups[k].length+'</span></td>';
+    tb.appendChild(gh);
+    groups[k].forEach(function(m){ tb.appendChild(photoRowEl(m)); });
   });
+}
+function photoRowEl(m){
+  var tr=document.createElement('tr'); if(m.done) tr.className='shoot-done';
+  tr.innerHTML=
+    '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
+    '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
+    '<td class="mk" contenteditable data-f="point">'+esc(m.point||'')+'</td>'+
+    shootOwnerCell(m)+
+    '<td class="mk" contenteditable data-f="sched">'+esc(m.sched||'')+'</td>'+
+    '<td class="mk" contenteditable data-f="doneDate">'+esc(m.doneDate||'')+'</td>'+
+    '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
+    '<td><button class="rm" title="행 삭제">'+icon('trash',14)+'</button></td>';
+  tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ var f=td.dataset.f; m[f]=td.textContent.trim(); saveShootList(); if(f==='place') renderPhotoList(); }); });   // 장소 변경 시 그룹 재정렬
+  var os=tr.querySelector('.shoot-owner'); if(os) os.onchange=function(){ m.owner=this.value; saveShootList(); };
+  tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked;
+    if(m.done && !m.doneDate){ m.doneDate=todayISO(); }   // 완료 체크 시 촬영완료일 자동 기입(비어 있으면 오늘)
+    renderPhotoList(); saveShootList(); });
+  tr.querySelector('.rm').onclick=function(){ state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); };
+  return tr;
 }
 
 /* ===== 일자별 시간 일정표 (타임테이블 그리드) ===== */
@@ -3463,7 +3511,7 @@ function setView(v){
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 }
