@@ -2495,7 +2495,7 @@ function shootList(){ if(!state.shoots) state.shoots=[]; return state.shoots; }
 function saveShoots(){ debouncedPut('shootTimer', {shoots: shootList()}, '촬영 요청 저장됨'); }
 function addShoot(){ shootList().unshift({id:mkid(),zone:'',title:'',time:'',note:'',status:'open',assignees:[],by:(Auth.name||Auth.username||''),createdAt:new Date().toISOString()}); renderShootList(); renderSiteMapMarkers(); saveShoots(); }
 function smMinLabel(mi){ var h=Math.floor(mi/60), m=mi%60; return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
-var smSel=null, smByZone={}, smPopZone=null;
+var smSel=null, smByZone={}, smPopZone=null, smGaps=[];
 var smTimeMode='now', smDay='2026-08-05', smTimeMin=1200;   // 'now'=실시간 / 'pick'=시간 지정(슬라이더)
 // 위치 계산 기준 시점 → {day,h} 또는 null. 실시간이면 현재, 시간 지정이면 슬라이더 값.
 function smMoment(){ if(smTimeMode==='now') return smNow(); return {day:smDay, h:smTimeMin/60}; }
@@ -2568,6 +2568,8 @@ function renderSiteMapMarkers(){
   var people=rosterList();
   smByZone={};
   people.forEach(function(m,idx){ var p=smPersonZone(m); if(p){ (smByZone[p.zone]||(smByZone[p.zone]=[])).push({m:m,idx:idx,p:p}); } });
+  smGaps=computeCoverageGaps();   // 현재 시점에 일정은 있는데 인원이 없는 구역
+  var gapSet={}; smGaps.forEach(function(g){ gapSet[g.zone]=true; });
   Array.prototype.slice.call(stage.querySelectorAll('.smzone,.smshoot')).forEach(function(el){ el.remove(); });
   // 촬영 요청 핀(카메라) — 구역에 표시, 인원 콜아웃 아래로 살짝 내려 배치
   shootList().forEach(function(s){ if(!s.zone) return; var z=zoneByKey(s.zone); if(!z) return;
@@ -2580,7 +2582,7 @@ function renderSiteMapMarkers(){
   ZONES.forEach(function(z){
     var ppl=smByZone[z.key]||[];
     var el=document.createElement('div');
-    el.className='smzone'+(ppl.length?' has':'')+(ppl.length>1?' multi':'');
+    el.className='smzone'+(ppl.length?' has':'')+(ppl.length>1?' multi':'')+(gapSet[z.key]?' gap':'');
     el.style.left=(z.x*100)+'%'; el.style.top=(z.y*100)+'%';
     el.dataset.zone=z.key;
     var shown=ppl.slice(0,CAP), extra=ppl.length-shown.length;
@@ -2594,6 +2596,45 @@ function renderSiteMapMarkers(){
     stage.appendChild(el);
   });
   renderZonePopover();
+  renderCoverageGaps();
+}
+/* 촬영 공백 = 지금(또는 지정한) 시각에 일정이 열려 있는데 그 구역에 홍보부 인원이 아무도 없는 곳.
+   smByZone(인원 배치)과 ttList(일정)를 기준 시점(smMoment)으로 교차해 찾는다. */
+function computeCoverageGaps(){
+  var mo=smMoment(); if(!mo) return [];   // 행사 기간 외(실시간)엔 공백 개념 없음
+  var byZone={};
+  ttList().forEach(function(t){
+    if(t.day!==mo.day) return;
+    var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null) return;
+    if(!(s<=mo.h && e>mo.h)) return;                 // 지금 진행 중인 일정만
+    var z=t.zone||zoneForPlace(t.place); if(!z||!zoneByKey(z)) return;
+    (byZone[z]||(byZone[z]=[])).push(t);
+  });
+  var gaps=[];
+  Object.keys(byZone).forEach(function(z){
+    if(!(smByZone[z]||[]).length) gaps.push({zone:z, events:byZone[z].slice().sort(sortByDayTime)});
+  });
+  gaps.sort(function(a,b){ return a.events.length===b.events.length ? a.zone.localeCompare(b.zone) : b.events.length-a.events.length; });
+  return gaps;
+}
+function renderCoverageGaps(){
+  var box=document.getElementById('sm-gaps'); if(!box) return;
+  var mo=smMoment();
+  if(!mo){ box.style.display='none'; box.innerHTML=''; return; }
+  var anyActive=ttList().some(function(t){ if(t.day!==mo.day) return false; var s=t2h(t.start),e=t2h(t.end); return s!=null&&e!=null&&s<=mo.h&&e>mo.h; });
+  if(!anyActive){ box.style.display='none'; box.innerHTML=''; return; }
+  box.style.display='';
+  if(!smGaps.length){
+    box.innerHTML='<div class="sm-gaps-ok">'+icon('check',14)+' 진행 중인 모든 일정 구역에 홍보부 인원이 있습니다.</div>';
+    return;
+  }
+  box.innerHTML='<div class="sm-gaps-h">'+icon('alert',14)+' 촬영 공백 — 일정은 있는데 인원이 없는 구역 <b>'+smGaps.length+'</b>곳</div>'+
+    '<div class="sm-gaps-list">'+smGaps.map(function(g){
+      var z=zoneByKey(g.zone);
+      var titles=g.events.slice(0,2).map(function(t){ return (t.title||'일정')+(t.start?(' '+t.start):''); });
+      var more=g.events.length>2?(' 외 '+(g.events.length-2)+'건'):'';
+      return '<button type="button" class="sm-gap" data-gap-zone="'+esc(g.zone)+'"><b>'+esc(z.label)+'</b><span>'+esc(titles.join(' · ')+more)+'</span></button>';
+    }).join('')+'</div>';
 }
 /* 한 구역에 여러 명 → 클릭 시 말풍선으로 전체 명단(이동·빼기) */
 function openZonePopover(zkey){ smPopZone=(smPopZone===zkey)?null:zkey; renderZonePopover(); }
@@ -4116,6 +4157,16 @@ function init(){
   if(smSelbar) smSelbar.addEventListener('click',function(e){
     if(e.target.closest('[data-sm-unplace]')){ if(smSel) smUnplace(smSel); return; }
     if(e.target.closest('[data-sm-desel]')){ smSel=null; renderSiteMapMarkers(); renderSiteSelbar(); return; }
+  });
+  // 촬영 공백 목록 클릭 → 지도에서 그 구역 마커를 잠깐 강조
+  var smGapsBox=document.getElementById('sm-gaps');
+  if(smGapsBox) smGapsBox.addEventListener('click',function(e){
+    var g=e.target.closest('[data-gap-zone]'); if(!g) return;
+    var zk=g.getAttribute('data-gap-zone');
+    var st=document.getElementById('sm-stage'); if(!st) return;
+    var m=st.querySelector('.smzone[data-zone="'+zk+'"]'); if(!m) return;
+    st.scrollIntoView({behavior:'smooth',block:'center'});
+    m.classList.add('flash'); setTimeout(function(){ m.classList.remove('flash'); },1400);
   });
   // 촬영 요청
   var shootAdd=document.getElementById('shoot-add'); if(shootAdd) shootAdd.onclick=addShoot;

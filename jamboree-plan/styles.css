@@ -859,6 +859,8 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 
 /* ---- footer ---- */
 .foot{margin-top:42px;border-top:1px solid var(--line);padding-top:18px;font-size:var(--fs-1);color:var(--muted);line-height:1.7}
+.foot-priv{margin:8px 0;padding-left:18px;list-style:disc}
+.foot-priv li{margin:3px 0}
 .foot b{color:var(--ink-2)}
 
 /* ---- overlays ---- */
@@ -1312,6 +1314,14 @@ tr.rowdim{opacity:.34}
 .smzone.has .smlbl,.smzone:hover .smlbl{opacity:1}
 .smzone.drop{outline:2px dashed var(--accent);outline-offset:4px;border-radius:9px}
 .smzone.drop .smdot{background:var(--accent);transform:scale(1.6)}
+/* 촬영 공백 — 현재 시각 일정은 있는데 인원 0인 구역(항상 라벨 노출 + 앰버 펄스) */
+.smzone.gap{z-index:4}
+.smzone.gap .smdot{background:var(--st-draft);border-color:#fff;animation:gapPulse 1.8s ease-in-out infinite}
+.smzone.gap .smlbl{opacity:1;color:#6E4708;font-weight:800}
+.smzone.gap.flash .smdot{animation:gapFlash .7s ease-in-out 2}
+@keyframes gapPulse{0%,100%{box-shadow:0 0 0 3px var(--st-draft-bg),0 1px 5px rgba(0,0,0,.4)}50%{box-shadow:0 0 0 8px rgba(138,90,11,.16),0 1px 5px rgba(0,0,0,.4)}}
+@keyframes gapFlash{0%,100%{transform:scale(1)}50%{transform:scale(1.9)}}
+@media(prefers-reduced-motion:reduce){.smzone.gap .smdot,.smzone.gap.flash .smdot{animation:none;box-shadow:0 0 0 4px var(--st-draft-bg),0 1px 5px rgba(0,0,0,.4)}}
 .smavs{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;max-width:120px;margin-bottom:1px}
 .smav{position:relative;width:30px;height:30px;border-radius:50%;color:#fff;font-size:var(--fs-1);font-weight:800;display:inline-flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.45);cursor:grab;line-height:1}
 .smav.sel{outline:2px solid var(--accent);outline-offset:1px}
@@ -1320,6 +1330,17 @@ tr.rowdim{opacity:.34}
 .smtray{display:flex;flex-wrap:wrap;gap:8px;min-height:46px;padding:11px;border:1px dashed var(--line);border-radius:var(--r-2);background:var(--surface-2)}
 .smtray.drop{border-color:var(--accent);background:var(--accent-soft-2)}
 .sm-empty{color:var(--muted);font-size:var(--fs-1)}
+/* 촬영 공백 요약 패널(지도 아래) */
+.sm-gaps{margin:11px 0 2px}
+.sm-gaps-ok{display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:var(--r-2);background:var(--st-ready-bg);color:var(--st-ready);font-size:var(--fs-1);font-weight:600}
+.sm-gaps-ok .ic{flex:0 0 auto}
+.sm-gaps-h{display:flex;align-items:center;gap:7px;font-size:var(--fs-2);font-weight:800;color:#6E4708;margin-bottom:8px}
+.sm-gaps-h .ic{flex:0 0 auto}
+.sm-gaps-list{display:flex;flex-wrap:wrap;gap:8px}
+.sm-gap{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 12px;border:1px solid var(--st-draft-bg);border-left:3px solid var(--st-draft);border-radius:var(--r-2);background:var(--st-draft-bg);cursor:pointer;max-width:260px;transition:background var(--ease)}
+.sm-gap:hover{background:#F6E6C4}
+.sm-gap b{font-size:var(--fs-1);font-weight:800;color:#6E4708}
+.sm-gap span{font-size:var(--fs-1);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:236px}
 @media(max-width:760px){ .sm-timewrap input[type=range]{width:148px} .smav{width:21px;height:21px;font-size:var(--fs-1)} .smavs{max-width:88px} }
 
 /* 현장 위치 지도 — 여러 명 겹침(+N) + 말풍선 */

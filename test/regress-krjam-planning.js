@@ -273,6 +273,26 @@ const SEED = () => {
   await go('staff');
   chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
 
+  // ===== 현장 지도 — 촬영 공백 (v0.9.216) =====
+  // 기준 시각에 일정은 있는데 인원이 없는 구역을 찾는다. smByZone(배치) × ttList(일정) 교차.
+  console.log('\n[현장 지도 — 촬영 공백]');
+  await go('sitemap');
+  const gap = await page.evaluate(() => {
+    // 시간 지정 모드로 8/5 12:00 — 급식(food)에 중식 일정이 있으나 담당자 0 → 공백
+    smTimeMode = 'pick'; smDay = '2026-08-05'; smTimeMin = 720; renderSiteMap();
+    const box = document.getElementById('sm-gaps');
+    return { display: box.style.display, zones: (window.smGaps || []).map((g) => g.zone),
+      foodMarker: !!document.querySelector('.smzone.gap[data-zone="food"]'),
+      stageMarker: !!document.querySelector('.smzone.gap[data-zone="stage"]'),
+      text: (box.textContent || '') };
+  });
+  chk('12:00 급식 일정 있는데 담당 0 → 촬영 공백 감지', gap.zones.indexOf('food') >= 0, gap.zones.join(',') || '없음');
+  chk('공백 구역 지도 마커 강조(.smzone.gap)', gap.foodMarker);
+  chk('공백 패널 노출 + 문구', gap.display !== 'none' && /촬영 공백/.test(gap.text));
+  const nogap = await page.evaluate(() => { smTimeMin = 1200; renderSiteMap();   // 20:00 개영식(담당 r1 stage 배치)
+    return { zones: (window.smGaps || []).map((g) => g.zone) }; });
+  chk('20:00 개영식은 담당 배치되어 공백 아님(stage)', nogap.zones.indexOf('stage') < 0, nogap.zones.join(',') || '공백 0');
+
   // ===== 디자인 계측 =====
   // 디자인 변경은 눈으로만 확인하기 쉬워 조용히 무너진다. 규칙을 테스트로 고정한다.
   console.log('\n[디자인 — 대비]');
