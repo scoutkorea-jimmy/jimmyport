@@ -1524,19 +1524,23 @@ function mergeShootlistGates(){
 }
 // 캘린더(잼버리 일정표)의 행사 일정(개·폐영식·프로그램·행사)을 촬영 리스트에 자동 로드. ttId 로 중복 방지.
 var SHOOT_CAL_CATS=['개·폐영식','프로그램','행사'];
+// 일정표 이벤트의 담당 인원(assignees) → 담당 이름 문자열
+function ttOwnerNames(t){ return ttAssignees(t).map(function(p){ return (p.name||'').trim(); }).filter(Boolean).join(', '); }
 function mergeShootlistFromTimetable(){
-  var list=shootListData(), have={}; list.forEach(function(r){ if(r.ttId) have[r.ttId]=1; });
-  var added=0;
+  var list=shootListData(), byTt={}; list.forEach(function(r){ if(r.ttId) byTt[r.ttId]=r; });
+  var changed=false;
   ttList().forEach(function(t){
     if(t.track==='cub') return;                     // 컵 참관단은 별도(과정활동 목록에 이미 포함)
     if(SHOOT_CAL_CATS.indexOf(t.cat)<0) return;     // 개·폐영식·프로그램·행사만
     if(!(t.title||'').trim()) return;
-    var key='tt:'+t.id; if(have[key]) return;
+    var key='tt:'+t.id, owner=ttOwnerNames(t);
     var dd=t.day?('8/'+(new Date(t.day+'T00:00:00').getDate())):'';
-    list.push({id:mkid(), ttId:key, title:t.title, place:t.place||'잼버리 행사', point:'', owner:'', sched:(dd+' '+(t.start||'')+(t.end?('~'+t.end):'')).trim(), doneDate:'', done:false});
-    added++;
+    var sched=(dd+' '+(t.start||'')+(t.end?('~'+t.end):'')).trim();
+    var r=byTt[key];
+    if(r){ if(r.owner!==owner){ r.owner=owner; changed=true; } if(r.sched!==sched){ r.sched=sched; changed=true; } if(r.title!==t.title){ r.title=t.title; changed=true; } }   // 담당·일정·제목 = 잼버리 일정표와 연동
+    else { list.push({id:mkid(), ttId:key, title:t.title, place:t.place||'잼버리 행사', point:'', owner:owner, sched:sched, doneDate:'', done:false}); changed=true; }
   });
-  if(added) saveShootList();
+  if(changed) saveShootList();
 }
 function shootListHasContent(){ return shootListData().some(function(x){ return (x.title||'').trim(); }); }
 // 제목이 있는 행이 하나도 없으면(=비어 있음) 사용자 제공 목록으로 시드 + 서버 저장. 내용이 있으면 보존.
@@ -1575,7 +1579,7 @@ function photoRowEl(m){
   tr.innerHTML=
     '<td class="sh-open"><span class="sh-title">'+esc(m.title||'(제목 없음)')+'</span>'+noteMark+'</td>'+
     '<td class="sh-open sh-dim">'+esc(m.place||'')+'</td>'+
-    shootOwnerCell(m)+
+    (m.ttId ? ('<td class="sh-open sh-dim" title="잼버리 일정표 담당과 연동">'+(m.owner?esc(m.owner):'<span class="sh-linkhint">일정표에서 지정</span>')+'</td>') : shootOwnerCell(m))+
     '<td class="sh-open sh-dim">'+esc(m.sched||'')+'</td>'+
     '<td class="sh-open sh-dim">'+esc(m.doneDate||'')+'</td>'+
     '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
@@ -1601,7 +1605,9 @@ function openShootDetail(m){
     '<div class="evfld"><label>행사 · 과정활동명</label><input id="sh-f-title" class="evinput" value="'+esc(m.title||'')+'"></div>'+
     '<div class="evfld"><label>장소</label><input id="sh-f-place" class="evinput" value="'+esc(m.place||'')+'"></div>'+
     '<div class="evfld"><label>촬영 포인트 · 활동 내용</label><textarea id="sh-f-point" class="evinput" rows="4" placeholder="무엇을 어떻게 촬영할지 · 활동 내용">'+esc(m.point||'')+'</textarea></div>'+
-    '<div class="evfld"><label>담당 (홍보부 인원)</label><select id="sh-f-owner" class="evinput">'+oOpts+'</select></div>'+
+    (m.ttId
+      ? '<div class="evfld"><label>담당 <span class="sh-linkhint">· 잼버리 일정표 담당과 연동(일정표에서 지정)</span></label><input class="evinput" value="'+esc(m.owner||'(일정표에서 담당 미지정)')+'" readonly></div>'
+      : '<div class="evfld"><label>담당 (홍보부 인원)</label><select id="sh-f-owner" class="evinput">'+oOpts+'</select></div>')+
     '<div class="shrow2">'+
       '<div class="evfld"><label>진행예정일정</label><input id="sh-f-sched" class="evinput" value="'+esc(m.sched||'')+'"></div>'+
       '<div class="evfld"><label>촬영완료일</label><input id="sh-f-donedate" class="evinput" value="'+esc(m.doneDate||'')+'"></div>'+

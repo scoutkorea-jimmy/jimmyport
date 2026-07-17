@@ -344,6 +344,8 @@ section{margin-top:34px}
 #shootlist-tbl .sh-dim{color:var(--muted)}
 #shootlist-tbl .sh-note{color:var(--accent-ink);vertical-align:1px;margin-left:5px}
 .shrow2{display:flex;gap:12px}.shrow2 .evfld{flex:1}
+.sh-linkhint{font-size:11px;font-weight:500;color:var(--muted)}
+#shootlist-tbl td .sh-linkhint{font-style:normal}
 /* 완료 체크박스 — 다크 관제 톤앤매너 커스텀 체크박스 */
 .shoot-chk,#sh-f-done{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:0 0 auto;border:1.5px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;position:relative;transition:var(--ease);vertical-align:middle;margin:0}
 .shoot-chk:hover,#sh-f-done:hover{border-color:var(--accent)}
