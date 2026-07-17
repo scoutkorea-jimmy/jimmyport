@@ -1526,6 +1526,17 @@ function mergeShootlistGates(){
 var SHOOT_CAL_CATS=['개·폐영식','프로그램','행사'];
 // 일정표 이벤트의 담당 인원(assignees) → 담당 이름 문자열
 function ttOwnerNames(t){ return ttAssignees(t).map(function(p){ return (p.name||'').trim(); }).filter(Boolean).join(', '); }
+// 촬영 리스트 담당 = 인원 칩(멀티선택). 일정표 연동 행(ttId)은 그 일정의 assignees 를 쌍방 공유, 아니면 행 자체 assignees.
+function shootLinkedTt(m){ if(!m||!m.ttId) return null; return ttById(m.ttId.replace(/^tt:/,'')); }
+function shootAssignees(m){ var t=shootLinkedTt(m); if(t) return (t.assignees||(t.assignees=[])); return (m.assignees||(m.assignees=[])); }
+function shootOwnerText(m){ var names=shootAssignees(m).map(rosterById).filter(Boolean).map(function(p){ return (p.name||'').trim(); }).filter(Boolean); return names.length?names.join(', '):((m&&m.owner)||''); }
+// 담당 칩 토글 — 연동 행이면 일정표 이벤트 assignees 를(쌍방), 아니면 행 assignees 를 갱신
+function toggleShootAssignee(m, pid){
+  var t=shootLinkedTt(m), arr=t?(t.assignees||(t.assignees=[])):(m.assignees||(m.assignees=[]));
+  var i=arr.indexOf(pid); if(i>=0) arr.splice(i,1); else arr.push(pid);
+  m.owner=shootOwnerText(m);            // 표시용 스냅샷 동기화
+  if(t) saveTimetable(); saveShootList();   // 일정표·촬영 리스트 양쪽 저장
+}
 function mergeShootlistFromTimetable(){
   var list=shootListData(), byTt={}; list.forEach(function(r){ if(r.ttId) byTt[r.ttId]=r; });
   var changed=false;
@@ -1553,7 +1564,7 @@ function shootOwnerCell(m){
   if(cur && !found) opts+='<option value="'+esc(cur)+'" selected>'+esc(cur)+'</option>';
   return '<td><select class="shoot-owner">'+opts+'</select></td>';
 }
-function addShootRow(){ shootListData().push({id:mkid(), title:'', place:'', point:'', owner:'', sched:'', doneDate:'', done:false}); renderPhotoList(); saveShootList();
+function addShootRow(){ shootListData().push({id:mkid(), title:'', place:'', point:'', owner:'', assignees:[], sched:'', doneDate:'', done:false}); renderPhotoList(); saveShootList();
   setTimeout(function(){ var rows=document.querySelectorAll('#shootlist-body tr'); var last=rows[rows.length-1]; var c=last&&last.querySelector('td.mk[data-f="title"]'); if(c) c.focus(); },30); }
 function renderPhotoList(){
   var tb=document.getElementById('shootlist-body'); if(!tb) return; tb.innerHTML='';
@@ -1579,7 +1590,7 @@ function photoRowEl(m){
   tr.innerHTML=
     '<td class="sh-open"><span class="sh-title">'+esc(m.title||'(제목 없음)')+'</span>'+noteMark+'</td>'+
     '<td class="sh-open sh-dim">'+esc(m.place||'')+'</td>'+
-    (m.ttId ? ('<td class="sh-open sh-dim" title="잼버리 일정표 담당과 연동">'+(m.owner?esc(m.owner):'<span class="sh-linkhint">일정표에서 지정</span>')+'</td>') : shootOwnerCell(m))+
+    '<td class="sh-open sh-dim" title="'+(m.ttId?'잼버리 일정표 담당과 쌍방 연동':'담당 — 클릭해 인원 지정')+'">'+(shootOwnerText(m)?esc(shootOwnerText(m)):'<span class="sh-linkhint">담당 지정</span>')+'</td>'+
     '<td class="sh-open sh-dim">'+esc(m.sched||'')+'</td>'+
     '<td class="sh-open sh-dim">'+esc(m.doneDate||'')+'</td>'+
     '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
@@ -1598,16 +1609,15 @@ function openShootDetail(m){
   shootCur=m;
   document.getElementById('shoot-mtitle').textContent=m.title||'촬영 상세';
   document.getElementById('shoot-msub').textContent=[(m.place||''),(m.sched||'')].filter(Boolean).join(' · ');
-  var cur=m.owner||'', oOpts='<option value="">— 담당 —</option>', found=false;
-  rosterList().forEach(function(p){ var nm=(p.name||'').trim(); if(!nm) return; var sel=nm===cur; if(sel) found=true; oOpts+='<option value="'+esc(nm)+'"'+(sel?' selected':'')+'>'+esc(nm)+(p.role?(' · '+esc(p.role)):'')+'</option>'; });
-  if(cur&&!found) oOpts+='<option value="'+esc(cur)+'" selected>'+esc(cur)+'</option>';
+  var asgIds=shootAssignees(m);
+  var asgChips=rosterList().filter(function(p){ return (p.name||'').trim(); }).map(function(p){ var on=asgIds.indexOf(p.id)>=0;
+    return '<button type="button" class="evkind asg'+(on?' on':'')+'" data-sh-asg="'+esc(p.id)+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(personLabel(p))+'</button>';
+  }).join('')||'<span class="hintmini">먼저 <b>홍보부 인원</b> 탭에서 인원을 추가하세요.</span>';
   document.getElementById('shoot-body').innerHTML=
     '<div class="evfld"><label>행사 · 과정활동명</label><input id="sh-f-title" class="evinput" value="'+esc(m.title||'')+'"></div>'+
     '<div class="evfld"><label>장소</label><input id="sh-f-place" class="evinput" value="'+esc(m.place||'')+'"></div>'+
     '<div class="evfld"><label>촬영 포인트 · 활동 내용</label><textarea id="sh-f-point" class="evinput" rows="4" placeholder="무엇을 어떻게 촬영할지 · 활동 내용">'+esc(m.point||'')+'</textarea></div>'+
-    (m.ttId
-      ? '<div class="evfld"><label>담당 <span class="sh-linkhint">· 잼버리 일정표 담당과 연동(일정표에서 지정)</span></label><input class="evinput" value="'+esc(m.owner||'(일정표에서 담당 미지정)')+'" readonly></div>'
-      : '<div class="evfld"><label>담당 (홍보부 인원)</label><select id="sh-f-owner" class="evinput">'+oOpts+'</select></div>')+
+    '<div class="evfld"><label>담당 (홍보부 인원) — 클릭해 선택'+(m.ttId?' <span class="sh-linkhint">· 잼버리 일정표와 쌍방 연동</span>':'')+'</label><div class="evkinds" id="sh-asg">'+asgChips+'</div></div>'+
     '<div class="shrow2">'+
       '<div class="evfld"><label>진행예정일정</label><input id="sh-f-sched" class="evinput" value="'+esc(m.sched||'')+'"></div>'+
       '<div class="evfld"><label>촬영완료일</label><input id="sh-f-donedate" class="evinput" value="'+esc(m.doneDate||'')+'"></div>'+
@@ -1615,7 +1625,9 @@ function openShootDetail(m){
     '<div class="evfld"><label class="nccheck"><input type="checkbox" id="sh-f-done"'+(m.done?' checked':'')+'><span><b>촬영 완료</b></span></label></div>';
   function bind(id,f){ var el=document.getElementById(id); if(el) el.addEventListener('input',function(){ m[f]=this.value; saveShootList(); if(f==='title') document.getElementById('shoot-mtitle').textContent=this.value||'촬영 상세'; }); }
   bind('sh-f-title','title'); bind('sh-f-place','place'); bind('sh-f-point','point'); bind('sh-f-sched','sched'); bind('sh-f-donedate','doneDate');
-  var os=document.getElementById('sh-f-owner'); if(os) os.onchange=function(){ m.owner=this.value; saveShootList(); };
+  var asgBox=document.getElementById('sh-asg'); if(asgBox) asgBox.addEventListener('click',function(e){ var btn=e.target.closest('[data-sh-asg]'); if(!btn) return;
+    toggleShootAssignee(m, btn.getAttribute('data-sh-asg'));
+    var on=shootAssignees(m).indexOf(btn.getAttribute('data-sh-asg'))>=0; btn.classList.toggle('on',on); if(on) btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); else btn.removeAttribute('style'); });
   var dc=document.getElementById('sh-f-done'); if(dc) dc.onchange=function(){ m.done=this.checked; if(m.done&&!m.doneDate){ m.doneDate=todayISO(); var dd=document.getElementById('sh-f-donedate'); if(dd) dd.value=m.doneDate; } saveShootList(); };
   document.getElementById('shoot-scrim').classList.add('show');
 }

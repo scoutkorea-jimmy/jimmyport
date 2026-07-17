@@ -100,7 +100,8 @@ function cleanShoot2(e) {
     title: (e.title || "").toString().slice(0, 200),
     place: (e.place || "").toString().slice(0, 120),
     point: (e.point || "").toString().slice(0, 400),
-    owner: (e.owner || "").toString().slice(0, 60),
+    owner: (e.owner || "").toString().slice(0, 120),
+    assignees: Array.isArray(e.assignees) ? e.assignees.slice(0, 20).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean) : [],   // 담당 인원 id(직접 추가 행) — 일정표 연동 행은 일정표가 원본
     sched: (e.sched || "").toString().slice(0, 40),
     doneDate: (e.doneDate || "").toString().slice(0, 20),
     done: !!e.done,
