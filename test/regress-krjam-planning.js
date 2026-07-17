@@ -80,14 +80,16 @@ const SEED = () => {
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) errors.push('console: ' + m.text()); });
   await page.evaluateOnNewDocument(SEED);
   await page.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
-  await page.waitForSelector('.wsbar', { timeout: 10000 });
+  await page.waitForSelector('.side-item', { timeout: 10000 });
 
   // 2단 내비게이션: 뷰 전환은 setView 로 직접(세부탭은 활성 공간에서만 보이므로) — 이 스위트는 뷰 동작 검증이 목적
   const go = async (v) => { await page.evaluate((x) => setView(x), v); await new Promise((r) => setTimeout(r, 250)); };
 
   console.log('\n[부팅 · 탭]');
-  chk('게이트 통과 · 공간바 렌더', await page.$('.wsbar') !== null);
-  chk('업무 4공간(대시보드·콘텐츠·현장·팀·자료)', (await page.$$('.wstab')).length === 4, (await page.$$('.wstab')).length + '공간');
+  chk('게이트 통과 · 사이드바 렌더', await page.$('.side-nav') !== null);
+  // 사이드바 = 4공간이 접히지 않고 모두 펼쳐진다(항목 14개). 목록의 원본은 app.js 의 WS_LIST/WS_VIEWS 하나뿐.
+  const sg = await page.evaluate(() => ({ grp: document.querySelectorAll('.side-grp').length, item: document.querySelectorAll('.side-item[data-v]').length }));
+  chk('사이드바 4그룹 · 14항목 전부 노출', sg.grp === 4 && sg.item === 14, sg.grp + '그룹 · ' + sg.item + '항목');
 
   console.log('\n[콘텐츠 파이프라인 보드]');
   await go('list');

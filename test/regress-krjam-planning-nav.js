@@ -33,12 +33,10 @@ const SEED = function (role, type, tabs) {
     if (u.startsWith('/api/')) return J({ ok: true });
     return rf(u, o); };
 };
-// 공간 탭 클릭 → 세부 탭 클릭 (2단 경로)
+// PC = 사이드바에서 항목 직접 클릭(공간 전환 단계가 없다 — 14개가 모두 펼쳐져 있다)
 async function goVia(p, v) {
-  await p.evaluate((ws) => { const b = document.querySelector('.wstab[data-ws="' + ws + '"]'); if (b) b.click(); }, WS_OF[v]);
-  await new Promise((r) => setTimeout(r, 120));
-  await p.evaluate((x) => { const b = document.querySelector('.subbar .vtab[data-v="' + x + '"]'); if (b && b.style.display !== 'none') b.click(); else setView(x); }, v);
-  await new Promise((r) => setTimeout(r, 140));
+  await p.evaluate((x) => { const b = document.querySelector('.side-item[data-v="' + x + '"]'); if (b) b.click(); else setView(x); }, v);
+  await new Promise((r) => setTimeout(r, 160));
   return p.evaluate(() => curViewMode);
 }
 async function goViaBot(p, v) {
@@ -62,18 +60,18 @@ async function goViaBot(p, v) {
   await p.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 700));
   const pc = await p.evaluate(() => {
-    const ws = document.querySelector('.wsbar').getBoundingClientRect();
-    const hdr = document.querySelector('header.top').getBoundingClientRect();
-    const sec = document.getElementById('dashboard').getBoundingClientRect();
-    return { dir: getComputedStyle(document.querySelector('.wsbar')).flexDirection,
-      wsN: [...document.querySelectorAll('.wstab[data-ws]')].filter((x) => x.style.display !== 'none').length,
-      navW: Math.round(ws.width), navTop: Math.round(ws.top), hdrBot: Math.round(hdr.bottom), secTop: Math.round(sec.top),
+    const side = document.querySelector('.side').getBoundingClientRect();
+    const wrap = document.querySelector('.wrap').getBoundingClientRect();
+    return { grp: document.querySelectorAll('.side-grp').length,
+      items: document.querySelectorAll('.side-item[data-v]').length,
+      sideLeft: Math.round(side.left), sideW: Math.round(side.width), wrapLeft: Math.round(wrap.left),
+      sticky: getComputedStyle(document.querySelector('.side')).position,
       botnav: getComputedStyle(document.getElementById('botnav')).display,
       sw: document.documentElement.scrollWidth, iw: window.innerWidth };
   });
-  chk('공간바 상단 가로 · 4공간', pc.dir === 'row' && pc.wsN === 4, pc.wsN + '공간 · ' + pc.dir);
-  chk('공간바가 헤더 아래', pc.navTop > pc.hdrBot - 2, '헤더끝 ' + pc.hdrBot + ' / 나브 ' + pc.navTop);
-  chk('본문이 메뉴 아래 (좌우분할 아님)', pc.secTop > pc.navTop);
+  chk('PC = 좌측 사이드바 · 4그룹 14항목 전부 펼침', pc.grp === 4 && pc.items === 14, pc.grp + '그룹 · ' + pc.items + '항목');
+  chk('사이드바가 본문 왼쪽 · 스크롤 고정', pc.sideLeft === 0 && pc.wrapLeft >= pc.sideW && pc.sticky === 'sticky',
+    '사이드 ' + pc.sideW + 'px · 본문 시작 ' + pc.wrapLeft + ' · ' + pc.sticky);
   chk('하단 탭 PC 숨김', pc.botnav === 'none');
   chk('PC 가로 넘침 없음', pc.sw <= pc.iw, 'scrollW=' + pc.sw);
   let pcOk = 0;
@@ -93,7 +91,7 @@ async function goViaBot(p, v) {
   await new Promise((r) => setTimeout(r, 700));
   const mb = await p.evaluate(() => {
     const bn = document.getElementById('botnav').getBoundingClientRect();
-    return { wsbar: getComputedStyle(document.querySelector('.wsbar')).display,
+    return { wsbar: getComputedStyle(document.querySelector('.side')).display,
       pos: getComputedStyle(document.getElementById('botnav')).position,
       n: document.querySelectorAll('#botnav .bn').length,
       atBottom: Math.round(bn.bottom) === window.innerHeight,
@@ -102,7 +100,7 @@ async function goViaBot(p, v) {
       on: (document.querySelector('#botnav .bn.on span') || {}).textContent,
       ready: document.documentElement.classList.contains('botnav-ready') };
   });
-  chk('상단 공간바 숨김(모바일)', mb.wsbar === 'none');
+  chk('사이드바 숨김(모바일) — 하단 탭이 대신한다', mb.wsbar === 'none');
   chk('하단 탭 그려진 뒤에만 상단 숨김(botnav-ready)', mb.ready === true && mb.n > 0, 'ready=' + mb.ready);
   chk('하단 탭 고정 · 4공간', mb.pos === 'fixed' && mb.n === 4 && mb.atBottom, mb.n + '공간');
   chk('탭 터치 타깃 ≥48px', mb.tap >= 48, mb.tap + 'px');
@@ -121,14 +119,8 @@ async function goViaBot(p, v) {
   await p.goto(`http://localhost:${PORT}/krjam-planning`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 700));
   // 팀·자료 공간의 세부 확인(관리 탭 안 보이고 자료실만)
-  const perm = await p.evaluate(() => {
-    const vis = (sel) => [...document.querySelectorAll(sel)].filter((x) => x.style.display !== 'none').map((x) => x.getAttribute('data-v'));
-    // 각 공간 클릭 후 세부에서 보이는 뷰 수집
-    const out = {};
-    ['content', 'field', 'team'].forEach((ws) => { document.querySelector('.wstab[data-ws="' + ws + '"]').click(); out[ws] = vis('.subbar .vtab[data-ws="' + ws + '"]'); });
-    return out;
-  });
-  const shown = [].concat(perm.content, perm.field, perm.team);
+  // 사이드바는 모두 펼쳐져 있으므로 보이는 항목을 그대로 읽으면 된다
+  const shown = await p.evaluate(() => [...document.querySelectorAll('.side-item[data-v]')].map((x) => x.getAttribute('data-v')));
   chk('일반 회원: 관리 탭(staff/contacts/orginfo/protocol/sitemap/tips) 없음',
     !['staff', 'contacts', 'orginfo', 'protocol', 'sitemap', 'tips'].some((x) => shown.includes(x)), '보이는 세부: ' + shown.join(','));
   chk('일반 회원: 자료실·일정표는 보임(공개)', shown.includes('library') && shown.includes('timetable'), shown.join(','));

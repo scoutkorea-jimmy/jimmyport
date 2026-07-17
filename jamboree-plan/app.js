@@ -731,7 +731,8 @@ function addContent(date){
 }
 var curFilter={kind:'all'};
 var STCOL={planned:'#4C554D',draft:'#8A5A0B',ready:'#1F6B4F'};   // 솔리드·점 — 흰 글씨 7.74/5.92/6.41 (이전 2.67/3.15/3.99 미달)
-var STCHIP={planned:['rgba(255,255,255,.07)','#B7C0B8'],draft:['rgba(232,165,75,.14)','#E8A54B'],ready:['rgba(59,227,138,.13)','#66DDA0']};   // [연배경, 잉크] — 배지용
+// [연배경, 잉크] — 배지용. 가이드 ④ 규칙 2: 솔리드+흰글씨가 4.5 를 못 넘으면 연한 면 + 진한 잉크.
+var STCHIP={planned:['var(--st-planned-bg)','var(--st-planned)'],draft:['var(--st-draft-bg)','var(--st-draft)'],ready:['var(--st-ready-bg)','var(--st-ready)']};
 var STAGES=[['planned','기획'],['draft','작성중'],['ready','완료']];
 function matchFilter(d,s,e){
   var f=curFilter; if(!f||f.kind==='all') return true;
@@ -2952,23 +2953,46 @@ function wsOfView(v){ for(var k in WS_VIEWS){ if(WS_VIEWS[k].indexOf(v)>=0) retu
 function wsHasVisible(ws){ return (WS_VIEWS[ws]||[]).some(function(v){ return Auth.authed()&&Auth.canSee(v); }); }
 var curWs='dash', wsLastView={};
 // 공간바/세부바 활성·가시성 갱신 (setView·reflectAuthUI 가 호출)
+/* 뷰 라벨·아이콘 — 전에는 이 목록이 HTML 버튼 14개와 JS 그룹 정의에 나뉘어 있었다(둘이 어긋날 수 있음).
+ * 이제 여기가 유일한 원본이고 사이드바(PC)·세부바(모바일)·시트가 전부 이걸로 그려진다. */
+var VIEW_META={
+  dashboard:['대시보드','grid'], calendar:['캘린더','calendar'], list:['콘텐츠','list'], news:['기사','fileText'],
+  tips:['소식 제보','inbox'], shootlist:['촬영 리스트','camera'], timetable:['잼버리 일정표','clock'],
+  sitemap:['현장 위치 지도','mapPin'], protocol:['의전 일정','grid'], meals:['식사 메뉴','utensils'],
+  staff:['홍보부 인원','users'], contacts:['협조 연락처','phone'], orginfo:['분단 연락망','users'], library:['자료실','image']
+};
+function viewLabel(v){ return (VIEW_META[v]||[v])[0]; }
+/* 좌측 사이드바 — 프로젝트 관리 보드의 표준 구조. 4공간을 전환하지 않고 **한눈에 펼쳐** 두어
+ * "지금 어디에 있고 무엇이 더 있는지"를 늘 보이게 한다(전 2단 상단바는 다른 공간이 접혀 보이지 않았다). */
+function renderSidebar(){
+  var box=document.getElementById('side-nav'); if(!box) return;
+  box.innerHTML=WS_LIST.filter(function(w){ return wsHasVisible(w.ws); }).map(function(w){
+    var views=(WS_VIEWS[w.ws]||[]).filter(function(v){ return Auth.canSee(v); });
+    if(!views.length) return '';
+    return '<div class="side-grp"><div class="side-lab">'+esc(w.label)+'</div>'+
+      views.map(function(v){ var m=VIEW_META[v]||[v,'grid'];
+        return '<button class="side-item'+(v===curViewMode?' on':'')+'" data-v="'+v+'" role="tab" aria-selected="'+(v===curViewMode)+'">'+
+          icon(m[1],16)+'<span>'+esc(m[0])+'</span></button>';
+      }).join('')+'</div>';
+  }).join('');
+  box.querySelectorAll('.side-item[data-v]').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+  var f=document.getElementById('side-foot');
+  if(f) f.innerHTML=Auth.authed()?('<div class="side-who">'+icon('user',15)+'<span>'+esc(Auth.name||Auth.username||'')+
+    (Auth.isAdmin&&Auth.isAdmin()?' · 관리자':(Auth.type?(' · '+esc(Auth.type)):''))+'</span></div>'):'';
+}
+/* 모바일 세부바 — 사이드바가 숨는 폭에서 현재 공간의 뷰만 가로로. 목록은 사이드바와 같은 원본을 쓴다. */
+function renderSubbar(){
+  var sb=document.getElementById('subbar'); if(!sb) return;
+  var views=(WS_VIEWS[curWs]||[]).filter(function(v){ return Auth.canSee(v); });
+  sb.innerHTML=views.length<2?'':views.map(function(v){ var m=VIEW_META[v]||[v,'grid'];
+    return '<button class="vtab'+(v===curViewMode?' active':'')+'" data-v="'+v+'" data-ws="'+curWs+'" role="tab">'+icon(m[1],15)+' '+esc(m[0])+'</button>';
+  }).join('');
+  sb.querySelectorAll('.vtab[data-v]').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+}
 function renderNav(){
   curWs=wsOfView(curViewMode);
-  document.querySelectorAll('.wstab[data-ws]').forEach(function(b){
-    var ws=b.getAttribute('data-ws');
-    b.style.display=wsHasVisible(ws)?'':'none';
-    b.classList.toggle('active', ws===curWs);
-  });
-  var shown=0;
-  document.querySelectorAll('.subbar .vtab[data-v]').forEach(function(b){
-    var v=b.getAttribute('data-v'), ws=b.getAttribute('data-ws');
-    var show=(ws===curWs)&&Auth.authed()&&Auth.canSee(v);
-    b.style.display=show?'':'none';
-    b.classList.toggle('active', v===curViewMode);
-    if(show) shown++;
-  });
-  // 뷰가 1개뿐인 공간(대시보드)은 세부바를 숨긴다(중복 방지)
-  var sub=document.getElementById('subbar'); if(sub) sub.style.display=(shown>1)?'':'none';
+  renderSidebar(); renderSubbar();
+  var t=document.getElementById('view-title'); if(t) t.textContent=viewLabel(curViewMode);
 }
 // 공간 전환 → 그 공간에서 마지막으로 본 뷰(없으면 첫 뷰)로
 function setWorkspace(ws){
@@ -3234,7 +3258,7 @@ function deleteNews(id){
 /* ===== 현장 제보 인박스 ===== */
 var tipItems=[], tipLoaded=false, tipFilter='all', tipEdit=null;
 // [라벨, 연배경, 잉크] — 흰 글씨 솔리드였으나 대비 미달이라 연한 칩으로
-var TIP_STATUS={ 'new':['새 제보','var(--st-planned-bg)','#C2CBC3'], 'used':['채택','var(--st-ready-bg)','#66DDA0'], 'rejected':['반려','rgba(210,84,60,.15)','#E68A7C'] };
+var TIP_STATUS={ 'new':['새 제보','var(--st-planned-bg)','var(--st-planned)'], 'used':['채택','var(--st-ready-bg)','var(--st-ready)'], 'rejected':['반려','var(--danger-bg)','var(--danger-ink)'] };
 function loadTips(){
   fetch('/api/jp-tips',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
     .then(function(j){ if(!j) return; tipItems=(j&&j.tips)||[]; tipLoaded=true; afterTipsLoaded(); })
@@ -3877,9 +3901,7 @@ function init(){
   document.getElementById('ev-save').onclick=commitEvent;
   document.getElementById('ev-del').onclick=deleteEventCur;
   document.getElementById('ev-scrim').addEventListener('click',function(e){ if(e.target===this) closeEvent(); });
-  // 2단 내비게이션: 공간(wstab) → 세부(vtab)
-  document.querySelectorAll('.wstab[data-ws]').forEach(function(b){ b.onclick=function(){ setWorkspace(b.getAttribute('data-ws')); window.scrollTo({top:0,behavior:'smooth'}); }; });
-  document.querySelectorAll('.vtab[data-v]').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+  // 내비 항목은 renderSidebar/renderSubbar 가 그리며 거기서 배선한다(정적 버튼이 없어졌다).
   // 모바일 하단 탭 = 업무 공간
   var bn=document.getElementById('botnav');
   if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bnws]'); if(!b) return;
