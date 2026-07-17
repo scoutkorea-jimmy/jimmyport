@@ -21,7 +21,7 @@
         d(m[7]), d(m[8]), d(m[9]), d(m[10]).configure({nested:true}),
         d(m[11]).configure({resizable:true}), d(m[12]), d(m[13]), d(m[14]),
         d(m[15]), d(m[16]), d(m[17]),
-        d(m[18]).configure({placeholder:'SNS 게시 문구를 입력하세요…'})
+        d(m[18]).configure({placeholder:'내용을 입력하세요…'})
       ];
       return { Editor: m[0].Editor, extensions: extensions };
     }catch(err){ console.warn('Tiptap load failed', err); return null; }

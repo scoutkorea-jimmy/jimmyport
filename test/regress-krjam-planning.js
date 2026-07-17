@@ -30,6 +30,9 @@ const SEED = () => {
   window.__tip0 = { id: 'tip1', reporterName: '정성윤', phone: '01035520587', org: '국제본부', zone: 'food',
     text: 'IST Culture Night 취재 바랍니다', photos: [], status: 'new', assignee: '', source: 'public',
     date: '2026-08-05', time: '20:00', scheduled: null, createdAt: '2026-07-14T06:27:00Z' };
+  window.__news0 = { id: 'n1', title: '개영식 현장 스케치', body: '<p>현장 <strong>스케치</strong> 기사입니다.</p>', images: ['/api/image?id=ni1'],
+    author: 'tester', authorName: '테스터', published: false, cardnewsDone: false, comments: [],
+    createdAt: '2026-07-14T02:00:00Z', updatedAt: '2026-07-14T02:00:00Z' };
   window.__assets = [
     { id: 'a1', url: '/api/file?id=f1', name: '브랜드 가이드라인', type: 'photo', category: 'plan', ct: 'application/pdf', size: 3348000, tags: ['브랜드'], author: 'admin', authorName: '관리자', createdAt: '2026-07-13T07:07:00Z' },
     { id: 'a2', url: '/api/image?id=i1', name: '개영식 사진', type: 'photo', category: 'photo', ct: 'image/jpeg', size: 820000, tags: [], author: 'admin', authorName: '관리자', createdAt: '2026-07-12T05:00:00Z' },
@@ -39,7 +42,13 @@ const SEED = () => {
     u = String(u && u.url ? u.url : u);
     const J = (d, s) => Promise.resolve(new Response(JSON.stringify(d), { status: s || 200, headers: { 'content-type': 'application/json' } }));
     if (u.startsWith('/api/me')) return J({ ok: true });
-    if (u.startsWith('/api/jp-news')) return J({ ok: true, articles: [] });
+    if (u.startsWith('/api/jp-news')) {
+      if (o && o.method === 'POST') { const b = JSON.parse(o.body || '{}');
+        if (b.action === 'flags') { if (typeof b.published === 'boolean') window.__news0.published = b.published; if (typeof b.cardnewsDone === 'boolean') window.__news0.cardnewsDone = b.cardnewsDone; window.__newsFlag = b; return J({ ok: true, article: window.__news0 }); }
+        return J({ ok: true, article: window.__news0 }); }
+      if (o && (o.method === 'PUT' || o.method === 'DELETE')) return J({ ok: true, article: window.__news0 });
+      return J({ ok: true, articles: [window.__news0] });
+    }
     if (u.startsWith('/api/jp-assets')) { if (o && o.method === 'DELETE') return J({ ok: true }); if (o && o.method === 'POST') return J({ ok: true, asset: { id: 'new', url: '/api/file?id=n', name: 'n', category: 'plan', ct: 'application/pdf', tags: [], authorName: '관리자', createdAt: '2026-07-15T00:00:00Z' } }); return J({ ok: true, assets: window.__assets }); }
     if (u.startsWith('/api/jp-tips')) { if (o && o.method === 'PATCH') { const b = JSON.parse(o.body); window.__tipPatch.push(b); return J({ ok: true, tip: Object.assign({}, window.__tip0, b) }); } return J({ ok: true, tips: [window.__tip0] }); }
     if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
@@ -292,6 +301,39 @@ const SEED = () => {
   const nogap = await page.evaluate(() => { smTimeMin = 1200; renderSiteMap();   // 20:00 개영식(담당 r1 stage 배치)
     return { zones: (window.smGaps || []).map((g) => g.zone) }; });
   chk('20:00 개영식은 담당 배치되어 공백 아님(stage)', nogap.zones.indexOf('stage') < 0, nogap.zones.join(',') || '공백 0');
+
+  // ===== 콘텐츠 보드 — 열 너비 슬라이더 + 열 표시(숨기기) (v0.9.216) =====
+  console.log('\n[보드 열 너비 · 열 표시]');
+  await go('list');
+  const bvc = await page.evaluate(() => ({ slider: !!document.getElementById('board-colw'),
+    chips: document.querySelectorAll('#board-cols [data-colv]').length }));
+  chk('열 너비 슬라이더 존재', bvc.slider);
+  chk('열 표시 토글 = 5(인박스+4단계)', bvc.chips === 5, bvc.chips + '개');
+  const cwv = await page.evaluate(() => { const s = document.getElementById('board-colw'); s.value = 480; s.dispatchEvent(new Event('input', { bubbles: true }));
+    return getComputedStyle(document.getElementById('board')).getPropertyValue('--board-colw').trim(); });
+  chk('슬라이더 → --board-colw 갱신', cwv === '480px', cwv);
+  const hid = await page.evaluate(() => { const before = document.querySelectorAll('#board .col').length;
+    document.querySelector('#board-cols [data-colv="draft"]').click(); const after = document.querySelectorAll('#board .col').length;
+    return { before, after, off: document.querySelector('#board-cols [data-colv="draft"]').classList.contains('off') }; });
+  chk('열 숨기기 → 컬럼 감소 + 칩 off', hid.after === hid.before - 1 && hid.off, hid.before + '→' + hid.after);
+  await page.evaluate(() => { document.querySelector('#board-cols [data-colv="draft"]').click(); const s = document.getElementById('board-colw'); s.value = 300; s.dispatchEvent(new Event('input', { bubbles: true })); });   // 복원
+
+  // ===== 기사 목차 — 글번호·퍼블리싱·카드뉴스 가공 + 리치텍스트 본문 (v0.9.216) =====
+  console.log('\n[기사 목차]');
+  await go('news');
+  const nl = await page.evaluate(() => ({ table: !!document.querySelector('.newstbl'),
+    ths: [...document.querySelectorAll('.newstbl th')].map((t) => t.textContent.trim()),
+    no: (document.querySelector('.newstbl td.nr-no') || {}).textContent,
+    pub: !!document.querySelector('.flagtog.pub'), cn: !!document.querySelector('.flagtog.cn') }));
+  chk('목차 표 6열(번호·제목·작성자·작성일·퍼블리싱·카드뉴스)', nl.table && nl.ths.join(',') === '번호,제목,작성자,작성일,퍼블리싱,카드뉴스', nl.ths.join(','));
+  chk('글 번호 표기', nl.no === '1', nl.no);
+  chk('퍼블리싱·카드뉴스 가공 토글 존재', nl.pub && nl.cn);
+  const exp = await page.evaluate(() => { document.querySelector('[data-news-expand]').click();
+    const d = document.querySelector('.news-detailrow'); return { rows: document.querySelectorAll('.news-detailrow').length, strong: !!(d && d.querySelector('.news-text strong')) }; });
+  chk('제목 클릭 → 본문 펼침 + 리치텍스트(strong) 정화 렌더', exp.rows === 1 && exp.strong, 'rows=' + exp.rows);
+  const nflag = await page.evaluate(async () => { document.querySelector('.flagtog.pub').click(); await new Promise((r) => setTimeout(r, 250));
+    return { f: window.__newsFlag, on: document.querySelector('.flagtog.pub').classList.contains('on') }; });
+  chk('퍼블리싱 토글 → flags API(published=true) + on', nflag.f && nflag.f.action === 'flags' && nflag.f.published === true && nflag.on, JSON.stringify(nflag.f));
 
   // ===== 디자인 계측 =====
   // 디자인 변경은 눈으로만 확인하기 쉬워 조용히 무너진다. 규칙을 테스트로 고정한다.

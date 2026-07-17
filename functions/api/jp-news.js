@@ -1,12 +1,14 @@
 /* 대원 기사 — jamboree-plan "기사" 탭
  * 사진 2~3장 + 본문 기사. 즉시 게시 · 작성자 본인 수정 · 삭제는 관리자만.
  *
- *  GET    /api/jp-news                                   (공개) → { articles } 최신순
- *  POST   /api/jp-news   { title, body, images[] }        (대원/관리자 세션) 새 기사
- *  PUT    /api/jp-news   { id, title, body, images[] }    (작성자 본인 또는 관리자)
- *  DELETE /api/jp-news?id=<id>                             (관리자만)
+ *  GET    /api/jp-news                                       (공개) → { articles } 최신순
+ *  POST   /api/jp-news   { title, body(HTML), images[] }      (대원/관리자 세션) 새 기사
+ *  POST   /api/jp-news   { action:'flags', id, published?, cardnewsDone? }   (작성자·홍보부·관리자) 목차 토글
+ *  PUT    /api/jp-news   { id, title, body(HTML), images[] }  (작성자 본인 또는 관리자)
+ *  DELETE /api/jp-news?id=<id>                                 (관리자만)
  *
- * KV: 기사 "jpn:<id>" = {id,title,body,images,author,authorName,createdAt,updatedAt,ip}
+ * KV: 기사 "jpn:<id>" = {id,title,body,images,author,authorName,published,cardnewsDone,createdAt,updatedAt,ip}
+ *     body 는 리치텍스트 HTML — 표시 시 클라이언트가 sanitizeHtml 로 정화(저장은 원문).
  *     (prefix list로 전체 조회 — jamboree-plan.js slot 패턴과 동일)
  */
 import { json, memberOrAdmin, adminUser, newId, clientIp, maskIp, appendLog } from "./_lib.js";
@@ -70,14 +72,25 @@ export async function onRequestPost({ request, env }) {
     await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
     return json({ ok: true, article: rec });
   }
+  if (body.action === "flags") {   // 목차 토글 — 퍼블리싱 여부 · 카드뉴스 가공 여부 (작성자·홍보부·관리자)
+    const rec = await readArticle(env, String(body.id || ""));
+    if (!rec) return json({ ok: false, error: "not_found" }, 404);
+    if (!who.admin && !who.staff && rec.author !== who.username) return json({ ok: false, error: "forbidden" }, 403);
+    if (typeof body.published === "boolean") rec.published = body.published;
+    if (typeof body.cardnewsDone === "boolean") rec.cardnewsDone = body.cardnewsDone;
+    rec.updatedAt = new Date().toISOString();
+    await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
+    return json({ ok: true, article: rec });
+  }
   const title = String(body.title || "").trim().slice(0, 160);
-  const text = String(body.body || "").trim().slice(0, 8000);
+  const text = String(body.body || "").trim().slice(0, 20000);   // HTML 리치텍스트라 여유 있게
   if (!title && !text) return json({ ok: false, error: "empty" }, 400);
   const now = new Date().toISOString();
   const rec = {
     id: newId(), title, body: text, images: cleanImages(body.images),
     author: who.username || "admin",
     authorName: who.username ? String(who.name || who.username).slice(0, 40) : "관리자",   // 세션 서명값만 — body.authorName 무시(사칭 차단)
+    published: false, cardnewsDone: false,
     createdAt: now, updatedAt: now, ip: maskIp(clientIp(request)),
   };
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
@@ -94,7 +107,7 @@ export async function onRequestPut({ request, env }) {
   if (!rec) return json({ ok: false, error: "not_found" }, 404);
   if (!who.admin && rec.author !== who.username) return json({ ok: false, error: "forbidden" }, 403);
   rec.title = String(body.title || "").trim().slice(0, 160);
-  rec.body = String(body.body || "").trim().slice(0, 8000);
+  rec.body = String(body.body || "").trim().slice(0, 20000);   // 퍼블리싱/카드뉴스 플래그는 action:'flags' 로만 변경(여기선 보존)
   rec.images = cleanImages(body.images);
   rec.updatedAt = new Date().toISOString();
   await env.SCOUT_KV.put(KEY(rec.id), JSON.stringify(rec));
