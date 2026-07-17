@@ -62,6 +62,7 @@ const SEED = () => {
           '2026-07-20#extra#c1': { edit: { title: '가나 대표단 소개', status: 'planned', owner: '박지민', due: '2026-07-25', channels: ['페이스북'] } },
           '2026-07-21#extra#c2': { edit: { title: '나이지리아 대표단', status: 'draft', owner: '김철수', channels: ['인스타그램'] } },
           '2026-07-22#extra#c3': { edit: { title: '다낭 서브캠프', status: 'ready', owner: '이영희', posted: true, channels: ['유튜브'] } },
+          '2026-07-23#extra#c4': { edit: { title: 'D-Counter | D-50', status: 'planned' } },
           '2026-07-01#dcount': { edit: { title: 'D-Day 콘텐츠(숨겨져야 함)', status: 'planned' } },
         } });
     }
@@ -102,8 +103,12 @@ const SEED = () => {
   chk('제보 인박스 카드(홍보부 · 새 제보 1)', b.inbox === 1, b.inbox + '건');
   chk('모바일 단계 세그먼트 5', b.mseg === 5, b.mseg + '개');
   chk('실제 콘텐츠 3장(extra 슬롯)', b.cards === 3, b.cards + '장');
-  const noDday = await page.evaluate(() => ![...document.querySelectorAll('#board .card .ctitle')].some((x) => /D-Day 콘텐츠/.test(x.textContent)));
-  chk('콘텐츠 리스트에서 D-Day(dcount) 슬롯 숨김', noDday);
+  const ddayHide = await page.evaluate(() => {
+    const titles = [...document.querySelectorAll('#board .card .ctitle')].map((x) => x.textContent);
+    return { hasDcountSlot: titles.some((t) => /D-Day 콘텐츠/.test(t)), hasDcountTitle: titles.some((t) => /D-Counter/.test(t)), hasNormal: titles.some((t) => /가나 대표단/.test(t)) };
+  });
+  chk('D-Day(dcount) 빈 슬롯 + 제목 D-count 카드 숨김 · 일반 콘텐츠 유지',
+    !ddayHide.hasDcountSlot && !ddayHide.hasDcountTitle && ddayHide.hasNormal, JSON.stringify(ddayHide));
   chk('정렬 4종 · 필터바 접힘', b.sorts === 4 && b.filtersHidden);
   const dnd = await page.evaluate(() => {
     const c = document.querySelector('#board .col[data-st="planned"] .card'); const t0 = c.querySelector('.ctitle').textContent.trim();

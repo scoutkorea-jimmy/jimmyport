@@ -842,6 +842,9 @@ function inboxCard(t){
     '<button class="btn xs solid ic-conv" data-tipconv="'+esc(t.id)+'">콘텐츠로 전환 →</button>';
   return el;
 }
+// 제목에 D-count/디데이/D-Counter/D-day 가 든 콘텐츠 = 디데이 프로젝트 관련 → 콘텐츠 리스트에서 숨김(캘린더엔 보임)
+var DDAY_CONTENT_RE=/디데이|d[\s.\-]?count|d[\s.\-]?day/i;
+function isDdayContent(e){ return DDAY_CONTENT_RE.test((e&&e.title)||''); }
 var boardMStage='planned';   // 모바일: 한 번에 한 단계만
 function renderBoard(){
   var board=document.getElementById('board'); if(!board) return;
@@ -849,8 +852,9 @@ function renderBoard(){
   var cols={planned:[],draft:[],review:[],done:[]}, total=0, ready=0, started=0, meetings=0, blank=0;
   DAYS.forEach(function(d){
     daySlots(d).forEach(function(s){
-      if(s.type==='dcount') return;   // 콘텐츠 리스트에서 D-Day(디데이) 슬롯 숨김 — 캘린더에서만 관리
+      if(s.type==='dcount') return;   // 빈 D-count 날짜 슬롯 숨김 — 캘린더에서만 관리
       var e=peek(s.k), st=e.status||'planned';
+      if(isDdayContent(e)) return;    // 제목에 D-count/디데이 든 콘텐츠 숨김(디데이 프로젝트에서 관리)
       if(isMeeting(e)){ meetings++; } else { total++; if(st==='ready'||e.posted) ready++; if(st!=='planned') started++; }
       if(isBlankSlot(s.k,e)){ blank++; if(!showEmpty) return; }
       var stg=pipelineStage(e);
