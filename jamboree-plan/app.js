@@ -1630,8 +1630,12 @@ function closeShootDetail(){ var sc=document.getElementById('shoot-scrim'); if(s
 
 /* ===== 일자별 시간 일정표 (타임테이블 그리드) ===== */
 var TT_HS=0, TT_HE=24;             // 표시 시작/끝 시각 (24시간 일정표)
-var TT_HH_PERIOD=46, TT_HH_DAY=84; // 시간당 픽셀(전체기간/일간)
-var TT_HH=46;                      // 현재 모드 픽셀(renderTimetable에서 설정)
+/* 시간당 픽셀(전체기간/일간). 블록 안 글자는 13px 바닥(가이드 ④)이고 한 줄이 약 16px 이라,
+ * 46px/시간(=30분 블록 23px)에는 제목 한 줄도 들어가지 않아 잘려 나갔다. 글자를 키우려면 행이 함께 커져야 한다
+ * — 이 값을 되돌리면 블록이 다시 글자를 자른다. 보조선 간격(styles.css)도 이 값에서 나온 수치다:
+ * 전체기간 30분=hh/2 · 일간 10분=hh/6. */
+var TT_HH_PERIOD=60, TT_HH_DAY=96; // 시간당 픽셀(전체기간/일간)
+var TT_HH=60;                      // 현재 모드 픽셀(renderTimetable에서 설정)
 function t2h(s){ if(!s) return null; var p=String(s).split(':'); var h=+p[0], m=+(p[1]||0); if(isNaN(h)) return null; return h+(isNaN(m)?0:m)/60; }
 var TT_SNAP=0.25;   // 15분 단위
 function snap15(h){ return Math.round(h/TT_SNAP)*TT_SNAP; }

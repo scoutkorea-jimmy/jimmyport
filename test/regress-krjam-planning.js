@@ -148,8 +148,10 @@ const SEED = () => {
   chk('취재 토글 = 편집 블록마다(=총 블록수)', tt.cov === tt.evs && tt.evs >= 2, tt.cov + '/' + tt.evs);
   chk('식순 인라인(일간뷰) 1행', tt.rd === 1, tt.rd + '행');
   chk('담당 인원 표기', /김기자/.test(tt.who), tt.who.trim());
-  // 20:00 × TT_HH_DAY(84px/h) = 1680 · 1.5h × 84 − 3(gap) = 123 — 리팩터링 후에도 픽셀 동일해야 함
-  chk('블록 좌표 계산(top/height)', tt.top === '1680px' && tt.height === '123px', tt.top + ' / ' + tt.height);
+  // 20:00 × TT_HH_DAY(96px/h) = 1920 · 1.5h × 96 − 3(gap) = 141.
+  // 값의 출처는 app.js 의 TT_HH_DAY 다 — v0.9.210 에서 84→96 으로 올렸다(13px 바닥을 지키려면 행이 함께 커져야 한다).
+  // 이 수치를 고칠 일이 생기면 먼저 TT_HH_* 가 왜 바뀌었는지 확인할 것: 좌표는 파생값이지 상수가 아니다.
+  chk('블록 좌표 계산(top/height)', tt.top === '1920px' && tt.height === '141px', tt.top + ' / ' + tt.height);
 
   // 취재 불필요 토글 (hover 후 클릭)
   await page.hover('.ttg-ev[data-id="t1"]');
@@ -306,6 +308,47 @@ const SEED = () => {
   const ground = themed.bg.startsWith('#') ? h2(themed.bg) : themed.bg;
   const xbad = themed.texts.filter(([, v]) => v.startsWith('#') && CR(h2(v), ground) < 4.5);
   chk('텍스트 토큰 전부 지면 대비 4.5+', xbad.length === 0, xbad.map(([k, v]) => k + ' ' + v + ' vs ' + themed.bg).join(' | ') || themed.texts.length + '개 검사(지면 ' + themed.bg + ')');
+
+  // 가이드 ④(CLAUDE.md 최우선 규칙): 최소 13px · 버튼 ≥40px · 카드 중첩 금지 · 음수 자간 -3% 이내.
+  // v0.9.205 는 "밀집 그리드가 깨진다"며 10.5~11px 에서 멈췄고, 그 후퇴를 잡아줄 테스트가 없어 그대로 남았다.
+  // 눈으로 보면 놓치므로 렌더된 값으로 전 뷰를 훑는다. 실패 시 어느 요소인지까지 찍는다.
+  console.log('\n[디자인 — 타이포·컨트롤]');
+  const SWEEP = ['dashboard', 'calendar', 'list', 'timetable', 'staff', 'protocol', 'library', 'tips', 'meals', 'contacts'];
+  const viol = { small: [], btn: [], track: [], nest: [] };
+  for (const v of SWEEP) {
+    await go(v);
+    const r = await page.evaluate(() => {
+      const vis = (el) => { const b = el.getBoundingClientRect(); if (b.width < 1 || b.height < 1) return false;
+        const s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && +s.opacity > 0.1; };
+      const ownsText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length);
+      const out = { small: [], btn: [], track: [], nest: [] };
+      // 40px 예외: 블록/칩 위에 겹쳐 뜨는 micro 컨트롤(--h-ctl-mini). 40px 를 주면 대상 자체를 덮는다.
+      const MINI = ['ttg-del', 'ttg-cov', 'fedx', 'smpop-x', 'news-slot-x'];
+      document.querySelectorAll('*').forEach((el) => {
+        if (!vis(el)) return;
+        const s = getComputedStyle(el);
+        if (ownsText(el)) {
+          const fs = parseFloat(s.fontSize);
+          if (fs < 13) out.small.push(fs + 'px ' + (el.className || el.tagName));
+          if (s.letterSpacing && s.letterSpacing !== 'normal' && parseFloat(s.letterSpacing) / fs < -0.03)
+            out.track.push(s.letterSpacing + ' ' + (el.className || el.tagName));
+        }
+        if ((el.tagName === 'BUTTON' || el.classList.contains('btn')) && !MINI.some((m) => el.classList.contains(m))
+            && el.getBoundingClientRect().height < 40) out.btn.push(Math.round(el.getBoundingClientRect().height) + 'px ' + (el.className || el.tagName));
+      });
+      const CARD = '.card,.tipcard,.libcard,.pcard,.statcard,.dashpanel,.shootcard,.news-card';
+      document.querySelectorAll(CARD).forEach((c) => { if (!vis(c)) return; const i = c.querySelector(CARD);
+        if (i && vis(i)) out.nest.push(c.className.split(' ')[0] + ' > ' + i.className.split(' ')[0]); });
+      return out;
+    });
+    for (const k of Object.keys(viol)) r[k].forEach((x) => viol[k].push(v + ': ' + x));
+  }
+  const uniq = (a) => [...new Set(a)];
+  chk('본문·라벨 전부 13px 이상 (12px 이하 금지)', viol.small.length === 0, viol.small.length ? uniq(viol.small).slice(0, 4).join(' | ') : SWEEP.length + '개 뷰 검사');
+  chk('조작 요소 전부 40px 이상 (겹침 micro 예외 제외)', viol.btn.length === 0, viol.btn.length ? uniq(viol.btn).slice(0, 4).join(' | ') : SWEEP.length + '개 뷰 검사');
+  chk('음수 자간 -3% 이내', viol.track.length === 0, uniq(viol.track).slice(0, 3).join(' | ') || 'ok');
+  chk('카드 중첩 없음 (카드 안에 카드 금지)', viol.nest.length === 0, uniq(viol.nest).slice(0, 3).join(' | ') || 'ok');
+  await page.setViewport({ width: 1440, height: 1000 });
 
   console.log('\n[디자인 — 레이아웃]');
   for (const W of [390, 430]) {
