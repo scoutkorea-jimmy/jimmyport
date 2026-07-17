@@ -97,6 +97,7 @@ function cleanShoot2(e) {
   return {
     id: (e.id || "").toString().slice(0, 40),
     ttId: (e.ttId || "").toString().slice(0, 44),   // 캘린더(일정표) 연동 항목 표식 — 중복 로드 방지
+    prId: (e.prId || "").toString().slice(0, 44),   // 의전 연동 항목 표식 — 담당은 의전 항목이 원본
     title: (e.title || "").toString().slice(0, 200),
     place: (e.place || "").toString().slice(0, 120),
     point: (e.point || "").toString().slice(0, 400),
@@ -119,6 +120,8 @@ function cleanProtocol(e) {
     endTime: (e.endTime || "").toString().slice(0, 5),
     activity: (e.activity || "").toString().slice(0, 300),
     place: (e.place || "").toString().slice(0, 120),
+    // 촬영 담당(홍보부 인원 id) — 여기 없으면 저장 시 조용히 사라진다(§16.53 cleanTT 와 같은 함정)
+    assignees: Array.isArray(e.assignees) ? e.assignees.slice(0, 30).map((x) => (x || "").toString().slice(0, 40)) : [],
     memo: (e.memo || "").toString().slice(0, 400),
   };
 }

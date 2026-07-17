@@ -309,6 +309,71 @@ const SEED = () => {
   const xbad = themed.texts.filter(([, v]) => v.startsWith('#') && CR(h2(v), ground) < 4.5);
   chk('텍스트 토큰 전부 지면 대비 4.5+', xbad.length === 0, xbad.map(([k, v]) => k + ' ' + v + ' vs ' + themed.bg).join(' | ') || themed.texts.length + '개 검사(지면 ' + themed.bg + ')');
 
+  // ===== 의전 촬영 담당 (v0.9.211) =====
+  // 값은 protocol[].assignees 하나다. 세 화면이 각자 복사본을 들면 반드시 어긋나므로
+  // "어느 쪽에서 고쳐도 같은 배열"이라는 계약을 여기서 고정한다.
+  console.log('\n[의전 촬영 담당 — 3면 공유]');
+  await go('protocol');
+  const pr1 = await page.evaluate(() => {
+    state.protocol = [{ id: 'prot-t1', role: '대회장', name: '이찬희', title: '총재', date: '2026-08-05', time: '20:00', endTime: '21:30', activity: '개영식 참석', place: '메인무대', memo: '', assignees: [] }];
+    renderProtocol();
+    const cellBtn = document.querySelector('#pr-body .pr-asgbtn');
+    const empty = cellBtn ? cellBtn.textContent.trim() : '';
+    if (cellBtn) cellBtn.click();                                  // 표 → 지정 모달(일정표와 같은 모달)
+    const chips = document.querySelectorAll('#pra-chips .pr-asg').length;
+    const b = document.querySelector('#pra-chips .pr-asg[data-pid="r1"]'); if (b) b.click();
+    closeProtAssign();
+    const filled = (document.querySelector('#pr-body .pr-asgbtn') || {}).textContent || '';
+    return { empty, chips, filled: filled.trim(), asg: (protById('prot-t1').assignees || []).slice() };
+  });
+  chk('의전 표: 담당 버튼 → 지정 모달 → 반영', pr1.chips === 2 && JSON.stringify(pr1.asg) === '["r1"]' && /김기자/.test(pr1.filled),
+    pr1.empty + ' → ' + pr1.filled + ' · ' + JSON.stringify(pr1.asg));
+  await go('timetable');
+  const pr2 = await page.evaluate(() => {
+    const blk = document.querySelector('.ttg-pr[data-pid="prot-t1"]');
+    const shown = blk ? ((blk.querySelector('.ttg-evp') || {}).textContent || '').trim() : '(블록 없음)';
+    if (blk) blk.click();
+    const open = document.getElementById('pra-scrim').classList.contains('show');
+    const b = document.querySelector('#pra-chips .pr-asg[data-pid="r2"]'); if (b) b.click();
+    closeProtAssign();
+    return { shown, open, asg: (protById('prot-t1').assignees || []).slice() };
+  });
+  chk('일정표 의전 블록: 담당 표시 + 클릭 시 지정 모달', /김기자/.test(pr2.shown) && pr2.open, pr2.shown + ' / 모달 ' + pr2.open);
+  chk('일정표에서 추가 → 같은 배열에 반영(쌍방)', JSON.stringify(pr2.asg) === '["r1","r2"]', JSON.stringify(pr2.asg));
+  const pr3 = await page.evaluate(() => {
+    mergeShootlistFromProtocol();
+    const row = shootListData().filter((r) => r.prId === 'pr:prot-t1')[0];
+    const shared = row ? shootAssignees(row).slice() : null;
+    if (row) toggleShootAssignee(row, 'r1');   // 촬영 리스트에서 해제
+    return { made: !!row, title: row && row.title, shared, protAfter: (protById('prot-t1').assignees || []).slice(), placed: protAssignedTo('r2').length };
+  });
+  chk('촬영 리스트: 담당 지정된 의전만 행 생성', pr3.made && /개영식 참석/.test(pr3.title || ''), pr3.title || '(없음)');
+  chk('촬영 리스트에서 해제 → 의전에도 반영(쌍방)', JSON.stringify(pr3.shared) === '["r1","r2"]' && JSON.stringify(pr3.protAfter) === '["r2"]', JSON.stringify(pr3.shared) + ' → ' + JSON.stringify(pr3.protAfter));
+  chk('현장 배치: 의전 촬영도 그 인원 배치로 파생', pr3.placed === 1, pr3.placed + '건');
+  const pr4 = await page.evaluate(() => {
+    state.offtimes = { r2: { '2026-08-05': { eve: true } } };   // 19–22 오프 → 20:00 의전과 겹침
+    setView('protocol'); renderProtocol();
+    document.querySelector('#pr-body .pr-asgbtn').click();
+    const b = document.querySelector('#pra-chips .pr-asg[data-pid="r2"]');
+    const flagged = b ? (b.classList.contains('offdis') || b.classList.contains('offwarn')) : null;
+    const before = (protById('prot-t1').assignees || []).length;
+    const fresh = b && !b.classList.contains('offwarn');          // 미배정 + 오프 = 클릭해도 배정되면 안 됨
+    if (fresh) b.click();
+    const after = (protById('prot-t1').assignees || []).length;
+    closeProtAssign();
+    return { flagged, blocked: !fresh || after === before, txt: b ? b.textContent.trim() : '' };
+  });
+  chk('오프타임과 겹치면 배정 차단/경고', pr4.flagged === true && pr4.blocked, pr4.txt + ' · 차단=' + pr4.blocked);
+  const ssj = await page.evaluate(() => {
+    mergeSuperstarJ(); mergeSuperstarJ();   // 멱등 — 두 번 병합해도 5건
+    const L = ttList().filter((t) => /^ssj-/.test(t.id));
+    mergeShootlistFromTimetable();
+    const rows = shootListData().filter((r) => /^tt:ssj-/.test(r.ttId || ''));
+    return { n: L.length, cat: L[0] && L[0].cat, place: L[0] && L[0].place, shoot: rows.length, pt: (rows[0] || {}).point };
+  });
+  chk('슈퍼스타J 5회차 일정표 병합(멱등)', ssj.n === 5 && ssj.place === '소무대' && ssj.cat === '행사', ssj.n + '건 @' + ssj.place);
+  chk('슈퍼스타J → 촬영 리스트 + 촬영 포인트 시드', ssj.shoot === 5 && /첫 참가팀/.test(ssj.pt || ''), ssj.shoot + '행 · ' + (ssj.pt || ''));
+
   // 가이드 ④(CLAUDE.md 최우선 규칙): 최소 13px · 버튼 ≥40px · 카드 중첩 금지 · 음수 자간 -3% 이내.
   // v0.9.205 는 "밀집 그리드가 깨진다"며 10.5~11px 에서 멈췄고, 그 후퇴를 잡아줄 테스트가 없어 그대로 남았다.
   // 눈으로 보면 놓치므로 렌더된 값으로 전 뷰를 훑는다. 실패 시 어느 요소인지까지 찍는다.

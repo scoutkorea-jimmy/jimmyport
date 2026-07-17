@@ -1156,6 +1156,12 @@ html.pw-ok #auth-gate{display:none}
 .ttg-grouplab.R{left:51%;color:#B07A1E}
 .ttg-vsplit{position:absolute;top:0;bottom:0;left:50%;width:1px;background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 12px);z-index:1;pointer-events:none}
 
+/* 의전 촬영 담당 — 칸은 버튼 하나(현재 담당 표시), 지정은 일정표 블록과 같은 모달에서.
+   인원 칩을 칸에 직접 깔면 명단 6명 × 의전 41행이라 표가 칩으로 뒤덮인다. */
+.pr-asgcell{vertical-align:middle}
+.pr-asgbtn{max-width:100%;justify-content:flex-start;text-align:left;white-space:normal;line-height:1.35;padding:6px 10px}
+.fl-hint{font-weight:500;color:var(--muted)}
+
 /* 의전 표: 날짜/시간 입력 + 정렬 헤더 + 연맹 셀 */
 .prin{width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 6px;font:inherit;font-size:var(--fs-1);color:var(--ink);background:var(--surface)}
 .prin:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}

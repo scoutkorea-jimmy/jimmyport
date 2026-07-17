@@ -1520,18 +1520,52 @@ function mergeShootlistGates(){
 }
 // 캘린더(잼버리 일정표)의 행사 일정(개·폐영식·프로그램·행사)을 촬영 리스트에 자동 로드. ttId 로 중복 방지.
 var SHOOT_CAL_CATS=['개·폐영식','프로그램','행사'];
+
+/* ===== 슈퍼스타J (v0.9.211, 사용자 제공 일정표) =====
+ * 소무대 · 8/6~8/8 · 팀당 5분 이내(무대 전환 1분) · 노래·댄스·퍼포먼스 자유공연, 사전 신청팀 우선.
+ * 일정표 이벤트로 넣으면 mergeShootlistFromTimetable 이 촬영 리스트 행까지 자동으로 만든다(cat=행사).
+ * 촬영 포인트는 그 자동 생성 행에 SHOOT_POINT_SEED 로 실린다 — 회차마다 찍을 그림이 다르다.
+ * id 는 고정(ssj-MMDD-HHMM) — 병합이 멱등해야 새로고침마다 중복 생성되지 않는다. */
+function superstarJSeeds(){
+  function s(n,day,st,en){ return {id:'ssj-'+day.slice(5).replace('-','')+'-'+st.replace(':',''), day:day, start:st, end:en,
+    title:'슈퍼스타J '+n+'회차', place:'소무대', cat:'행사', zone:'', assignees:[], contacts:[], rundown:[], noCover:false}; }
+  return [ s(1,'2026-08-06','13:00','14:00'), s(2,'2026-08-06','18:30','19:30'),
+           s(3,'2026-08-07','13:00','14:00'), s(4,'2026-08-07','18:30','19:30'),
+           s(5,'2026-08-08','13:00','14:00') ];
+}
+var SHOOT_POINT_SEED={
+  'ssj-0806-1300':'첫 참가팀 공연, 무대 전경, 관객 반응',
+  'ssj-0806-1830':'저녁 공연 분위기, 응원 장면, 참가국 공연',
+  'ssj-0807-1300':'다양한 장르 공연, 심사 모습',
+  'ssj-0807-1830':'관객 참여, 팀별 무대, 국제교류 장면',
+  'ssj-0808-1300':'최종 참가팀 공연, 결과 집계 관련 장면'
+};
+function mergeSuperstarJ(){
+  var list=ttList(), have={}; list.forEach(function(t){ have[t.id]=1; });
+  var added=0; superstarJSeeds().forEach(function(s){ if(!have[s.id]){ list.push(s); added++; } });
+  if(added){ state.timetable=list; saveTimetable(); }
+}
 // 일정표 이벤트의 담당 인원(assignees) → 담당 이름 문자열
 function ttOwnerNames(t){ return ttAssignees(t).map(function(p){ return (p.name||'').trim(); }).filter(Boolean).join(', '); }
 // 촬영 리스트 담당 = 인원 칩(멀티선택). 일정표 연동 행(ttId)은 그 일정의 assignees 를 쌍방 공유, 아니면 행 자체 assignees.
 function shootLinkedTt(m){ if(!m||!m.ttId) return null; return ttById(m.ttId.replace(/^tt:/,'')); }
-function shootAssignees(m){ var t=shootLinkedTt(m); if(t) return (t.assignees||(t.assignees=[])); return (m.assignees||(m.assignees=[])); }
+function shootLinkedProt(m){ if(!m||!m.prId) return null; return protById(m.prId.replace(/^pr:/,'')); }
+// 연동 행이면 원본(일정표 이벤트 / 의전 항목)의 배열을 그대로 돌려준다 — 복사본을 만들면 두 화면이 어긋난다.
+function shootAssignees(m){
+  var t=shootLinkedTt(m); if(t) return (t.assignees||(t.assignees=[]));
+  var p=shootLinkedProt(m); if(p) return protAssignees(p);
+  return (m.assignees||(m.assignees=[]));
+}
 function shootOwnerText(m){ var names=shootAssignees(m).map(rosterById).filter(Boolean).map(function(p){ return (p.name||'').trim(); }).filter(Boolean); return names.length?names.join(', '):((m&&m.owner)||''); }
 // 담당 칩 토글 — 연동 행이면 일정표 이벤트 assignees 를(쌍방), 아니면 행 assignees 를 갱신
 function toggleShootAssignee(m, pid){
-  var t=shootLinkedTt(m), arr=t?(t.assignees||(t.assignees=[])):(m.assignees||(m.assignees=[]));
+  var t=shootLinkedTt(m), p=shootLinkedProt(m);
+  var arr=shootAssignees(m);
   var i=arr.indexOf(pid); if(i>=0) arr.splice(i,1); else arr.push(pid);
   m.owner=shootOwnerText(m);            // 표시용 스냅샷 동기화
-  if(t) saveTimetable(); saveShootList();   // 일정표·촬영 리스트 양쪽 저장
+  if(t) saveTimetable();
+  if(p){ saveProtocol(); afterProtAssignChange(); }   // 의전 연동 행 → 의전 표·일정표·배치까지 함께
+  saveShootList();
 }
 function mergeShootlistFromTimetable(){
   var list=shootListData(), byTt={}; list.forEach(function(r){ if(r.ttId) byTt[r.ttId]=r; });
@@ -1545,8 +1579,30 @@ function mergeShootlistFromTimetable(){
     var sched=(dd+' '+(t.start||'')+(t.end?('~'+t.end):'')).trim();
     var r=byTt[key];
     if(r){ if(r.owner!==owner){ r.owner=owner; changed=true; } if(r.sched!==sched){ r.sched=sched; changed=true; } if(r.title!==t.title){ r.title=t.title; changed=true; } }   // 담당·일정·제목 = 잼버리 일정표와 연동
-    else { list.push({id:mkid(), ttId:key, title:t.title, place:t.place||'잼버리 행사', point:'', owner:owner, sched:sched, doneDate:'', done:false}); changed=true; }
+    else { list.push({id:mkid(), ttId:key, title:t.title, place:t.place||'잼버리 행사', point:SHOOT_POINT_SEED[t.id]||'', owner:owner, sched:sched, doneDate:'', done:false}); changed=true; }
   });
+  if(changed) saveShootList();
+}
+/* 의전 → 촬영 리스트. 담당이 지정된 의전 일정만 올린다 —
+ * 의전은 41건이고 전부 촬영 대상은 아니다. 담당을 붙였다는 건 곧 "이건 우리가 찍는다"는 뜻이므로 그게 기준.
+ * 담당을 다시 비우면 행도 사라진다(사용자가 촬영 포인트를 써 넣었으면 남긴다 — 쓴 내용을 지우지 않는다). */
+function mergeShootlistFromProtocol(){
+  var list=shootListData(), byPr={}; list.forEach(function(r){ if(r.prId) byPr[r.prId]=r; });
+  var changed=false, seen={};
+  protocolList().forEach(function(p){
+    if(!protAssignees(p).length) return;
+    var key='pr:'+p.id; seen[key]=1;
+    var dd=p.date?('8/'+ymd(p.date).getDate()):'';
+    var sched=(dd+' '+(p.time||'')+(p.endTime?('~'+p.endTime):'')).trim();
+    var title=protEventName(p), owner=protAssigneeNames(p).join(', ');
+    var r=byPr[key];
+    if(r){ if(r.title!==title){ r.title=title; changed=true; } if(r.sched!==sched){ r.sched=sched; changed=true; }
+           if(r.owner!==owner){ r.owner=owner; changed=true; } if(r.place!==(p.place||'')){ r.place=p.place||''; changed=true; } }
+    else { list.push({id:mkid(), prId:key, title:title, place:p.place||'', point:'', owner:owner, sched:sched, doneDate:'', done:false}); changed=true; }
+  });
+  // 담당이 해제된 의전 행 정리 — 촬영 포인트를 적어 둔 행은 사용자가 쓴 내용이라 남긴다
+  var keep=list.filter(function(r){ return !r.prId || seen[r.prId] || (r.point||'').trim(); });
+  if(keep.length!==list.length){ state.shootlist=keep; changed=true; }
   if(changed) saveShootList();
 }
 function shootListHasContent(){ return shootListData().some(function(x){ return (x.title||'').trim(); }); }
@@ -1722,9 +1778,12 @@ function ttProtocolBlockHtml(g, geo, dayView){
   var ppl=(g.people||[]).slice().sort(function(a,b){ var ra=protRoleRank(a.role), rb=protRoleRank(b.role); if(ra!==rb) return ra-rb; return (a.name||'').localeCompare(b.name||'','ko'); })
     .map(function(x){ return ((x.role||'')+' '+(x.name||'')).trim(); });
   var pplTxt=ppl.join(', '), evName=g.activity||ppl[0]||'의전', pid=(g.ids&&g.ids[0])||'';
-  return '<div class="ttg-ev ttg-pr'+(dayView?' big':'')+'" data-pid="'+esc(pid)+'" title="'+esc('의전 · '+(g.time||'')+' '+evName+(pplTxt?(' · '+pplTxt):'')+(g.place?(' @ '+g.place):''))+'" style="'+ttGeoStyle(geo)+'">'+
+  // 촬영 담당 — 그룹의 첫 항목이 블록의 원본(의전 표에서 같은 활동·시각을 묶어 그린다)
+  var src=protById(pid), cam=src?protAssigneeNames(src):[];
+  return '<div class="ttg-ev ttg-pr'+(dayView?' big':'')+'" data-pid="'+esc(pid)+'" title="'+esc('의전 · '+(g.time||'')+' '+evName+(pplTxt?(' · '+pplTxt):'')+(g.place?(' @ '+g.place):'')+(cam.length?(' · 촬영 '+cam.join(', ')):' · 촬영 담당 미지정'))+'" style="'+ttGeoStyle(geo)+'">'+
     '<div class="ttg-evt"><span class="prtag">의전</span> '+esc(evName)+'</div>'+
     '<div class="ttg-evm">'+esc(g.time||'')+(pplTxt?(' · '+esc(pplTxt)):'')+(g.place?(' · '+esc(g.place)):'')+'</div>'+
+    (cam.length?('<div class="ttg-evp">'+icon('users',11)+esc(cam.join(', '))+'</div>'):'')+
   '</div>';
 }
 // 시간 일정 블록 — 배경은 인라인 카테고리색(취재 불필요면 CSS .nocover 가 !important 로 덮음)
@@ -1823,7 +1882,8 @@ function wireTimetableGrid(box){
     var frac=Math.max(0, Math.min(0.75, snap15(oy/TT_HH)));
     openTT(null, el.dataset.day, (+el.dataset.h)+frac);
   }; });
-  box.querySelectorAll('.ttg-pr[data-pid]').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); setView('protocol'); }; });
+  // 의전 블록 클릭 = 촬영 담당 지정(일정표에서 배정하다가 의전 탭까지 가지 않게). 상세 편집은 모달의 '의전 탭에서 편집'.
+  box.querySelectorAll('.ttg-pr[data-pid]').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); openProtAssign(el.dataset.pid); }; });
 }
 function renderTimetable(){
   renderTTControls();
@@ -2150,7 +2210,13 @@ function renderOfftimes(){
   box.innerHTML=H;
   box.querySelectorAll('.offtog').forEach(function(bt){ bt.onclick=function(){ toggleOff(bt.dataset.pid, bt.dataset.d, bt.dataset.bk); renderOfftimes(); renderDerivedPlacement(); }; });
 }
-function placeSlotHTML(t, pid){ var dd=ymd(t.day); var off=pid?offConflict(pid,t.day,t2h(t.start),t2h(t.end)):null; return '<div class="pslot'+(off?' conflict':'')+'" data-id="'+esc(t.id)+'" title="'+(off?('오프타임('+off+')과 겹침'):'')+'"><span class="pdot" style="background:'+ttCatColor(t.cat)+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span>'+(off?'<span class="pconf">오프충돌</span>':'')+'</div>'; }
+// 배치 슬롯 클릭 — 일반 일정은 시간 일정 모달, 의전 파생(_pid)은 촬영 담당 모달로
+function wirePlaceSlots(box){
+  box.querySelectorAll('.pslot[data-id]').forEach(function(el){
+    el.onclick=function(){ if(el.dataset.prot) openProtAssign(el.dataset.prot); else openTT(el.dataset.id); };
+  });
+}
+function placeSlotHTML(t, pid){ var dd=ymd(t.day); var off=pid?offConflict(pid,t.day,t2h(t.start),t2h(t.end)):null; return '<div class="pslot'+(off?' conflict':'')+'" data-id="'+esc(t.id)+'"'+(t._pid?(' data-prot="'+esc(t._pid)+'"'):'')+' title="'+(off?('오프타임('+off+')과 겹침'):'')+'"><span class="pdot" style="background:'+(t._color||ttCatColor(t.cat))+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span>'+(off?'<span class="pconf">오프충돌</span>':'')+'</div>'; }
 function dayIdx(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return i; return 99; }
 function ttHours(t){ var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null||e<=s) return 0; return e-s; }
 function fmtDur(h){ if(!h) return '0분'; var mins=Math.round(h*60), hh=Math.floor(mins/60), mm=mins%60; return (hh?hh+'시간':'')+(hh&&mm?' ':'')+(mm?mm+'분':'')||'0분'; }
@@ -2164,7 +2230,8 @@ function renderDerivedPlacement(){
     else {
       var H='';
       people.forEach(function(m){
-        var items=ttList().filter(function(t){ return (t.assignees||[]).indexOf(m.id)>=0; }).slice().sort(sortByDayTime);
+        // 잼버리 일정 + 의전 촬영 — 둘 다 그 시간에 사람을 현장에 묶는 일이라 같은 배치로 본다
+        var items=ttList().filter(function(t){ return (t.assignees||[]).indexOf(m.id)>=0; }).concat(protAssignedTo(m.id)).slice().sort(sortByDayTime);
         var tot=sumHours(items);
         H+='<div class="pcard"><div class="pcard-h"><span class="pname">'+esc(personLabel(m))+'</span>'+((m.name&&m.role)?'<span class="prole">'+esc(m.role)+'</span>':'')+'<span class="pcount">'+(items.length?(items.length+'건'):'배치 없음')+'</span>'+(items.length?('<span class="phours" title="총 투입시간">'+fmtDur(tot)+'</span>'):'')+'</div>';
         if(items.length){ H+='<div class="pslots">'+items.map(function(t){return placeSlotHTML(t,m.id);}).join('')+'</div>'; }
@@ -2172,7 +2239,7 @@ function renderDerivedPlacement(){
         H+='</div>';
       });
       box.innerHTML=H;
-      box.querySelectorAll('.pslot[data-id]').forEach(function(el){ el.onclick=function(){ openTT(el.dataset.id); }; });
+      wirePlaceSlots(box);
     }
   }
   // 담당자 미지정 일정 — 현장 배치와 별도 구분 섹션
@@ -2211,7 +2278,7 @@ function renderContacts(){
     var tr=document.createElement('tr');
     var scheds=contactSchedules(c.id);
     var linkHtml = scheds.length ? scheds.map(function(t){ var dd=ymd(t.day);
-      return '<span class="conlink" data-id="'+esc(t.id)+'" title="'+esc((t.title||'')+(t.place?(' · '+t.place):''))+'"><span class="pdot" style="background:'+ttCatColor(t.cat)+'"></span>8/'+dd.getDate()+' '+esc(t.start||'')+' · '+esc(t.title||'(제목 없음)')+'</span>';
+      return '<span class="conlink" data-id="'+esc(t.id)+'" title="'+esc((t.title||'')+(t.place?(' · '+t.place):''))+'"><span class="pdot" style="background:'+(t._color||ttCatColor(t.cat))+'"></span>8/'+dd.getDate()+' '+esc(t.start||'')+' · '+esc(t.title||'(제목 없음)')+'</span>';
     }).join('') : '<span class="faintmini">연결된 일정 없음</span>';
     tr.innerHTML=
       '<td class="mk" contenteditable data-f="name">'+esc(c.name)+'</td>'+
@@ -2579,6 +2646,91 @@ function protocolList(){
 }
 var prSort={f:'date',dir:1};
 function prWho(p){ return (p.name||'')+(p.title?(' '+p.title):''); }
+
+/* ===== 의전 촬영 담당 (v0.9.211) =====
+ * 의전 일정에도 홍보부 인원을 촬영 담당으로 붙인다. 지정/해제는 세 곳 어디서나 되고 값은 하나다:
+ *   의전 표(촬영 담당 열) · 잼버리 일정표(금색 의전 블록 → 담당 모달) · 촬영 리스트(prId 로 연동된 행)
+ * 세 화면이 각자 복사본을 들면 반드시 어긋나므로, 원본은 protocol[].assignees 하나로 두고
+ * 나머지는 그 배열을 직접 읽고 쓴다(촬영 리스트의 ttId 연동과 같은 방식 — §16.x v0.9.208).
+ * 배치·오프타임에도 반영된다: 의전 촬영도 사람이 그 시간에 현장에 묶이는 일이라, 배치에서 빠지면
+ * '배치 없음'으로 보이고 오프타임과 겹쳐도 아무도 모른다. */
+var PROT_GOLD='#D8A24A';   /* 의전 = 금색(캘린더·일정표 블록과 같은 색 계열) */
+function protById(id){ var L=protocolList(); for(var i=0;i<L.length;i++) if(L[i].id===id) return L[i]; return null; }
+function protAssignees(p){ if(!p) return []; if(!Array.isArray(p.assignees)) p.assignees=[]; return p.assignees; }
+// 의전 항목을 일정(tt) 모양으로 — 배치·오프타임·정렬이 tt 필드(day/start/end/place/title)를 기준으로 짜여 있다.
+// _pid 가 붙어 있으면 의전 파생 항목이라는 뜻(클릭 시 의전 담당 모달로 간다).
+function protAsTtLike(p){
+  return {id:p.id, _pid:p.id, _color:PROT_GOLD, day:p.date||'', start:p.time||'', end:p.endTime||protDefaultEnd(p),
+          place:p.place||'', title:'[의전] '+protEventName(p), cat:'의전', assignees:protAssignees(p)};
+}
+function protDefaultEnd(p){ var s=t2h(p.time); return s==null?'':h2hhmm(Math.min(24,s+0.5)); }   // 종료 미입력 = 시작+30분(일정표 블록과 같은 규칙)
+function protEventName(p){ return (p.activity||'').trim()||'의전 일정'; }
+function protAssignedTo(pid){
+  return protocolList().filter(function(p){ return p.date && p.time && protAssignees(p).indexOf(pid)>=0; }).map(protAsTtLike);
+}
+// 담당 토글 — 원본 배열 하나만 고친다. 어느 화면에서 부르든 같은 결과.
+function toggleProtAssignee(p, pid){
+  var arr=protAssignees(p), i=arr.indexOf(pid);
+  if(i>=0) arr.splice(i,1); else arr.push(pid);
+  saveProtocol();
+}
+// 지정 후 세 화면 + 배치를 함께 갱신(한 곳만 그리면 나머지가 옛 값을 보여준다)
+function afterProtAssignChange(){
+  renderProtocol();
+  if(typeof renderTimetable==='function') renderTimetable();
+  if(typeof renderPhotoList==='function') renderPhotoList();
+  if(curViewMode==='staff') renderDerivedPlacement();
+}
+function protAssigneeChips(p, cls){
+  var people=rosterList();
+  if(!people.length) return '<span class="hintmini">먼저 <b>홍보부 인원</b> 탭에서 인원을 추가하세요.</span>';
+  return people.map(function(m){
+    var on=protAssignees(p).indexOf(m.id)>=0;
+    var off=p.date?offConflict(m.id, p.date, t2h(p.time), t2h(p.endTime||protDefaultEnd(p))):null;
+    return '<button type="button" class="'+(cls||'evkind')+' pr-asg'+(off?(on?' offwarn':' offdis'):'')+'" data-pid="'+esc(m.id)+'"'+
+      (on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+
+      ' title="'+(off?('오프타임('+off+') — 배정 불가'):'')+'">'+esc(personLabel(m))+(off?(' · 오프('+off+')'):'')+'</button>';
+  }).join('');
+}
+// 오프타임과 겹치면 배정을 막는다(일정표 담당 칩과 같은 규칙) — 이미 배정된 사람은 해제만 허용
+function wireProtAssignChips(box, p, after){
+  box.querySelectorAll('.pr-asg[data-pid]').forEach(function(btn){
+    btn.onclick=function(){
+      var pid=btn.dataset.pid, on=protAssignees(p).indexOf(pid)>=0;
+      if(!on && btn.classList.contains('offdis')){ toast('오프타임과 겹쳐 배정할 수 없습니다.'); return; }
+      toggleProtAssignee(p, pid); (after||afterProtAssignChange)();
+    };
+  });
+}
+function protAssigneeNames(p){ return protAssignees(p).map(rosterById).filter(Boolean).map(function(m){return (m.name||'').trim();}).filter(Boolean); }
+/* 의전 표의 담당 칸 = 버튼 하나(현재 담당 표시 → 클릭 시 지정 모달).
+ * 인원 칩을 칸에 직접 깔면 명단 6명 × 의전 41행이라 표가 칩으로 뒤덮인다.
+ * 지정 UI 는 일정표 블록과 같은 모달 하나로 통일 — 두 벌을 만들면 규칙이 갈라진다. */
+function protAssignBtnHtml(p){
+  var names=protAssigneeNames(p), on=names.length>0;
+  return '<button type="button" class="btn xs '+(on?'':'ghost')+' pr-asgbtn" title="촬영 담당 지정">'+
+    (on?(icon('users',13)+' '+esc(names.join(', '))):'＋ 담당 지정')+'</button>';
+}
+
+/* 잼버리 일정표의 의전 블록 → 촬영 담당 모달. 블록이 읽기 전용이라 담당을 지정하려면
+ * 의전 탭까지 가야 했다(일정표에서 배정하다가 흐름이 끊긴다). '의전 탭에서 편집'은 남겨 둔다. */
+var praCur=null;
+function openProtAssign(pid){
+  var p=protById(pid); if(!p) return; praCur=p;
+  var sub=document.getElementById('pra-sub');
+  var dd=p.date?ymd(p.date):null;
+  if(sub) sub.textContent=(dd?('8/'+dd.getDate()+' ('+WDS[dd.getDay()]+') '):'')+(p.time||'')+(p.endTime?('–'+p.endTime):'')+' · '+protEventName(p)+(p.place?(' @ '+p.place):'');
+  renderProtAssignModal();
+  document.getElementById('pra-scrim').classList.add('show');
+}
+function renderProtAssignModal(){
+  var b=document.getElementById('pra-body'); if(!b||!praCur) return;
+  b.innerHTML='<div class="fld"><label>촬영 담당 <span class="fl-hint">— 의전 표·촬영 리스트와 같은 값입니다</span></label>'+
+    '<div class="evkinds" id="pra-chips">'+protAssigneeChips(praCur)+'</div></div>'+
+    '<p class="hintmini" style="margin-top:12px">'+esc(prWho(praCur)||'의전 대상')+(praCur.role?(' · '+esc(praCur.role)):'')+'</p>';
+  wireProtAssignChips(document.getElementById('pra-chips'), praCur, function(){ renderProtAssignModal(); afterProtAssignChange(); });
+}
+function closeProtAssign(){ var s=document.getElementById('pra-scrim'); if(s) s.classList.remove('show'); praCur=null; }
 function saveProtocol(){ debouncedPut('protoTimer', {protocol: state.protocol||[]}, '의전 일정 저장됨'); }
 function addProtocol(){ protocolList().push({id:mkid(),role:'',name:'',title:'',date:'',time:'',activity:'',place:'',memo:''}); renderProtocol(); saveProtocol(); }
 function refreshProtocolViews(){ saveProtocol(); renderCalendar(); if(typeof renderTimetable==='function') renderTimetable(); }
@@ -2620,7 +2772,8 @@ function renderProtocol(){
       };
       [prtH,prtM,prtEH,prtEM].forEach(function(inp){ if(inp){ inp.addEventListener('change',updT); inp.addEventListener('blur',updT); } });
     }
-    tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); saveProtocol(); renderProtocol(); refreshProtocolViews(); };
+    var asgb=tr.querySelector('.pr-asgbtn'); if(asgb) asgb.onclick=function(){ openProtAssign(m.id); };
+    tr.querySelector('.rm').onclick=function(){ state.protocol=protocolList().filter(function(x){return x!==m;}); saveProtocol(); renderProtocol(); refreshProtocolViews(); if(typeof renderPhotoList==='function') renderPhotoList(); };
   }
   function eventCells(m){
     var prh=t2h(m.time), prHH=prh!=null?Math.floor(prh):'', prMM=prh!=null?Math.round((prh-Math.floor(prh))*60):'';
@@ -2633,6 +2786,7 @@ function renderProtocol(){
       '</span></td>'+
       '<td class="mk" contenteditable data-f="activity">'+esc(m.activity||'')+'</td>'+
       '<td><select class="prin prplace" data-f="place">'+protPlaceOptions(m.place||'')+'</select></td>'+
+      '<td class="pr-asgcell">'+protAssignBtnHtml(m)+'</td>'+
       '<td class="mk" contenteditable data-f="memo">'+esc(m.memo||'')+'</td>'+
       '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
   }
@@ -3560,7 +3714,7 @@ function setView(v){
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 }
@@ -3687,6 +3841,10 @@ function init(){
   tipGrid.addEventListener('change',function(e){ var a=e.target.closest('[data-tip-assign]'); if(a){ assignTip(a.getAttribute('data-tip-assign'), a.value); } });
   }
   // 일정 잡기 모달
+  // 의전 촬영 담당 모달
+  ['pra-close','pra-done'].forEach(function(id){ var el=document.getElementById(id); if(el) el.onclick=closeProtAssign; });
+  var prg=document.getElementById('pra-goto'); if(prg) prg.onclick=function(){ closeProtAssign(); setView('protocol'); };
+  var pras=document.getElementById('pra-scrim'); if(pras) pras.addEventListener('click',function(e){ if(e.target===pras) closeProtAssign(); });
   var tsx=document.getElementById('tsch-close'); if(tsx) tsx.onclick=closeTipSchedule;
   var tsc=document.getElementById('tsch-cancel'); if(tsc) tsc.onclick=closeTipSchedule;
   var tss=document.getElementById('tsch-save'); if(tss) tss.onclick=commitTipSchedule;
@@ -3839,6 +3997,7 @@ function init(){
     if(document.getElementById('members-scrim').classList.contains('show')){ closeMembers(); return; }
     if(document.getElementById('ev-scrim').classList.contains('show')){ closeEvent(); return; }
     if(document.getElementById('tt-scrim').classList.contains('show')){ closeTT(); return; }
+    if(document.getElementById('pra-scrim').classList.contains('show')){ closeProtAssign(); return; }
     if(document.getElementById('md-guard').classList.contains('show')){ hideGuard(); return; }
     if(curView) tryClose();
   });
