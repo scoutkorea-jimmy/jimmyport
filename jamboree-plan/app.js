@@ -1783,6 +1783,13 @@ function renderTTModal(){
       ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><input type="color" class="ccolor" data-c="'+esc(c[0])+'" value="'+esc(c[1])+'" title="색상 변경">'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
       '<input type="text" class="cinput" id="tt-catinput" placeholder="+ 종류 입력">'+
     '</div></div>'+
+    '<div class="evfld"><label>트랙 — 이 일정이 표시될 열 (컵 참관단으로 되돌리기)</label><div class="evkinds" id="tt-track">'+
+      [['','잼버리 일정'],['cub1','컵 참관단 1기'],['cub2','컵 참관단 2기']].map(function(t){
+        var cur=ttDraft.track==='cub'?('cub'+((ttDraft.batch===2||ttDraft.batch==='2')?2:1)):'';
+        var on=cur===t[0];
+        return '<button type="button" class="evkind trk'+(on?' on':'')+'" data-trk="'+t[0]+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(t[1])+'</button>';
+      }).join('')+
+    '</div></div>'+
     '<div class="evfld"><label>날짜</label><select id="tt-f-day" class="evinput">'+dayOpts+'</select></div>'+
     '<div class="evfld"><label>시간 (시작 ~ 종료) · 24시간제 · 숫자 입력 (시 : 분)</label><div class="evrow evtimerow">'+ttTimeFields('tt-s',ttDraft.start)+'<span class="evtilde">~</span>'+ttTimeFields('tt-e',ttDraft.end)+'</div></div>'+
     '<div class="evfld"><label>반복 — 같은 일정을 추가할 다른 날짜 선택(선택)</label><div class="evkinds" id="tt-rep">'+
@@ -1845,6 +1852,10 @@ function renderTTModal(){
   ['tt-sh','tt-sm'].forEach(function(idd){ var el=b.querySelector('#'+idd); if(el){ el.addEventListener('input',syncStart); el.addEventListener('change',function(){ syncStart(); if(t2h(ttDraft.end)<=t2h(ttDraft.start)) ttDraft.end=h2hhmm(t2h(ttDraft.start)+TT_SNAP); renderTTModal(); }); } });
   ['tt-eh','tt-em'].forEach(function(idd){ var el=b.querySelector('#'+idd); if(el) el.addEventListener('input',syncEnd); });
   b.querySelectorAll('#tt-rep .rep').forEach(function(bt){ if(bt.disabled) return; bt.onclick=function(){ if(!ttDraft._repeat) ttDraft._repeat=[]; var dd=bt.dataset.d; var i=ttDraft._repeat.indexOf(dd); if(i>=0) ttDraft._repeat.splice(i,1); else ttDraft._repeat.push(dd); renderTTModal(); }; });
+  var trkSet=b.querySelector('#tt-track'); if(trkSet) trkSet.addEventListener('click',function(e){ var btn=e.target.closest('[data-trk]'); if(!btn) return; var v=btn.getAttribute('data-trk');
+    if(v==='cub1'){ ttDraft.track='cub'; ttDraft.batch=1; } else if(v==='cub2'){ ttDraft.track='cub'; ttDraft.batch=2; } else { ttDraft.track=''; ttDraft.batch=0; }
+    trkSet.querySelectorAll('.trk').forEach(function(x){ x.classList.remove('on'); x.removeAttribute('style'); });
+    btn.classList.add('on'); btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); });
   b.querySelector('#tt-f-title').oninput=function(){ ttDraft.title=this.value; };
   b.querySelector('#tt-f-nocover').onchange=function(){ ttDraft.noCover=this.checked; };
   b.querySelector('#tt-f-place').oninput=function(){ ttDraft.place=this.value; };
