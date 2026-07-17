@@ -445,11 +445,65 @@ function applyServer(j){
   if(state._protoFromServer) state.protocol=j.protocol;
   if(j&&j.mappos&&typeof j.mappos==='object'&&!Array.isArray(j.mappos)) state.mappos=j.mappos;
   if(j&&Array.isArray(j.shoots)) state.shoots=j.shoots;
+  if(j&&j.versions&&typeof j.versions==='object') boardVer=j.versions;   // 동시편집 병합용 버전
+}
+/* ===== 동시편집 유실 방지(클라) — 저장 시 불러온 버전(baseVer)을 함께 보내고,
+   서버가 병합했다고 응답하면 병합본으로 로컬을 갱신해 화면을 다시 그린다. ===== */
+var boardVer={};
+var DOMAIN_KEYS=['marketing','meals','shootlist','types','events','timetable','roster','ttcats','contacts','offtimes','divisions','protocol','mappos','shoots'];
+function pickBaseVer(body){ var bv={}; DOMAIN_KEYS.forEach(function(k){ if(body[k]!==undefined && boardVer[k]) bv[k]=boardVer[k]; }); return bv; }
+function rerenderCurrent(){
+  var v=curViewMode;
+  if(v==='timetable') renderTimetable();
+  else if(v==='staff') renderStaff();
+  else if(v==='contacts') renderContacts();
+  else if(v==='orginfo') renderDivisions();
+  else if(v==='protocol') renderProtocol();
+  else if(v==='sitemap') renderSiteMap();
+  else if(v==='meals') renderMeals();
+  else if(v==='shootlist') renderPhotoList();
+  else if(v==='calendar') renderCalendar();
+  else if(v==='list') renderBoard();
+  else if(v==='dashboard') renderDashboard();
+  if(v==='calendar'||v==='list') renderMarketing();
+}
+// 서버가 다른 사람의 편집과 병합한 도메인을 로컬에 반영(모든 도메인 state 필드명 == 키)
+function applyMergedDomain(key, value, teams){
+  if(!key || value===undefined || value===null) return;
+  state[key]=value;
+  if(key==='roster' && teams) state.teams=Object.assign(defaultTeams(), teams);
+  rerenderCurrent();
+}
+// PUT 응답 공통 처리 — 버전 갱신 + 병합 시 로컬 반영·안내
+function onPutResponse(j){
+  if(!j) return false;
+  if(j.key && j.updatedAt) boardVer[j.key]=j.updatedAt;
+  if(j.merged){ applyMergedDomain(j.key, j.value, j.teams); toast('다른 사람이 함께 편집 중이라 변경을 병합했습니다'); return true; }
+  return false;
+}
+/* 모바일 반응형 표 — 각 셀에 열 제목(data-label)을 붙여, 좁은 화면에서 가로 스크롤 대신
+   행을 라벨+값 카드로 세로 스택한다(CSS @media 가 처리). tbody 변경을 관찰해 렌더 경로마다 자동 적용. */
+function labelizeTable(el){
+  if(!el) return;
+  var heads=[].map.call(el.querySelectorAll('thead th'), function(th){ return (th.textContent||'').trim(); });
+  [].forEach.call(el.querySelectorAll('tbody tr'), function(tr){
+    [].forEach.call(tr.children, function(td,i){ var h=heads[i]||''; if(h) td.setAttribute('data-label', h); else td.removeAttribute('data-label'); });
+  });
+}
+function watchDataTables(){
+  // prtbl(의전)은 인원별 rowspan 그루핑이라 셀 수가 행마다 달라 라벨 인덱스가 어긋난다 → 스택 제외(가로 스크롤 유지).
+  ['contbl','divtbl','rostertbl','mealtbl','mktbl'].forEach(function(id){
+    var t=document.getElementById(id); if(!t) return;
+    var tb=t.querySelector('tbody'); if(!tb) return;
+    labelizeTable(t);
+    try{ new MutationObserver(function(){ labelizeTable(t); }).observe(tb, {childList:true}); }catch(e){}
+  });
 }
 function saveTypes(){
   saveLocal();
   fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-    body:JSON.stringify({types:typeList(), author:authorVal()})}).catch(function(){});
+    body:JSON.stringify({types:typeList(), author:authorVal(), baseVer:{types:boardVer.types}})})
+    .then(function(r){ return r.ok?r.json():null; }).then(function(j){ if(j) onPutResponse(j); }).catch(function(){});
 }
 var evTimer=null;
 function saveEvents(){
@@ -459,8 +513,9 @@ function saveEvents(){
   evTimer=setTimeout(function(){
     setSt('일정 저장 중…');
     fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-      body:JSON.stringify({events:state.events||[], author:authorVal()})})
-      .then(function(r){return r.json();}).then(function(){ setSt('일정 저장됨',true); }).catch(function(){ setSt('일정 저장 실패'); });
+      body:JSON.stringify({events:state.events||[], author:authorVal(), baseVer:{events:boardVer.events}})})
+      .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+      .then(function(j){ if(!j){ setSt('일정 저장 실패'); return; } var m=onPutResponse(j); setSt(m?'변경 병합됨':'일정 저장됨',true); }).catch(function(){ setSt('일정 저장 실패'); });
   }, 500);
 }
 var ttTimer=null, rosterTimer=null;
@@ -471,8 +526,10 @@ function debouncedPut(timerName, body, okMsg){
   window[timerName]=setTimeout(function(){
     setSt('저장 중…');
     fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-      body:JSON.stringify(Object.assign({author:authorVal()}, body))})
-      .then(function(r){return r.json();}).then(function(){ setSt(okMsg||'저장됨',true); }).catch(function(){ setSt('저장 실패'); });
+      body:JSON.stringify(Object.assign({author:authorVal(), baseVer:pickBaseVer(body)}, body))})
+      .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+      .then(function(j){ if(!j){ setSt('저장 실패'); return; } var merged=onPutResponse(j); setSt(merged?'변경 병합됨':(okMsg||'저장됨'),true); })
+      .catch(function(){ setSt('저장 실패'); });
   }, 500);
 }
 function saveTimetable(){ debouncedPut('ttTimer', {timetable: state.timetable||[]}, '일정표 저장됨'); }
@@ -944,6 +1001,10 @@ function renderBoard(){
     board.appendChild(col);
   });
   if(!board.children.length){ board.innerHTML='<div class="boardempty">모든 열이 숨겨져 있습니다. 위 <b>열 표시</b>에서 다시 켜세요.</div>'; }
+  // 열 수에 맞춰 명시적 그리드 → 넓은 화면(PC·태블릿)에선 1fr 이 늘어 빈 공간 없이 채우고, 좁으면 최소폭 유지 후 가로 스크롤.
+  // (grid-auto-flow:column + overflow 조합은 1fr 이 안 늘어나 우측이 비었다.)
+  var ncol=board.querySelectorAll('.col').length;
+  board.style.gridTemplateColumns = ncol ? ('repeat('+ncol+',minmax(var(--board-colw,300px),1fr))') : '';
   // 모바일 단계 세그먼트
   var mseg=document.getElementById('board-mseg');
   if(mseg){ var segs=(staff?[['inbox','인박스']]:[]).concat(PIPE.map(function(p){return [p[0],p[1]];}));
@@ -4204,6 +4265,7 @@ function init(){
   var mb=document.getElementById('members-btn'); if(mb) mb.onclick=openMembers;
   var cpb=document.getElementById('changepw-btn'); if(cpb) cpb.onclick=changeMyPassword;
   startIdleWatch();
+  watchDataTables();   // 모바일 반응형 표 — 렌더마다 열 라벨 자동 부여
   // news 목록 위임 (썸네일 라이트박스 · 수정 · 삭제)
   document.getElementById('news-list').addEventListener('click',function(e){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }

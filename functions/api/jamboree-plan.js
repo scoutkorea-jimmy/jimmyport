@@ -265,6 +265,43 @@ function cleanEdit(e) {
   };
 }
 
+/* ===== 동시편집 유실 방지 (per-item 병합 + 버전 가드) =====
+ * 문제: 14개 공유 도메인(timetable·roster·…)이 배열/객체 통째로 저장돼, 두 사람이 같은 도메인을
+ *   동시에 편집하면 나중 PUT 이 앞 PUT 을 조용히 덮어썼다.
+ * 해결: 각 키의 updatedAt 을 버전으로 삼아, 클라가 불러온 버전(baseVer)과 서버 현재 버전이
+ *   - 같으면(=그 사이 아무도 안 바꿈): 통짜 교체(현행과 동일 — 삭제도 정상 동작, 테스트 불변).
+ *   - 다르면(=누가 방금 저장함): id 기준 병합(들어온 값 우선 + 서버에만 있는 항목 보존).
+ *     → 서로 다른 항목을 동시 편집하면 둘 다 살아남는다. 같은 항목이면 나중 값이 이긴다.
+ *     ⚠️ 병합 시 상대가 방금 '삭제'한 항목은 되살아날 수 있다(충돌 창 안에서만·드묾·재삭제 가능).
+ */
+function mergeArrById(stored, incoming) {
+  if (!Array.isArray(stored) || !stored.length) return incoming;
+  if (!Array.isArray(incoming)) return incoming;
+  if (!incoming.every((x) => x && x.id) || !stored.every((x) => x && x.id)) return incoming; // id 없으면 병합 불가 → 통짜
+  const inIds = new Set(incoming.map((x) => x.id));
+  const tail = stored.filter((x) => !inIds.has(x.id)); // 서버에만 있는 항목(다른 사람이 방금 추가)
+  return incoming.concat(tail);
+}
+function mergeObj(stored, incoming) {
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return incoming;
+  return Object.assign({}, stored, incoming); // 들어온 키가 이기고, 서버에만 있는 키는 보존
+}
+// 도메인 저장 — 버전 가드 후 통짜 교체 또는 병합. 반환 {value, merged}. extra=추가 필드(roster.teams 등).
+async function saveDomain(env, KEY, field, cleaned, baseVer, kind, now, cap, extra) {
+  let stored = null, storedVer = null;
+  const raw = await env.SCOUT_KV.get(KEY);
+  if (raw) { try { const p = JSON.parse(raw); stored = p[field]; storedVer = p.updatedAt || null; } catch {} }
+  let value = cleaned, merged = false;
+  if (baseVer && storedVer && baseVer !== storedVer) {   // 충돌 — 내가 불러온 뒤 서버가 바뀜
+    value = kind === "obj" ? mergeObj(stored, cleaned) : mergeArrById(stored, cleaned);
+    merged = true;
+    if (kind !== "obj" && cap && Array.isArray(value) && value.length > cap) value = value.slice(0, cap);
+  }
+  const wrap = Object.assign({ [field]: value, updatedAt: now }, extra || {});
+  await env.SCOUT_KV.put(KEY, JSON.stringify(wrap));
+  return { value, merged };
+}
+
 export async function onRequestGet(ctx) {
   const { env } = ctx;
   // 내부 운영 보드 — 연락처(전화·이메일)·인원 실명이 담기므로 로그인(회원 세션) 필수.
@@ -286,63 +323,35 @@ export async function onRequestGet(ctx) {
     try { slots[name.slice(PREFIX.length)] = JSON.parse(raw); } catch {}
   }));
 
-  let marketing = null;
-  const mraw = await env.SCOUT_KV.get(MKT);
-  if (mraw) { try { marketing = JSON.parse(mraw).marketing; } catch {} }
+  // 동시편집 병합용 — 각 도메인의 updatedAt(버전)을 클라에 함께 내려준다.
+  const versions = {};
+  const rd = async (KEY, field, vkey) => {
+    const raw = await env.SCOUT_KV.get(KEY);
+    if (!raw) return null;
+    try { const p = JSON.parse(raw); versions[vkey] = p.updatedAt || null; return p[field] === undefined ? null : p[field]; }
+    catch { return null; }
+  };
 
-  let types = null;
-  const traw = await env.SCOUT_KV.get(TYPES);
-  if (traw) { try { types = JSON.parse(traw).types; } catch {} }
-
-  let events = null;
-  const eraw = await env.SCOUT_KV.get(EVENTS);
-  if (eraw) { try { events = JSON.parse(eraw).events; } catch {} }
-
-  let timetable = null;
-  const ttraw = await env.SCOUT_KV.get(TIMETABLE);
-  if (ttraw) { try { timetable = JSON.parse(ttraw).timetable; } catch {} }
+  const marketing = await rd(MKT, "marketing", "marketing");
+  const types = await rd(TYPES, "types", "types");
+  const events = await rd(EVENTS, "events", "events");
+  const timetable = await rd(TIMETABLE, "timetable", "timetable");
 
   let roster = null, teams = null;
   const rraw = await env.SCOUT_KV.get(ROSTER);
-  if (rraw) { try { const rj = JSON.parse(rraw); roster = rj.roster; teams = rj.teams || null; } catch {} }
+  if (rraw) { try { const rj = JSON.parse(rraw); roster = rj.roster; teams = rj.teams || null; versions.roster = rj.updatedAt || null; } catch {} }
 
-  let ttcats = null;
-  const tcraw = await env.SCOUT_KV.get(TTCATS);
-  if (tcraw) { try { ttcats = JSON.parse(tcraw).ttcats; } catch {} }
+  const ttcats = await rd(TTCATS, "ttcats", "ttcats");
+  const offtimes = await rd(OFFTIMES, "offtimes", "offtimes");
+  const contacts = await rd(CONTACTS, "contacts", "contacts");
+  const divisions = await rd(DIVISIONS, "divisions", "divisions");
+  const protocol = await rd(PROTOCOL, "protocol", "protocol");
+  const mappos = await rd(MAPPOS, "mappos", "mappos");
+  const shoots = await rd(SHOOTS, "shoots", "shoots");
+  const meals = await rd(MEALS, "meals", "meals");
+  const shootlist = await rd(SHOOTLIST, "shootlist", "shootlist");
 
-  let offtimes = null;
-  const ofraw = await env.SCOUT_KV.get(OFFTIMES);
-  if (ofraw) { try { offtimes = JSON.parse(ofraw).offtimes; } catch {} }
-
-  let contacts = null;
-  const craw = await env.SCOUT_KV.get(CONTACTS);
-  if (craw) { try { contacts = JSON.parse(craw).contacts; } catch {} }
-
-  let divisions = null;
-  const draw = await env.SCOUT_KV.get(DIVISIONS);
-  if (draw) { try { divisions = JSON.parse(draw).divisions; } catch {} }
-
-  let protocol = null;
-  const proraw = await env.SCOUT_KV.get(PROTOCOL);
-  if (proraw) { try { protocol = JSON.parse(proraw).protocol; } catch {} }
-
-  let mappos = null;
-  const mpraw = await env.SCOUT_KV.get(MAPPOS);
-  if (mpraw) { try { mappos = JSON.parse(mpraw).mappos; } catch {} }
-
-  let shoots = null;
-  const shraw = await env.SCOUT_KV.get(SHOOTS);
-  if (shraw) { try { shoots = JSON.parse(shraw).shoots; } catch {} }
-
-  let meals = null;
-  const mlraw = await env.SCOUT_KV.get(MEALS);
-  if (mlraw) { try { meals = JSON.parse(mlraw).meals; } catch {} }
-
-  let shootlist = null;
-  const slraw = await env.SCOUT_KV.get(SHOOTLIST);
-  if (slraw) { try { shootlist = JSON.parse(slraw).shootlist; } catch {} }
-
-  const resp = jsonCacheable({ slots, marketing, meals, shootlist, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots }, 30);  // short TTL; writes purge it
+  const resp = jsonCacheable({ slots, marketing, meals, shootlist, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots, versions }, 30);  // short TTL; writes purge it
   cachePut(ctx, resp);
   return resp;
 }
@@ -364,43 +373,45 @@ async function putImpl(ctx) {
   const ip = maskIp(clientIp(request));
 
   // 마케팅 저장
+  const BV = (body.baseVer && typeof body.baseVer === "object") ? body.baseVer : {};
+
   if (Array.isArray(body.marketing)) {
-    await env.SCOUT_KV.put(MKT, JSON.stringify({ marketing: body.marketing.slice(0, 300), updatedAt: now }));
+    const r = await saveDomain(env, MKT, "marketing", body.marketing.slice(0, 300), BV.marketing, "arr", now, 300);
     await appendLog(env, { ts: now, action: "jp.marketing", count: 0, ip: clientIp(request) });
-    return json({ ok: true, updatedAt: now });
+    return json({ ok: true, updatedAt: now, key: "marketing", merged: r.merged, value: r.value });
   }
 
-  // 식사 메뉴 저장 (대원/운영요원 × 날짜 × 조·중·석식)
+  // 식사 메뉴 저장 (대원/운영요원 × 날짜 × 조·중·석식) — 객체
   if (body.meals && typeof body.meals === "object" && !Array.isArray(body.meals)) {
-    await env.SCOUT_KV.put(MEALS, JSON.stringify({ meals: cleanMeals(body.meals), updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, MEALS, "meals", cleanMeals(body.meals), BV.meals, "obj", now);
+    return json({ ok: true, updatedAt: now, key: "meals", merged: r.merged, value: r.value });
   }
 
   // 촬영 필요 리스트 저장
   if (Array.isArray(body.shootlist)) {
-    await env.SCOUT_KV.put(SHOOTLIST, JSON.stringify({ shootlist: body.shootlist.slice(0, 500).map(cleanShoot2), updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, SHOOTLIST, "shootlist", body.shootlist.slice(0, 500).map(cleanShoot2), BV.shootlist, "arr", now, 500);
+    return json({ ok: true, updatedAt: now, key: "shootlist", merged: r.merged, value: r.value });
   }
 
-  // 콘텐츠 종류 목록 저장
+  // 콘텐츠 종류 목록 저장 (문자열 배열 — id 없어 병합 불가 → 통짜)
   if (Array.isArray(body.types)) {
     const types = body.types.slice(0, 60).map((t) => (t || "").toString().slice(0, 40)).filter(Boolean);
-    await env.SCOUT_KV.put(TYPES, JSON.stringify({ types, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, TYPES, "types", types, BV.types, "arr", now, 60);
+    return json({ ok: true, updatedAt: now, key: "types", merged: r.merged, value: r.value });
   }
 
   // 운영 일정(events) 저장
   if (Array.isArray(body.events)) {
     const events = body.events.slice(0, 300).map(cleanEvent).filter((e) => e.start);
-    await env.SCOUT_KV.put(EVENTS, JSON.stringify({ events, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, EVENTS, "events", events, BV.events, "arr", now, 300);
+    return json({ ok: true, updatedAt: now, key: "events", merged: r.merged, value: r.value });
   }
 
   // 일자별 시간 일정표(timetable) 저장
   if (Array.isArray(body.timetable)) {
     const timetable = body.timetable.slice(0, 400).map(cleanTT).filter((e) => e.day);
-    await env.SCOUT_KV.put(TIMETABLE, JSON.stringify({ timetable, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, TIMETABLE, "timetable", timetable, BV.timetable, "arr", now, 400);
+    return json({ ok: true, updatedAt: now, key: "timetable", merged: r.merged, value: r.value });
   }
 
   // 홍보부 인원 R&R(roster) 저장 (+ 편집 가능한 팀명 teams)
@@ -409,57 +420,54 @@ async function putImpl(ctx) {
     let teams = null;
     if (body.teams && typeof body.teams === "object") teams = cleanTeams(body.teams);
     else { try { teams = JSON.parse(await env.SCOUT_KV.get(ROSTER) || "{}").teams || null; } catch {} }
-    await env.SCOUT_KV.put(ROSTER, JSON.stringify({ roster, teams, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, ROSTER, "roster", roster, BV.roster, "arr", now, 100, { teams });
+    return json({ ok: true, updatedAt: now, key: "roster", merged: r.merged, value: r.value, teams });
   }
 
-  // 일정 종류(ttcats) 저장
+  // 일정 종류(ttcats) 저장 (id 없어 통짜)
   if (Array.isArray(body.ttcats)) {
-    const ttcats = cleanTtCats(body.ttcats);
-    await env.SCOUT_KV.put(TTCATS, JSON.stringify({ ttcats, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, TTCATS, "ttcats", cleanTtCats(body.ttcats), BV.ttcats, "arr", now, 60);
+    return json({ ok: true, updatedAt: now, key: "ttcats", merged: r.merged, value: r.value });
   }
 
   // 취재 연락처(contacts) 저장
   if (Array.isArray(body.contacts)) {
     const contacts = body.contacts.slice(0, 300).map(cleanContact);
-    await env.SCOUT_KV.put(CONTACTS, JSON.stringify({ contacts, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, CONTACTS, "contacts", contacts, BV.contacts, "arr", now, 300);
+    return json({ ok: true, updatedAt: now, key: "contacts", merged: r.merged, value: r.value });
   }
 
-  // 인원별 오프타임(offtimes) 저장 — 객체(배열 아님)
+  // 인원별 오프타임(offtimes) 저장 — 객체
   if (body.offtimes && typeof body.offtimes === "object" && !Array.isArray(body.offtimes)) {
-    const offtimes = cleanOff(body.offtimes);
-    await env.SCOUT_KV.put(OFFTIMES, JSON.stringify({ offtimes, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, OFFTIMES, "offtimes", cleanOff(body.offtimes), BV.offtimes, "obj", now);
+    return json({ ok: true, updatedAt: now, key: "offtimes", merged: r.merged, value: r.value });
   }
 
   // 분단 명단(divisions) 저장
   if (Array.isArray(body.divisions)) {
     const divisions = body.divisions.slice(0, 60).map(cleanDivision);
-    await env.SCOUT_KV.put(DIVISIONS, JSON.stringify({ divisions, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, DIVISIONS, "divisions", divisions, BV.divisions, "arr", now, 60);
+    return json({ ok: true, updatedAt: now, key: "divisions", merged: r.merged, value: r.value });
   }
 
   // 의전 일정(protocol) 저장
   if (Array.isArray(body.protocol)) {
     const protocol = body.protocol.slice(0, 200).map(cleanProtocol);
-    await env.SCOUT_KV.put(PROTOCOL, JSON.stringify({ protocol, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, PROTOCOL, "protocol", protocol, BV.protocol, "arr", now, 200);
+    return json({ ok: true, updatedAt: now, key: "protocol", merged: r.merged, value: r.value });
   }
 
-  // 현장 위치 지도 — 수동 배치(mappos) 저장 — 객체(배열 아님)
+  // 현장 위치 지도 — 수동 배치(mappos) 저장 — 객체
   if (body.mappos && typeof body.mappos === "object" && !Array.isArray(body.mappos)) {
-    const mappos = cleanMapPos(body.mappos);
-    await env.SCOUT_KV.put(MAPPOS, JSON.stringify({ mappos, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, MAPPOS, "mappos", cleanMapPos(body.mappos), BV.mappos, "obj", now);
+    return json({ ok: true, updatedAt: now, key: "mappos", merged: r.merged, value: r.value });
   }
 
   // 현장 지도 — 촬영 요청(shoots) 저장
   if (Array.isArray(body.shoots)) {
     const shoots = body.shoots.slice(0, 200).map(cleanShoot);
-    await env.SCOUT_KV.put(SHOOTS, JSON.stringify({ shoots, updatedAt: now }));
-    return json({ ok: true, updatedAt: now });
+    const r = await saveDomain(env, SHOOTS, "shoots", shoots, BV.shoots, "arr", now, 200);
+    return json({ ok: true, updatedAt: now, key: "shoots", merged: r.merged, value: r.value });
   }
 
   // 카드(슬롯) 저장

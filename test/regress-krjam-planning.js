@@ -79,7 +79,8 @@ const SEED = () => {
     if (u.startsWith('/api/image') || u.startsWith('/api/file')) return J({ ok: true, url: '/api/file?id=x', name: 'f', ct: 'application/pdf' });
     if (u.startsWith('/api/jamboree-plan')) {
       if (o && o.method === 'PUT') { window.__put.push(JSON.parse(o.body)); return J({ ok: true }); }
-      return J({ ok: true, types: [], events: [], marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], ttcats: [], offtimes: {},
+      return J({ ok: true, versions: { timetable: 'V1', roster: 'V1', contacts: 'V1', divisions: 'V1', protocol: 'V1', ttcats: 'V1', events: 'V1', types: 'V1', marketing: 'V1', meals: 'V1', shootlist: 'V1', mappos: 'V1', offtimes: 'V1', shoots: 'V1' },
+        types: [], events: [], marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], ttcats: [], offtimes: {},
         roster: [{ id: 'r1', name: '김기자', role: '취재', team: 't1' }, { id: 'r2', name: '이사진', role: '사진', team: 't2' }],
         timetable: [
           { id: 't1', day: '2026-08-05', start: '20:00', end: '21:30', title: '개영식', place: '메인무대', zone: 'stage', cat: '개·폐영식', assignees: ['r1'], contacts: [], rundown: [{ time: '20:00', title: '개회 선언', note: '' }], noCover: false },
@@ -354,6 +355,10 @@ const SEED = () => {
     return { before, after, off: document.querySelector('#board-cols [data-colv="draft"]').classList.contains('off') }; });
   chk('열 숨기기 → 컬럼 감소 + 칩 off', hid.after === hid.before - 1 && hid.off, hid.before + '→' + hid.after);
   await page.evaluate(() => { document.querySelector('#board-cols [data-colv="draft"]').click(); const s = document.getElementById('board-colw'); s.value = 300; s.dispatchEvent(new Event('input', { bubbles: true })); });   // 복원
+  // 보드가 넓은 화면을 빈 공간 없이 채운다 — 열 수만큼 명시 그리드(repeat(N,minmax..1fr))로 1fr 이 늘어난다
+  const bfill = await page.evaluate(() => { const bd = document.getElementById('board'); const n = bd.querySelectorAll('.col').length;
+    return { n, tracks: (getComputedStyle(bd).gridTemplateColumns || '').split(' ').filter(Boolean).length, tail: Math.round(bd.getBoundingClientRect().right - bd.querySelectorAll('.col')[n - 1].getBoundingClientRect().right) }; });
+  chk('보드 = 열 수만큼 그리드 트랙(빈 공간 없이 채움)', bfill.tracks === bfill.n && bfill.tail <= 24, JSON.stringify(bfill));
 
   // ===== 콘텐츠 슬롯 모달 — 각 영역이 또렷한 박스로 (v0.9.220) =====
   const slotBox = await page.evaluate(() => {
@@ -413,6 +418,26 @@ const SEED = () => {
     pressEdit.body = '<p>본문</p>'; document.getElementById('press-save').click(); await new Promise((r) => setTimeout(r, 200));
     return { has, save: window.__pressSave }; });
   chk('작성 모달(제목·배포일·매체·본문·상태·첨부) + 저장(released·매체)', PRn.has.title && PRn.has.date && PRn.has.outlets && PRn.has.body && PRn.has.status && PRn.has.atts && PRn.save && PRn.save.title === '새 보도자료' && PRn.save.status === 'released' && PRn.save.outlets === '강원일보', JSON.stringify({ has: PRn.has, s: PRn.save && PRn.save.status }));
+
+  // ===== 동시편집 유실 방지 — 버전 가드 + 서버 병합 반영 (v0.9.221) =====
+  console.log('\n[동시편집 병합]');
+  const bv0 = await page.evaluate(() => (window.boardVer && window.boardVer.timetable) || null);
+  chk('불러온 버전(boardVer) 저장', bv0 === 'V1', 'timetable=' + bv0);
+  const baseSent = await page.evaluate(async () => { window.__put.length = 0; saveTimetable(); await new Promise((r) => setTimeout(r, 700));
+    const p = window.__put[window.__put.length - 1]; return p && p.baseVer && p.baseVer.timetable; });
+  chk('저장 시 baseVer(불러온 버전) 동봉', baseSent === 'V1', 'baseVer.timetable=' + baseSent);
+  const mrg = await page.evaluate(async () => {
+    const rf = window.fetch;
+    window.fetch = (u, o) => { u = String(u && u.url ? u.url : u);
+      if (u.startsWith('/api/jamboree-plan') && o && o.method === 'PUT') {
+        const merged = state.timetable.slice().concat([{ id: 'tX', day: '2026-08-05', start: '15:00', end: '16:00', title: '남이_추가한_일정', cat: '프로그램', assignees: [], contacts: [], rundown: [] }]);
+        return Promise.resolve(new Response(JSON.stringify({ ok: true, key: 'timetable', updatedAt: 'V2', merged: true, value: merged }), { headers: { 'content-type': 'application/json' } }));
+      }
+      return rf(u, o); };
+    saveTimetable(); await new Promise((r) => setTimeout(r, 700)); window.fetch = rf;
+    return { has: state.timetable.some((t) => t.id === 'tX'), ver: window.boardVer.timetable };
+  });
+  chk('충돌 시 서버 병합본 반영(남의 항목 보존) + 버전 갱신', mrg.has && mrg.ver === 'V2', JSON.stringify(mrg));
 
   // ===== 디자인 계측 =====
   // 디자인 변경은 눈으로만 확인하기 쉬워 조용히 무너진다. 규칙을 테스트로 고정한다.

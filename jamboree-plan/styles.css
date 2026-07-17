@@ -48,7 +48,9 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--ink);
   font-family:var(--font-sans);
   font-size:var(--fs-3);line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-.wrap{max-width:1180px;margin:0 auto;padding:0 28px 96px;min-width:0}
+/* 콘텐츠 폭 — 예전 1180px 캡이 넓은 화면에서 좌우 빈 공간을 만들었다(ERP는 표·보드가 폭을 쓸수록 좋다).
+   사이드바 옆 영역을 가득 채우되, 초광폭(4K 등)에서만 과도한 줄길이를 막는 넉넉한 상한을 둔다. */
+.wrap{max-width:2280px;margin:0 auto;padding:0 28px 96px;min-width:0}
 .mono{font-family:var(--font-mono)}
 
 /* line icons */
@@ -431,7 +433,7 @@ section{margin-top:34px}
 .shoot-chk:checked,#sh-f-done:checked{background:var(--accent);border-color:var(--accent)}
 .shoot-chk:checked::after,#sh-f-done:checked::after{content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 2.2px 2.2px 0;transform:rotate(45deg)}
 .shoot-chk:focus-visible,#sh-f-done:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(var(--board-colw,300px),1fr);gap:12px;align-items:start;overflow-x:auto;padding-bottom:6px}
+.board{display:grid;grid-auto-columns:minmax(var(--board-colw,300px),1fr);gap:12px;align-items:start;overflow-x:auto;padding-bottom:6px}
 .board-mseg{display:none}
 /* 보드 뷰 컨트롤(위쪽) — 열 너비 슬라이더 + 열 표시(숨기기) 토글 */
 .boardview{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:11px}
@@ -533,7 +535,9 @@ section{margin-top:34px}
 .fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:var(--accent);background:var(--field-bg-focus);box-shadow:0 0 0 3px var(--accent-soft)}
 .fld input::placeholder,.fld textarea::placeholder{color:var(--faint)}
 .fld textarea{min-height:56px;resize:vertical}
-.fld .row2{display:flex;gap:10px} .fld .row2>*{flex:1}
+.fld .row2{display:flex;gap:10px;align-items:center} .fld .row2>*{flex:1}
+/* 시:분 입력은 좁게 고정, 담당자 입력이 남는 폭을 채우게 — 시간칸이 반쪽을 차지해 빈 공간이 뜨는 불안정한 배치 방지 */
+.fld .row2 .evtimegrp{flex:0 0 auto}
 
 /* status segment (modal top) */
 .statusseg{display:flex;border:1px solid var(--line);border-radius:var(--pill);overflow:hidden;max-width:330px}
@@ -652,6 +656,31 @@ th{font-size:var(--fs-1);letter-spacing:.02em;color:var(--muted);font-weight:700
 td.mk[contenteditable]{outline:none;min-width:80px;border-radius:var(--r-1)}
 td.mk[contenteditable]:focus{background:var(--accent-soft)}
 td.mk:empty::before{content:"입력…";color:var(--faint)}
+/* ===== 모바일 반응형 표 — 좁은 화면에선 가로 스크롤 대신 행을 '라벨 + 값' 카드로 세로 스택 ===== */
+@media(max-width:640px){
+  /* 스택된 표는 가로 스크롤이 필요 없다 — 감싼 tblscroll 의 잔여 가로 스크롤(빈 공간)을 막는다 */
+  .tblscroll:has(.datatable){overflow-x:hidden}
+  /* min-width:0!important — 데스크톱용 고정폭(#contbl 880px 등, id 특이성)을 모바일에서 무력화 */
+  .datatable,.datatable tbody{display:block;border:none;background:none;width:100%;min-width:0!important;max-width:100%}
+  .datatable thead{display:none}
+  .datatable colgroup,.datatable col{display:none}
+  .datatable tbody tr{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);margin-bottom:10px;padding:5px 4px;box-shadow:var(--sh-1)}
+  .datatable tbody td{display:flex;gap:10px;align-items:baseline;border:none;padding:7px 11px;min-height:36px;min-width:0}
+  .datatable tbody td::before{content:attr(data-label);flex:0 0 78px;color:var(--muted);font-weight:700;font-size:var(--fs-1);white-space:nowrap;padding-top:2px}
+  .datatable tbody td:not([data-label])::before{display:none}
+  .datatable tbody td.mk{flex:1;min-width:0;word-break:break-word}
+  .datatable tbody td input,.datatable tbody td select,.datatable tbody td>div{flex:1;width:auto;min-width:0}
+  .datatable tbody td .rm{margin-left:auto;flex:0 0 auto}
+  .datatable tbody td.empty-note{display:block}
+  .datatable tbody td[colspan]{display:block}
+  /* 기사·보도자료 목차 — 좁은 화면에선 작성자·작성일 열 숨겨 번호·제목·상태에 집중(상세는 펼치면 보임) */
+  .newstbl{min-width:0!important}
+  .newstbl th.nr-author,.newstbl td.nr-author,.newstbl th.nr-date,.newstbl td.nr-date{display:none}
+  .newstbl th,.newstbl td{padding:8px 7px}
+  .newstbl th.nr-no,.newstbl td.nr-no{width:30px}
+  .newstbl .flagtog{padding:0 9px}
+  .newstbl .nr-titlebtn{gap:5px}
+}
 .note{font-size:var(--fs-1);color:var(--muted);margin-top:11px}
 .note code{background:var(--surface-3);padding:1px 6px;border-radius:var(--r-1);font-size:var(--fs-1)}
 .note a{color:var(--accent-ink);display:inline-flex;align-items:center;gap:3px}
