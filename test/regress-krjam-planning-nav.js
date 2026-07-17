@@ -13,8 +13,8 @@ const server = http.createServer((req, res) => {
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
   res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' }); res.end(fs.readFileSync(f));
 });
-const ALL = ['dashboard', 'calendar', 'list', 'news', 'tips', 'shootlist', 'library', 'timetable', 'sitemap', 'protocol', 'staff', 'contacts', 'orginfo'];
-const WS_OF = { dashboard: 'dash', calendar: 'content', list: 'content', news: 'content', tips: 'content', shootlist: 'content', timetable: 'field', sitemap: 'field', protocol: 'field', staff: 'team', contacts: 'team', orginfo: 'team', library: 'team' };
+const ALL = ['dashboard', 'calendar', 'list', 'news', 'tips', 'shootlist', 'library', 'timetable', 'sitemap', 'protocol', 'staff', 'contacts', 'orginfo', 'press'];
+const WS_OF = { dashboard: 'dash', calendar: 'content', list: 'content', news: 'content', tips: 'content', shootlist: 'content', timetable: 'field', sitemap: 'field', protocol: 'field', staff: 'team', contacts: 'team', orginfo: 'team', library: 'team', press: 'team' };
 const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d ? ' — ' + d : '')); };
 const SEED = function (role, type, tabs) {
   localStorage.setItem('jamboree-plan:session', JSON.stringify({ token: 'T', name: '박지민', username: 'jimmy', role: role, type: type, tabs: tabs, exp: Date.now() + 9e6 }));
@@ -69,14 +69,14 @@ async function goViaBot(p, v) {
       botnav: getComputedStyle(document.getElementById('botnav')).display,
       sw: document.documentElement.scrollWidth, iw: window.innerWidth };
   });
-  chk('PC = 좌측 사이드바 · 4그룹 14항목 전부 펼침', pc.grp === 4 && pc.items === 14, pc.grp + '그룹 · ' + pc.items + '항목');
+  chk('PC = 좌측 사이드바 · 4그룹 15항목 전부 펼침', pc.grp === 4 && pc.items === 15, pc.grp + '그룹 · ' + pc.items + '항목');
   chk('사이드바가 본문 왼쪽 · 스크롤 고정', pc.sideLeft === 0 && pc.wrapLeft >= pc.sideW && pc.sticky === 'sticky',
     '사이드 ' + pc.sideW + 'px · 본문 시작 ' + pc.wrapLeft + ' · ' + pc.sticky);
   chk('하단 탭 PC 숨김', pc.botnav === 'none');
   chk('PC 가로 넘침 없음', pc.sw <= pc.iw, 'scrollW=' + pc.sw);
   let pcOk = 0;
   for (const v of ALL) { if ((await goVia(p, v)) === v) pcOk++; }
-  chk('PC 공간→세부로 13뷰 전부 이동', pcOk === 13, pcOk + '/13');
+  chk('PC 공간→세부로 14뷰 전부 이동', pcOk === ALL.length, pcOk + '/' + ALL.length);
   await goVia(p, 'dashboard');
   await p.screenshot({ path: '/tmp/nav-pc.png' });
   await p.close();
@@ -114,7 +114,7 @@ async function goViaBot(p, v) {
     document.querySelector('.side-item[data-v="library"]').click();
     return { open, L, items, cls, closed: !document.documentElement.classList.contains('nav-open'), view: curViewMode };
   });
-  chk('햄버거 → 드로어 열림 · 14항목', dr.open && dr.items === 14, dr.items + '항목 · left=' + dr.L + ' · cls=' + dr.cls);
+  chk('햄버거 → 드로어 열림 · 15항목', dr.open && dr.items === 15, dr.items + '항목 · left=' + dr.L + ' · cls=' + dr.cls);
   chk('항목 고르면 드로어가 닫히고 그 화면으로', dr.closed && dr.view === 'library', dr.view);
   chk('하단 탭 그려진 뒤에만 상단 숨김(botnav-ready)', mb.ready === true && mb.n > 0, 'ready=' + mb.ready);
   chk('하단 탭 고정 · 4공간', mb.pos === 'fixed' && mb.n === 4 && mb.atBottom, mb.n + '공간');
@@ -123,7 +123,7 @@ async function goViaBot(p, v) {
   chk('모바일 가로 넘침 없음', mb.sw <= mb.iw, 'scrollW=' + mb.sw);
   let mOk = 0;
   for (const v of ALL) { if ((await goViaBot(p, v)) === v) mOk++; }
-  chk('모바일 하단공간→세부로 13뷰 전부 이동', mOk === 13, mOk + '/13');
+  chk('모바일 하단공간→세부로 14뷰 전부 이동', mOk === ALL.length, mOk + '/' + ALL.length);
   await p.close();
 
   // ── 권한: 일반 회원 ──
@@ -136,8 +136,8 @@ async function goViaBot(p, v) {
   // 팀·자료 공간의 세부 확인(관리 탭 안 보이고 자료실만)
   // 사이드바는 모두 펼쳐져 있으므로 보이는 항목을 그대로 읽으면 된다
   const shown = await p.evaluate(() => [...document.querySelectorAll('.side-item[data-v]')].map((x) => x.getAttribute('data-v')));
-  chk('일반 회원: 관리 탭(staff/contacts/orginfo/protocol/sitemap/tips) 없음',
-    !['staff', 'contacts', 'orginfo', 'protocol', 'sitemap', 'tips'].some((x) => shown.includes(x)), '보이는 세부: ' + shown.join(','));
+  chk('일반 회원: 관리 탭(staff/contacts/orginfo/protocol/sitemap/tips/press) 없음',
+    !['staff', 'contacts', 'orginfo', 'protocol', 'sitemap', 'tips', 'press'].some((x) => shown.includes(x)), '보이는 세부: ' + shown.join(','));
   chk('일반 회원: 자료실·일정표는 보임(공개)', shown.includes('library') && shown.includes('timetable'), shown.join(','));
   const blocked = await p.evaluate(() => { setView('staff'); return curViewMode; });
   chk('직접 호출해도 관리 탭 차단', blocked === 'dashboard', blocked);

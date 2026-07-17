@@ -205,7 +205,7 @@ function renderLibrary(){
     if(q){ var hay=[(a.name||''),(a.tags||[]).join(' '),(a.authorName||'')].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
     return true;
   });
-  if(!items.length){ grid.innerHTML='<div class="news-empty">자료가 없습니다. 우측 상단 <b>텍스트 자료 작성</b> · <b>문서·파일 올리기</b> · <b>카드뉴스·사진 올리기</b>로 추가하세요.</div>'; return; }
+  if(!items.length){ grid.innerHTML='<div class="news-empty">자료가 없습니다. 우측 상단 <b>텍스트 자료 작성</b> 또는 <b>문서·파일 올리기</b>로 추가하세요.</div>'; return; }
   // 특정 구분 선택 시 그 구분만, '전체'면 구분별 섹션으로 묶어 표시
   if(libCat){
     var only=items.filter(function(a){ return assetCat(a)===libCat; });

@@ -1100,6 +1100,27 @@ html.pw-ok #auth-gate{display:none}
 .news-text mark{background:#FFE9A8;color:#1B211D}
 .news-text a{color:var(--ch-fb)}
 
+/* ===== 보도자료 게시판 (press) ===== */
+.pressbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.press-stat{font-size:var(--fs-1);color:var(--muted);font-weight:700}
+.press-stat b{color:var(--ink);font-size:var(--fs-2);margin-left:2px}
+.press-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.press-fields .fl{margin-top:14px}
+.press-atts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.press-att{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-1);font-weight:700;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:var(--pill);padding:6px 13px;text-decoration:none;transition:var(--ease)}
+.press-att:hover{border-color:var(--accent);color:var(--accent-ink)}
+.press-att i{font-style:normal;color:var(--muted);font-weight:600}
+.press-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:13px;font-size:var(--fs-1);color:var(--muted)}
+.press-meta .pd-o{color:var(--accent-ink);font-weight:700;display:inline-flex;align-items:center;gap:5px}
+.press-attsec{display:flex;flex-wrap:wrap;gap:8px}
+.press-attchip{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-1);font-weight:700;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--pill);padding:5px 6px 5px 12px}
+.press-attchip span{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.press-attx{width:24px;height:24px;border:none;background:transparent;color:var(--muted);border-radius:var(--pill);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.press-attx:hover{background:var(--surface-3);color:var(--danger-ink)}
+.press-attadd{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-1);font-weight:700;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--pill);padding:0 14px;min-height:var(--h-ctl);cursor:pointer;transition:var(--ease)}
+.press-attadd:hover{border-color:var(--accent);color:var(--accent-ink)}
+@media(max-width:640px){ .press-fields{grid-template-columns:1fr} }
+
 /* ===== members (admin) ===== */
 .mem-sec{margin-bottom:18px}
 .mem-sec h4{font-size:var(--fs-1);font-weight:700;color:var(--ink-2);margin:0 0 9px;text-transform:none}

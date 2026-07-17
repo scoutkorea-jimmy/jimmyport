@@ -33,6 +33,10 @@ const SEED = () => {
   window.__news0 = { id: 'n1', title: '개영식 현장 스케치', body: '<p>현장 <strong>스케치</strong> 기사입니다.</p>', images: ['/api/image?id=ni1'],
     author: 'tester', authorName: '테스터', published: false, cardnewsDone: false, comments: [],
     createdAt: '2026-07-14T02:00:00Z', updatedAt: '2026-07-14T02:00:00Z' };
+  window.__press0 = { id: 'p1', title: '제16회 한국잼버리 개영 보도자료', body: '<p>개영식 <strong>보도자료</strong> 본문.</p>',
+    date: '2026-08-05', contact: '박지민', outlets: '연합뉴스, KBS', status: 'draft',
+    attachments: [{ name: '개영식_보도자료.pdf', url: '/api/file?id=pf1', ct: 'application/pdf', size: 120000 }],
+    author: 'tester', authorName: '테스터', createdAt: '2026-07-14T03:00:00Z', updatedAt: '2026-07-14T03:00:00Z' };
   window.__assets = [
     { id: 'a1', url: '/api/file?id=f1', kind: 'file', name: '브랜드 가이드라인', type: 'photo', category: 'plan', ct: 'application/pdf', size: 3348000, tags: ['브랜드'], author: 'admin', authorName: '관리자', createdAt: '2026-07-13T07:07:00Z' },
     { id: 'a2', url: '/api/image?id=i1', kind: 'file', name: '개영식 사진', type: 'photo', category: 'photo', ct: 'image/jpeg', size: 820000, tags: [], author: 'admin', authorName: '관리자', createdAt: '2026-07-12T05:00:00Z' },
@@ -59,6 +63,13 @@ const SEED = () => {
       return J({ ok: true, assets: window.__assets });
     }
     if (u.startsWith('/api/jp-tips')) { if (o && o.method === 'PATCH') { const b = JSON.parse(o.body); window.__tipPatch.push(b); return J({ ok: true, tip: Object.assign({}, window.__tip0, b) }); } return J({ ok: true, tips: [window.__tip0] }); }
+    if (u.startsWith('/api/jp-press')) {
+      if (o && o.method === 'DELETE') return J({ ok: true });
+      if (o && (o.method === 'POST' || o.method === 'PUT')) { const b = JSON.parse(o.body || '{}'); window.__pressSave = b;
+        if (b.action === 'status') { window.__press0.status = b.status; return J({ ok: true, item: window.__press0 }); }
+        return J({ ok: true, item: Object.assign({ id: b.id || 'newpress', author: 'tester', authorName: '테스터', createdAt: '2026-07-15T00:00:00Z', updatedAt: '2026-07-15T00:00:00Z' }, b) }); }
+      return J({ ok: true, press: [window.__press0] });
+    }
     if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
     if (u.startsWith('/api/r2?action=create')) { window.__r2.creates++; return J({ ok: true, key: 'jpa/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', uploadId: 'U1' }); }
     if (u.startsWith('/api/r2?action=part')) { const n = +new URL(u, location.origin).searchParams.get('part');
@@ -106,7 +117,7 @@ const SEED = () => {
   chk('게이트 통과 · 사이드바 렌더', await page.$('.side-nav') !== null);
   // 사이드바 = 4공간이 접히지 않고 모두 펼쳐진다(항목 14개). 목록의 원본은 app.js 의 WS_LIST/WS_VIEWS 하나뿐.
   const sg = await page.evaluate(() => ({ grp: document.querySelectorAll('.side-grp').length, item: document.querySelectorAll('.side-item[data-v]').length }));
-  chk('사이드바 4그룹 · 14항목 전부 노출', sg.grp === 4 && sg.item === 14, sg.grp + '그룹 · ' + sg.item + '항목');
+  chk('사이드바 4그룹 · 15항목 전부 노출(보도자료 포함)', sg.grp === 4 && sg.item === 15, sg.grp + '그룹 · ' + sg.item + '항목');
 
   console.log('\n[콘텐츠 파이프라인 보드]');
   await go('list');
@@ -361,6 +372,32 @@ const SEED = () => {
     return { f: window.__newsFlag, on: document.querySelector('.flagtog.pub').classList.contains('on') }; });
   chk('퍼블리싱 토글 → flags API(published=true) + on', nflag.f && nflag.f.action === 'flags' && nflag.f.published === true && nflag.on, JSON.stringify(nflag.f));
 
+  // ===== 보도자료 게시판 (v0.9.219) — 홍보부 전용 목차 + 상태 + 첨부 + 작성 =====
+  console.log('\n[보도자료 게시판]');
+  await go('press');
+  const PR = await page.evaluate(() => ({ table: !!document.querySelector('#press-list .newstbl'),
+    ths: [...document.querySelectorAll('#press-list .newstbl th')].map((t) => t.textContent.trim()),
+    no: (document.querySelector('#press-list td.nr-no') || {}).textContent,
+    date: (document.querySelector('#press-list td.nr-date') || {}).textContent,
+    contact: (document.querySelector('#press-list td.nr-author') || {}).textContent,
+    status: !!document.querySelector('#press-list [data-press-status]'),
+    bar: (document.getElementById('press-bar') || {}).textContent }));
+  chk('보도자료 목차 5열(번호·제목·배포일·담당자·상태) + 통계바', PR.table && PR.ths.join(',') === '번호,제목,배포일,담당자,상태' && /전체/.test(PR.bar), PR.ths.join(','));
+  chk('배포일·담당자 표기 + 상태 토글', PR.no === '1' && PR.date === '2026-08-05' && PR.contact === '박지민' && PR.status, JSON.stringify(PR));
+  const PRx = await page.evaluate(() => { document.querySelector('[data-press-expand]').click();
+    const d = document.querySelector('#press-list .news-detailrow'); return { rows: document.querySelectorAll('#press-list .news-detailrow').length, strong: !!(d && d.querySelector('.news-text strong')), att: !!(d && d.querySelector('.press-att')), outlets: !!(d && d.querySelector('.pd-o')) }; });
+  chk('제목 클릭 → 본문(정화)·첨부·배포매체 펼침', PRx.rows === 1 && PRx.strong && PRx.att && PRx.outlets, JSON.stringify(PRx));
+  const PRs = await page.evaluate(async () => { document.querySelector('[data-press-status]').click(); await new Promise((r) => setTimeout(r, 200)); return window.__pressSave; });
+  chk('상태 토글 → status API(released)', PRs && PRs.action === 'status' && PRs.status === 'released', JSON.stringify(PRs));
+  const PRn = await page.evaluate(async () => { openPressEditor(null); await new Promise((r) => setTimeout(r, 140));
+    const has = { title: !!document.getElementById('pe-title'), date: !!document.getElementById('pe-date'), outlets: !!document.getElementById('pe-outlets'), body: !!document.getElementById('pe-bodywrap'), status: !!document.getElementById('pe-status'), atts: !!document.getElementById('pe-atts') };
+    document.getElementById('pe-title').value = '새 보도자료'; document.getElementById('pe-title').dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('pe-outlets').value = '강원일보'; document.getElementById('pe-outlets').dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('#pe-status [data-pst="released"]').click();
+    pressEdit.body = '<p>본문</p>'; document.getElementById('press-save').click(); await new Promise((r) => setTimeout(r, 200));
+    return { has, save: window.__pressSave }; });
+  chk('작성 모달(제목·배포일·매체·본문·상태·첨부) + 저장(released·매체)', PRn.has.title && PRn.has.date && PRn.has.outlets && PRn.has.body && PRn.has.status && PRn.has.atts && PRn.save && PRn.save.title === '새 보도자료' && PRn.save.status === 'released' && PRn.save.outlets === '강원일보', JSON.stringify({ has: PRn.has, s: PRn.save && PRn.save.status }));
+
   // ===== 디자인 계측 =====
   // 디자인 변경은 눈으로만 확인하기 쉬워 조용히 무너진다. 규칙을 테스트로 고정한다.
   console.log('\n[디자인 — 대비]');
@@ -545,7 +582,7 @@ const SEED = () => {
   // v0.9.205 는 "밀집 그리드가 깨진다"며 10.5~11px 에서 멈췄고, 그 후퇴를 잡아줄 테스트가 없어 그대로 남았다.
   // 눈으로 보면 놓치므로 렌더된 값으로 전 뷰를 훑는다. 실패 시 어느 요소인지까지 찍는다.
   console.log('\n[디자인 — 타이포·컨트롤]');
-  const SWEEP = ['dashboard', 'calendar', 'list', 'timetable', 'staff', 'protocol', 'library', 'tips', 'meals', 'contacts'];
+  const SWEEP = ['dashboard', 'calendar', 'list', 'timetable', 'staff', 'protocol', 'library', 'tips', 'meals', 'contacts', 'news', 'press'];
   const viol = { small: [], btn: [], track: [], nest: [] };
   for (const v of SWEEP) {
     await go(v);
@@ -555,7 +592,7 @@ const SEED = () => {
       const ownsText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length);
       const out = { small: [], btn: [], track: [], nest: [] };
       // 40px 예외: 블록/칩 위에 겹쳐 뜨는 micro 컨트롤(--h-ctl-mini). 40px 를 주면 대상 자체를 덮는다.
-      const MINI = ['ttg-del', 'ttg-cov', 'fedx', 'smpop-x', 'news-slot-x'];
+      const MINI = ['ttg-del', 'ttg-cov', 'fedx', 'smpop-x', 'news-slot-x', 'press-attx'];
       document.querySelectorAll('*').forEach((el) => {
         if (!vis(el)) return;
         const s = getComputedStyle(el);

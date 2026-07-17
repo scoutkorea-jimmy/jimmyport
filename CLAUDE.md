@@ -1302,6 +1302,12 @@ WOSM Region → 국가(NSO) → 단위대
 - **리팩터링**: 기사 본문·텍스트 자료가 같은 Tiptap 스택을 쓰므로 마운트 코드를 **공용 `mountRichEditor(wrap,initHtml,onUpdate)`**(app.js, `buildToolbar` 재사용, 실패 시 contentEditable 폴백, handle.destroy())로 모음 — `mountNewsBodyEditor` 도 이걸 쓰도록 정리(중복 제거). editor.js placeholder 'SNS 게시 문구'→'내용을 입력하세요'(§16.79).
 - 검증: `node --check`(app·library·jp-assets) + 회귀 **87→91/91**(자료실: 4건[파일·텍스트·오디오]·구분탭 전체+5 / 텍스트 보기=리치 본문·받기 숨김 / 텍스트 작성 모달·저장 kind:text / 오디오 audio 플레이어 / accept 제한 없음. 기사 목차 5종은 mountRichEditor 리팩터 후에도 유지) · nav 19/19 · jebo 29/29 + 헤드리스 스크린샷(자료실 목록[텍스트 accent·MP3 라벨]·텍스트 보기[제목/헤딩/불릿/태그/메타·받기 없음]·텍스트 편집기 24툴바, **콘솔 에러 0**, Tiptap 실제 로드). 운영 KV 파괴적 쓰기 없음.
 
+### 16.81 v0.9.219 — 자료실 '카드뉴스·사진 올리기' 제거 + 보도자료 게시판 신설(팀·자료)
+- 사용자 2건: (1) 자료실 **'카드뉴스·사진 올리기' 버튼 삭제**, (2) 팀·자료에 **보도자료 게시판 신설**.
+- **① 카드뉴스·사진 올리기 제거**: `lib-file-media` 버튼·배선 삭제. 이미지는 **'문서·파일 올리기'**(모든 파일 허용, §16.80)로 계속 올릴 수 있어 기능 손실 없음(모달에서 카테고리 지정). 안내문·빈 상태 문구 갱신.
+- **② 보도자료 게시판**(`press`, 신규 뷰): 언론·매체 배포용 **공식 보도자료** 관리. 사이드바 **팀·자료 그룹**에 '보도자료'(megaphone 아이콘) 추가, **홍보부·관리자 전용**(`canSee('press')=isStaff()`, tips·sitemap 과 동일). 신규 API `functions/api/jp-press.js`(KV `jpp:<id>`, staff 게이트): GET(목록)·POST(작성/`action:'status'` 토글)·PUT(작성자·관리자 수정)·DELETE(작성자·관리자, R2 첨부 실물 정리). 필드=제목·본문(HTML)·배포일·담당자·배포 매체·상태(draft/released)·첨부[≤10]. 클라(app.js press 도메인): **목차 표**(번호·제목·배포일·담당자·상태) + 통계바(전체·배포완료·작성중), 제목 클릭 시 본문(정화)·첨부(받기)·배포 매체 펼침, 상태 토글. 작성/수정 모달=제목·배포 예정일·담당자·배포 매체·상태 세그·**Tiptap 본문**(공용 `mountRichEditor`)·첨부(이미지 다운스케일/그 외 `uploadAttachment`, 최대 10). 아이콘 `megaphone` 신설(core.js).
+- 검증: `node --check`(app·core·jp-press·jp-assets) + 회귀 **91→96/96**(보도자료 5종: 목차 5열·통계바 / 배포일·담당자·상태토글 / 제목클릭 본문·첨부·배포매체 펼침 / 상태 API released / 작성 모달·저장 released·매체. 디자인 SWEEP 에 press·news 뷰 추가, `press-attx` MINI 예외) · nav **19/19**(항목 14→15·보도자료 포함, 일반 회원 press 숨김·직접호출 차단) · jebo 29/29 + 헤드리스 스크린샷(보도자료 목차[배포완료 pill·첨부 배지]·펼침[리치 본문·PDF/이미지 첨부·배포 매체]·작성 모달 24툴바, **콘솔 에러 0**, Tiptap 로드). 신규 KV 바인딩 불필요(SCOUT_KV·SCOUT_R2 기존). 운영 KV 파괴적 쓰기 없음.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-16 — krjam-planning 라이브 KV 일정표 종류 색 정정 (v0.9.171 STEP3)

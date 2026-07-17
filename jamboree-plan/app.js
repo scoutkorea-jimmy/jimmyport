@@ -3031,7 +3031,7 @@ var MANAGE_TABS=['staff','contacts','orginfo','protocol'];
 /* ===== 2단 내비게이션 (v0.9.184) — 업무 공간(workspace) → 세부 뷰 =====
    12개 평평한 탭을 업무 4공간으로 묶는다. 뷰 렌더 로직은 그대로, 배치·탐색만 바꾼다. */
 var WS_LIST=[{ws:'dash',label:'대시보드',ic:'grid'},{ws:'content',label:'콘텐츠',ic:'list'},{ws:'field',label:'현장',ic:'mapPin'},{ws:'team',label:'팀·자료',ic:'users'}];
-var WS_VIEWS={ dash:['dashboard'], content:['calendar','list','news','tips','shootlist'], field:['timetable','sitemap','protocol','meals'], team:['staff','contacts','orginfo','library'] };
+var WS_VIEWS={ dash:['dashboard'], content:['calendar','list','news','tips','shootlist'], field:['timetable','sitemap','protocol','meals'], team:['staff','contacts','orginfo','library','press'] };
 function wsOfView(v){ for(var k in WS_VIEWS){ if(WS_VIEWS[k].indexOf(v)>=0) return k; } return 'dash'; }
 function wsHasVisible(ws){ return (WS_VIEWS[ws]||[]).some(function(v){ return Auth.authed()&&Auth.canSee(v); }); }
 var curWs='dash', wsLastView={};
@@ -3042,7 +3042,8 @@ var VIEW_META={
   dashboard:['대시보드','grid'], calendar:['캘린더','calendar'], list:['콘텐츠','list'], news:['기사','fileText'],
   tips:['소식 제보','inbox'], shootlist:['촬영 리스트','camera'], timetable:['잼버리 일정표','clock'],
   sitemap:['현장 위치 지도','mapPin'], protocol:['의전 일정','grid'], meals:['식사 메뉴','utensils'],
-  staff:['홍보부 인원','users'], contacts:['협조 연락처','phone'], orginfo:['분단 연락망','users'], library:['자료실','image']
+  staff:['홍보부 인원','users'], contacts:['협조 연락처','phone'], orginfo:['분단 연락망','users'], library:['자료실','image'],
+  press:['보도자료','megaphone']
 };
 function viewLabel(v){ return (VIEW_META[v]||[v])[0]; }
 /* 좌측 사이드바 — 프로젝트 관리 보드의 표준 구조. 4공간을 전환하지 않고 **한눈에 펼쳐** 두어
@@ -3103,7 +3104,7 @@ Auth.authed=function(){ return !!(this.token && this.exp>Date.now()); };
 Auth.isAdmin=function(){ return this.role==='admin' || !!this.master; };
 // 유형(type)이 가진 탭만. tabs 비어있으면(구버전 세션) 콘텐츠 탭만 폴백 → 잠금 방지.
 // tips(소식 제보)는 제보자 개인정보가 담겨 홍보부 전용 — sitemap 과 함께 isStaff 게이트
-Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news'||v==='meals'||v==='shootlist') return true; if(v==='sitemap'||v==='tips') return this.isStaff(); return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
+Auth.canSee=function(v){ if(v==='dashboard'||v==='library'||v==='news'||v==='meals'||v==='shootlist') return true; if(v==='sitemap'||v==='tips'||v==='press') return this.isStaff(); return this.isAdmin() || ((this.tabs&&this.tabs.length) ? this.tabs.indexOf(v)>=0 : MANAGE_TABS.indexOf(v)<0); };
 Auth.isStaff=function(){ var me=this; return this.isAdmin() || ((this.tabs&&this.tabs.length) ? MANAGE_TABS.some(function(t){ return me.tabs.indexOf(t)>=0; }) : false); };
 function authHeader(){ return Auth.token ? {'Authorization':'Bearer '+Auth.token} : {}; }
 function authJsonHeaders(){ var h={'content-type':'application/json'}; if(Auth.token) h['Authorization']='Bearer '+Auth.token; return h; }
@@ -3385,6 +3386,148 @@ function deleteNews(id){
   fetch('/api/jp-news?id='+encodeURIComponent(id),{method:'DELETE',headers:authHeader()})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
     .then(function(j){ if(j&&j.ok){ toast('기사를 삭제했습니다'); loadNews(); } })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+
+/* ===== 보도자료 게시판 (press) — 홍보부·관리자 전용 ===== */
+var pressItems=[], pressLoaded=false, pressEdit=null, pressBodyEditor=null, expandedPress={};
+function loadPress(){
+  fetch('/api/jp-press',{headers:authHeader()})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ pressLoaded=true; pressItems=[]; if(curViewMode==='press') renderPress(); return null; } return r.json(); })
+    .then(function(j){ if(!j) return; pressItems=(j.press)||[]; pressLoaded=true; if(curViewMode==='press') renderPress(); })
+    .catch(function(){ pressLoaded=true; if(curViewMode==='press') renderPress(); });
+}
+function canEditPress(a){ return a && (Auth.isAdmin() || (Auth.username && a.author===Auth.username)); }
+function pressBodyHtml(body){ body=body||''; return /<[a-z][\s\S]*>/i.test(body) ? sanitizeHtml(body) : esc(body).replace(/\n/g,'<br>'); }
+function togglePressExpand(id){ expandedPress[id]=!expandedPress[id]; renderPress(); }
+function togglePressStatus(id){
+  var a=pressItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
+  var next=a.status==='released'?'draft':'released';
+  fetch('/api/jp-press',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'status',id:id,status:next})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok&&j.item){ var i=pressItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) pressItems[i]=j.item; renderPress(); } })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+function pressAttHtml(a){
+  if(!(a.attachments&&a.attachments.length)) return '';
+  return '<div class="press-atts">'+a.attachments.map(function(f){
+    return '<a class="press-att" href="'+esc(f.url)+'" download target="_blank" rel="noopener">'+icon(/^image\//i.test(f.ct||'')?'image':'paperclip',12)+'<span>'+esc(f.name||'첨부')+'</span>'+(f.size?('<i>'+fmtMB(f.size)+'</i>'):'')+'</a>';
+  }).join('')+'</div>';
+}
+function renderPressDetail(a){
+  var tools='';
+  if(canEditPress(a)) tools+='<button class="btn xs ghost" data-press-edit="'+esc(a.id)+'">'+icon('edit',13)+' 수정</button>'+
+    '<button class="btn xs ghost danger" data-press-del="'+esc(a.id)+'">'+icon('trash',13)+' 삭제</button>';
+  var meta=[];
+  if(a.outlets) meta.push('<span class="pd-o">'+icon('megaphone',12)+' 배포 매체: '+esc(a.outlets)+'</span>');
+  meta.push('<span>작성 '+esc(a.authorName||'')+' · '+esc(fmtNewsTime(a.createdAt))+((a.updatedAt&&a.updatedAt!==a.createdAt)?' · 수정됨':'')+'</span>');
+  return '<div class="news-detail">'+
+    (a.body?('<div class="news-text">'+pressBodyHtml(a.body)+'</div>'):'<div class="news-text muted">본문 없음</div>')+
+    pressAttHtml(a)+
+    '<div class="press-meta">'+meta.join('')+'</div>'+
+    (tools?('<div class="news-tools">'+tools+'</div>'):'')+
+  '</div>';
+}
+function renderPress(){
+  var box=document.getElementById('press-list'); if(!box) return;
+  var bar=document.getElementById('press-bar');
+  if(!pressLoaded){ box.innerHTML='<div class="news-empty">불러오는 중…</div>'; if(bar) bar.innerHTML=''; return; }
+  if(bar){ var rel=pressItems.filter(function(x){return x.status==='released';}).length;
+    bar.innerHTML='<span class="press-stat">전체 <b>'+pressItems.length+'</b></span><span class="press-stat">배포 완료 <b>'+rel+'</b></span><span class="press-stat">작성중 <b>'+(pressItems.length-rel)+'</b></span>'; }
+  if(!pressItems.length){ box.innerHTML='<div class="news-empty">등록된 보도자료가 없습니다. <b>보도자료 작성</b>으로 첫 보도자료를 등록하세요.</div>'; return; }
+  // 글 번호 = 작성순(오래된 것이 1). 표시는 최신순 유지.
+  var order={}; pressItems.slice().sort(function(a,b){ return String(a.createdAt||'').localeCompare(String(b.createdAt||'')); }).forEach(function(a,i){ order[a.id]=i+1; });
+  var rows=pressItems.map(function(a){
+    var open=!!expandedPress[a.id], atn=(a.attachments||[]).length;
+    var stBtn='<button type="button" class="flagtog'+(a.status==='released'?' pub on':'')+'" data-press-status="'+esc(a.id)+'">'+(a.status==='released'?(icon('check',12)+' 배포 완료'):'작성중')+'</button>';
+    var tr='<tr class="news-row'+(open?' open':'')+'">'+
+      '<td class="nr-no">'+(order[a.id]||'')+'</td>'+
+      '<td class="nr-title"><button type="button" class="nr-titlebtn" data-press-expand="'+esc(a.id)+'" aria-expanded="'+open+'"><span class="nr-caret">'+(open?'▾':'▸')+'</span><span class="nr-tt">'+esc(a.title||'(제목 없음)')+'</span>'+(atn?('<span class="nr-badge">'+icon('paperclip',11)+atn+'</span>'):'')+'</button></td>'+
+      '<td class="nr-date">'+esc(a.date||'—')+'</td>'+
+      '<td class="nr-author">'+esc(a.contact||a.authorName||'—')+'</td>'+
+      '<td class="nr-pub">'+stBtn+'</td>'+
+    '</tr>';
+    if(open) tr+='<tr class="news-detailrow"><td colspan="5">'+renderPressDetail(a)+'</td></tr>';
+    return tr;
+  }).join('');
+  box.innerHTML='<div class="tblscroll"><table class="newstbl"><thead><tr><th class="nr-no">번호</th><th>제목</th><th>배포일</th><th>담당자</th><th>상태</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function openPressEditor(id){
+  if(!Auth.isStaff()){ toast('홍보부·관리자만 작성할 수 있습니다'); return; }
+  var src=id?pressItems.filter(function(x){return x.id===id;})[0]:null;
+  pressEdit = src ? {id:src.id, title:src.title||'', body:src.body||'', date:src.date||'', contact:src.contact||'', outlets:src.outlets||'', status:src.status||'draft', attachments:(src.attachments||[]).slice()}
+                  : {title:'', body:'', date:'', contact:'', outlets:'', status:'draft', attachments:[]};
+  document.getElementById('press-mtitle').textContent = id?'보도자료 수정':'보도자료 작성';
+  document.getElementById('press-del').style.display = (id&&canEditPress(src))?'':'none';
+  renderPressEditor();
+  document.getElementById('press-scrim').classList.add('show');
+}
+function closePressEditor(){ if(pressBodyEditor){ pressBodyEditor.destroy(); pressBodyEditor=null; } document.getElementById('press-scrim').classList.remove('show'); pressEdit=null; var b=document.getElementById('press-body'); if(b) b.innerHTML=''; }
+function renderPressEditor(){
+  var b=document.getElementById('press-body'); if(!b||!pressEdit) return;
+  b.innerHTML=
+    '<label class="fl">제목</label><input class="ti" id="pe-title" type="text" maxlength="160" placeholder="보도자료 제목" value="'+esc(pressEdit.title)+'">'+
+    '<div class="press-fields">'+
+      '<div><label class="fl">배포 예정일</label><input class="ti" id="pe-date" type="date" value="'+esc(pressEdit.date)+'"></div>'+
+      '<div><label class="fl">담당자</label><input class="ti" id="pe-contact" type="text" maxlength="80" placeholder="담당자 이름" value="'+esc(pressEdit.contact)+'"></div>'+
+    '</div>'+
+    '<label class="fl">배포 매체</label><input class="ti" id="pe-outlets" type="text" maxlength="300" placeholder="예: 연합뉴스, KBS, 강원일보" value="'+esc(pressEdit.outlets)+'">'+
+    '<label class="fl">상태</label><div class="seg statusseg" id="pe-status">'+
+      '<button type="button" data-pst="draft"'+(pressEdit.status!=='released'?' class="on"':'')+'>작성중</button>'+
+      '<button type="button" data-pst="released"'+(pressEdit.status==='released'?' class="on"':'')+'>배포 완료</button>'+
+    '</div>'+
+    '<label class="fl">본문</label><div class="news-bodyed" id="pe-bodywrap"></div>'+
+    '<label class="fl">첨부파일 (원문·사진 등 · 최대 10개)</label><div class="press-attsec" id="pe-atts"></div>';
+  document.getElementById('pe-title').oninput=function(){ pressEdit.title=this.value; };
+  document.getElementById('pe-date').oninput=function(){ pressEdit.date=this.value; };
+  document.getElementById('pe-contact').oninput=function(){ pressEdit.contact=this.value; };
+  document.getElementById('pe-outlets').oninput=function(){ pressEdit.outlets=this.value; };
+  document.getElementById('pe-status').onclick=function(e){ var btn=e.target.closest('[data-pst]'); if(!btn) return; pressEdit.status=btn.getAttribute('data-pst'); this.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x===btn); }); };
+  renderPressAtts();
+  var wrap=document.getElementById('pe-bodywrap');
+  if(pressBodyEditor){ pressBodyEditor.destroy(); pressBodyEditor=null; }
+  var initHtml=/<[a-z][\s\S]*>/i.test(pressEdit.body)?pressEdit.body:esc(pressEdit.body).replace(/\n/g,'<br>');
+  pressBodyEditor=mountRichEditor(wrap, initHtml, function(html){ if(pressEdit) pressEdit.body=html; });
+}
+function renderPressAtts(){
+  var sec=document.getElementById('pe-atts'); if(!sec||!pressEdit) return;
+  var chips=pressEdit.attachments.map(function(f,i){ return '<div class="press-attchip">'+icon(/^image\//i.test(f.ct||'')?'image':'paperclip',13)+'<span>'+esc(f.name||'첨부')+'</span><button class="press-attx" data-press-att-del="'+i+'" aria-label="빼기">'+icon('x',12)+'</button></div>'; }).join('');
+  var add = pressEdit.attachments.length<10 ? '<label class="press-attadd">'+icon('plus',14)+' 첨부 추가<input type="file" id="pe-file" multiple hidden></label>' : '';
+  sec.innerHTML=chips+add;
+  var fi=document.getElementById('pe-file'); if(fi) fi.onchange=function(){ handlePressFiles(this.files); };
+}
+function handlePressFiles(files){
+  if(!files||!files.length||!pressEdit) return;
+  var remaining=10-pressEdit.attachments.length; if(remaining<=0){ toast('첨부는 최대 10개입니다'); return; }
+  var list=Array.prototype.slice.call(files).slice(0,remaining);
+  toast('첨부 업로드 중…');
+  (function next(){
+    if(!list.length){ renderPressAtts(); return; }
+    var f=list.shift(), isImg=/^image\//i.test(f.type||'');
+    var p = isImg ? downscale(f,1600,0.85).then(function(blob){ return uploadBlob(blob); }).then(function(url){ return url?{url:url,ct:'image/jpeg'}:null; })
+                  : uploadAttachment(f).then(function(d){ return d&&d.url?{url:d.url,ct:(d.ct||f.type||'application/octet-stream')}:null; });
+    p.then(function(res){ if(res&&pressEdit.attachments.length<10) pressEdit.attachments.push({name:f.name,url:res.url,ct:res.ct,size:f.size}); next(); })
+     .catch(function(){ toast('첨부 업로드 실패'); next(); });
+  })();
+}
+function commitPress(){
+  if(!pressEdit) return;
+  var title=(pressEdit.title||'').trim(), body=(pressEdit.body||'').trim();
+  var bodyText=body.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim();
+  if(!title && !bodyText){ toast('제목 또는 본문을 입력하세요'); return; }
+  var editing=!!pressEdit.id;
+  var payload={title:title, body:body, date:pressEdit.date||'', contact:pressEdit.contact||'', outlets:pressEdit.outlets||'', status:pressEdit.status||'draft', attachments:pressEdit.attachments};
+  if(editing) payload.id=pressEdit.id;
+  fetch('/api/jp-press',{method:editing?'PUT':'POST',headers:authJsonHeaders(),body:JSON.stringify(payload)})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('권한이 없습니다'); return null; } return r.json(); })
+    .then(function(j){ if(!j) return; if(j.ok&&j.item){ var i=-1; for(var k=0;k<pressItems.length;k++) if(pressItems[k].id===j.item.id) i=k; if(i>=0) pressItems[i]=j.item; else pressItems.unshift(j.item); closePressEditor(); renderPress(); toast(editing?'보도자료를 수정했습니다':'보도자료를 등록했습니다'); } else toast('저장 실패'); })
+    .catch(function(){ toast('네트워크 오류'); });
+}
+function deletePress(id){
+  if(!confirm('이 보도자료를 삭제할까요? (되돌릴 수 없습니다)')) return;
+  fetch('/api/jp-press?id='+encodeURIComponent(id),{method:'DELETE',headers:authHeader()})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('삭제 권한이 없습니다'); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok){ pressItems=pressItems.filter(function(x){return x.id!==id;}); if(pressEdit&&pressEdit.id===id) closePressEditor(); renderPress(); toast('삭제됨'); } })
     .catch(function(){ toast('네트워크 오류'); });
 }
 
@@ -3975,6 +4118,7 @@ function setView(v){
   var smv=document.getElementById('sitemap'); if(smv) smv.style.display = v==='sitemap'?'':'none';
   var mlv=document.getElementById('meals'); if(mlv) mlv.style.display = v==='meals'?'':'none';
   var slv=document.getElementById('shootlist'); if(slv) slv.style.display = v==='shootlist'?'':'none';
+  var prs=document.getElementById('press'); if(prs) prs.style.display = v==='press'?'':'none';
   // 마케팅 캘린더는 캘린더/리스트 뷰에서만 노출
   var mk=document.getElementById('marketing'); if(mk) mk.style.display=(v==='calendar'||v==='list')?'':'none';
   wsLastView[wsOfView(v)]=v;
@@ -3984,6 +4128,7 @@ function setView(v){
   if(v==='dashboard') renderDashboard();
   if(v==='news') renderNews();
   if(v==='library'){ if(!libLoaded) loadLibrary(); else renderLibrary(); }
+  if(v==='press'){ if(!pressLoaded) loadPress(); else renderPress(); }
   if(v==='tips'){ if(!tipLoaded) loadTips(); else renderTips(); }
   if(v==='list') renderBoard();
   if(v==='timetable') renderTimetable();
@@ -4044,7 +4189,7 @@ function init(){
   if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bnws]'); if(!b) return;
     setWorkspace(b.getAttribute('data-bnws')); window.scrollTo({top:0,behavior:'smooth'}); });
   var savedView=null; try{savedView=localStorage.getItem('jamboree-plan:view');}catch(e){}
-  setView(['dashboard','news','tips','calendar','list','timetable','library','staff','contacts','orginfo','protocol','sitemap','meals','shootlist'].indexOf(savedView)>=0?savedView:'dashboard');
+  setView(['dashboard','news','tips','calendar','list','timetable','library','staff','contacts','orginfo','protocol','sitemap','meals','shootlist','press'].indexOf(savedView)>=0?savedView:'dashboard');
   // 인증 · 기사 · 홍보부원 회원 배선
   reflectAuthUI();
   var lo=document.getElementById('logout'); if(lo) lo.onclick=doLogout;
@@ -4073,9 +4218,24 @@ function init(){
   document.getElementById('news-list').addEventListener('keydown',function(e){
     if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } }
   });
+  // 보도자료 게시판 배선
+  var pra=document.getElementById('press-add'); if(pra) pra.onclick=function(){ openPressEditor(null); };
+  var prx=document.getElementById('press-close'); if(prx) prx.onclick=closePressEditor;
+  var prc=document.getElementById('press-cancel'); if(prc) prc.onclick=closePressEditor;
+  var prs=document.getElementById('press-save'); if(prs) prs.onclick=commitPress;
+  var prd=document.getElementById('press-del'); if(prd) prd.onclick=function(){ if(pressEdit&&pressEdit.id) deletePress(pressEdit.id); };
+  var prsc=document.getElementById('press-scrim'); if(prsc) prsc.addEventListener('click',function(e){ if(e.target===prsc) closePressEditor(); });
+  var prl=document.getElementById('press-list');
+  if(prl) prl.addEventListener('click',function(e){
+    var ex=e.target.closest('[data-press-expand]'); if(ex){ togglePressExpand(ex.getAttribute('data-press-expand')); return; }
+    var st=e.target.closest('[data-press-status]'); if(st){ togglePressStatus(st.getAttribute('data-press-status')); return; }
+    var ed=e.target.closest('[data-press-edit]'); if(ed){ openPressEditor(ed.getAttribute('data-press-edit')); return; }
+    var dl=e.target.closest('[data-press-del]'); if(dl){ deletePress(dl.getAttribute('data-press-del')); return; }
+  });
+  var prb=document.getElementById('press-body');
+  if(prb) prb.addEventListener('click',function(e){ var x=e.target.closest('[data-press-att-del]'); if(x&&pressEdit){ pressEdit.attachments.splice(+x.getAttribute('data-press-att-del'),1); renderPressAtts(); } });
   // 자료실(라이브러리) 배선
   var lfp=document.getElementById('lib-file-plan'); if(lfp) lfp.addEventListener('change',function(){ openLibUpload(this.files,'plan'); this.value=''; });
-  var lfm=document.getElementById('lib-file-media'); if(lfm) lfm.addEventListener('change',function(){ openLibUpload(this.files,'media'); this.value=''; });
   var lta=document.getElementById('lib-text-add'); if(lta) lta.onclick=function(){ openLibText(null); };
   var ltx=document.getElementById('libtext-close'); if(ltx) ltx.onclick=closeLibText;
   var ltc=document.getElementById('libtext-cancel'); if(ltc) ltc.onclick=closeLibText;
