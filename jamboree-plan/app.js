@@ -540,13 +540,12 @@ function reloadServer(){
 
 /* ===== meta / header ===== */
 function hdr(){ return Object.assign({},HEADER_DEF,state.header||{}); }
+/* v0.9.215: 보드 이름·슬로건·기간·장소를 매 화면 헤더에 반복해 찍던 것을 걷어냈다.
+ *  - 보드 이름 = 사이드바 브랜드가 상시 표시
+ *  - 행사기간·장소 = 대시보드 D-day 배너가 이미 같은 말을 한다(중복이었다)
+ * 컨텍스트 바에는 "지금 보는 화면 + 지금 필요한 것"만 남긴다. 요소가 없어도 안전하게 동작해야 한다. */
 function renderHeader(){
-  var h=hdr();
-  document.getElementById('m-title').textContent=h.title;
-  document.getElementById('m-slogan').textContent=h.slogan;
-  document.getElementById('m-meta').innerHTML =
-    '<span><b>행사기간</b> '+h.period+'</span><span><b>장소</b> '+h.place+'</span>';
-  loadWeather();   // 헤더 컴팩트 날씨(회기와 D-day 사이) — 모든 뷰에서 항상 보이게
+  loadWeather();   // 컨텍스트 바 날씨 — 모든 화면에서 보인다(현장 운영 정보)
   renderClock();
 }
 // 개영식 = 2026-08-05 20:00 (KST). 시·분·초 라이브 카운트다운.
@@ -557,7 +556,8 @@ function renderClock(){
   if(diff<=0){ cl.textContent='D-DAY · 개영!'; sub.textContent='개영식 2026-08-05 20:00 시작'; return; }
   var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000), m=Math.floor(diff%3600000/60000), sc=Math.floor(diff%60000/1000);
   cl.innerHTML='D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>';
-  sub.textContent='개영식(2026-08-05 20:00)까지';
+  sub.textContent='개영식까지';   // 컨텍스트 바 한 줄 유지 — 전체 일시는 아래 title 로
+  sub.title='개영식 2026-08-05(수) 20:00';
 }
 /* 대시보드 실시간 D-day 카운트다운 */
 var dashClockTimer=null;
@@ -2964,6 +2964,10 @@ var VIEW_META={
 function viewLabel(v){ return (VIEW_META[v]||[v])[0]; }
 /* 좌측 사이드바 — 프로젝트 관리 보드의 표준 구조. 4공간을 전환하지 않고 **한눈에 펼쳐** 두어
  * "지금 어디에 있고 무엇이 더 있는지"를 늘 보이게 한다(전 2단 상단바는 다른 공간이 접혀 보이지 않았다). */
+function closeNavDrawer(){
+  document.documentElement.classList.remove('nav-open');
+  var t=document.getElementById('nav-toggle'); if(t) t.setAttribute('aria-expanded','false');
+}
 function renderSidebar(){
   var box=document.getElementById('side-nav'); if(!box) return;
   box.innerHTML=WS_LIST.filter(function(w){ return wsHasVisible(w.ws); }).map(function(w){
@@ -2975,7 +2979,7 @@ function renderSidebar(){
           icon(m[1],16)+'<span>'+esc(m[0])+'</span></button>';
       }).join('')+'</div>';
   }).join('');
-  box.querySelectorAll('.side-item[data-v]').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); }; });
+  box.querySelectorAll('.side-item[data-v]').forEach(function(b){ b.onclick=function(){ setView(b.dataset.v); closeNavDrawer(); }; });
   var f=document.getElementById('side-foot');
   if(f) f.innerHTML=Auth.authed()?('<div class="side-who">'+icon('user',15)+'<span>'+esc(Auth.name||Auth.username||'')+
     (Auth.isAdmin&&Auth.isAdmin()?' · 관리자':(Auth.type?(' · '+esc(Auth.type)):''))+'</span></div>'):'';
@@ -3902,6 +3906,10 @@ function init(){
   document.getElementById('ev-del').onclick=deleteEventCur;
   document.getElementById('ev-scrim').addEventListener('click',function(e){ if(e.target===this) closeEvent(); });
   // 내비 항목은 renderSidebar/renderSubbar 가 그리며 거기서 배선한다(정적 버튼이 없어졌다).
+  // 모바일 드로어 — 폰에서 사이드바를 끌어온다(하단 탭은 공간 전환용으로 그대로).
+  var navT=document.getElementById('nav-toggle');
+  if(navT) navT.onclick=function(){ var o=document.documentElement.classList.toggle('nav-open'); navT.setAttribute('aria-expanded', o?'true':'false'); };
+  var navS=document.getElementById('side-scrim'); if(navS) navS.onclick=closeNavDrawer;
   // 모바일 하단 탭 = 업무 공간
   var bn=document.getElementById('botnav');
   if(bn) bn.addEventListener('click',function(e){ var b=e.target.closest('[data-bnws]'); if(!b) return;
@@ -4142,6 +4150,7 @@ function init(){
   document.getElementById('lightbox').addEventListener('click',function(){ this.classList.remove('show'); });
   document.addEventListener('keydown',function(e){
     if(e.key!=='Escape') return;
+    if(document.documentElement.classList.contains('nav-open')){ closeNavDrawer(); return; }
     if(document.getElementById('lightbox').classList.contains('show')){ document.getElementById('lightbox').classList.remove('show'); return; }
     if(document.getElementById('news-scrim').classList.contains('show')){ closeNewsEditor(); return; }
     if(document.getElementById('members-scrim').classList.contains('show')){ closeMembers(); return; }

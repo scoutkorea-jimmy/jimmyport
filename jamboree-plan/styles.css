@@ -54,40 +54,47 @@ body{background:var(--bg);color:var(--ink);
 /* line icons */
 .ic{display:inline-block;width:1em;height:1em;vertical-align:-.14em;flex:0 0 auto;stroke-width:1.9}
 
-/* ---- sync bar ---- */
-.syncbar{position:sticky;top:0;z-index:30;background:rgba(243,244,241,.86);backdrop-filter:saturate(1.4) blur(10px);
-  border-bottom:1px solid var(--line);margin:0 -22px;padding:11px 22px;display:flex;gap:12px;align-items:center}
-.orgtag{font-weight:700;color:var(--accent-ink);font-size:var(--fs-1);letter-spacing:-.01em}
-/* 배포 버전 — 현장에서 "지금 보는 게 최신인가"를 묻지 않고 눈으로 확인하게. 자리를 뺏지 않게 작게.
-   숫자라 자리가 흔들리지 않도록 mono. 비어 있으면(로드 전·실패) 아예 숨겨 빈 칩이 남지 않게. */
+/* ===== 컨텍스트 바 (v0.9.215) =====
+ * 상단바 + 헤더 2층(약 260px)을 한 줄로 합쳤다. 정체성은 사이드바가 들고 있으므로
+ * 여기 남는 것은 "지금 보는 화면 + 지금 필요한 것"뿐 — 화면 이름 · 날씨 · D-day · 저장 상태 · 계정.
+ * sticky: 스크롤해도 D-day 와 저장 상태는 늘 보여야 한다(현장에서 계속 확인하는 값). */
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:rgba(247,248,247,.88);backdrop-filter:saturate(1.4) blur(10px);   /* = --bg #F7F8F7 88% */
+  border-bottom:1px solid var(--line);margin:0 -28px 20px;padding:9px 28px}
+.tb-title{font-size:var(--fs-4);font-weight:800;margin:0;letter-spacing:-.01em;color:var(--ink);white-space:nowrap}
+.tb-menu{display:none;align-items:center;justify-content:center;width:var(--h-ctl);height:var(--h-ctl);flex:0 0 auto;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:var(--r-1);cursor:pointer}
+.tb-acts{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .vertag{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-1);font-weight:700;color:var(--muted);
         background:var(--surface-3);border:1px solid var(--line);border-radius:var(--pill);padding:2px 7px;letter-spacing:0}
 .vertag:empty{display:none}
-.syncbar .st{font-size:var(--fs-1);color:var(--muted);display:inline-flex;align-items:center;gap:5px}
-.syncbar .st b{color:var(--accent-ink);font-weight:600}
-.syncbar .st.ok::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--st-ready)}
-
-/* ---- header ----
-   사이드바가 정체성(엠블럼·보드 이름)을 이미 들고 있다. 헤더에서 같은 것을 또 말하면
-   매 화면 세로 공간만 먹으므로, PC 에서는 엠블럼·슬로건을 접고 제목 + 기간·장소 + 날씨 + D-day 만 남긴다. */
-header.top{display:flex;gap:18px;align-items:center;padding:24px 0 20px;border-bottom:1px solid var(--line);margin-bottom:22px}
-@media(min-width:1024px){
-  header.top{padding:20px 0 16px;margin-bottom:18px}
-  header.top .emblem{display:none}
-  header.top .eyebrow,header.top .sub{display:none}
-  header.top h1{font-size:var(--fs-6)}
-  header.top .metarow{margin-top:8px}
-  header.top .wxc{margin-top:10px}
-  header.top .clock{margin-top:10px}
+.st{font-size:var(--fs-1);color:var(--muted);display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
+.st b{color:var(--accent-ink);font-weight:600}
+.st.ok::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--st-ready);flex:0 0 auto}
+.orgtag{display:none}   /* 조직명은 사이드바 브랜드가 말한다 */
+/* 컨텍스트 바 한 줄 — 날씨의 설명·지역은 접는다(날씨 모달이 전부 보여준다) */
+.topbar .wxc{flex:0 1 auto;min-width:0;padding:5px 12px}
+.topbar .wxc-d,.topbar .wxc-loc{display:none}
+.topbar .clock{flex:0 0 auto;margin-top:0;padding:6px 12px}
+@media(max-width:1279px){ .topbar .wxc{display:none} }   /* 좁아지면 날씨부터 접는다 — D-day 가 우선 */
+@media(min-width:1024px){ .topbar{flex-wrap:nowrap} }    /* 한 줄은 PC 에서만 — 폰에선 접혀야 화면 안에 들어온다 */
+@media(max-width:520px){ .topbar .st{display:none} }     /* 폰: 저장 상태는 토스트가 알린다 */
+@media(max-width:1023px){
+  .topbar{margin:0 -13px 14px;padding:9px 13px}
+  .tb-menu{display:inline-flex}
+  .tb-title{font-size:var(--fs-3)}
 }
-.emblem{width:62px;height:62px;flex:0 0 auto;border-radius:50%;background:#fff;box-shadow:var(--sh-1);padding:4px;border:1px solid var(--line-2)}
-.htext{min-width:0}
-.eyebrow{font-size:var(--fs-1);letter-spacing:.02em;color:var(--accent-ink);font-weight:700;margin:0 0 5px;text-transform:none}
+
+/* (구 header.top — 엠블럼·보드명·슬로건·기간 블록은 v0.9.215 에서 제거했다. 정체성은 사이드바 브랜드가,
+    기간·장소는 대시보드 D-day 배너가 이미 말한다. 아래 규칙은 로그인 게이트·대시보드가 계속 쓴다.) */
+.emblem{width:62px;height:62px;flex:0 0 auto;border-radius:50%;background:var(--surface-2);box-shadow:var(--sh-1);padding:4px;border:1px solid var(--line-2)}
+.eyebrow{font-size:var(--fs-1);letter-spacing:.02em;color:var(--accent-ink);font-weight:700;margin:0 0 5px}
 h1{font-size:var(--fs-7);font-weight:800;margin:0 0 6px;letter-spacing:-.02em;line-height:1.2}
-#m-title{font-weight:700}
 .sub{color:var(--muted);font-size:var(--fs-1);margin:0}
 .metarow{display:flex;flex-wrap:wrap;gap:5px 20px;margin-top:13px;font-size:var(--fs-1);color:var(--muted)}
 .metarow b{color:var(--ink-2);font-weight:600;margin-right:5px}
+
+/* ---- 날씨 · D-day (컨텍스트 바에 들어가는 조각) ---- */
 /* 헤더 컴팩트 날씨 — 행사기간(metarow)과 D-day(clock) 사이 한 줄 */
 .wxc{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:var(--fs-1);color:var(--ink-2);
   background:var(--surface);border:1px solid var(--line);border-radius:var(--pill);padding:6px 15px;width:fit-content}
@@ -169,8 +176,15 @@ h1{font-size:var(--fs-7);font-weight:800;margin:0 0 6px;letter-spacing:-.02em;li
 .side-who span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:1023px){
   .app{display:block}
-  .side{display:none}
+  /* 폰에서는 사이드바를 화면 밖에 두고 햄버거로 끌어온다 — 자리를 먹지 않으면서 14개 어디로든 한 번에.
+     하단 탭(공간 4개 = 엄지로 빠르게)은 그대로 둔다. 둘은 역할이 다르다. */
+  .side{position:fixed;top:0;left:0;bottom:0;width:min(280px,84vw);height:100dvh;z-index:70;
+    transform:translateX(-101%);transition:transform .22s var(--ease);box-shadow:var(--sh-3)}
+  html.nav-open .side{transform:none}
+  .side-scrim{position:fixed;inset:0;background:rgba(22,32,26,.4);z-index:69;opacity:0;pointer-events:none;transition:opacity .2s}
+  html.nav-open .side-scrim{opacity:1;pointer-events:auto}
 }
+@media(min-width:1024px){ .side-scrim{display:none} }
 
 /* 세부바(모바일) — 사이드바가 숨는 폭에서 현재 공간의 뷰만 */
 .subbar{display:none}

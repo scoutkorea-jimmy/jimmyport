@@ -91,7 +91,8 @@ async function goViaBot(p, v) {
   await new Promise((r) => setTimeout(r, 700));
   const mb = await p.evaluate(() => {
     const bn = document.getElementById('botnav').getBoundingClientRect();
-    return { wsbar: getComputedStyle(document.querySelector('.side')).display,
+    const sd = document.querySelector('.side').getBoundingClientRect();
+    return { sideOff: Math.round(sd.right) <= 0,
       pos: getComputedStyle(document.getElementById('botnav')).position,
       n: document.querySelectorAll('#botnav .bn').length,
       atBottom: Math.round(bn.bottom) === window.innerHeight,
@@ -100,7 +101,21 @@ async function goViaBot(p, v) {
       on: (document.querySelector('#botnav .bn.on span') || {}).textContent,
       ready: document.documentElement.classList.contains('botnav-ready') };
   });
-  chk('사이드바 숨김(모바일) — 하단 탭이 대신한다', mb.wsbar === 'none');
+  chk('사이드바는 화면 밖(모바일) — 자리를 먹지 않는다', mb.sideOff === true);
+  // 햄버거 → 드로어. 하단 탭(공간 4개)과 역할이 다르다: 드로어는 14개 어디로든 한 번에.
+  await p.evaluate(() => document.getElementById('nav-toggle').click());
+  await new Promise((r) => setTimeout(r, 500));   // 드로어 transition(.22s)
+  const dr = await p.evaluate(() => {
+    // 애니메이션 중이라 픽셀이 정확히 0 이 아닐 수 있다 → "화면 안으로 들어왔는가"로 본다(닫힘은 -283).
+    const L = Math.round(document.querySelector('.side').getBoundingClientRect().left);
+    const open = document.documentElement.classList.contains('nav-open') && L > -40;
+    const items = document.querySelectorAll('.side-item[data-v]').length;
+    const cls = document.documentElement.className;
+    document.querySelector('.side-item[data-v="library"]').click();
+    return { open, L, items, cls, closed: !document.documentElement.classList.contains('nav-open'), view: curViewMode };
+  });
+  chk('햄버거 → 드로어 열림 · 14항목', dr.open && dr.items === 14, dr.items + '항목 · left=' + dr.L + ' · cls=' + dr.cls);
+  chk('항목 고르면 드로어가 닫히고 그 화면으로', dr.closed && dr.view === 'library', dr.view);
   chk('하단 탭 그려진 뒤에만 상단 숨김(botnav-ready)', mb.ready === true && mb.n > 0, 'ready=' + mb.ready);
   chk('하단 탭 고정 · 4공간', mb.pos === 'fixed' && mb.n === 4 && mb.atBottom, mb.n + '공간');
   chk('탭 터치 타깃 ≥48px', mb.tap >= 48, mb.tap + 'px');
