@@ -373,6 +373,26 @@ const SEED = () => {
   });
   chk('슈퍼스타J 5회차 일정표 병합(멱등)', ssj.n === 5 && ssj.place === '소무대' && ssj.cat === '행사', ssj.n + '건 @' + ssj.place);
   chk('슈퍼스타J → 촬영 리스트 + 촬영 포인트 시드', ssj.shoot === 5 && /첫 참가팀/.test(ssj.pt || ''), ssj.shoot + '행 · ' + (ssj.pt || ''));
+  // ⚠️ v0.9.210 의 @container 규칙이 폭 58px 레인의 제목을 통째로 숨겨 "일정이 추가 안 된" 것처럼 보이게 했다.
+  // 데이터가 있는데 화면에서 사라지는 실패는 사용자가 발견하기 전에 여기서 걸려야 한다(기본 = 전체 기간 뷰).
+  await go('timetable');   // ⚠️ 숨겨진 섹션에서 재면 전부 0px 라 "안 보임"으로 잡힌다 — 반드시 일정표를 띄운 뒤 측정
+  const vis = await page.evaluate(() => {
+    ttMode = 'period'; renderTimetable();
+    const out = { total: 0, blank: [] };
+    document.querySelectorAll('.ttg-ev[data-id]').forEach((e) => {
+      const t = e.querySelector('.ttg-evt'); if (!t || !t.textContent.trim()) return;
+      out.total++;
+      const r = t.getBoundingClientRect();
+      if (getComputedStyle(t).display === 'none' || r.width < 1 || r.height < 1)
+        out.blank.push(e.getAttribute('data-id') + ' "' + t.textContent.trim().slice(0, 12) + '"');
+    });
+    return out;
+  });
+  chk('전체 기간 뷰: 제목 있는 블록은 글자가 보인다(숨김 0)', vis.blank.length === 0,
+    vis.blank.length ? vis.blank.slice(0, 3).join(' | ') : vis.total + '블록 검사');
+  const zn = await page.evaluate(() => ({ so: zoneForPlace('소무대'), main: zoneForPlace('메인무대'), stadium: zoneForPlace('메인 스타디움') }));
+  chk('소무대는 메인무대로 잘못 매칭되지 않는다(구역 없음)', zn.so === null && zn.main === 'stage' && zn.stadium === 'stage',
+    '소무대→' + zn.so + ' · 메인무대→' + zn.main);
 
   // 가이드 ④(CLAUDE.md 최우선 규칙): 최소 13px · 버튼 ≥40px · 카드 중첩 금지 · 음수 자간 -3% 이내.
   // v0.9.205 는 "밀집 그리드가 깨진다"며 10.5~11px 에서 멈췄고, 그 후퇴를 잡아줄 테스트가 없어 그대로 남았다.
