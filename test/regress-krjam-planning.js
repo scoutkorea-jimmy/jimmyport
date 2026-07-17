@@ -411,13 +411,14 @@ const SEED = () => {
   const PRs = await page.evaluate(async () => { document.querySelector('[data-press-status]').click(); await new Promise((r) => setTimeout(r, 200)); return window.__pressSave; });
   chk('상태 토글 → status API(released)', PRs && PRs.action === 'status' && PRs.status === 'released', JSON.stringify(PRs));
   const PRn = await page.evaluate(async () => { openPressEditor(null); await new Promise((r) => setTimeout(r, 140));
-    const has = { title: !!document.getElementById('pe-title'), date: !!document.getElementById('pe-date'), outlets: !!document.getElementById('pe-outlets'), body: !!document.getElementById('pe-bodywrap'), status: !!document.getElementById('pe-status'), atts: !!document.getElementById('pe-atts') };
+    const has = { title: !!document.getElementById('pe-title'), date: !!document.getElementById('pe-date'), outlets: !!document.getElementById('pe-outlets'), body: !!document.getElementById('pe-bodywrap'), status: !!document.getElementById('pe-status'), atts: !!document.getElementById('pe-atts'), secs: document.querySelectorAll('#press-body .fl-sec').length };
     document.getElementById('pe-title').value = '새 보도자료'; document.getElementById('pe-title').dispatchEvent(new Event('input', { bubbles: true }));
     document.getElementById('pe-outlets').value = '강원일보'; document.getElementById('pe-outlets').dispatchEvent(new Event('input', { bubbles: true }));
     document.querySelector('#pe-status [data-pst="released"]').click();
     pressEdit.body = '<p>본문</p>'; document.getElementById('press-save').click(); await new Promise((r) => setTimeout(r, 200));
     return { has, save: window.__pressSave }; });
   chk('작성 모달(제목·배포일·매체·본문·상태·첨부) + 저장(released·매체)', PRn.has.title && PRn.has.date && PRn.has.outlets && PRn.has.body && PRn.has.status && PRn.has.atts && PRn.save && PRn.save.title === '새 보도자료' && PRn.save.status === 'released' && PRn.save.outlets === '강원일보', JSON.stringify({ has: PRn.has, s: PRn.save && PRn.save.status }));
+  chk('모달 섹션이 박스로 구분(.fl-sec) — 입력 영역 구분', PRn.has.secs >= 5, PRn.has.secs + '박스');
 
   // ===== 동시편집 유실 방지 — 버전 가드 + 서버 병합 반영 (v0.9.221) =====
   console.log('\n[동시편집 병합]');

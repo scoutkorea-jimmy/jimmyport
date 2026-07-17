@@ -164,6 +164,7 @@ function renderLibTextEditor(){
   if(libTextEditor){ libTextEditor.destroy(); libTextEditor=null; }
   var initHtml = /<[a-z][\s\S]*>/i.test(libTextEdit.body) ? libTextEdit.body : esc(libTextEdit.body).replace(/\n/g,'<br>');
   libTextEditor=mountRichEditor(wrap, initHtml, function(html){ if(libTextEdit) libTextEdit.body=html; });
+  if(typeof sectionizeFl==='function') sectionizeFl(b);
 }
 function commitLibText(){
   if(!libTextEdit) return;

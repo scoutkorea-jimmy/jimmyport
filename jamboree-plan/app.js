@@ -490,6 +490,19 @@ function labelizeTable(el){
     [].forEach.call(tr.children, function(td,i){ var h=heads[i]||''; if(h) td.setAttribute('data-label', h); else td.removeAttribute('data-label'); });
   });
 }
+// .fl 라벨 기반 모달 본문을 섹션 박스(.fl-sec)로 감싼다 — 라벨 + 다음 라벨 전까지의 내용을 한 박스로.
+// 이미 여러 필드를 담은 그룹(내부에 .fl 있는 div, 예: .press-fields)은 그 자체를 박스로. 노드를 '이동'하므로 이벤트·id 보존.
+function sectionizeFl(mbody){
+  if(!mbody) return;
+  [].slice.call(mbody.children).forEach(function(el){
+    var isLabel=el.classList&&el.classList.contains('fl');
+    var isGroup=!isLabel&&el.querySelector&&el.querySelector('.fl');
+    if(isLabel){ var sec=document.createElement('div'); sec.className='fl-sec'; mbody.insertBefore(sec, el); sec.appendChild(el); mbody._sec=sec; }
+    else if(isGroup){ el.classList.add('fl-sec'); mbody._sec=null; }
+    else if(mbody._sec){ mbody._sec.appendChild(el); }
+  });
+  mbody._sec=null;
+}
 function watchDataTables(){
   // prtbl(의전)은 인원별 rowspan 그루핑이라 셀 수가 행마다 달라 라벨 인덱스가 어긋난다 → 스택 제외(가로 스크롤 유지).
   ['contbl','divtbl','rostertbl','mealtbl','mktbl'].forEach(function(id){
@@ -3395,6 +3408,7 @@ function renderNewsEditor(){
   var ti=document.getElementById('news-title'); if(ti) ti.oninput=function(){ newsEdit.title=this.value; };
   renderNewsPhotos();
   mountNewsBodyEditor();
+  sectionizeFl(b);
 }
 // 사진 영역만 갱신 — 본문 에디터를 다시 마운트하지 않아 작성 중 내용이 보존된다
 function renderNewsPhotos(){
@@ -3549,6 +3563,7 @@ function renderPressEditor(){
   if(pressBodyEditor){ pressBodyEditor.destroy(); pressBodyEditor=null; }
   var initHtml=/<[a-z][\s\S]*>/i.test(pressEdit.body)?pressEdit.body:esc(pressEdit.body).replace(/\n/g,'<br>');
   pressBodyEditor=mountRichEditor(wrap, initHtml, function(html){ if(pressEdit) pressEdit.body=html; });
+  sectionizeFl(b);
 }
 function renderPressAtts(){
   var sec=document.getElementById('pe-atts'); if(!sec||!pressEdit) return;
@@ -3673,6 +3688,7 @@ function renderTipEditor(){
   b.querySelector('#tip-zone').onchange=function(){ tipEdit.zone=this.value; };
   b.querySelector('#tip-text').oninput=function(){ tipEdit.text=this.value; };
   var fi=b.querySelector('#tip-file'); if(fi) fi.onchange=function(){ handleTipFiles(this.files); };
+  sectionizeFl(b);
 }
 function handleTipFiles(files){
   if(!files||!files.length||!tipEdit) return;

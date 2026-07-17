@@ -343,6 +343,15 @@ section{margin-top:34px}
 /* 일정 편집 모달 폼 */
 .evfld{margin-top:13px}
 .evfld>label{display:block;font-size:var(--fs-1);font-weight:700;color:var(--muted);margin-bottom:6px}
+/* 모달 섹션을 또렷한 박스로 — 항목 많은 모달(TT·이벤트·제보·기사·보도자료 등)의 영역·입력 구분.
+   슬롯 모달(.slot .fld)과 같은 톤: 연회색 패널 + 헤어라인 + 흰 입력. .evfld / .fl 둘 다 지원. */
+.mbody .evfld,.mbody .fl-sec{margin-top:10px;background:var(--surface-3);border:1px solid var(--line);border-radius:var(--r-2);padding:13px 15px}
+.mbody .evfld:first-child,.mbody .fl-sec:first-child{margin-top:2px}
+.mbody .evfld>label,.mbody .fl-sec .fl{margin-bottom:8px;color:var(--ink-2)}
+.mbody .evfld :is(.evinput,input[type=text],input[type=number],input[type=date],select,textarea),
+.mbody .fl-sec :is(.ti,.ta,input[type=text],input[type=number],input[type=date],select,textarea){background:var(--surface)}
+.mbody .shrow2{gap:10px}
+.mbody .shrow2 .evfld{margin-top:10px}
 .evinput{width:100%;font:inherit;font-size:var(--fs-3);padding:12px 14px;min-height:48px;border:1px solid transparent;border-radius:var(--r-field);background:var(--field-bg);color:var(--ink);box-sizing:border-box;transition:var(--ease)}
 .evinput:focus{outline:none;border-color:var(--accent);background:var(--field-bg-focus);box-shadow:0 0 0 3px var(--accent-soft)}
 .evrow{display:flex;align-items:center;gap:8px} .evrow .evinput{flex:1}
