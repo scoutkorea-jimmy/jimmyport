@@ -1024,6 +1024,15 @@ html.pw-ok #auth-gate{display:none}
 .libimg.libdoc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--accent-ink);text-decoration:none}
 .libimg.libdoc .ic{width:18px;height:18px}
 .libimg.libdoc span{font-size:var(--fs-1);font-weight:700;color:var(--muted);letter-spacing:.03em}
+/* 텍스트형 자료 — 파일 없이 리치텍스트 본문 */
+.libimg.libtextthumb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:var(--accent-soft);color:var(--accent-ink)}
+.libimg.libtextthumb .ic{width:18px;height:18px}
+.libimg.libtextthumb span{font-size:var(--fs-1);font-weight:700;color:var(--accent-ink);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libcard.istext{border-left:3px solid var(--accent)}
+.apv-text{border:1px solid var(--line);border-radius:var(--r-2);background:var(--surface);padding:16px 18px;margin-bottom:12px;max-height:56vh;overflow:auto;font-size:var(--fs-2);line-height:1.7;color:var(--ink)}
+.apv-text .muted{color:var(--muted)}
+.apv-audio{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 20px;color:var(--muted)}
+.apv-audio audio{width:100%;max-width:420px}
 .news-empty{grid-column:1/-1;text-align:center;color:var(--muted);font-size:var(--fs-1);padding:40px 20px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--r-2)}
 .news-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;box-shadow:var(--sh-1);display:flex;flex-direction:column}
 .news-photos{display:grid;gap:2px;background:var(--line-2)}

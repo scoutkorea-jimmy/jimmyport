@@ -1365,6 +1365,32 @@ function buildToolbar(tb, ed){
   function sync(){ items.forEach(function(b){ if(b._active){ try{ b.classList.toggle('on', !!b._active()); }catch(e){} } }); }
   ed.on('selectionUpdate',sync); ed.on('transaction',sync); sync();
 }
+/* 공용 리치텍스트 마운트 — wrap 안에 툴바+에디터를 만들고 Tiptap(실패 시 contentEditable 폴백)을 붙인다.
+   onUpdate(html) 로 변경을 통지. 반환 handle 의 .editor 는 async 로 채워지며, 닫을 때 destroy() 로 정리한다.
+   기사 본문·텍스트 자료 등 여러 곳이 같은 스택을 쓰도록 한 곳으로 모음(중복 마운트 코드 제거). */
+function mountRichEditor(wrap, initHtml, onUpdate){
+  var handle={editor:null, destroy:function(){ if(this.editor){ try{this.editor.destroy();}catch(e){} this.editor=null; } }};
+  var tb=document.createElement('div'); tb.className='tt-toolbar';
+  var ed=document.createElement('div'); ed.className='tt-editor';
+  wrap.innerHTML=''; wrap.appendChild(tb); wrap.appendChild(ed);
+  function fallback(){
+    ed.contentEditable='true'; ed.classList.add('fallback'); ed.setAttribute('data-ph','내용을 입력하세요');
+    ed.innerHTML=initHtml||'';
+    tb.innerHTML='<span class="note" style="margin:0">서식 도구를 불러오지 못했습니다 — 일반 텍스트로 작성됩니다.</span>';
+    ed.addEventListener('input',function(){ onUpdate(ed.innerHTML); });
+  }
+  if(window.__ttReady){
+    window.__ttReady.then(function(TT){
+      if(!document.body.contains(wrap)) return;    // 모달이 닫혔거나 다시 열렸으면 무시
+      if(!TT){ fallback(); return; }
+      try{
+        handle.editor=new TT.Editor({element:ed, extensions:TT.extensions, content:initHtml||'', onUpdate:function(){ onUpdate(handle.editor.getHTML()); }});
+        buildToolbar(tb, handle.editor);
+      }catch(err){ console.warn('rich editor init failed',err); fallback(); }
+    });
+  } else fallback();
+  return handle;
+}
 function fld(label, inputNode){
   var f=document.createElement('div'); f.className='fld';
   var l=document.createElement('label'); l.textContent=label; f.appendChild(l); f.appendChild(inputNode); return f;
@@ -3316,30 +3342,12 @@ function renderNewsPhotos(){
   sec.innerHTML=slots+addSlot;
   var fi=document.getElementById('news-file'); if(fi) fi.onchange=function(){ handleNewsFiles(this.files); };
 }
-// 본문 = Tiptap 리치텍스트(SNS 문구 에디터와 동일 스택). 실패 시 contentEditable 폴백.
+// 본문 = Tiptap 리치텍스트(공용 mountRichEditor). 실패 시 contentEditable 폴백.
 function mountNewsBodyEditor(){
   var wrap=document.getElementById('news-bodywrap'); if(!wrap||!newsEdit) return;
-  if(newsBodyEditor){ try{newsBodyEditor.destroy();}catch(e){} newsBodyEditor=null; }
+  if(newsBodyEditor){ newsBodyEditor.destroy(); newsBodyEditor=null; }
   var initHtml = /<[a-z][\s\S]*>/i.test(newsEdit.body) ? newsEdit.body : esc(newsEdit.body).replace(/\n/g,'<br>');
-  var tb=document.createElement('div'); tb.className='tt-toolbar';
-  var ed=document.createElement('div'); ed.className='tt-editor';
-  wrap.innerHTML=''; wrap.appendChild(tb); wrap.appendChild(ed);
-  function fallback(){
-    ed.contentEditable='true'; ed.classList.add('fallback'); ed.setAttribute('data-ph','기사 내용을 입력하세요');
-    ed.innerHTML=initHtml;
-    tb.innerHTML='<span class="note" style="margin:0">서식 도구를 불러오지 못했습니다 — 일반 텍스트로 작성됩니다.</span>';
-    ed.addEventListener('input',function(){ newsEdit.body=ed.innerHTML; });
-  }
-  if(window.__ttReady){
-    window.__ttReady.then(function(TT){
-      if(document.getElementById('news-bodywrap')!==wrap || !newsEdit) return;   // 모달이 닫혔거나 다시 열렸으면 무시
-      if(!TT){ fallback(); return; }
-      try{
-        newsBodyEditor=new TT.Editor({element:ed, extensions:TT.extensions, content:initHtml, onUpdate:function(){ newsEdit.body=newsBodyEditor.getHTML(); }});
-        buildToolbar(tb, newsBodyEditor);
-      }catch(err){ console.warn('news editor init failed',err); fallback(); }
-    });
-  } else fallback();
+  newsBodyEditor=mountRichEditor(wrap, initHtml, function(html){ if(newsEdit) newsEdit.body=html; });
 }
 function handleNewsFiles(files){
   if(!files||!files.length||!newsEdit) return;
@@ -4068,6 +4076,11 @@ function init(){
   // 자료실(라이브러리) 배선
   var lfp=document.getElementById('lib-file-plan'); if(lfp) lfp.addEventListener('change',function(){ openLibUpload(this.files,'plan'); this.value=''; });
   var lfm=document.getElementById('lib-file-media'); if(lfm) lfm.addEventListener('change',function(){ openLibUpload(this.files,'media'); this.value=''; });
+  var lta=document.getElementById('lib-text-add'); if(lta) lta.onclick=function(){ openLibText(null); };
+  var ltx=document.getElementById('libtext-close'); if(ltx) ltx.onclick=closeLibText;
+  var ltc=document.getElementById('libtext-cancel'); if(ltc) ltc.onclick=closeLibText;
+  var lts=document.getElementById('libtext-save'); if(lts) lts.onclick=commitLibText;
+  var ltsc=document.getElementById('libtext-scrim'); if(ltsc) ltsc.addEventListener('click',function(e){ if(e.target===ltsc) closeLibText(); });
   var lbx=document.getElementById('lib-close'); if(lbx) lbx.onclick=closeLibUpload;
   var lbc=document.getElementById('lib-cancel'); if(lbc) lbc.onclick=closeLibUpload;
   var lbu=document.getElementById('lib-upload'); if(lbu) lbu.onclick=commitLibUpload;

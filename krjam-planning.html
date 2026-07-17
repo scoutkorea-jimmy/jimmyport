@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.217"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.217">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.217">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.218"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.218">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.218">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -138,11 +138,12 @@
     <div class="sec-head">
       <h2><span data-ic="image" data-ic-size="17" style="vertical-align:-3px"></span> 자료실</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <label class="btn sm" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 운영 계획서 올리기<input type="file" id="lib-file-plan" accept=".pdf,.hwp,.hwpx,.ppt,.pptx,.doc,.docx,.xls,.xlsx,image/*" multiple hidden></label>
+        <button class="btn sm" id="lib-text-add"><span data-ic="edit" data-ic-size="14"></span> 텍스트 자료 작성</button>
+        <label class="btn sm" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 문서·파일 올리기<input type="file" id="lib-file-plan" multiple hidden></label>
         <label class="btn sm solid" style="cursor:pointer"><span data-ic="plus" data-ic-size="14"></span> 카드뉴스·사진 올리기<input type="file" id="lib-file-media" accept="image/*" multiple hidden></label>
       </div>
     </div>
-    <p class="note"><b>잼버리 운영 계획서</b>(문서·PDF)와 <b>카드뉴스·현장 사진</b>을 구분해 보관합니다. 서버에 저장되며, 아래 구분 탭·태그·검색으로 찾아 재사용하세요. <b>파일 1개당 100MB</b>까지 · 사진은 자동 축소됩니다. (삭제는 올린 사람·관리자)</p>
+    <p class="note"><b>운영 계획서·참고 문서·PDF·오디오(mp3)·이미지 등 어떤 파일</b>이든, 그리고 <b>카드뉴스·현장 사진</b>을 구분해 보관합니다. <b>참고자료·공지사항</b>은 <b>텍스트 자료 작성</b>으로 서식 편집기에서 바로 씁니다. 아래 구분 탭·태그·검색으로 찾아 재사용하세요. <b>파일 1개당 100MB</b>까지 · 사진은 자동 축소됩니다. (삭제는 올린 사람·관리자)</p>
     <div class="lib-bar"><div class="libcats" id="lib-cats"></div><div class="calsearch"><span data-ic="search" data-ic-size="15"></span><input id="lib-search" type="search" placeholder="이름·태그 검색"></div><div class="lib-tags" id="lib-tags"></div></div>
     <div class="libprog" id="lib-progress" style="display:none"><div class="libprog-h"><span id="lib-progress-t"></span><span id="lib-progress-p"></span></div><div class="pbar"><i id="lib-progress-f"></i></div></div>
     <div class="libgrid" id="lib-grid"></div>
@@ -541,6 +542,21 @@
   </div>
 </div>
 
+<div class="scrim" id="libtext-scrim">
+  <div class="modal" style="max-width:760px" role="dialog" aria-modal="true">
+    <div class="mhead">
+      <div class="mt" id="libtext-mtitle">텍스트 자료 작성</div>
+      <button class="x" id="libtext-close" aria-label="닫기"><span data-ic="x" data-ic-size="17"></span></button>
+    </div>
+    <div class="mbody" id="libtext-body"></div>
+    <div class="mfoot">
+      <span class="spacer"></span>
+      <button class="btn ghost sm" id="libtext-cancel">닫기</button>
+      <button class="btn solid" id="libtext-save">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="scrim" id="tsch-scrim">
   <div class="modal" style="max-width:480px" role="dialog" aria-modal="true">
     <div class="mhead">
@@ -606,12 +622,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.217"></script>
+<script src="jamboree-plan/core.js?v=0.9.218"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.217"></script>
+<script src="jamboree-plan/upload.js?v=0.9.218"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.217"></script>
-<script src="jamboree-plan/app.js?v=0.9.217"></script>
-<script src="version-watch.js?v=0.9.217"></script>
+<script src="jamboree-plan/library.js?v=0.9.218"></script>
+<script src="jamboree-plan/app.js?v=0.9.218"></script>
+<script src="version-watch.js?v=0.9.218"></script>
 </body>
 </html>

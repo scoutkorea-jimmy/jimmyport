@@ -1295,6 +1295,13 @@ WOSM Region → 국가(NSO) → 단위대
 - **④ 세그 줄바꿈**: `.statusseg button`·`.card .seg button` 에 `white-space:nowrap`(+ statusseg padding 0→0 6px) → 좁아도 '작성중' 한 줄.
 - 검증: `node --check`(app·editor·jp-news) + 회귀 **78→87/87**(보드 열 4종: 슬라이더·칩5·`--board-colw` 갱신·열 숨김→컬럼 감소 / 기사 목차 5종: 6열·글번호·토글존재·제목클릭 본문펼침(strong 정화)·퍼블리싱 flags API) · nav 19/19 · jebo 29/29 + 헤드리스 스크린샷(목차 표·리치 에디터 24툴바·보드 열 컨트롤·지도 30% 오버레이, **콘솔 에러 0**, Tiptap 실제 로드 확인). 운영 KV 파괴적 쓰기 없음.
 
+### 16.80 v0.9.218 — 자료실: 텍스트형 자료(참고자료·공지사항, 리치텍스트) + 모든 파일 형식(mp3 등) 허용
+- 사용자 2건(대화 중 순차): (1) 자료실에 운영계획서·PDF 외 **참고자료·공지사항 등 텍스트형 자료**를 텍스트 편집기로 작성·관리, (2) **mp3·기타 형태의 문서 등 어떤 파일**이든 올리기.
+- **① 텍스트형 자료**(파일 없이 리치텍스트 본문): `jp-assets.js` 에 `kind:'text'` 도입 — POST `{kind:'text',name,category,body(HTML),tags}`(파일 URL 없음), PATCH 에 `body` 수정 추가, 본문 40000자. 파일 자료는 `kind:'file'` 명시(구버전=file 취급). 카테고리 기본 `notice`. 클라(`library.js`): `LIB_BASE` 에 **참고자료(reference)·공지사항(notice)** 추가. `isTextAsset` · 텍스트 카드(`libtextthumb` 아이콘·accent 좌측선·**받기 버튼 없음**) · `openAsset` 텍스트 분기(**`sanitizeHtml` 정화 본문**만·받기/새탭 숨김) · `openAssetEdit` 텍스트면 전용 편집 모달로. 신규 모달 `#libtext-scrim`(제목·구분 datalist·**Tiptap 본문**·태그) — `openLibText`/`renderLibTextEditor`/`commitLibText`, 저장=POST(새)·PATCH(수정). '텍스트 자료 작성' 버튼.
+- **② 모든 파일 형식**: '운영 계획서 올리기' → **'문서·파일 올리기'**, `accept` 속성 **제거**(모든 파일 허용 — mp3·오디오·비디오·문서 등). 저장은 기존대로 `/api/file`(≤8MB KV) · `/api/r2`(>8MB) 가 임의 content-type 처리(이미 지원). `docLabel` 에 MP3/AUDIO/VIDEO 라벨, `isAudioAsset`, `openAsset` **오디오=`<audio controls>` 인라인 플레이어**(inline=1). (파일당 100MB 상한 유지.)
+- **리팩터링**: 기사 본문·텍스트 자료가 같은 Tiptap 스택을 쓰므로 마운트 코드를 **공용 `mountRichEditor(wrap,initHtml,onUpdate)`**(app.js, `buildToolbar` 재사용, 실패 시 contentEditable 폴백, handle.destroy())로 모음 — `mountNewsBodyEditor` 도 이걸 쓰도록 정리(중복 제거). editor.js placeholder 'SNS 게시 문구'→'내용을 입력하세요'(§16.79).
+- 검증: `node --check`(app·library·jp-assets) + 회귀 **87→91/91**(자료실: 4건[파일·텍스트·오디오]·구분탭 전체+5 / 텍스트 보기=리치 본문·받기 숨김 / 텍스트 작성 모달·저장 kind:text / 오디오 audio 플레이어 / accept 제한 없음. 기사 목차 5종은 mountRichEditor 리팩터 후에도 유지) · nav 19/19 · jebo 29/29 + 헤드리스 스크린샷(자료실 목록[텍스트 accent·MP3 라벨]·텍스트 보기[제목/헤딩/불릿/태그/메타·받기 없음]·텍스트 편집기 24툴바, **콘솔 에러 0**, Tiptap 실제 로드). 운영 KV 파괴적 쓰기 없음.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-16 — krjam-planning 라이브 KV 일정표 종류 색 정정 (v0.9.171 STEP3)

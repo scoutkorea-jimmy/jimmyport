@@ -10,8 +10,9 @@
  * 상태 소유: libItems/libLoaded/libSearch/libTag/libCat/assetCur/libUp 는 이 파일만 변경한다.
  */
 var libItems=[], libLoaded=false, libSearch='', libTag='', libCat='';
-// 기본 3종은 키/한글라벨 매핑, 그 외 사용자 정의 카테고리는 문자열 그대로가 라벨(자유 추가)
-var LIB_BASE=[['plan','잼버리 운영 계획서'],['cardnews','카드뉴스 자료'],['photo','사진·기타']];
+// 기본 카테고리는 키/한글라벨 매핑, 그 외 사용자 정의 카테고리는 문자열 그대로가 라벨(자유 추가)
+var LIB_BASE=[['plan','잼버리 운영 계획서'],['reference','참고자료'],['notice','공지사항'],['cardnews','카드뉴스 자료'],['photo','사진·기타']];
+function isTextAsset(a){ return a && a.kind==='text'; }   // 텍스트형 자료(파일 없이 리치텍스트 본문)
 function libBaseLabel(c){ for(var i=0;i<LIB_BASE.length;i++) if(LIB_BASE[i][0]===c) return LIB_BASE[i][1]; return null; }
 function libCatLabel(c){ return libBaseLabel(c) || c || '사진·기타'; }
 // 입력값(라벨 또는 키) → 저장용 카테고리 키. 기본 라벨/키는 기본 키로, 그 외는 문자열 그대로
@@ -24,7 +25,9 @@ function docLabel(ct){ ct=(ct||'').toLowerCase();
   if(/pdf/.test(ct)) return 'PDF'; if(/hwp/.test(ct)) return 'HWP';
   if(/presentation|powerpoint/.test(ct)) return 'PPT'; if(/sheet|excel/.test(ct)) return 'XLS';
   if(/word|document/.test(ct)) return 'DOC'; if(/zip|compress/.test(ct)) return 'ZIP';
+  if(/mpeg|mp3/.test(ct)) return 'MP3'; if(/^audio\//.test(ct)) return 'AUDIO'; if(/^video\//.test(ct)) return 'VIDEO';
   var seg=ct.split('/').pop()||''; return (seg.split('.').pop()||'FILE').toUpperCase().slice(0,8); }
+function isAudioAsset(a){ return /^audio\//i.test(a.ct||'') || /\.(mp3|m4a|wav|ogg|aac)$/i.test(a.name||''); }
 function loadLibrary(){
   fetch('/api/jp-assets').then(function(r){return r.json();}).then(function(j){ libItems=(j&&j.assets)||[]; libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); })
     .catch(function(){ libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); });
@@ -33,17 +36,19 @@ function libAllTags(){ var s={}; libItems.forEach(function(a){ (a.tags||[]).forE
 /* 카드 클릭 = 자료 미리보기(무슨 자료인지 확인) — 받기는 카드 안 버튼으로 별도 */
 function libCardHtml(a){
   var canDel=Auth.isAdmin()||(Auth.username&&a.author===Auth.username);
-  var img=isImageAsset(a);
-  var thumb=img
-    ? '<div class="libimg"><img src="'+esc(a.url)+'" alt="" loading="lazy"></div>'
+  var text=isTextAsset(a), img=!text&&isImageAsset(a);
+  var thumb = text
+    ? '<div class="libimg libtextthumb">'+icon('fileText',28)+'<span>'+esc(libCatLabel(assetCat(a)))+'</span></div>'
+    : img ? '<div class="libimg"><img src="'+esc(a.url)+'" alt="" loading="lazy"></div>'
     : '<div class="libimg libdoc">'+icon('fileText',30)+'<span>'+esc(docLabel(a.ct))+'</span></div>';
-  return '<div class="libcard" data-lib-open="'+esc(a.id)+'" role="button" tabindex="0" title="클릭하면 자료를 미리 봅니다">'+thumb+
-    '<div class="libmeta"><div class="libname">'+esc(a.name||'(이름 없음)')+'</div>'+
+  var tools='<button class="btn xs ghost" data-lib-open="'+esc(a.id)+'">'+icon('search',12)+' 보기</button>';
+  if(!text) tools+='<a class="btn xs ghost" href="'+esc(a.url)+'" download target="_blank" rel="noopener" data-lib-dl>'+icon(img?'image':'fileText',12)+' 받기</a>';
+  if(canDel) tools+='<button class="btn xs ghost danger" data-lib-del="'+esc(a.id)+'">'+icon('trash',12)+' 삭제</button>';
+  return '<div class="libcard'+(text?' istext':'')+'" data-lib-open="'+esc(a.id)+'" role="button" tabindex="0" title="클릭하면 자료를 봅니다">'+thumb+
+    '<div class="libmeta"><div class="libname">'+esc(a.name||'(제목 없음)')+'</div>'+
       ((a.tags&&a.tags.length)?('<div class="libtags">'+a.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>'):'')+
-      '<div class="libsub">'+esc(a.authorName||'')+' · '+esc(fmtNewsTime(a.createdAt))+(a.size?(' · '+fmtMB(a.size)):'')+'</div>'+
-      '<div class="libtools"><button class="btn xs ghost" data-lib-open="'+esc(a.id)+'">'+icon('search',12)+' 보기</button>'+
-        '<a class="btn xs ghost" href="'+esc(a.url)+'" download target="_blank" rel="noopener" data-lib-dl>'+icon(img?'image':'fileText',12)+' 받기</a>'+
-        (canDel?'<button class="btn xs ghost danger" data-lib-del="'+esc(a.id)+'">'+icon('trash',12)+' 삭제</button>':'')+'</div>'+
+      '<div class="libsub">'+esc(a.authorName||'')+' · '+esc(fmtNewsTime(a.createdAt))+(!text&&a.size?(' · '+fmtMB(a.size)):'')+'</div>'+
+      '<div class="libtools">'+tools+'</div>'+
     '</div></div>';
 }
 /* ===== 자료 미리보기 모달 ===== */
@@ -54,25 +59,37 @@ function isPdfAsset(a){ return /pdf/i.test(a.ct||'') || /\.pdf$/i.test(a.name||'
 function openAsset(id){
   var a=assetById(id); if(!a) return;
   assetCur=a;
-  document.getElementById('asset-mtitle').textContent=a.name||'(이름 없음)';
-  var img=isImageAsset(a), pdf=isPdfAsset(a);
-  var prev;
-  if(img) prev='<div class="apv apv-img"><img src="'+esc(a.url)+'" alt=""></div>';
-  else if(pdf) prev='<div class="apv apv-pdf"><iframe src="'+esc(inlineUrl(a.url))+'" title="PDF 미리보기"></iframe></div>';
-  else prev='<div class="apv apv-none">'+icon('fileText',44)+'<b>'+esc(docLabel(a.ct))+'</b>'+
-      '<span>이 형식은 미리보기를 지원하지 않습니다. <b>받기</b>로 내려받아 확인하세요.</span></div>';
-  var rows=[
-    ['구분', libCatLabel(assetCat(a))],
-    ['형식', docLabel(a.ct)+(a.ct?(' · '+a.ct):'')],
-    ['용량', a.size?fmtMB(a.size):'—'],
-    ['올린 사람', a.authorName||'—'],
-    ['올린 날짜', fmtNewsTime(a.createdAt)],
-  ];
-  document.getElementById('asset-body').innerHTML=prev+
-    ((a.tags&&a.tags.length)?('<div class="libtags apv-tags">'+a.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>'):'')+
-    '<dl class="apv-meta">'+rows.map(function(r){ return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'; }).join('')+'</dl>';
-  var dl=document.getElementById('asset-dl'); dl.href=a.url; dl.setAttribute('download','');
+  document.getElementById('asset-mtitle').textContent=a.name||'(제목 없음)';
+  var text=isTextAsset(a), img=!text&&isImageAsset(a), pdf=!text&&isPdfAsset(a), audio=!text&&isAudioAsset(a);
+  var dl=document.getElementById('asset-dl'), aop=document.getElementById('asset-open');
   var canEdit=Auth.isAdmin()||(Auth.username&&a.author===Auth.username);   // 마스터·관리자 또는 업로더 본인
+  if(text){   // 텍스트형 자료 — 리치텍스트 본문(정화)만 표시, 받기·새 탭 없음
+    var meta=[['구분', libCatLabel(assetCat(a))],['올린 사람', a.authorName||'—'],
+      ['올린 날짜', fmtNewsTime(a.createdAt)+((a.updatedAt&&a.updatedAt!==a.createdAt)?' · 수정됨':'')]];
+    document.getElementById('asset-body').innerHTML=
+      '<div class="apv-text news-text">'+(a.body?sanitizeHtml(a.body):'<span class="muted">내용 없음</span>')+'</div>'+
+      ((a.tags&&a.tags.length)?('<div class="libtags apv-tags">'+a.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>'):'')+
+      '<dl class="apv-meta">'+meta.map(function(r){ return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'; }).join('')+'</dl>';
+    dl.style.display='none'; aop.style.display='none';
+  } else {
+    var prev;
+    if(img) prev='<div class="apv apv-img"><img src="'+esc(a.url)+'" alt=""></div>';
+    else if(pdf) prev='<div class="apv apv-pdf"><iframe src="'+esc(inlineUrl(a.url))+'" title="PDF 미리보기"></iframe></div>';
+    else if(audio) prev='<div class="apv apv-audio">'+icon('fileText',30)+'<audio controls preload="none" src="'+esc(inlineUrl(a.url))+'"></audio></div>';
+    else prev='<div class="apv apv-none">'+icon('fileText',44)+'<b>'+esc(docLabel(a.ct))+'</b>'+
+        '<span>이 형식은 미리보기를 지원하지 않습니다. <b>받기</b>로 내려받아 확인하세요.</span></div>';
+    var rows=[
+      ['구분', libCatLabel(assetCat(a))],
+      ['형식', docLabel(a.ct)+(a.ct?(' · '+a.ct):'')],
+      ['용량', a.size?fmtMB(a.size):'—'],
+      ['올린 사람', a.authorName||'—'],
+      ['올린 날짜', fmtNewsTime(a.createdAt)],
+    ];
+    document.getElementById('asset-body').innerHTML=prev+
+      ((a.tags&&a.tags.length)?('<div class="libtags apv-tags">'+a.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>'):'')+
+      '<dl class="apv-meta">'+rows.map(function(r){ return '<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd>'; }).join('')+'</dl>';
+    dl.style.display=''; aop.style.display=''; dl.href=a.url; dl.setAttribute('download','');
+  }
   var del=document.getElementById('asset-del'); del.style.display=canEdit?'':'none';
   var eb=document.getElementById('asset-edit-btn'); if(eb) eb.style.display=canEdit?'':'none';
   document.getElementById('asset-edit').style.display='none';
@@ -85,6 +102,7 @@ function closeAsset(){ document.getElementById('asset-scrim').classList.remove('
 /* 자료 수정 — 이름·카테고리·태그(마스터/관리자 또는 업로더 본인). PATCH /api/jp-assets */
 function openAssetEdit(){
   var a=assetCur; if(!a) return;
+  if(isTextAsset(a)){ closeAsset(); openLibText(a.id); return; }   // 텍스트형은 본문까지 편집하는 전용 모달로
   document.getElementById('asset-body').style.display='none';
   var ed=document.getElementById('asset-edit'); ed.style.display='';
   ed.innerHTML=
@@ -112,6 +130,63 @@ function commitAssetEdit(){
       renderLibrary(); openAsset(a.id); toast('수정됨');
     } else if(j) toast('수정 권한이 없거나 실패했습니다'); });
 }
+/* ===== 텍스트형 자료(참고자료·공지사항) — 리치텍스트 편집기 ===== */
+var libTextEdit=null, libTextEditor=null;   // libTextEdit: {id?, name, category, body(HTML), tags}
+function openLibText(id){
+  if(!Auth.authed()){ toast('로그인 후 작성할 수 있습니다'); return; }
+  var src=id?assetById(id):null;
+  libTextEdit = (src&&isTextAsset(src))
+    ? {id:src.id, name:src.name||'', category:assetCat(src), body:src.body||'', tags:(src.tags||[]).join(', ')}
+    : {name:'', category:'notice', body:'', tags:''};
+  document.getElementById('libtext-mtitle').textContent = (libTextEdit.id?'텍스트 자료 수정':'텍스트 자료 작성');
+  renderLibTextEditor();
+  document.getElementById('libtext-scrim').classList.add('show');
+  setTimeout(function(){ var n=document.getElementById('lt-name'); n&&n.focus(); },40);
+}
+function closeLibText(){
+  if(libTextEditor){ libTextEditor.destroy(); libTextEditor=null; }
+  document.getElementById('libtext-scrim').classList.remove('show'); libTextEdit=null;
+  var b=document.getElementById('libtext-body'); if(b) b.innerHTML='';
+}
+function renderLibTextEditor(){
+  var b=document.getElementById('libtext-body'); if(!b||!libTextEdit) return;
+  b.innerHTML=
+    '<div class="fl">제목</div><input class="ti" id="lt-name" type="text" maxlength="120" placeholder="자료 제목 (예: 8월 촬영 유의사항 · 공지)" value="'+esc(libTextEdit.name)+'">'+
+    '<div class="fl">구분 <span class="libup-cathint">(선택 또는 새로 입력)</span></div>'+
+    '<input class="ti" id="lt-cat" list="lt-catlist" maxlength="40" value="'+esc(libCatLabel(libTextEdit.category))+'">'+
+    '<datalist id="lt-catlist">'+libCats().map(function(c){ return '<option value="'+esc(libCatLabel(c))+'"></option>'; }).join('')+'</datalist>'+
+    '<div class="fl">내용</div><div class="news-bodyed" id="lt-bodywrap"></div>'+
+    '<div class="fl">태그 (쉼표로 구분 · 선택)</div><input class="ti" id="lt-tags" type="text" placeholder="예: 촬영, 공지, 안전" value="'+esc(libTextEdit.tags)+'">';
+  document.getElementById('lt-name').oninput=function(){ libTextEdit.name=this.value; };
+  document.getElementById('lt-cat').oninput=function(){ libTextEdit.category=libCatKey(this.value)||'notice'; };
+  document.getElementById('lt-tags').oninput=function(){ libTextEdit.tags=this.value; };
+  var wrap=document.getElementById('lt-bodywrap');
+  if(libTextEditor){ libTextEditor.destroy(); libTextEditor=null; }
+  var initHtml = /<[a-z][\s\S]*>/i.test(libTextEdit.body) ? libTextEdit.body : esc(libTextEdit.body).replace(/\n/g,'<br>');
+  libTextEditor=mountRichEditor(wrap, initHtml, function(html){ if(libTextEdit) libTextEdit.body=html; });
+}
+function commitLibText(){
+  if(!libTextEdit) return;
+  var name=(libTextEdit.name||'').trim(), bodyHtml=(libTextEdit.body||'').trim();
+  var bodyText=bodyHtml.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim();
+  if(!name && !bodyText){ toast('제목 또는 내용을 입력하세요'); return; }
+  var cat=libCatKey(libTextEdit.category)||'notice';
+  var tags=(libTextEdit.tags||'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+  var editing=!!libTextEdit.id;
+  var payload = editing
+    ? {id:libTextEdit.id, name:name, category:cat, body:bodyHtml, tags:tags}
+    : {kind:'text', name:name, category:cat, body:bodyHtml, tags:tags};
+  fetch('/api/jp-assets',{method:editing?'PATCH':'POST',headers:authJsonHeaders(),body:JSON.stringify(payload)})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('권한이 없습니다'); return null; } return r.json(); })
+    .then(function(j){ if(!j) return;
+      if(j.ok&&j.asset){
+        var i=-1; for(var k=0;k<libItems.length;k++) if(libItems[k].id===j.asset.id) i=k;
+        if(i>=0) libItems[i]=j.asset; else libItems.unshift(j.asset);
+        closeLibText(); renderLibrary(); toast(editing?'수정됨':'텍스트 자료를 저장했습니다');
+      } else toast('저장 실패');
+    })
+    .catch(function(){ toast('네트워크 오류'); });
+}
 function renderLibrary(){
   var grid=document.getElementById('lib-grid'); if(!grid) return;
   // 구분(카테고리) 탭
@@ -130,7 +205,7 @@ function renderLibrary(){
     if(q){ var hay=[(a.name||''),(a.tags||[]).join(' '),(a.authorName||'')].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
     return true;
   });
-  if(!items.length){ grid.innerHTML='<div class="news-empty">자료가 없습니다. 우측 상단 <b>운영 계획서 올리기</b> 또는 <b>카드뉴스·사진 올리기</b>로 추가하세요.</div>'; return; }
+  if(!items.length){ grid.innerHTML='<div class="news-empty">자료가 없습니다. 우측 상단 <b>텍스트 자료 작성</b> · <b>문서·파일 올리기</b> · <b>카드뉴스·사진 올리기</b>로 추가하세요.</div>'; return; }
   // 특정 구분 선택 시 그 구분만, '전체'면 구분별 섹션으로 묶어 표시
   if(libCat){
     var only=items.filter(function(a){ return assetCat(a)===libCat; });

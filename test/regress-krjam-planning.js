@@ -34,8 +34,10 @@ const SEED = () => {
     author: 'tester', authorName: '테스터', published: false, cardnewsDone: false, comments: [],
     createdAt: '2026-07-14T02:00:00Z', updatedAt: '2026-07-14T02:00:00Z' };
   window.__assets = [
-    { id: 'a1', url: '/api/file?id=f1', name: '브랜드 가이드라인', type: 'photo', category: 'plan', ct: 'application/pdf', size: 3348000, tags: ['브랜드'], author: 'admin', authorName: '관리자', createdAt: '2026-07-13T07:07:00Z' },
-    { id: 'a2', url: '/api/image?id=i1', name: '개영식 사진', type: 'photo', category: 'photo', ct: 'image/jpeg', size: 820000, tags: [], author: 'admin', authorName: '관리자', createdAt: '2026-07-12T05:00:00Z' },
+    { id: 'a1', url: '/api/file?id=f1', kind: 'file', name: '브랜드 가이드라인', type: 'photo', category: 'plan', ct: 'application/pdf', size: 3348000, tags: ['브랜드'], author: 'admin', authorName: '관리자', createdAt: '2026-07-13T07:07:00Z' },
+    { id: 'a2', url: '/api/image?id=i1', kind: 'file', name: '개영식 사진', type: 'photo', category: 'photo', ct: 'image/jpeg', size: 820000, tags: [], author: 'admin', authorName: '관리자', createdAt: '2026-07-12T05:00:00Z' },
+    { id: 'a3', kind: 'text', name: '8월 촬영 유의사항', category: 'notice', body: '<p><strong>안전</strong>을 최우선으로.</p><ul><li>초상권 동의</li></ul>', tags: ['공지'], author: 'admin', authorName: '관리자', createdAt: '2026-07-14T01:00:00Z', updatedAt: '2026-07-14T01:00:00Z' },
+    { id: 'a4', url: '/api/file?id=f2', kind: 'file', name: '개영식 현장음', type: 'photo', category: 'reference', ct: 'audio/mpeg', size: 4200000, tags: [], author: 'admin', authorName: '관리자', createdAt: '2026-07-11T05:00:00Z' },
   ];
   const rf = window.fetch;
   window.fetch = (u, o) => {
@@ -49,7 +51,13 @@ const SEED = () => {
       if (o && (o.method === 'PUT' || o.method === 'DELETE')) return J({ ok: true, article: window.__news0 });
       return J({ ok: true, articles: [window.__news0] });
     }
-    if (u.startsWith('/api/jp-assets')) { if (o && o.method === 'DELETE') return J({ ok: true }); if (o && o.method === 'POST') return J({ ok: true, asset: { id: 'new', url: '/api/file?id=n', name: 'n', category: 'plan', ct: 'application/pdf', tags: [], authorName: '관리자', createdAt: '2026-07-15T00:00:00Z' } }); return J({ ok: true, assets: window.__assets }); }
+    if (u.startsWith('/api/jp-assets')) {
+      if (o && o.method === 'DELETE') return J({ ok: true });
+      if (o && (o.method === 'POST' || o.method === 'PATCH')) { const b = JSON.parse(o.body || '{}'); window.__assetSave = b;
+        if (b.kind === 'text' || b.body != null) return J({ ok: true, asset: { id: b.id || 'newtext', kind: 'text', name: b.name, category: b.category, body: b.body, tags: b.tags || [], authorName: '관리자', createdAt: '2026-07-15T00:00:00Z', updatedAt: '2026-07-15T00:00:00Z' } });
+        return J({ ok: true, asset: { id: 'new', kind: 'file', url: '/api/file?id=n', name: 'n', category: 'plan', ct: 'application/pdf', tags: [], authorName: '관리자', createdAt: '2026-07-15T00:00:00Z' } }); }
+      return J({ ok: true, assets: window.__assets });
+    }
     if (u.startsWith('/api/jp-tips')) { if (o && o.method === 'PATCH') { const b = JSON.parse(o.body); window.__tipPatch.push(b); return J({ ok: true, tip: Object.assign({}, window.__tip0, b) }); } return J({ ok: true, tips: [window.__tip0] }); }
     if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
     if (u.startsWith('/api/r2?action=create')) { window.__r2.creates++; return J({ ok: true, key: 'jpa/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', uploadId: 'U1' }); }
@@ -230,8 +238,8 @@ const SEED = () => {
 
   console.log('\n[자료실]');
   await go('library');
-  const L = await page.evaluate(() => ({ cards: document.querySelectorAll('.libcard').length, open: document.querySelectorAll('.libcard[data-lib-open]').length, cats: document.querySelectorAll('#lib-cats .libcat').length }));
-  chk('자료 2건 · 카드 클릭 가능 · 구분 탭', L.cards === 2 && L.open === 2 && L.cats === 4, JSON.stringify(L));
+  const L = await page.evaluate(() => ({ cards: document.querySelectorAll('.libcard').length, open: document.querySelectorAll('.libcard[data-lib-open]').length, cats: document.querySelectorAll('#lib-cats .libcat').length, text: document.querySelectorAll('.libcard.istext').length }));
+  chk('자료 4건(파일·텍스트·오디오) · 카드 클릭 가능 · 구분 탭(전체+5)', L.cards === 4 && L.open === 4 && L.cats === 6 && L.text === 1, JSON.stringify(L));
   await page.click('.libcard[data-lib-open="a1"] .libimg');
   await new Promise((r) => setTimeout(r, 250));
   const P = await page.evaluate(() => ({ shown: document.getElementById('asset-scrim').classList.contains('show'),
@@ -241,6 +249,24 @@ const SEED = () => {
   await page.click('.libcard[data-lib-open="a2"] .libimg'); await new Promise((r) => setTimeout(r, 200));
   chk('이미지 자료 → 이미지 미리보기', await page.$('.apv-img img') !== null);
   await page.click('#asset-close');
+  // 텍스트형 자료 (v0.9.218) — 리치 본문 보기(정화) · 받기 없음 · 작성 모달
+  await page.click('.libcard[data-lib-open="a3"] .libimg'); await new Promise((r) => setTimeout(r, 200));
+  const TX = await page.evaluate(() => ({ text: !!document.querySelector('.apv-text'), strong: !!document.querySelector('.apv-text strong'),
+    dlHidden: getComputedStyle(document.getElementById('asset-dl')).display === 'none', openHidden: getComputedStyle(document.getElementById('asset-open')).display === 'none' }));
+  chk('텍스트 자료 보기 = 리치 본문(정화) · 받기/새탭 숨김', TX.text && TX.strong && TX.dlHidden && TX.openHidden, JSON.stringify(TX));
+  await page.click('#asset-close');
+  const NT = await page.evaluate(async () => { openLibText(null); await new Promise((r) => setTimeout(r, 140));
+    const hasName = !!document.getElementById('lt-name'), hasBody = !!document.getElementById('lt-bodywrap'), catOpts = document.querySelectorAll('#lt-catlist option').length;
+    document.getElementById('lt-name').value = '새 공지'; document.getElementById('lt-name').dispatchEvent(new Event('input', { bubbles: true }));
+    libTextEdit.body = '<p>본문</p>'; document.getElementById('libtext-save').click(); await new Promise((r) => setTimeout(r, 200));
+    return { hasName, hasBody, catOpts, save: window.__assetSave }; });
+  chk('텍스트 자료 작성 모달(제목·본문 에디터·구분) + 저장 kind:text', NT.hasName && NT.hasBody && NT.catOpts >= 5 && NT.save && NT.save.kind === 'text' && NT.save.name === '새 공지', JSON.stringify(NT.save));
+  // 오디오(mp3) 미리보기 = <audio> 플레이어 · 모든 파일 허용
+  await page.click('.libcard[data-lib-open="a4"] .libimg'); await new Promise((r) => setTimeout(r, 200));
+  chk('오디오(mp3) 자료 → audio 플레이어 미리보기', await page.$('.apv-audio audio') !== null);
+  await page.click('#asset-close');
+  const acc = await page.evaluate(() => document.getElementById('lib-file-plan').getAttribute('accept'));
+  chk('문서·파일 올리기 = 모든 파일 허용(accept 제한 없음)', !acc, 'accept=' + acc);
   // 업로드 모달 + R2 청크
   const U = await page.evaluate(async () => {
     openLibUpload([new File([new ArrayBuffer(2 * 1024 * 1024)], 'a.pdf', { type: 'application/pdf' }), new File([new ArrayBuffer(101 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' })], 'plan');
