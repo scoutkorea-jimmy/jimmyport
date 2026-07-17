@@ -269,7 +269,7 @@ section{margin-top:34px}
 .cell .cline.seed{color:var(--muted);padding:1px}
 .cell .cline.seed:hover{color:var(--ink-2)}
 .cell .cminis{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-right:24px}
-.cell .cmini{font-size:10px;font-weight:700;color:var(--muted);background:transparent;border:1px dashed var(--line);border-radius:var(--pill);padding:1px 8px;cursor:pointer;transition:var(--ease)}
+.cell .cmini{font-size:11px;font-weight:700;color:var(--muted);background:transparent;border:1px dashed var(--line);border-radius:var(--pill);padding:1px 8px;cursor:pointer;transition:var(--ease)}
 .cell .cmini:hover{border-color:var(--accent);color:var(--accent)}
 .cell.dim{opacity:.26} .cell.dim:hover{opacity:.7}
 .cell .cline.meeting{border-left-width:4px;border-left-style:solid}
@@ -589,7 +589,7 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .ttfchip.on .sw{opacity:1}
 .ttfchip.all{font-weight:700}
 /* 컵 참관단 기수 태그(블록 안) */
-.ttg-ev.cub .cubtag{display:inline-block;font-size:9px;font-weight:800;line-height:1.5;padding:0 5px;border-radius:var(--pill);background:rgba(255,255,255,.28);color:#fff;vertical-align:1px;margin-right:2px}
+.ttg-ev.cub .cubtag{display:inline-block;font-size:10.5px;font-weight:800;line-height:1.5;padding:0 5px;border-radius:var(--pill);background:rgba(255,255,255,.28);color:#fff;vertical-align:1px;margin-right:2px}
 .ttg-grouplab.gl-pr{color:#C89A3E}
 .ttg-grouplab.gl-cub{color:#7FA8D8}
 .ttctrl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
@@ -653,7 +653,7 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .tt-dragging,.tt-dragging .ttg-ev{cursor:grabbing}
 .ttg-col.dropday{background:var(--accent-soft)!important;box-shadow:inset 0 0 0 2px var(--accent)}
 .ttg-evt{font-size:11px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ttg-evm{font-size:10px;opacity:.92;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.ttg-evm{font-size:11px;opacity:.92;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .ttg-evp{font-size:10px;opacity:.95;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;display:flex;align-items:center;gap:3px;font-weight:600}
 .ttg-evp .ic{flex:0 0 auto;opacity:.9}
 .empty-note{font-size:13px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--r-2);padding:22px;text-align:center}
@@ -1088,7 +1088,7 @@ html.pw-ok #auth-gate{display:none}
 
 /* ---- 의전(캘린더 구분) + 분단·발대식 ---- */
 .cell .cline.protocol{background:#FBF1DF;border-left:3px solid #B07A1E;color:#7A5310;font-weight:600;border-radius:var(--r-1);padding:2px 6px;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.prtag{flex:0 0 auto;background:#B07A1E;color:#fff;font-size:10px;font-weight:800;border-radius:var(--pill);padding:1px 6px;letter-spacing:.02em}
+.prtag{flex:0 0 auto;background:#B07A1E;color:#fff;font-size:10.5px;font-weight:800;border-radius:var(--pill);padding:1px 6px;letter-spacing:.02em}
 .cline.protocol .pr-time{flex:0 0 auto;font-weight:700;font-variant-numeric:tabular-nums;opacity:.85}
 .cline.protocol .pr-name{flex:0 0 auto;font-weight:800}
 .cline.protocol .pr-name::after{content:" ·";font-weight:400;opacity:.6}
