@@ -632,6 +632,19 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .ttfchip.on{background:var(--accent);color:#fff;border-color:transparent}
 .ttfchip.on .sw{opacity:1}
 .ttfchip.all{font-weight:700}
+/* 중복 의심 일정 배너 — 있을 때만 렌더된다 */
+.ttdup{background:var(--st-draft-bg);border:1px solid transparent;border-radius:var(--r-2);padding:12px 14px;margin-bottom:12px}
+.ttdup-h{display:flex;align-items:center;gap:7px;font-size:var(--fs-1);color:var(--ink-2);margin-bottom:10px}
+.ttdup-h b{color:#E8A54B}
+.ttdup-h .ic{color:#E8A54B;flex:0 0 auto}
+.ttdup-list{display:flex;flex-direction:column;gap:9px}
+.ttdup-g{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-1);padding:9px 11px}
+.ttdup-t{font-size:var(--fs-1);font-weight:700;color:var(--ink);margin-bottom:6px}
+.ttdup-n{color:var(--muted);font-weight:600}
+.ttdup-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0}
+.ttdup-id{font-size:var(--fs-1);color:var(--muted);flex:0 0 auto}
+.ttdup-x{font-size:var(--fs-1);color:var(--ink-2);flex:1;min-width:0}
+
 /* 컵 참관단 기수 태그(블록 안) */
 .ttg-ev.cub .cubtag{display:inline-block;font-size:var(--fs-1);font-weight:800;line-height:1.5;padding:0 5px;border-radius:var(--pill);background:rgba(255,255,255,.28);color:#fff;vertical-align:1px;margin-right:2px}
 .ttg-grouplab.gl-pr{color:#C89A3E}
@@ -1155,7 +1168,14 @@ html.pw-ok #auth-gate{display:none}
 .ttg-grouplab{position:absolute;top:2px;z-index:3;font-size:var(--fs-1);font-weight:800;letter-spacing:.02em;color:var(--muted);pointer-events:none;padding:2px 7px;border-radius:var(--pill);background:rgba(255,255,255,.78)}
 .ttg-grouplab.L{left:6px}
 .ttg-grouplab.R{left:51%;color:#B07A1E}
-.ttg-vsplit{position:absolute;top:0;bottom:0;left:50%;width:1px;background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 12px);z-index:1;pointer-events:none}
+/* 트랙 구분선 = 잡아 끄는 손잡이(v0.9.213). 선 자체는 1px 이라 못 잡으므로 투명한 11px 히트박스를 두고
+   그 안에 선을 그린다. z-index 는 블록(1~5)보다 위 — 대신 폭이 좁아 블록 클릭을 가리지 않는다. */
+.ttg-vsplit{position:absolute;top:0;bottom:0;left:50%;width:11px;margin-left:-5px;z-index:6;cursor:col-resize;
+  background:none;pointer-events:auto;touch-action:none}
+.ttg-vsplit::before{content:"";position:absolute;top:0;bottom:0;left:5px;width:1px;
+  background:repeating-linear-gradient(to bottom,var(--line) 0 6px,transparent 6px 12px)}
+.ttg-vsplit:hover::before,body.tt-colresize .ttg-vsplit::before{background:var(--accent-ink);width:2px;left:4.5px}
+body.tt-colresize{cursor:col-resize;user-select:none}
 
 /* 의전 촬영 담당 — 칸은 버튼 하나(현재 담당 표시), 지정은 일정표 블록과 같은 모달에서.
    인원 칩을 칸에 직접 깔면 명단 6명 × 의전 41행이라 표가 칩으로 뒤덮인다. */

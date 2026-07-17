@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.212"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.212">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.212">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.213"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.213">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.213">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -258,6 +258,8 @@
       <button class="btn sm solid" id="tt-add"><span data-ic="plus" data-ic-size="14"></span> 시간 일정 추가</button>
     </div>
     <div class="ttfilter" id="tt-filter"></div>
+    <!-- 중복 의심 일정 — 있을 때만 보인다(renderTTDupes) -->
+    <div class="ttdup" id="tt-dupes" style="display:none"></div>
     <div class="ttwrap"><div class="ttgrid" id="tt-grid"></div></div>
     <p class="note">빈 칸을 클릭하면 그 시간에 일정을 추가하고, 블록을 클릭하면 편집합니다. 블록을 <b>드래그하면 이동</b>(전체 기간뷰에서는 다른 날짜로도), <b>위·아래 가장자리를 끌면 시간 길이</b>가 늘거나 줄어듭니다(모두 15분 단위). 담당 인원을 지정하면 <b>인원·배치</b>에 자동 반영되고, 변경은 서버에 자동 저장됩니다.</p>
   </section>
@@ -602,12 +604,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.212"></script>
+<script src="jamboree-plan/core.js?v=0.9.213"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.212"></script>
+<script src="jamboree-plan/upload.js?v=0.9.213"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.212"></script>
-<script src="jamboree-plan/app.js?v=0.9.212"></script>
-<script src="version-watch.js?v=0.9.212"></script>
+<script src="jamboree-plan/library.js?v=0.9.213"></script>
+<script src="jamboree-plan/app.js?v=0.9.213"></script>
+<script src="version-watch.js?v=0.9.213"></script>
 </body>
 </html>

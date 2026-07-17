@@ -394,6 +394,63 @@ const SEED = () => {
   chk('소무대는 메인무대로 잘못 매칭되지 않는다(구역 없음)', zn.so === null && zn.main === 'stage' && zn.stadium === 'stage',
     '소무대→' + zn.so + ' · 메인무대→' + zn.main);
 
+  // ===== 컵 참관단 데이터 복구 · 중복 점검 · 열 너비 (v0.9.213) =====
+  console.log('\n[컵 트랙 복구 · 중복 · 열 너비]');
+  await go('timetable');
+  const cub = await page.evaluate(() => {
+    // v0.9.195 이전 buildCleanTT 가 track/batch 를 빠뜨려 저장한 상태를 재현
+    // (⚠️ concat 으로 넣으면 같은 id 가 둘이 되어 "복구"가 아니라 "중복"을 만든다 — 기존 항목을 망가뜨려야 정확한 재현)
+    state.timetable = ttList().map((t) => {
+      if (t.id === 'cub-1-0806-0900') { const c = Object.assign({}, t); delete c.track; delete c.batch; return c; }
+      if (t.id === 'cub-1-0806-1400') return Object.assign({}, t, { batch: 0 });
+      return t;
+    });
+    mergeCubObservers(); mergeCubObservers();   // 멱등
+    const a = ttById('cub-1-0806-0900'), b = ttById('cub-1-0806-1400');
+    return { aTrack: a && a.track, aBatch: a && a.batch, bBatch: b && b.batch };
+  });
+  chk('컵 track 유실 복구(잼버리 열로 새던 항목)', cub.aTrack === 'cub' && cub.aBatch === 1, 'track=' + cub.aTrack + ' batch=' + cub.aBatch);
+  chk('컵 batch 오값도 id 기준 교정(멱등)', cub.bBatch === 1, 'batch=' + cub.bBatch);
+  const dup = await page.evaluate(() => {
+    const before = ttDupGroups().length;
+    state.timetable = ttList().concat([{ id: 'dup-x', day: '2026-08-06', start: '20:00', end: '22:00', title: '컵스나잇', track: 'cub', batch: 1, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] }]);
+    renderTimetable();
+    const shown = document.getElementById('tt-dupes').style.display !== 'none';
+    const g = ttDupGroups().length;
+    // 1기/2기가 같은 시각·제목인 것은 정상 — 중복이 아니다
+    state.timetable = ttList().concat([{ id: 'ok-2gi', day: '2026-08-06', start: '20:00', end: '22:00', title: '컵스나잇', track: 'cub', batch: 2, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] }]);
+    const g2 = ttDupGroups().length;
+    return { before, shown, g, g2 };
+  });
+  chk('중복 없으면 배너 없음 → 생기면 표시', dup.before === 0 && dup.shown && dup.g === 1, '전 ' + dup.before + ' · 후 ' + dup.g);
+  // 같은 id 가 둘이면 ttById 가 첫 번째만 잡아 편집·삭제가 엉뚱한 쪽에 걸린다 → 내용 많은 쪽만 남긴다
+  const ded = await page.evaluate(() => {
+    const base = ttById('cub-1-0806-0900');
+    state.timetable = ttList().concat([Object.assign({}, base, { assignees: ['r1'], memo: '내용 있는 쪽' })]);
+    const n0 = ttList().filter((t) => t.id === 'cub-1-0806-0900').length;
+    const dropped = dedupeTimetableById();
+    const left = ttList().filter((t) => t.id === 'cub-1-0806-0900');
+    return { n0, dropped, n1: left.length, kept: left[0] && left[0].memo, again: dedupeTimetableById() };
+  });
+  chk('같은 id 중복 정리 — 내용 많은 쪽 보존(멱등)',
+    ded.n0 === 2 && ded.dropped === 1 && ded.n1 === 1 && ded.kept === '내용 있는 쪽' && ded.again === 0,
+    ded.n0 + '개 → ' + ded.n1 + '개 · 남은 쪽 "' + (ded.kept || '') + '" · 재실행 ' + ded.again);
+  chk('컵 1기/2기 같은 시각·제목은 중복 아님', dup.g2 === 1, '그룹 ' + dup.g2);
+  const split = await page.evaluate(() => {
+    ttMode = 'day'; ttDay = '2026-08-06'; ttColW = { jam: 1, pr: 1, cub: 1 }; renderTimetable();
+    const sp = document.querySelector('.ttg-vsplit[data-sp]'); if (!sp) return { no: 1 };
+    const r = sp.getBoundingClientRect(), w0 = ttColW.jam;
+    sp.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + 5, clientY: r.top + 50 }));
+    document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: r.left + 185, clientY: r.top + 50 }));
+    document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    const saved = JSON.parse(localStorage.getItem('jamboree-plan:ttcolw') || '{}');
+    return { n: document.querySelectorAll('.ttg-vsplit[data-sp]').length, w0, w1: ttColW.jam, saved: saved.jam };
+  });
+  chk('트랙 구분선 = 드래그 손잡이', split.n >= 1, split.n + '개');
+  chk('구분선을 끌면 열 너비가 바뀌고 저장된다', split.w1 > split.w0 && Math.abs(split.saved - split.w1) < 0.01,
+    split.w0 + ' → ' + (split.w1 || 0).toFixed(2) + ' (저장 ' + (split.saved || 0).toFixed(2) + ')');
+  await page.evaluate(() => { ttColW = { jam: 1, pr: 1, cub: 1 }; saveTtColW(); state.timetable = ttList().filter((t) => !/^(dup-x|ok-2gi)$/.test(t.id)); renderTimetable(); });
+
   // 가이드 ④(CLAUDE.md 최우선 규칙): 최소 13px · 버튼 ≥40px · 카드 중첩 금지 · 음수 자간 -3% 이내.
   // v0.9.205 는 "밀집 그리드가 깨진다"며 10.5~11px 에서 멈췄고, 그 후퇴를 잡아줄 테스트가 없어 그대로 남았다.
   // 눈으로 보면 놓치므로 렌더된 값으로 전 뷰를 훑는다. 실패 시 어느 요소인지까지 찍는다.

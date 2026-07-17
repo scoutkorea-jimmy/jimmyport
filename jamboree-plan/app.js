@@ -209,6 +209,26 @@ function cubObserverSeeds(){
     it(2,'2026-08-09','12:00','14:00','점심 및 귀가')
   ];
 }
+/* id 중복 정리 — 같은 id 가 둘이면 ttById 가 첫 번째만 잡아 편집·삭제가 엉뚱한 쪽에 걸리고
+ * 나머지는 화면에만 남는 유령이 된다(= "중복으로 데이터가 잘못 들어간" 상태).
+ * 배열을 통째로 덮어쓰는 저장 방식이라 동시 편집 때 생길 수 있다(알려진 lost-update 부채).
+ * 내용이 더 채워진 쪽을 남긴다 — 담당·식순·메모를 적어 둔 항목을 잃지 않기 위해. */
+function ttFillScore(t){
+  return ((t.assignees||[]).length?2:0)+((t.rundown||[]).length?2:0)+((t.contacts||[]).length?1:0)+
+         ((t.memo||'').trim()?1:0)+((t.place||'').trim()?1:0)+((t.title||'').trim()?1:0)+(t.zone?1:0);
+}
+function dedupeTimetableById(){
+  var seen={}, out=[], dropped=0;
+  ttList().forEach(function(t){
+    var id=t.id||''; if(!id){ out.push(t); return; }
+    if(!(id in seen)){ seen[id]=out.length; out.push(t); return; }
+    var keep=out[seen[id]];
+    if(ttFillScore(t)>ttFillScore(keep)) out[seen[id]]=t;   // 더 채워진 쪽으로 교체
+    dropped++;
+  });
+  if(dropped){ state.timetable=out; saveTimetable(); console.info('[복구] 같은 id 중복 '+dropped+'건 정리(내용 많은 쪽 보존)'); }
+  return dropped;
+}
 function mergeCubObservers(){
   // 컵 참관단은 독립 트랙 → 카테고리(범례)에서 제외(구 버전이 addTtCat 로 넣었을 수 있음)
   if(ttCats().some(function(c){ return c[0]===CUB_CAT; })){ state.ttcats=ttCats().filter(function(c){ return c[0]!==CUB_CAT; }); saveTtCats(); }
@@ -217,8 +237,20 @@ function mergeCubObservers(){
   list=list.filter(function(t){ return !/^cub-\d{4}-\d{4}$/.test(t.id); });
   var have={}; list.forEach(function(t){ have[t.id]=1; });
   var added=0; cubObserverSeeds().forEach(function(s){ if(!have[s.id]){ list.push(s); added++; } });
+  /* ⚠️ 데이터 복구(v0.9.213): v0.9.195 이전 `buildCleanTT` 는 track/batch 를 빠뜨렸다.
+   * 그래서 컵 일정을 한 번이라도 **편집한** 항목은 track 이 벗겨진 채 저장됐고, 이후로도 계속
+   * '잼버리 일정' 열에 섞여 나온다(= "컵 1기가 섞였다"의 정체). 코드는 고쳤지만 이미 망가진 값은 그대로다.
+   * id 가 `cub-<기수>-…` 로 스스로 컵 시드임을 증명하므로 track/batch 만 되살린다 —
+   * 사용자가 고친 제목·시각·담당은 건드리지 않는다. 멱등이라 매 로드마다 돌아도 안전. */
+  var fixed=0;
+  list.forEach(function(t){
+    var m=/^cub-(\d)-\d{4}-\d{4}$/.exec(t.id||''); if(!m) return;
+    if(t.track!=='cub'){ t.track='cub'; fixed++; }
+    if(+t.batch!==+m[1]){ t.batch=+m[1]; fixed++; }
+  });
   state.timetable=list;
-  if(added || list.length!==before) saveTimetable();
+  if(added || fixed || list.length!==before) saveTimetable();
+  if(fixed) console.info('[복구] 컵 참관단 track/batch '+fixed+'건 되살림(v0.9.195 이전 편집으로 유실된 값)');
 }
 
 /* ===== 홍보부 인원 R&R + 배치표 ===== */
@@ -1828,6 +1860,51 @@ function ttCellsHtml(day, hh){
   return out;
 }
 // 하루 컬럼 — 일간 뷰는 잼버리 일정 · 의전 일정 · 컵 참관단을 각각 별도 열로(존재하는 트랙만), 아니면 통합 레인
+/* ===== 일간 뷰 트랙 열 너비 (v0.9.213) =====
+ * 잼버리/의전/컵 열을 구분선으로 끌어 조절한다. 트랙 수가 날마다 1~3개로 달라지므로
+ * 고정 %가 아니라 **가중치**로 둔다(렌더 때 정규화) — 그래야 8/6(3열)에서 넓힌 비중이 8/2(1열)에서도 깨지지 않는다.
+ * 개인 화면 설정이라 서버가 아니라 localStorage(ttmode/ttday/ttfilter 와 같은 취급). */
+var TT_COL_MIN=0.28;   // 가중치 하한 — 한 열을 0 으로 만들어 못 되돌리는 상황 방지
+var ttDayTracks=[];
+var ttColW=(function(){ try{ var o=JSON.parse(localStorage.getItem('jamboree-plan:ttcolw')||'null');
+  if(o&&typeof o==='object') return {jam:+o.jam||1, pr:+o.pr||1, cub:+o.cub||1}; }catch(e){} return {jam:1,pr:1,cub:1}; })();
+function ttColWeight(k){ var w=+ttColW[k]; return (isFinite(w)&&w>=TT_COL_MIN)?w:1; }
+function saveTtColW(){ try{ localStorage.setItem('jamboree-plan:ttcolw', JSON.stringify(ttColW)); }catch(e){} }
+function resetTtColW(){ ttColW={jam:1,pr:1,cub:1}; saveTtColW(); renderTimetable(); toast('열 너비를 균등하게 되돌렸습니다.'); }
+/* 구분선 드래그 — 인접한 두 트랙의 가중치만 주고받는다(합이 일정해 다른 열은 안 움직인다).
+ * 리스너를 document 에 다는 이유: 드래그 중 renderTimetable 이 구분선 DOM 을 새로 만들어
+ * 요소에 붙인 핸들러·포인터 캡처가 끊기기 때문(기존 블록 드래그와 같은 방식). */
+var ttSplit=null;
+function ttSplitDown(e, i){
+  var col=e.target.closest('.ttg-col'); if(!col||!ttDayTracks[i]||!ttDayTracks[i-1]) return;
+  e.preventDefault(); e.stopPropagation();
+  document.addEventListener('pointermove', ttSplitMove);
+  document.addEventListener('pointerup', ttSplitUp);
+  var a=ttDayTracks[i-1], b=ttDayTracks[i], n=ttDayTracks.length;
+  var sum=ttDayTracks.reduce(function(s,k){ return s+ttColWeight(k); },0);
+  ttSplit={a:a, b:b, wa:ttColWeight(a), wb:ttColWeight(b), x0:e.clientX,
+           colW:col.getBoundingClientRect().width, avail:100-(n-1)*2, sum:sum};
+  document.body.classList.add('tt-colresize');
+}
+function ttSplitMove(e){
+  if(!ttSplit) return;
+  // px → % → 가중치. span = avail * w/sum 이므로 w = span * sum/avail.
+  var dPct=(e.clientX-ttSplit.x0)/ttSplit.colW*100;
+  var dW=dPct*ttSplit.sum/ttSplit.avail;
+  var wa=ttSplit.wa+dW, wb=ttSplit.wb-dW, tot=ttSplit.wa+ttSplit.wb;
+  if(wa<TT_COL_MIN){ wa=TT_COL_MIN; wb=tot-wa; }
+  if(wb<TT_COL_MIN){ wb=TT_COL_MIN; wa=tot-wa<0?TT_COL_MIN:tot-wb; }
+  ttColW[ttSplit.a]=wa; ttColW[ttSplit.b]=wb;
+  if(!ttSplit.raf) ttSplit.raf=requestAnimationFrame(function(){ if(ttSplit) ttSplit.raf=0; renderTimetable(); });
+}
+function ttSplitUp(){
+  document.removeEventListener('pointermove', ttSplitMove);
+  document.removeEventListener('pointerup', ttSplitUp);
+  if(!ttSplit) return;
+  if(ttSplit.raf) cancelAnimationFrame(ttSplit.raf);
+  ttSplit=null; document.body.classList.remove('tt-colresize'); saveTtColW(); renderTimetable();
+}
+
 function ttColumnHtml(d, dayView, hh){
   var items=ttList().filter(function(t){ return t.day===d[0] && t2h(t.start)!=null && ttTrackOn(ttTrackOfItem(t)); });
   var jam=items.filter(function(t){ return t.track!=='cub'; });   // 잼버리 일정
@@ -1846,19 +1923,62 @@ function ttColumnHtml(d, dayView, hh){
   }
   var body;
   if(dayView && (prs.length || cub.length)){
-    var tracks=[{lab:'잼버리 일정', cls:'', items:jam}];
-    if(prs.length) tracks.push({lab:'의전 일정', cls:'gl-pr', items:prs});
-    if(cub.length) tracks.push({lab:'컵 참관단', cls:'gl-cub', items:cub});
-    var n=tracks.length, gap=2, span=(100-(n-1)*gap)/n;
-    body=tracks.map(function(tk,i){ var off=i*(span+gap);
-      return '<div class="ttg-grouplab '+tk.cls+'" style="left:calc('+off+'% + 5px)">'+tk.lab+'</div>'+
-        (i? '<div class="ttg-vsplit" style="left:'+(off-gap/2)+'%"></div>':'')+
-        ttBlocksHtml(tk.items, {off:off, span:span, hh:hh}, dayView);
+    var tracks=[{key:'jam', lab:'잼버리 일정', cls:'', items:jam}];
+    if(prs.length) tracks.push({key:'pr', lab:'의전 일정', cls:'gl-pr', items:prs});
+    if(cub.length) tracks.push({key:'cub', lab:'컵 참관단', cls:'gl-cub', items:cub});
+    ttDayTracks=tracks.map(function(t){ return t.key; });   // 구분선 드래그가 어느 두 트랙을 조절할지 알아야 한다
+    // 폭은 균등이 아니라 사용자가 끈 비중(ttColW)대로. 트랙이 1~3개로 달라지므로 고정 %가 아니라 가중치로 둔다.
+    var n=tracks.length, gap=2, avail=100-(n-1)*gap;
+    var sum=tracks.reduce(function(a,t){ return a+ttColWeight(t.key); },0);
+    var off=0;
+    body=tracks.map(function(tk,i){
+      var span=avail*ttColWeight(tk.key)/sum, cur=off; off+=span+gap;
+      return (i? '<div class="ttg-vsplit" data-sp="'+i+'" title="좌우로 끌어 열 너비 조절" style="left:'+(cur-gap/2)+'%"></div>':'')+
+        '<div class="ttg-grouplab '+tk.cls+'" style="left:calc('+cur+'% + 5px)">'+tk.lab+'</div>'+
+        ttBlocksHtml(tk.items, {off:cur, span:span, hh:hh}, dayView);
     }).join('');
   } else {
     body=ttBlocksHtml(jam.concat(prs, cub), {off:0, span:100, hh:hh}, dayView);
   }
   return '<div class="ttg-col" data-day="'+d[0]+'">'+ttCellsHtml(d[0], hh)+body+'</div>';
+}
+/* ===== 중복 일정 점검 (v0.9.213) =====
+ * 사용자가 "중복으로 데이터가 잘못 들어간 것 같다"고 했는데 보드 데이터는 서버에 있어(로그인 필요) 내가 못 본다.
+ * → 앱이 스스로 찾아 보여 준다. 키에 track/batch 를 넣는 이유: 컵 1기·2기가 같은 시각에 같은 제목
+ *   (예: 8/7 '저녁식사')을 갖는 건 정상이라 중복이 아니다. 자동 삭제는 하지 않는다 —
+ *   같은 제목이라도 담당·메모·식순이 다를 수 있어 무엇을 남길지는 사람이 정해야 한다. */
+function ttDupKey(t){ return [t.day||'', t.start||'', (t.title||'').trim(), t.track||'', t.batch||''].join('|'); }
+function ttDupGroups(){
+  var by={}; ttList().forEach(function(t){ if(!(t.title||'').trim()||!t.day||!t.start) return;
+    (by[ttDupKey(t)]=by[ttDupKey(t)]||[]).push(t); });
+  return Object.keys(by).map(function(k){ return by[k]; }).filter(function(g){ return g.length>1; });
+}
+function renderTTDupes(){
+  var box=document.getElementById('tt-dupes'); if(!box) return;
+  var groups=ttDupGroups();
+  if(!groups.length){ box.style.display='none'; box.innerHTML=''; return; }
+  var n=groups.reduce(function(a,g){ return a+g.length-1; },0);
+  box.style.display='';
+  box.innerHTML='<div class="ttdup-h">'+icon('copy',15)+'<b>중복 의심 '+n+'건</b> — 같은 날·시각·제목의 일정이 두 번 이상 있습니다. 남길 것만 두고 지우세요.</div>'+
+    '<div class="ttdup-list">'+groups.map(function(g){
+      var dd=ymd(g[0].day);
+      return '<div class="ttdup-g"><div class="ttdup-t">8/'+dd.getDate()+' '+esc(g[0].start||'')+' · '+esc(g[0].title||'')+
+        (g[0].track==='cub'?(' <span class="cubtag">'+(g[0].batch||'?')+'기</span>'):'')+' <span class="ttdup-n">'+g.length+'개</span></div>'+
+        g.map(function(t,i){
+          var extra=[]; if((t.assignees||[]).length) extra.push('담당 '+t.assignees.length); if((t.rundown||[]).length) extra.push('식순 '+t.rundown.length);
+          if((t.memo||'').trim()) extra.push('메모'); if((t.place||'').trim()) extra.push(t.place);
+          return '<div class="ttdup-r"><span class="ttdup-id mono">'+esc(t.id)+'</span>'+
+            '<span class="ttdup-x">'+esc(extra.join(' · ')||'내용 없음')+'</span>'+
+            '<button class="btn xs ghost" data-dupopen="'+esc(t.id)+'">열기</button>'+
+            '<button class="btn xs danger" data-dupdel="'+esc(t.id)+'">삭제</button></div>';
+        }).join('')+'</div>';
+    }).join('')+'</div>';
+  box.querySelectorAll('[data-dupopen]').forEach(function(b){ b.onclick=function(){ openTT(b.dataset.dupopen); }; });
+  box.querySelectorAll('[data-dupdel]').forEach(function(b){ b.onclick=function(){
+    var t=ttById(b.dataset.dupdel); if(!t) return;
+    if(!confirm('이 일정을 삭제할까요?\n'+(t.title||'')+' · '+(t.day||'')+' '+(t.start||''))) return;
+    removeTt(t.id); afterTimetableChange();
+  }; });
 }
 function renderTTLegend(){
   var leg=document.getElementById('tt-legend'); if(!leg) return;
@@ -1882,12 +2002,18 @@ function wireTimetableGrid(box){
     var frac=Math.max(0, Math.min(0.75, snap15(oy/TT_HH)));
     openTT(null, el.dataset.day, (+el.dataset.h)+frac);
   }; });
+  // 트랙 구분선 — 좌우로 끌어 열 너비 조절
+  box.querySelectorAll('.ttg-vsplit[data-sp]').forEach(function(el){
+    el.addEventListener('pointerdown', function(e){ ttSplitDown(e, +el.dataset.sp); });
+    el.addEventListener('dblclick', function(e){ e.stopPropagation(); resetTtColW(); });   // 더블클릭 = 균등 복귀
+  });
   // 의전 블록 클릭 = 촬영 담당 지정(일정표에서 배정하다가 의전 탭까지 가지 않게). 상세 편집은 모달의 '의전 탭에서 편집'.
   box.querySelectorAll('.ttg-pr[data-pid]').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); openProtAssign(el.dataset.pid); }; });
 }
 function renderTimetable(){
   renderTTControls();
   renderTTLegend();
+  renderTTDupes();
   var box=document.getElementById('tt-grid'); if(!box) return;
   var dayView=(ttMode==='day');
   var days=dayView ? [ jamDay(ttDay) || JAM_DAYS[3] ] : JAM_DAYS;
@@ -3716,7 +3842,7 @@ function setView(v){
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 }
