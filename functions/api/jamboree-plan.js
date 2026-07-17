@@ -100,6 +100,7 @@ function cleanShoot2(e) {
     place: (e.place || "").toString().slice(0, 120),
     point: (e.point || "").toString().slice(0, 400),
     owner: (e.owner || "").toString().slice(0, 60),
+    sched: (e.sched || "").toString().slice(0, 40),
     doneDate: (e.doneDate || "").toString().slice(0, 20),
     done: !!e.done,
   };
