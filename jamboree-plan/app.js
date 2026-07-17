@@ -922,16 +922,12 @@ function cardEl(d,s,e){
   var ab=approvalBadge(e); if(ab) bits.push(ab);
   var db=dueBadge(e); if(db) bits.push(db);
   bits=bits.concat(chs.map(function(c){ return '<span class="chchip '+chanClass(c)+'">'+esc(c)+'</span>'; }));
-  var ln=linkCount(e); if(ln) bits.push('<span class="minic">'+icon('link',13)+' '+ln+'</span>');
-  if(e.images&&e.images.length) bits.push('<span class="minic">'+icon('image',13)+' '+e.images.length+'</span>');
-  if(e.files&&e.files.length) bits.push('<span class="minic">'+icon('paperclip',13)+' '+e.files.length+'</span>');
-  if(hist(s.k).length) bits.push('<span class="minic">'+icon('fileText',13)+' '+hist(s.k).length+'</span>');
   if(e.owner) bits.push('<span class="minic">'+icon('user',12)+' '+esc(e.owner)+'</span>');
+  // 첨부(링크·이미지·파일)·이력은 카드에선 점 하나로만, 세부는 클릭한 모달에서 (정보 과다 정리)
+  if(linkCount(e)||(e.images&&e.images.length)||(e.files&&e.files.length)||hist(s.k).length) bits.push('<span class="minic att" title="첨부·이력 있음">'+icon('paperclip',12)+'</span>');
   var card=document.createElement('div'); card.className='card'+(isMeeting(e)?' meetingcard':''); card.style.borderLeftColor=isMeeting(e)?ctypeColor(e.ctype):col;
   card.innerHTML=
-    '<div class="crow1"><span class="dlab">'+(d.dlabel||'—')+'</span><span>'+d.label+' '+d.weekday+(e.time?(' · '+esc(e.time)):'')+'</span>'+
-      '<span class="typebadge t-'+s.type+'" style="margin-left:auto">'+TYPE_LABEL[s.type]+'</span></div>'+
-    '<div class="ccat" style="color:'+col+'">'+s.category+'</div>'+
+    '<div class="crow1"><span class="dlab">'+(d.dlabel||'—')+'</span><span>'+d.label+' '+d.weekday+(e.time?(' · '+esc(e.time)):'')+'</span></div>'+
     '<div class="ctitle'+(title?'':' empty')+'">'+(e.ctype?ctchip(e.ctype)+' ':'')+(title?esc(title):'제목 미입력 — 클릭해 작성')+'</div>'+
     '<div class="cmeta">'+bits.join('')+'</div>';
   var del=document.createElement('button'); del.className='cdel'; del.innerHTML=icon('trash',13); del.title='삭제';
@@ -1567,41 +1563,40 @@ function shootOwnerCell(m){
 function addShootRow(){ shootListData().push({id:mkid(), title:'', place:'', point:'', owner:'', assignees:[], sched:'', doneDate:'', done:false}); renderPhotoList(); saveShootList();
   setTimeout(function(){ var rows=document.querySelectorAll('#shootlist-body tr'); var last=rows[rows.length-1]; var c=last&&last.querySelector('td.mk[data-f="title"]'); if(c) c.focus(); },30); }
 function renderPhotoList(){
-  var tb=document.getElementById('shootlist-body'); if(!tb) return; tb.innerHTML='';
+  var box=document.getElementById('shootlist-body'); if(!box) return; box.innerHTML='';
   var list=shootListData();
   var done=list.filter(function(x){return x.done;}).length;
   var ph=document.getElementById('shootlist-count'); if(ph) ph.textContent=list.length?('촬영 완료 '+done+' / '+list.length):'';
-  if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="news-empty" style="padding:20px">사진 촬영이 필요한 행사·과정활동을 추가하세요. 우측 상단 <b>행 추가</b>.</td></tr>'; return; }
-  // 장소(place)별 그룹 — 첫 등장 순서 유지
+  if(!list.length){ box.innerHTML='<div class="news-empty" style="padding:20px">사진 촬영이 필요한 행사·과정활동을 추가하세요. 우측 상단 <b>행 추가</b>.</div>'; return; }
+  // 장소(place)별 그룹 — 카드형. 첫 등장 순서 유지
   var groups={}, order=[];
   list.forEach(function(m){ var k=(m.place||'').trim()||'(장소 미지정)'; if(!groups[k]){ groups[k]=[]; order.push(k); } groups[k].push(m); });
   order.forEach(function(k){
     var gDone=groups[k].filter(function(x){return x.done;}).length;
-    var gh=document.createElement('tr'); gh.className='shoot-grouphead';
-    gh.innerHTML='<td colspan="7"><span class="sg-place">'+esc(k)+'</span><span class="sg-count">'+gDone+' / '+groups[k].length+'</span></td>';
-    tb.appendChild(gh);
-    groups[k].forEach(function(m){ tb.appendChild(photoRowEl(m)); });
+    var sec=document.createElement('div'); sec.className='shootsec';
+    sec.innerHTML='<div class="shootsec-h"><span class="ss-place">'+esc(k)+'</span><span class="ss-count">'+gDone+' / '+groups[k].length+'</span></div>';
+    var grid=document.createElement('div'); grid.className='shootgrid';
+    groups[k].forEach(function(m){ grid.appendChild(photoCardEl(m)); });
+    sec.appendChild(grid); box.appendChild(sec);
   });
 }
-// 목차 행 — 촬영 포인트는 숨기고, 행(제목·장소·일정 칸) 클릭 시 상세 모달. 담당·완료·삭제는 인라인.
-function photoRowEl(m){
-  var tr=document.createElement('tr'); tr.className=m.done?'shoot-row shoot-done':'shoot-row';
-  var noteMark=(m.point||'').trim()?(' <span class="sh-note" title="촬영 포인트 있음">'+icon('fileText',11)+'</span>'):'';
-  tr.innerHTML=
-    '<td class="sh-open"><span class="sh-title">'+esc(m.title||'(제목 없음)')+'</span>'+noteMark+'</td>'+
-    '<td class="sh-open sh-dim">'+esc(m.place||'')+'</td>'+
-    '<td class="sh-open sh-dim" title="'+(m.ttId?'잼버리 일정표 담당과 쌍방 연동':'담당 — 클릭해 인원 지정')+'">'+(shootOwnerText(m)?esc(shootOwnerText(m)):'<span class="sh-linkhint">담당 지정</span>')+'</td>'+
-    '<td class="sh-open sh-dim">'+esc(m.sched||'')+'</td>'+
-    '<td class="sh-open sh-dim">'+esc(m.doneDate||'')+'</td>'+
-    '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
-    '<td><button class="rm" title="행 삭제">'+icon('trash',14)+'</button></td>';
-  tr.querySelectorAll('.sh-open').forEach(function(td){ td.onclick=function(){ openShootDetail(m); }; });
-  var os=tr.querySelector('.shoot-owner'); if(os) os.onchange=function(){ m.owner=this.value; saveShootList(); };
-  tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked;
-    if(m.done && !m.doneDate){ m.doneDate=todayISO(); }
-    renderPhotoList(); saveShootList(); });
-  tr.querySelector('.rm').onclick=function(){ state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); };
-  return tr;
+// 카드 — 제목·담당·일정만(촬영 포인트는 클릭 시 상세 모달). 완료 체크·삭제는 카드 내 컨트롤.
+function photoCardEl(m){
+  var card=document.createElement('div'); card.className='shootcard'+(m.done?' done':'')+(m.ttId?' linked':'');
+  var owner=shootOwnerText(m), note=(m.point||'').trim();
+  card.innerHTML=
+    '<div class="sc-head"><input type="checkbox" class="shoot-chk sc-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'>'+
+      '<div class="sc-title">'+esc(m.title||'(제목 없음)')+(note?' <span class="sh-note" title="촬영 포인트 있음">'+icon('fileText',11)+'</span>':'')+'</div>'+
+      '<button class="sc-del rm" title="삭제" aria-label="삭제">'+icon('trash',13)+'</button></div>'+
+    '<div class="sc-meta">'+
+      (owner?('<span class="sc-tag">'+icon('users',11)+' '+esc(owner)+'</span>'):'<span class="sc-tag none">담당 미지정</span>')+
+      (m.sched?('<span class="sc-tag">'+icon('clock',11)+' '+esc(m.sched)+'</span>'):'')+
+      (m.doneDate?('<span class="sc-tag ok">'+icon('check',11)+' '+esc(m.doneDate)+'</span>'):'')+
+    '</div>';
+  card.addEventListener('click',function(e){ if(e.target.closest('.sc-chk')||e.target.closest('.sc-del')) return; openShootDetail(m); });
+  card.querySelector('.sc-chk').addEventListener('change',function(){ m.done=this.checked; if(m.done&&!m.doneDate){ m.doneDate=todayISO(); } renderPhotoList(); saveShootList(); });
+  card.querySelector('.sc-del').addEventListener('click',function(e){ e.stopPropagation(); state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); });
+  return card;
 }
 /* 촬영 상세 모달 — 활동 내용(촬영 포인트)을 여기서 본다/편집한다. 필드 변경 시 자동 저장. */
 var shootCur=null;

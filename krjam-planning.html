@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.208"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.208">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.208">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.209"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.209">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.209">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -229,14 +229,7 @@
       </div>
     </div>
     <p class="note">사진 촬영이 필요한 <b>행사·과정활동</b>을 정리합니다. 촬영을 마치면 <b>완료</b>에 체크하세요. 칸을 클릭해 직접 입력합니다.</p>
-    <div class="tblscroll">
-      <table id="shootlist-tbl">
-        <thead><tr>
-          <th>행사 · 과정활동명</th><th style="width:170px">장소</th><th style="width:130px">담당</th><th style="width:130px">진행예정일정</th><th style="width:120px">촬영완료일</th><th style="width:60px">완료</th><th style="width:40px"></th>
-        </tr></thead>
-        <tbody id="shootlist-body"></tbody>
-      </table>
-    </div>
+    <div class="shootgroups" id="shootlist-body"></div>
   </section>
 
   <div class="scrim" id="shoot-scrim">
@@ -592,12 +585,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.208"></script>
+<script src="jamboree-plan/core.js?v=0.9.209"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.208"></script>
+<script src="jamboree-plan/upload.js?v=0.9.209"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.208"></script>
-<script src="jamboree-plan/app.js?v=0.9.208"></script>
-<script src="version-watch.js?v=0.9.208"></script>
+<script src="jamboree-plan/library.js?v=0.9.209"></script>
+<script src="jamboree-plan/app.js?v=0.9.209"></script>
+<script src="version-watch.js?v=0.9.209"></script>
 </body>
 </html>

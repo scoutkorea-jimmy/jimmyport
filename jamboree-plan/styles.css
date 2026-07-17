@@ -344,8 +344,29 @@ section{margin-top:34px}
 #shootlist-tbl .sh-dim{color:var(--muted)}
 #shootlist-tbl .sh-note{color:var(--accent-ink);vertical-align:1px;margin-left:5px}
 .shrow2{display:flex;gap:12px}.shrow2 .evfld{flex:1}
-.sh-linkhint{font-size:11px;font-weight:500;color:var(--muted)}
-#shootlist-tbl td .sh-linkhint{font-style:normal}
+.sh-linkhint{font-size:12px;font-weight:500;color:var(--muted)}
+/* 촬영 리스트 카드형 — 장소별 그룹, 플랫 카드(중첩 없음) */
+.shootgroups{display:flex;flex-direction:column;gap:20px}
+.shootsec-h{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.shootsec-h .ss-place{font-size:15px;font-weight:800;color:var(--ink)}
+.shootsec-h .ss-count{font-size:12px;font-weight:700;color:var(--muted)}
+.shootgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.shootcard{border:1px solid var(--line);border-radius:var(--r-2);background:var(--surface);padding:12px 13px;cursor:pointer;transition:var(--ease)}
+.shootcard:hover{border-color:var(--accent);box-shadow:var(--sh-1)}
+.shootcard.linked{border-left:3px solid var(--accent)}
+.shootcard.done{opacity:.55}
+.shootcard.done .sc-title{text-decoration:line-through}
+.sc-head{display:flex;align-items:flex-start;gap:9px}
+.sc-title{flex:1;min-width:0;font-size:14px;font-weight:700;line-height:1.4;color:var(--ink)}
+.sc-title .sh-note{color:var(--accent-ink);vertical-align:1px;margin-left:4px}
+.sc-del{flex:0 0 auto;border:none;background:none;color:var(--muted);cursor:pointer;padding:2px;border-radius:6px;opacity:.5;transition:var(--ease)}
+.shootcard:hover .sc-del{opacity:1}
+.sc-del:hover{color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent)}
+.sc-chk{flex:0 0 auto;margin-top:1px}
+.sc-meta{display:flex;flex-wrap:wrap;gap:5px 8px;margin-top:9px;padding-left:29px}
+.sc-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.sc-tag.none{color:var(--faint)}
+.sc-tag.ok{color:var(--accent-ink);font-weight:600}
 /* 완료 체크박스 — 다크 관제 톤앤매너 커스텀 체크박스 */
 .shoot-chk,#sh-f-done{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:0 0 auto;border:1.5px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;position:relative;transition:var(--ease);vertical-align:middle;margin:0}
 .shoot-chk:hover,#sh-f-done:hover{border-color:var(--accent)}
