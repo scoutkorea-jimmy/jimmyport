@@ -849,6 +849,7 @@ function renderBoard(){
   var cols={planned:[],draft:[],review:[],done:[]}, total=0, ready=0, started=0, meetings=0, blank=0;
   DAYS.forEach(function(d){
     daySlots(d).forEach(function(s){
+      if(s.type==='dcount') return;   // 콘텐츠 리스트에서 D-Day(디데이) 슬롯 숨김 — 캘린더에서만 관리
       var e=peek(s.k), st=e.status||'planned';
       if(isMeeting(e)){ meetings++; } else { total++; if(st==='ready'||e.posted) ready++; if(st!=='planned') started++; }
       if(isBlankSlot(s.k,e)){ blank++; if(!showEmpty) return; }
@@ -1551,37 +1552,64 @@ function renderPhotoList(){
   var list=shootListData();
   var done=list.filter(function(x){return x.done;}).length;
   var ph=document.getElementById('shootlist-count'); if(ph) ph.textContent=list.length?('촬영 완료 '+done+' / '+list.length):'';
-  if(!list.length){ tb.innerHTML='<tr><td colspan="8" class="news-empty" style="padding:20px">사진 촬영이 필요한 행사·과정활동을 추가하세요. 우측 상단 <b>행 추가</b>.</td></tr>'; return; }
+  if(!list.length){ tb.innerHTML='<tr><td colspan="7" class="news-empty" style="padding:20px">사진 촬영이 필요한 행사·과정활동을 추가하세요. 우측 상단 <b>행 추가</b>.</td></tr>'; return; }
   // 장소(place)별 그룹 — 첫 등장 순서 유지
   var groups={}, order=[];
   list.forEach(function(m){ var k=(m.place||'').trim()||'(장소 미지정)'; if(!groups[k]){ groups[k]=[]; order.push(k); } groups[k].push(m); });
   order.forEach(function(k){
     var gDone=groups[k].filter(function(x){return x.done;}).length;
     var gh=document.createElement('tr'); gh.className='shoot-grouphead';
-    gh.innerHTML='<td colspan="8"><span class="sg-place">'+esc(k)+'</span><span class="sg-count">'+gDone+' / '+groups[k].length+'</span></td>';
+    gh.innerHTML='<td colspan="7"><span class="sg-place">'+esc(k)+'</span><span class="sg-count">'+gDone+' / '+groups[k].length+'</span></td>';
     tb.appendChild(gh);
     groups[k].forEach(function(m){ tb.appendChild(photoRowEl(m)); });
   });
 }
+// 목차 행 — 촬영 포인트는 숨기고, 행(제목·장소·일정 칸) 클릭 시 상세 모달. 담당·완료·삭제는 인라인.
 function photoRowEl(m){
-  var tr=document.createElement('tr'); if(m.done) tr.className='shoot-done';
+  var tr=document.createElement('tr'); tr.className=m.done?'shoot-row shoot-done':'shoot-row';
+  var noteMark=(m.point||'').trim()?(' <span class="sh-note" title="촬영 포인트 있음">'+icon('fileText',11)+'</span>'):'';
   tr.innerHTML=
-    '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
-    '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
-    '<td class="mk" contenteditable data-f="point">'+esc(m.point||'')+'</td>'+
+    '<td class="sh-open"><span class="sh-title">'+esc(m.title||'(제목 없음)')+'</span>'+noteMark+'</td>'+
+    '<td class="sh-open sh-dim">'+esc(m.place||'')+'</td>'+
     shootOwnerCell(m)+
-    '<td class="mk" contenteditable data-f="sched">'+esc(m.sched||'')+'</td>'+
-    '<td class="mk" contenteditable data-f="doneDate">'+esc(m.doneDate||'')+'</td>'+
+    '<td class="sh-open sh-dim">'+esc(m.sched||'')+'</td>'+
+    '<td class="sh-open sh-dim">'+esc(m.doneDate||'')+'</td>'+
     '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
     '<td><button class="rm" title="행 삭제">'+icon('trash',14)+'</button></td>';
-  tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ var f=td.dataset.f; m[f]=td.textContent.trim(); saveShootList(); if(f==='place') renderPhotoList(); }); });   // 장소 변경 시 그룹 재정렬
+  tr.querySelectorAll('.sh-open').forEach(function(td){ td.onclick=function(){ openShootDetail(m); }; });
   var os=tr.querySelector('.shoot-owner'); if(os) os.onchange=function(){ m.owner=this.value; saveShootList(); };
   tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked;
-    if(m.done && !m.doneDate){ m.doneDate=todayISO(); }   // 완료 체크 시 촬영완료일 자동 기입(비어 있으면 오늘)
+    if(m.done && !m.doneDate){ m.doneDate=todayISO(); }
     renderPhotoList(); saveShootList(); });
   tr.querySelector('.rm').onclick=function(){ state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); };
   return tr;
 }
+/* 촬영 상세 모달 — 활동 내용(촬영 포인트)을 여기서 본다/편집한다. 필드 변경 시 자동 저장. */
+var shootCur=null;
+function openShootDetail(m){
+  shootCur=m;
+  document.getElementById('shoot-mtitle').textContent=m.title||'촬영 상세';
+  document.getElementById('shoot-msub').textContent=[(m.place||''),(m.sched||'')].filter(Boolean).join(' · ');
+  var cur=m.owner||'', oOpts='<option value="">— 담당 —</option>', found=false;
+  rosterList().forEach(function(p){ var nm=(p.name||'').trim(); if(!nm) return; var sel=nm===cur; if(sel) found=true; oOpts+='<option value="'+esc(nm)+'"'+(sel?' selected':'')+'>'+esc(nm)+(p.role?(' · '+esc(p.role)):'')+'</option>'; });
+  if(cur&&!found) oOpts+='<option value="'+esc(cur)+'" selected>'+esc(cur)+'</option>';
+  document.getElementById('shoot-body').innerHTML=
+    '<div class="evfld"><label>행사 · 과정활동명</label><input id="sh-f-title" class="evinput" value="'+esc(m.title||'')+'"></div>'+
+    '<div class="evfld"><label>장소</label><input id="sh-f-place" class="evinput" value="'+esc(m.place||'')+'"></div>'+
+    '<div class="evfld"><label>촬영 포인트 · 활동 내용</label><textarea id="sh-f-point" class="evinput" rows="4" placeholder="무엇을 어떻게 촬영할지 · 활동 내용">'+esc(m.point||'')+'</textarea></div>'+
+    '<div class="evfld"><label>담당 (홍보부 인원)</label><select id="sh-f-owner" class="evinput">'+oOpts+'</select></div>'+
+    '<div class="shrow2">'+
+      '<div class="evfld"><label>진행예정일정</label><input id="sh-f-sched" class="evinput" value="'+esc(m.sched||'')+'"></div>'+
+      '<div class="evfld"><label>촬영완료일</label><input id="sh-f-donedate" class="evinput" value="'+esc(m.doneDate||'')+'"></div>'+
+    '</div>'+
+    '<div class="evfld"><label class="nccheck"><input type="checkbox" id="sh-f-done"'+(m.done?' checked':'')+'><span><b>촬영 완료</b></span></label></div>';
+  function bind(id,f){ var el=document.getElementById(id); if(el) el.addEventListener('input',function(){ m[f]=this.value; saveShootList(); if(f==='title') document.getElementById('shoot-mtitle').textContent=this.value||'촬영 상세'; }); }
+  bind('sh-f-title','title'); bind('sh-f-place','place'); bind('sh-f-point','point'); bind('sh-f-sched','sched'); bind('sh-f-donedate','doneDate');
+  var os=document.getElementById('sh-f-owner'); if(os) os.onchange=function(){ m.owner=this.value; saveShootList(); };
+  var dc=document.getElementById('sh-f-done'); if(dc) dc.onchange=function(){ m.done=this.checked; if(m.done&&!m.doneDate){ m.doneDate=todayISO(); var dd=document.getElementById('sh-f-donedate'); if(dd) dd.value=m.doneDate; } saveShootList(); };
+  document.getElementById('shoot-scrim').classList.add('show');
+}
+function closeShootDetail(){ var sc=document.getElementById('shoot-scrim'); if(sc) sc.classList.remove('show'); shootCur=null; if(curViewMode==='shootlist') renderPhotoList(); }
 
 /* ===== 일자별 시간 일정표 (타임테이블 그리드) ===== */
 var TT_HS=0, TT_HE=24;             // 표시 시작/끝 시각 (24시간 일정표)
@@ -3622,6 +3650,8 @@ function init(){
   var tipBody=document.getElementById('tip-body'); if(tipBody) tipBody.addEventListener('click',function(e){ var x=e.target.closest('[data-tip-img-del]'); if(x&&tipEdit){ tipEdit.images.splice(+x.getAttribute('data-tip-img-del'),1); renderTipEditor(); } });
   var mealSeg=document.getElementById('meal-groupseg'); if(mealSeg) mealSeg.addEventListener('click',function(e){ var b=e.target.closest('[data-mg]'); if(!b) return; mealGroup=b.getAttribute('data-mg'); renderMeals(); });
   var slAdd=document.getElementById('shootlist-add'); if(slAdd) slAdd.onclick=addShootRow;
+  var shClose=document.getElementById('shoot-close'); if(shClose) shClose.onclick=closeShootDetail;
+  var shScrim=document.getElementById('shoot-scrim'); if(shScrim) shScrim.addEventListener('click',function(e){ if(e.target===shScrim) closeShootDetail(); });
   var tipFil=document.getElementById('tip-filters'); if(tipFil) tipFil.addEventListener('click',function(e){ var b=e.target.closest('[data-tipf]'); if(b){ tipFilter=b.getAttribute('data-tipf'); renderTips(); } });
   var tipGrid=document.getElementById('tip-grid'); if(tipGrid){ tipGrid.addEventListener('click',function(e){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }

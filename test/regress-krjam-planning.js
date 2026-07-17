@@ -59,9 +59,10 @@ const SEED = () => {
           { id: 't3', day: '2026-08-06', start: '09:00', end: '10:00', title: '분단 회의', place: 'JHQ 본부', zone: 'jhq', cat: '회의', assignees: ['r2'], contacts: [], rundown: [], noCover: false },
         ],
         slots: {
-          '2026-07-01#dcount': { edit: { title: '가나 대표단 소개', status: 'planned', owner: '박지민', due: '2026-07-20', channels: ['페이스북'] } },
-          '2026-07-02#dcount': { edit: { title: '나이지리아 대표단', status: 'draft', owner: '김철수', due: '2026-07-05', channels: ['인스타그램'] } },
-          '2026-07-03#dcount': { edit: { title: '다낭 서브캠프', status: 'ready', owner: '이영희', due: '2026-08-01', posted: true, channels: ['유튜브'] } },
+          '2026-07-20#extra#c1': { edit: { title: '가나 대표단 소개', status: 'planned', owner: '박지민', due: '2026-07-25', channels: ['페이스북'] } },
+          '2026-07-21#extra#c2': { edit: { title: '나이지리아 대표단', status: 'draft', owner: '김철수', channels: ['인스타그램'] } },
+          '2026-07-22#extra#c3': { edit: { title: '다낭 서브캠프', status: 'ready', owner: '이영희', posted: true, channels: ['유튜브'] } },
+          '2026-07-01#dcount': { edit: { title: 'D-Day 콘텐츠(숨겨져야 함)', status: 'planned' } },
         } });
     }
     if (u.startsWith('/api/')) return J({ ok: true });
@@ -100,12 +101,10 @@ const SEED = () => {
   chk('파이프라인 5칼럼(인박스+기획·작성·검수·완료)', b.cols === 5 && b.stages === 'planned,draft,review,done', b.cols + '칼럼 · ' + b.stages);
   chk('제보 인박스 카드(홍보부 · 새 제보 1)', b.inbox === 1, b.inbox + '건');
   chk('모바일 단계 세그먼트 5', b.mseg === 5, b.mseg + '개');
-  chk('빈 슬롯 기본 숨김 → 실제 3장', b.cards === 3, b.cards + '장');
-  chk('빈 슬롯 토글 라벨(38)', /\(38\)/.test(b.toggle), b.toggle);
+  chk('실제 콘텐츠 3장(extra 슬롯)', b.cards === 3, b.cards + '장');
+  const noDday = await page.evaluate(() => ![...document.querySelectorAll('#board .card .ctitle')].some((x) => /D-Day 콘텐츠/.test(x.textContent)));
+  chk('콘텐츠 리스트에서 D-Day(dcount) 슬롯 숨김', noDday);
   chk('정렬 4종 · 필터바 접힘', b.sorts === 4 && b.filtersHidden);
-  await page.click('#toggle-empty');
-  chk('빈 슬롯 보기 → 41장', (await page.evaluate(() => document.querySelectorAll('#board .card:not(.card-inbox)').length)) === 41);
-  await page.click('#toggle-empty');
   const dnd = await page.evaluate(() => {
     const c = document.querySelector('#board .col[data-st="planned"] .card'); const t0 = c.querySelector('.ctitle').textContent.trim();
     const tgt = document.querySelector('#board .col[data-st="done"]'); const dt = new DataTransfer();
