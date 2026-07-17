@@ -1452,6 +1452,61 @@ function renderMeals(){
 /* ===== 촬영 필요 행사·과정활동 리스트 (shootlist) — 콘텐츠 공간 ===== */
 function shootListData(){ if(!Array.isArray(state.shootlist)) state.shootlist=[]; return state.shootlist; }
 function saveShootList(){ debouncedPut('shootlistTimer', {shootlist: shootListData()}, '촬영 리스트 저장됨'); }
+// 촬영 필요 과정활동 목록(사용자 제공) — 진행예정일정 '상시'. 내용이 비어 있으면 시드 + 서버 저장.
+function defaultShootList(){
+  function R(t,z,p){ return {title:t, place:z, point:p, owner:'', sched:'상시', doneDate:'', done:false}; }
+  var rows=[
+    R('컵스카우트 핀버튼 만들기','과정1 · 컵 Zone','대원이 직접 디자인하고 핀버튼을 완성하는 모습'),
+    R('컵스카우트 카트 체험','과정1 · 컵 Zone','출발 장면, 주행 장면, 대원의 표정'),
+    R('컵스카우트 디스크골프','과정1 · 컵 Zone','디스크 투척 순간과 목표물 통과 장면'),
+    R('컵스카우트 종이비행기 날리기','과정1 · 컵 Zone','비행기 제작 과정과 단체 비행 장면'),
+    R('컵스카우트 물총놀이','과정1 · 컵 Zone','대원 간 물총 활동과 역동적인 단체 장면'),
+    R('컵스카우트 과정활동 전경','과정1 · 컵 Zone','컵 Zone 전체 운영 모습과 참가 대원 전경'),
+    R('프레퍼 메모리','과정2 · S Zone','생존물품을 관찰하고 기억하는 대원 모습'),
+    R('프레퍼 툴마스터','과정2 · S Zone','공구 사용법 교육과 직접 체험하는 모습'),
+    R('생존배낭 꾸리기','과정2 · S Zone','대원이 생존물품을 선택하고 배낭을 구성하는 과정'),
+    R('불 피우기','과정2 · S Zone','불씨를 만드는 손동작과 점화 성공 순간'),
+    R('쉘터 만들기','과정2 · S Zone','반원들이 협력해 구조물을 만드는 장면'),
+    R('야외 음식 만들기','과정2 · S Zone','조리 과정, 역할 분담, 완성 음식'),
+    R('S Zone 활동 전경','과정2 · S Zone','환경·생존 프로그램 전체 운영 모습'),
+    R('아마추어무선','과정3 · I Zone','무전 교신 장면과 장비 조작 모습'),
+    R('ARDF','과정3 · I Zone','방향 탐색, 수신기 사용, 이동 장면'),
+    R('드론 체험','과정3 · I Zone','드론 조종과 비행 장면, 조종자 표정'),
+    R('미니컬링','과정3 · I Zone','스톤 투구 순간과 팀원 반응'),
+    R('매듭법 응용','과정3 · I Zone','매듭을 묶는 손동작과 완성된 결과물'),
+    R('측정','과정3 · I Zone','횟치법·나폴레옹법 등 측정 실습 장면'),
+    R('독도법','과정3 · I Zone','지도와 나침반을 활용해 방향을 찾는 모습'),
+    R('I Zone 활동 전경','과정3 · I Zone','창의·기능 프로그램에 참여하는 대원 전경'),
+    R('ATV','과정4 · L Zone','안전교육, 출발, 주행 중 역동적인 장면'),
+    R('자전거 활동','과정4 · L Zone','코스 주행과 대원 간 교류 장면'),
+    R('풋골프','과정4 · L Zone','공을 차는 순간과 홀 성공 장면'),
+    R('L Zone 활동 전경','과정4 · L Zone','활동장 전체 규모와 참가 대원 모습'),
+    R('화랑어워드','과정5 · O Zone','반 단위 도전과 과제 성공 순간'),
+    R('반가·반환호 만들기','과정5 · O Zone','반원들이 반가와 반환호를 만들고 시연하는 모습'),
+    R('선덕여왕 연락하기','과정5 · O Zone','호각·수신호를 이용한 반장과 반원의 협력'),
+    R('화랑의 예절 체험','과정5 · O Zone','전통 예절을 배우고 함께 실습하는 모습'),
+    R('기억의 시험·화랑의 눈','과정5 · O Zone','물품을 관찰하고 기억하는 대원들의 표정'),
+    R('트리클라이밍','과정5 · O Zone','나무에 오르는 장면과 안전장비 착용 모습'),
+    R('역짚라인','과정5 · O Zone','이동 중 역동적인 장면과 도착 순간'),
+    R('몽키클라이밍','과정5 · O Zone','장애물 통과와 반원의 응원 장면'),
+    R('클라이밍','과정5 · O Zone','등반 과정과 정상 도달 순간'),
+    R('사다리 오르기','과정5 · O Zone','대원의 도전과 지도자의 안전 지원 모습'),
+    R('원숭이다리','과정5 · O Zone','다리를 건너는 전신 장면과 균형 잡는 모습'),
+    R('세줄다리','과정5 · O Zone','반원들의 협력과 다리 통과 장면'),
+    R('타잔 슬랙라인','과정5 · O Zone','로프를 잡고 이동하는 역동적인 순간'),
+    R('외줄다리','과정5 · O Zone','균형을 잡으며 이동하는 모습'),
+    R('키놀리안 브리지','과정5 · O Zone','구조물 전체와 대원이 통과하는 장면'),
+    R('O Zone 활동 전경','과정5 · O Zone','도전활동 전체 전경과 대원들의 응원 모습'),
+    R('DMZ 탐방','영외활동 · R Zone','DMZ 장소 전경, 해설 청취, 단체 활동'),
+    R('군부대 견학','영외활동 · R Zone','시설 견학, 설명을 듣는 대원, 단체사진'),
+    R('영외활동 출발','영외활동 · R Zone','버스 탑승, 안전 안내, 출발 장면'),
+    R('영외활동 복귀','영외활동 · R Zone','활동 후 복귀하는 대원과 단체 전경')
+  ];
+  return rows.map(function(r,i){ r.id='shoot-'+(i<9?'0':'')+(i+1); return r; });
+}
+function shootListHasContent(){ return shootListData().some(function(x){ return (x.title||'').trim(); }); }
+// 제목이 있는 행이 하나도 없으면(=비어 있음) 사용자 제공 목록으로 시드 + 서버 저장. 내용이 있으면 보존.
+function upgradeShootList(){ if(!shootListHasContent()){ state.shootlist=defaultShootList(); saveShootList(); } }
 function addShootRow(){ shootListData().push({id:mkid(), title:'', place:'', point:'', owner:'', sched:'', doneDate:'', done:false}); renderPhotoList(); saveShootList();
   setTimeout(function(){ var rows=document.querySelectorAll('#shootlist-body tr'); var last=rows[rows.length-1]; var c=last&&last.querySelector('td.mk[data-f="title"]'); if(c) c.focus(); },30); }
 function renderPhotoList(){
@@ -3408,7 +3463,7 @@ function setView(v){
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); upgradeMeals(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); mergeCubObservers(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
 }
