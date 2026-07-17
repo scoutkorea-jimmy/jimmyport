@@ -96,11 +96,11 @@ function cleanShoot2(e) {
   e = e && typeof e === "object" ? e : {};
   return {
     id: (e.id || "").toString().slice(0, 40),
-    date: (e.date || "").toString().slice(0, 20),
     title: (e.title || "").toString().slice(0, 200),
     place: (e.place || "").toString().slice(0, 120),
     point: (e.point || "").toString().slice(0, 400),
     owner: (e.owner || "").toString().slice(0, 60),
+    doneDate: (e.doneDate || "").toString().slice(0, 20),
     done: !!e.done,
   };
 }

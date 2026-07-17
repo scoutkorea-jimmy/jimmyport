@@ -1452,7 +1452,7 @@ function renderMeals(){
 /* ===== 촬영 필요 행사·과정활동 리스트 (shootlist) — 콘텐츠 공간 ===== */
 function shootListData(){ if(!Array.isArray(state.shootlist)) state.shootlist=[]; return state.shootlist; }
 function saveShootList(){ debouncedPut('shootlistTimer', {shootlist: shootListData()}, '촬영 리스트 저장됨'); }
-function addShootRow(){ shootListData().push({id:mkid(), date:'', title:'', place:'', point:'', owner:'', done:false}); renderPhotoList(); saveShootList();
+function addShootRow(){ shootListData().push({id:mkid(), title:'', place:'', point:'', owner:'', doneDate:'', done:false}); renderPhotoList(); saveShootList();
   setTimeout(function(){ var rows=document.querySelectorAll('#shootlist-body tr'); var last=rows[rows.length-1]; var c=last&&last.querySelector('td.mk[data-f="title"]'); if(c) c.focus(); },30); }
 function renderPhotoList(){
   var tb=document.getElementById('shootlist-body'); if(!tb) return; tb.innerHTML='';
@@ -1463,15 +1463,17 @@ function renderPhotoList(){
   list.forEach(function(m){
     var tr=document.createElement('tr'); if(m.done) tr.className='shoot-done';
     tr.innerHTML=
-      '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
-      '<td class="mk" contenteditable data-f="date">'+esc(m.date||'')+'</td>'+
       '<td class="mk" contenteditable data-f="title">'+esc(m.title||'')+'</td>'+
       '<td class="mk" contenteditable data-f="place">'+esc(m.place||'')+'</td>'+
       '<td class="mk" contenteditable data-f="point">'+esc(m.point||'')+'</td>'+
       '<td class="mk" contenteditable data-f="owner">'+esc(m.owner||'')+'</td>'+
+      '<td class="mk" contenteditable data-f="doneDate">'+esc(m.doneDate||'')+'</td>'+
+      '<td style="text-align:center"><input type="checkbox" class="shoot-chk" aria-label="촬영 완료"'+(m.done?' checked':'')+'></td>'+
       '<td><button class="rm" title="행 삭제">'+icon('trash',14)+'</button></td>';
     tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveShootList(); }); });
-    tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked; tr.classList.toggle('shoot-done',m.done); if(ph) ph.textContent='촬영 완료 '+shootListData().filter(function(x){return x.done;}).length+' / '+shootListData().length; saveShootList(); });
+    tr.querySelector('.shoot-chk').addEventListener('change',function(){ m.done=this.checked;
+      if(m.done && !m.doneDate){ m.doneDate=todayISO(); }   // 완료 체크 시 촬영완료일 자동 기입(비어 있으면 오늘)
+      renderPhotoList(); saveShootList(); });
     tr.querySelector('.rm').onclick=function(){ state.shootlist=shootListData().filter(function(x){return x!==m;}); renderPhotoList(); saveShootList(); };
     tb.appendChild(tr);
   });
