@@ -22,7 +22,9 @@ async function readAsset(env, id) {
   try { const raw = await env.SCOUT_KV.get(KEY(id)); return raw ? JSON.parse(raw) : null; } catch { return null; }
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
+  // 자료실은 내부 자료(문서·텍스트 공지·참고자료)라 로그인(회원 세션) 필수. 비로그인 목록 노출 차단.
+  if (!(await memberOrAdmin(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
   const assets = []; let cursor;
   do {
     const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });

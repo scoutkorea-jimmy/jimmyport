@@ -3228,7 +3228,7 @@ function changeMyPassword(){
 var newsItems=[], newsLoaded=false, newsEdit=null; // newsEdit: {id?, title, body(HTML), images[]}
 var newsBodyEditor=null, expandedNews={};
 function loadNews(){
-  fetch('/api/jp-news').then(function(r){return r.json();}).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); })
+  fetch('/api/jp-news',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); }).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); })
     .catch(function(){ newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
 function canEditNews(a){ return Auth.isAdmin() || (Auth.username && a.author===Auth.username); }
@@ -3384,7 +3384,7 @@ function deleteNews(id){
   if(!Auth.isAdmin()) return;
   if(!confirm('이 기사를 삭제할까요? (되돌릴 수 없습니다)')) return;
   fetch('/api/jp-news?id='+encodeURIComponent(id),{method:'DELETE',headers:authHeader()})
-    .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('삭제 권한이 없습니다'); return null; } return r.json(); })
     .then(function(j){ if(j&&j.ok){ toast('기사를 삭제했습니다'); loadNews(); } })
     .catch(function(){ toast('네트워크 오류'); });
 }

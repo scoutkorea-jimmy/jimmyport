@@ -355,6 +355,22 @@ const SEED = () => {
   chk('열 숨기기 → 컬럼 감소 + 칩 off', hid.after === hid.before - 1 && hid.off, hid.before + '→' + hid.after);
   await page.evaluate(() => { document.querySelector('#board-cols [data-colv="draft"]').click(); const s = document.getElementById('board-colw'); s.value = 300; s.dispatchEvent(new Event('input', { bubbles: true })); });   // 복원
 
+  // ===== 콘텐츠 슬롯 모달 — 각 영역이 또렷한 박스로 (v0.9.220) =====
+  const slotBox = await page.evaluate(() => {
+    const c = document.querySelector('#board .card:not(.card-inbox)'); if (!c) return { opened: false };
+    c.click();
+    const fld = document.querySelector('.scrim.show .slot .fld'); if (!fld) return { opened: !!document.querySelector('.scrim.show .slot'), fld: false };
+    const cs = getComputedStyle(fld);
+    const boxed = cs.borderTopWidth !== '0px' && !/rgba?\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(cs.backgroundColor) && cs.backgroundColor !== 'transparent';
+    // 섹션 안 입력은 흰색(회색 섹션과 대비)
+    const inp = document.querySelector('.scrim.show .slot .fld input[type=text]');
+    const white = inp ? getComputedStyle(inp).backgroundColor : '';
+    return { opened: true, fld: true, boxed, sections: document.querySelectorAll('.scrim.show .slot .fld').length, white };
+  });
+  chk('콘텐츠 슬롯 모달 — 각 영역이 테두리+배경 박스', slotBox.opened && slotBox.fld && slotBox.boxed && slotBox.sections >= 7, JSON.stringify({ boxed: slotBox.boxed, n: slotBox.sections }));
+  await page.evaluate(() => { const x = document.querySelector('.scrim.show .x, .scrim.show #modal-close, .scrim.show [data-close]'); if (x) x.click(); else if (typeof closeModal === 'function') closeModal(); });
+  await new Promise((r) => setTimeout(r, 150));
+
   // ===== 기사 목차 — 글번호·퍼블리싱·카드뉴스 가공 + 리치텍스트 본문 (v0.9.216) =====
   console.log('\n[기사 목차]');
   await go('news');

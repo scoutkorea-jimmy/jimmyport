@@ -1308,6 +1308,14 @@ WOSM Region → 국가(NSO) → 단위대
 - **② 보도자료 게시판**(`press`, 신규 뷰): 언론·매체 배포용 **공식 보도자료** 관리. 사이드바 **팀·자료 그룹**에 '보도자료'(megaphone 아이콘) 추가, **홍보부·관리자 전용**(`canSee('press')=isStaff()`, tips·sitemap 과 동일). 신규 API `functions/api/jp-press.js`(KV `jpp:<id>`, staff 게이트): GET(목록)·POST(작성/`action:'status'` 토글)·PUT(작성자·관리자 수정)·DELETE(작성자·관리자, R2 첨부 실물 정리). 필드=제목·본문(HTML)·배포일·담당자·배포 매체·상태(draft/released)·첨부[≤10]. 클라(app.js press 도메인): **목차 표**(번호·제목·배포일·담당자·상태) + 통계바(전체·배포완료·작성중), 제목 클릭 시 본문(정화)·첨부(받기)·배포 매체 펼침, 상태 토글. 작성/수정 모달=제목·배포 예정일·담당자·배포 매체·상태 세그·**Tiptap 본문**(공용 `mountRichEditor`)·첨부(이미지 다운스케일/그 외 `uploadAttachment`, 최대 10). 아이콘 `megaphone` 신설(core.js).
 - 검증: `node --check`(app·core·jp-press·jp-assets) + 회귀 **91→96/96**(보도자료 5종: 목차 5열·통계바 / 배포일·담당자·상태토글 / 제목클릭 본문·첨부·배포매체 펼침 / 상태 API released / 작성 모달·저장 released·매체. 디자인 SWEEP 에 press·news 뷰 추가, `press-attx` MINI 예외) · nav **19/19**(항목 14→15·보도자료 포함, 일반 회원 press 숨김·직접호출 차단) · jebo 29/29 + 헤드리스 스크린샷(보도자료 목차[배포완료 pill·첨부 배지]·펼침[리치 본문·PDF/이미지 첨부·배포 매체]·작성 모달 24툴바, **콘솔 에러 0**, Tiptap 로드). 신규 KV 바인딩 불필요(SCOUT_KV·SCOUT_R2 기존). 운영 KV 파괴적 쓰기 없음.
 
+### 16.82 v0.9.220 — 🔴 기사 삭제 시 로그아웃 버그 수정 + 자료실·기사 GET 인증 게이트 + 콘텐츠 슬롯 모달 영역 박스화
+- 사용자 안정성 점검 요청 → 진단 후 3건 처리(동시편집 lost-update ②는 큰 구조 변경이라 다음 회차로 분리).
+- **🔴 기사 삭제 = 로그아웃 버그**: `jp-news` DELETE 만 `adminUser`(TOTP 세션 전용) 게이트라, **마스터 '회원' 세션**(id/pw 로그인)은 `adminUser` 에서 401 → 클라 `authExpired()` 가 **로그아웃**시켰다(다른 API 는 전부 `memberOrAdmin`). → DELETE 를 `memberOrAdmin` 으로 통일: 세션 없으면 401(재로그인), 로그인했지만 관리자/마스터 아니면 **403**(권한 안내 토스트, 로그아웃 아님). 클라 `deleteNews` 에 403 처리 추가. `jp-members` 는 `isManager`(adminUser ∥ master)로 이미 정상 → 형제 버그 없음.
+- **① 자료실·기사 GET 인증 게이트**: `jp-assets`·`jp-news` GET 이 **무인증 공개**라 내부 자료(문서·텍스트 공지·참고자료)·기사 목록이 로그인 없이 조회됐다(비교: `jp-tips`·`jp-press` 는 staff 게이트). → 두 GET 에 `memberOrAdmin` 추가(회원 전체 열람, 비로그인 401). 클라 `loadNews`·`loadLibrary` 에 `authHeader()` + 401→`authExpired`.
+- **② 콘텐츠 슬롯 모달 영역 박스화**(사용자 "각 영역의 박스가 잘 안보여"): 슬롯 모달이 바깥 카드 1장 안에 `.fld` 섹션들이 평평하게 흘러 구분이 안 됐다. **카드-인-카드(§규칙④)를 피해** 바깥 `.slot` 카드를 제거(plain flex 컨테이너)하고 **각 `.fld` 섹션을 또렷한 박스**(surface-3 배경 + 헤어라인 테두리 + 패딩 + radius)로, 섹션 안 입력은 흰색으로 대비. `.tip-sch.slot`(별도 인라인 칩)은 `:not(.tip-sch)` 로 제외.
+- 검증: `node --check`(jp-news·jp-assets·app·library) + 회귀 **96→97/97**(슬롯 모달 각 영역 박스 어서션 신설) · nav 19/19 · jebo 29/29 + 헤드리스 스크린샷(슬롯 모달 7+영역 박스·흰 입력·콘솔 에러 0) + 배포 후 라이브 curl(무권한 DELETE→403[401 아님]).
+- ⏳ **다음(②동시편집)**: jamboree-plan 14개 도메인 통짜 배열 저장의 lost-update — 서버 per-item 병합 또는 낙관적 버전 가드. 별도 회차.
+
 > 버전 bump 없는 라이브 데이터·KV 조치도 **모두 명확히** 기록한다(사용자 지시 2026-06-25). 일시·대상·전후·검증 포함.
 
 ### OPS 2026-07-16 — krjam-planning 라이브 KV 일정표 종류 색 정정 (v0.9.171 STEP3)

@@ -29,7 +29,7 @@ function docLabel(ct){ ct=(ct||'').toLowerCase();
   var seg=ct.split('/').pop()||''; return (seg.split('.').pop()||'FILE').toUpperCase().slice(0,8); }
 function isAudioAsset(a){ return /^audio\//i.test(a.ct||'') || /\.(mp3|m4a|wav|ogg|aac)$/i.test(a.name||''); }
 function loadLibrary(){
-  fetch('/api/jp-assets').then(function(r){return r.json();}).then(function(j){ libItems=(j&&j.assets)||[]; libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); })
+  fetch('/api/jp-assets',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); }).then(function(j){ libItems=(j&&j.assets)||[]; libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); })
     .catch(function(){ libLoaded=true; if(curViewMode==='library') renderLibrary(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
 function libAllTags(){ var s={}; libItems.forEach(function(a){ (a.tags||[]).forEach(function(t){ s[t]=(s[t]||0)+1; }); }); return Object.keys(s).sort(); }

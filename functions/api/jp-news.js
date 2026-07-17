@@ -11,7 +11,7 @@
  *     body 는 리치텍스트 HTML — 표시 시 클라이언트가 sanitizeHtml 로 정화(저장은 원문).
  *     (prefix list로 전체 조회 — jamboree-plan.js slot 패턴과 동일)
  */
-import { json, memberOrAdmin, adminUser, newId, clientIp, maskIp, appendLog } from "./_lib.js";
+import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog } from "./_lib.js";
 
 const PREFIX = "jpn:";
 const KEY = (id) => PREFIX + id;
@@ -29,7 +29,9 @@ async function readArticle(env, id) {
   catch { return null; }
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
+  // 내부 보드 기사 — 로그인(회원 세션) 필수. 비로그인 목록 노출 차단(홍보부 전용은 아니고 회원 전체 열람).
+  if (!(await memberOrAdmin(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
   const articles = [];
   let cursor;
   do {
@@ -116,7 +118,11 @@ export async function onRequestPut({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
-  if (!(await adminUser(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
+  // ⚠️ 과거 adminUser(TOTP 세션 전용) 게이트라, 마스터 '회원' 세션은 401 → 클라 authExpired() 로 로그아웃되는 버그였다.
+  // memberOrAdmin 으로 통일: 세션 없으면 401(재로그인), 로그인했지만 관리자/마스터 아니면 403(권한 안내, 로그아웃 아님).
+  const who = await memberOrAdmin(request, env);
+  if (!who) return json({ ok: false, error: "unauthorized" }, 401);
+  if (!who.admin) return json({ ok: false, error: "forbidden" }, 403);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return json({ ok: false, error: "missing_id" }, 400);
   await env.SCOUT_KV.delete(KEY(id));

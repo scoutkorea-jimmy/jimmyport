@@ -510,8 +510,14 @@ section{margin-top:34px}
 .modal .mhead .x:hover{border-color:var(--danger);color:var(--danger-ink)}
 .mbody{padding:6px 22px 22px;max-height:72vh;overflow:auto}
 
-/* slot */
-.slot{border:1px solid var(--line);border-radius:var(--r-2);padding:16px;margin-top:14px;background:var(--surface)}
+/* slot — 콘텐츠 편집 모달. 각 영역(.fld)을 또렷한 박스로 보이게 하되,
+   카드-인-카드(§규칙④)를 피하려 바깥 슬롯 카드는 제거하고 섹션만 박스로 띄운다. */
+.slot:not(.tip-sch){border:none;background:none;padding:0;margin-top:10px;display:flex;flex-direction:column;gap:12px}
+.slot:not(.tip-sch) .shead{margin:0}
+.slot:not(.tip-sch) .lastedit{margin:-4px 0 2px}
+.slot:not(.tip-sch) .fld{margin-top:0;background:var(--surface-3);border:1px solid var(--line);border-radius:var(--r-2);padding:13px 15px}
+.slot:not(.tip-sch) .fld>label{margin-bottom:8px;color:var(--ink-2)}
+.slot:not(.tip-sch) .fld :is(input[type=text],input[type=url],input[type=date],input[type=number],textarea,select){background:var(--surface);border-color:var(--line)}
 .slot .shead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .slot .shead .chip{font-size:var(--fs-1);font-weight:700;padding:1px 9px;border-radius:var(--pill)}
 .slot .shead .rm{margin-left:auto;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);
