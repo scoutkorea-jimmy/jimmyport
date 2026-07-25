@@ -203,8 +203,8 @@ function arriveCellHtml(m){
   var chips=OFF_BLOCKS.map(function(bk){ var on=curBlk===bk[0]; return '<button type="button" class="arrblk'+(on?' on':'')+'" data-blk="'+bk[0]+'"'+(day?'':' disabled')+' title="'+bk[1]+' 도착">'+bk[1]+'</button>'; }).join('');
   return '<div class="arrpick"><select class="arr-day" aria-label="입영 날짜">'+dayOpts+'</select><div class="arrblks">'+chips+'</div></div>';
 }
-// 입영 칩 변경 반영 — 저장 + 입영 전 담당 정리 + 표·그리드 재렌더(칩 상태·앰버 갱신)
-function commitArrive(m){ saveRoster(); enforceAvailability(m.id); renderStaff(); }
+// 입영 칩 변경 반영 — 저장 + 입영 전 수동오프 정리 + 입영 전 담당 정리 + 표·그리드 재렌더(칩 상태·앰버 갱신)
+function commitArrive(m){ saveRoster(); if(pruneOffBeforeArrival(m.id)) saveOfftimes(); enforceAvailability(m.id); renderStaff(); }
 function wireArriveCell(cell, m){
   var daySel=cell.querySelector('.arr-day'); if(!daySel) return;
   daySel.addEventListener('change', function(){
@@ -1989,9 +1989,18 @@ function ttLanes(evs){
 var ttMode=(function(){try{return localStorage.getItem('jamboree-plan:ttmode')||'period';}catch(e){return 'period';}})();
 var ttDay=(function(){try{return localStorage.getItem('jamboree-plan:ttday')||'2026-08-05';}catch(e){return '2026-08-05';}})();
 function jamDay(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return JAM_DAYS[i]; return null; }
-var OFF_START_DATE='2026-08-03', OFF_START_BLOCK=1;   // 오프타임 지정 시작: 8/3 오후(pm)부터
+var OFF_START_DATE='2026-08-02', OFF_START_BLOCK=0;   // 그리드는 잼버리 전 기간(8/2 오전~) — 입영 전 불가는 입영 시점이 담당(자동 앰버)
 function offAllowed(date, blockIdx){ if(date<OFF_START_DATE) return false; if(date===OFF_START_DATE) return blockIdx>=OFF_START_BLOCK; return true; }
 function offDays(){ return JAM_DAYS.filter(function(d){ return d[0]>=OFF_START_DATE; }); }
+/* 입영 전 시간대에 남아 있던 '수동 오프' 설정을 지운다 — 그 칸은 이제 입영 기준 자동 오프(앰버)라 수동 설정이 무의미·중복.
+ * 반환 = 지운 개수(호출부가 저장 여부 판단). */
+function pruneOffBeforeArrival(pid){
+  if(!arriveOf(pid)) return 0; var po=offMap()[pid]; if(!po) return 0; var removed=0;
+  offDays().forEach(function(d){ OFF_BLOCKS.forEach(function(bk){
+    if(arriveConflict(pid, d[0], bk[3]) && po[d[0]] && po[d[0]][bk[0]]){ delete po[d[0]][bk[0]]; removed++; }
+  }); if(po[d[0]] && !Object.keys(po[d[0]]).length) delete po[d[0]]; });
+  return removed;
+}
 function renderTTFilter(){
   var box=document.getElementById('tt-filter'); if(!box) return;
   var allOn=TT_TRACKS.every(function(t){ return ttTrackOn(t[0]); });
@@ -2563,6 +2572,7 @@ function renderOfftimes(){
   var box=document.getElementById('offtimes'); if(!box) return;
   var people=rosterList();
   if(!people.length){ box.innerHTML='<p class="empty-note">먼저 위 R&amp;R 표에 인원을 추가하세요.</p>'; return; }
+  var prunedN=0; people.forEach(function(m){ prunedN+=pruneOffBeforeArrival(m.id); }); if(prunedN) saveOfftimes();   // 입영 전 남은 수동오프 정리(기존 설정 1회 청소, 이후엔 0)
   var DAYS_E=offDays();
   var H='<div class="offwrap"><table class="offtbl"><thead><tr><th class="offname">인원</th>';
   DAYS_E.forEach(function(d){ var dd=ymd(d[0]); H+='<th>8/'+dd.getDate()+'<span>'+WDS[dd.getDay()]+(d[1]?(' '+esc(d[1])):'')+'</span></th>'; });

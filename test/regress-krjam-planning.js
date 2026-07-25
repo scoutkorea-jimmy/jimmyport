@@ -608,6 +608,22 @@ const SEED = () => {
     return { afterDay, afterEve };
   });
   chk('입영 칩: 날짜→오전 기본, 저녁 칩→19:00 저장', arrchip.afterDay === '2026-08-06T09:00' && arrchip.afterEve === '2026-08-06T19:00', arrchip.afterDay + ' → ' + arrchip.afterEve);
+  const prune = await page.evaluate(() => {
+    window.confirm = () => true;
+    rosterById('r2').arrive = '';
+    const r1 = rosterById('r1'); r1.arrive = '';
+    offMap().r1 = { '2026-08-02': { am: true, pm: true }, '2026-08-05': { eve: true } };   // 8/2 오전·오후 수동오프 + 8/5 저녁
+    r1.arrive = '2026-08-02T19:00';                       // 8/2 저녁 입영 → 8/2 오전·오후는 입영 전
+    const removed = pruneOffBeforeArrival('r1');          // 입영 전 수동오프 정리
+    const m = offMap().r1 || {};
+    setView('staff'); renderStaff();
+    const heads = [].map.call(document.querySelectorAll('#offtimes thead th'), (t) => t.textContent);
+    const arrCells = document.querySelectorAll('#offtimes .offtog.arr').length;   // r1 8/2 오전·오후 = 앰버 2칸
+    r1.arrive = ''; offMap().r1 = {};
+    return { removed, gone0802: !m['2026-08-02'], kept0805: !!(m['2026-08-05'] && m['2026-08-05'].eve), has0802col: heads.some((h) => /8\/2/.test(h)), arrCells };
+  });
+  chk('입영 전 수동오프 정리(입영 후는 유지)', prune.removed === 2 && prune.gone0802 === true && prune.kept0805 === true, '지움=' + prune.removed + ' · 8/2삭제=' + prune.gone0802 + ' · 8/5유지=' + prune.kept0805);
+  chk('오프타임 그리드 8/2부터 포함 + 입영 전 앰버', prune.has0802col === true && prune.arrCells >= 2, '8/2열=' + prune.has0802col + ' · 앰버=' + prune.arrCells);
   const flush = await page.evaluate(async () => {
     window.__put.length = 0;
     rosterById('r1').name = '변경중';
