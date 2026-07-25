@@ -319,6 +319,7 @@ const SEED = () => {
   chk('대시보드 통계 카드', (await page.$$('#dashboard .statcard, #dashboard .stat')).length > 0 || (await page.$('#dashboard')) !== null);
   await go('staff');
   chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
+  chk('인원 표에 입영 시점 입력 렌더', (await page.$$('#rostertbl .arr-in[type="datetime-local"]')).length > 0, (await page.$$('#rostertbl .arr-in')).length + '개');
 
   // ===== 현장 지도 — 촬영 공백 (v0.9.216) =====
   // 기준 시각에 일정은 있는데 인원이 없는 구역을 찾는다. smByZone(배치) × ttList(일정) 교차.
@@ -533,6 +534,29 @@ const SEED = () => {
     return { flagged, blocked: !fresh || after === before, txt: b ? b.textContent.trim() : '' };
   });
   chk('오프타임과 겹치면 배정 차단/경고', pr4.flagged === true && pr4.blocked, pr4.txt + ' · 차단=' + pr4.blocked);
+  const arr = await page.evaluate(() => {
+    // 입영 시점 = 현장 도착 일시. 그 이전 업무엔 담당 배정 불가(오프타임과 같은 가드).
+    const m = rosterById('r2'); m.arrive = '2026-08-06T09:00';   // r2 는 8/6 09:00 입영
+    state.offtimes = {};                                          // 오프타임과 분리 — 입영만 검증
+    // 순수 판정: 입영 이전(8/5 20:00)=차단 · 입영 이후(8/6 10:00)=허용 · 같은 날 더 이른 시각(8/6 08:00)=차단
+    const beforeArrive = assignBlock('r2', '2026-08-05', 20, 21.5);
+    const afterArrive = assignBlock('r2', '2026-08-06', 10, 11);
+    const sameDayEarly = assignBlock('r2', '2026-08-06', 8, 9);
+    // UI: 8/5 20:00 의전 담당 칩에서 r2 는 입영 전이라 클릭해도 배정되면 안 됨
+    protById('prot-t1').assignees = [];
+    setView('protocol'); renderProtocol();
+    document.querySelector('#pr-body .pr-asgbtn').click();
+    const b = document.querySelector('#pra-chips .pr-asg[data-pid="r2"]');
+    const dis = b ? b.classList.contains('offdis') : null;
+    const before = (protById('prot-t1').assignees || []).length;
+    if (b && !b.classList.contains('offwarn')) b.click();
+    const after = (protById('prot-t1').assignees || []).length;
+    closeProtAssign();
+    m.arrive = '';   // 정리 — 이후 테스트에 영향 없게
+    return { bTag: beforeArrive && beforeArrive.tag, aNull: afterArrive === null, seBlocked: sameDayEarly !== null, dis, blocked: after === before, txt: b ? b.textContent.trim() : '' };
+  });
+  chk('입영 이전=차단 · 이후=허용 (판정)', arr.bTag === '입영 전' && arr.aNull === true && arr.seBlocked === true, '이전=' + arr.bTag + ' · 이후허용=' + arr.aNull + ' · 같은날이른차단=' + arr.seBlocked);
+  chk('입영 전 담당 칩 배정 차단 (UI)', arr.dis === true && arr.blocked === true, arr.txt + ' · 차단=' + arr.blocked);
   const ssj = await page.evaluate(() => {
     mergeSuperstarJ(); mergeSuperstarJ();   // 멱등 — 두 번 병합해도 5건
     const L = ttList().filter((t) => /^ssj-/.test(t.id));

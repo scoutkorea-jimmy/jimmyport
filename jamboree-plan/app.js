@@ -125,6 +125,29 @@ function isOff(pid,date,bk){ var d=offMap()[pid]; return !!(d&&d[date]&&d[date][
 function toggleOff(pid,date,bk){ var po=personOff(pid); if(!po[date]) po[date]={}; if(po[date][bk]) delete po[date][bk]; else po[date][bk]=true; if(!Object.keys(po[date]).length) delete po[date]; saveOfftimes(); }
 function offConflict(pid,date,sH,eH){ if(sH==null||eH==null) return null; for(var i=0;i<OFF_BLOCKS.length;i++){ if(!offAllowed(date,i)) continue; var bk=OFF_BLOCKS[i]; if(isOff(pid,date,bk[0]) && sH<bk[4] && eH>bk[3]) return bk[1]; } return null; }
 function saveOfftimes(){ debouncedPut('offTimer', {offtimes: offMap()}, '오프타임 저장됨'); }
+/* ----- 입영 시점 (현장 도착 전 배정 불가) -----
+ * 각 인원의 입영(현장 도착) 일시 = roster[].arrive("YYYY-MM-DDThh:mm", datetime-local 값).
+ * 이 시점 이전 시각의 업무에는 그 인원을 담당으로 배정할 수 없다 — 오프타임과 같은 취지의 가드다.
+ * (rosterById·t2h 는 아래에 정의된 함수 선언이라 호이스팅으로 여기서 안전하게 참조.) */
+function arriveOf(pid){ var m=rosterById(pid); var v=m&&(m.arrive||'').trim(); return v||null; }
+function arriveLabel(a){ if(!a||a.length<10) return ''; var mo=+a.slice(5,7), day=+a.slice(8,10), tm=a.slice(11,16); return mo+'/'+day+(tm?(' '+tm):''); }   // "2026-08-05T09:00" → "8/5 09:00"
+// 업무(date, 시작시각 sH)가 입영 시점 이전이면 입영 문자열, 아니면 null. (입영일 당일 시각 미정=이전으로 간주 — 아직 도착 전이므로 안전측.)
+function arriveConflict(pid,date,sH){
+  var a=arriveOf(pid); if(!a||!date) return null;
+  var ad=a.slice(0,10);
+  if(date<ad) return a;                                                            // 업무 날짜가 입영일 이전
+  if(date===ad){ var ah=t2h(a.slice(11,16)); if(ah!=null && (sH==null || sH<ah)) return a; }   // 같은 날 · 시작이 입영시각 이전
+  return null;
+}
+/* 배정 차단 사유 — 입영 이전이 우선, 그다음 오프타임. 없으면 null.
+ * 담당 칩(일정표·의전)·현장 배치가 모두 같은 규칙을 쓰도록 하나로 모은다(두 벌로 갈라지지 않게). */
+function assignBlock(pid,date,sH,eH){
+  var a=arriveConflict(pid,date,sH);
+  if(a) return {tip:'입영('+arriveLabel(a)+') 이전 — 배정 불가', tag:'입영 전'};
+  var off=offConflict(pid,date,sH,eH);
+  if(off) return {tip:'오프타임('+off+') — 배정 불가', tag:'오프('+off+')'};
+  return null;
+}
 function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-02',start:'10:00',end:'16:00',title:'사전 답사 · 영지 점검',place:'영지 전역',cat:'이동·기타',owner:'',memo:'촬영 동선 사전 점검'},
   {id:mkid(),day:'2026-08-03',start:'09:00',end:'18:00',title:'미디어센터 설치 · 장비 세팅',place:'미디어센터',cat:'홍보활동',owner:'',memo:'송출/촬영 장비 점검'},
@@ -724,12 +747,13 @@ function renderCalendar(){
     var prToday=protocolList().filter(function(p){ return p.date===rec.date && (p.time||'').trim(); });
     if(prToday.length){
       var evGroups={}, evOrder=[];
-      prToday.forEach(function(p){ var k=JSON.stringify([p.time||'', p.activity||'']); if(!evGroups[k]){ evGroups[k]={time:p.time, activity:p.activity, people:[], first:p}; evOrder.push(k); } evGroups[k].people.push(p); });
+      // 같은 시각·장소 = 같은 행사(개영식 등)로 묶는다. 활동 문구가 사람마다 조금 달라도 한 카드로.
+      prToday.forEach(function(p){ var k=JSON.stringify([p.time||'', p.place||'']); if(!evGroups[k]){ evGroups[k]={time:p.time, place:p.place, people:[], first:p}; evOrder.push(k); } evGroups[k].people.push(p); });
       evOrder.sort(function(a,b){ return (evGroups[a].time||'').localeCompare(evGroups[b].time||''); }).forEach(function(k){
         var g=evGroups[k];
         var ppl=g.people.slice().sort(function(x,y){ var ra=protRoleRank(x.role), rb=protRoleRank(y.role); if(ra!==rb) return ra-rb; return (x.name||'').localeCompare(y.name||'','ko'); });
         var pplRaw=ppl.map(function(x){ return ((x.role||'')+' '+(x.name||'')).trim(); });
-        var evName=g.activity||g.first.role||'의전';
+        var evName=protGroupName(g.people)||g.first.role||'의전';
         var pg=q&&((evName+' '+pplRaw.join(' ')).toLowerCase().indexOf(ql)<0);
         html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(g.first.id)+'" title="'+esc('의전 · '+(g.time||'')+' '+evName+' · '+pplRaw.join(', '))+'"><span class="prtag">의전</span>'+(g.time?('<span class="pr-time">'+esc(g.time)+'</span> '):'')+'<b class="pr-name">'+esc(evName)+'</b> '+pplRaw.map(function(t){return esc(t);}).join(' · ')+'</div>';
       });
@@ -2031,11 +2055,12 @@ function ttColumnHtml(d, dayView, hh){
   if(ttTrackOn('pr')){
     var prRaw=protocolList().filter(function(p){ return p.date===d[0] && t2h(p.time)!=null; });
     var pmap={}, pord=[];
-    prRaw.forEach(function(p){ var pk=JSON.stringify([p.time||'', p.activity||'']);
-      if(!pmap[pk]){ pmap[pk]={time:p.time, endTime:p.endTime, activity:p.activity, place:p.place, people:[], ids:[]}; pord.push(pk); }
+    // 같은 시각·장소 = 같은 행사로 묶는다(활동 문구 차이 무시). 대표 이름은 아래서 최단 활동명으로.
+    prRaw.forEach(function(p){ var pk=JSON.stringify([p.time||'', p.place||'']);
+      if(!pmap[pk]){ pmap[pk]={time:p.time, endTime:p.endTime, activity:'', place:p.place, people:[], ids:[]}; pord.push(pk); }
       pmap[pk].people.push(p); pmap[pk].ids.push(p.id); if(!pmap[pk].endTime&&p.endTime) pmap[pk].endTime=p.endTime;
     });
-    prs=pord.map(function(pk){ var g=pmap[pk], sh=t2h(g.time);
+    prs=pord.map(function(pk){ var g=pmap[pk], sh=t2h(g.time); g.activity=protGroupName(g.people);
       return {id:'pr:'+g.ids[0], start:g.time, end:(g.endTime&&t2h(g.endTime)!=null)?g.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:g}; });
   }
   var body;
@@ -2218,10 +2243,10 @@ function renderTTModal(){
   var people=rosterList();
   var asgHtml=people.length?people.map(function(m){
     var on=ttDraft.assignees.indexOf(m.id)>=0;
-    var off=offConflict(m.id, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end));
-    var cls='evkind asg'+(off?(on?' offwarn':' offdis'):'');
+    var blk=assignBlock(m.id, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end));
+    var cls='evkind asg'+(blk?(on?' offwarn':' offdis'):'');
     var style=on?'background:var(--accent);border-color:var(--accent);color:#fff':'';
-    return '<button type="button" class="'+cls+'" data-pid="'+esc(m.id)+'"'+(style?(' style="'+style+'"'):'')+' title="'+(off?('오프타임('+off+') — 배정 불가'):'')+'">'+esc(personLabel(m))+(off?(' · 오프('+off+')'):'')+'</button>';
+    return '<button type="button" class="'+cls+'" data-pid="'+esc(m.id)+'"'+(style?(' style="'+style+'"'):'')+' title="'+(blk?blk.tip:'')+'">'+esc(personLabel(m))+(blk?(' · '+blk.tag):'')+'</button>';
   }).join(''):'<span class="hintmini">먼저 <b>인원·배치</b> 탭에서 인원을 추가하세요.</span>';
   var conSel=(ttDraft.contacts||[]);
   var conRows=conSel.map(function(cid,idx){
@@ -2274,7 +2299,7 @@ function renderTTModal(){
   var ci=b.querySelector('#tt-catinput'); if(ci) ci.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v && addTtCat(v)) ttDraft.cat=v; this.value=''; renderTTModal(); var ni=document.getElementById('tt-catinput'); if(ni) ni.focus(); } });
   b.querySelectorAll('.evkind.asg').forEach(function(bt){ bt.onclick=function(){ var pid=bt.dataset.pid; var i=ttDraft.assignees.indexOf(pid);
     if(i>=0){ ttDraft.assignees.splice(i,1); }
-    else { var off=offConflict(pid, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end)); if(off){ toast(personLabel(rosterById(pid))+' 님은 이 시간 오프('+off+')라 배정할 수 없습니다'); return; } ttDraft.assignees.push(pid); }
+    else { var blk=assignBlock(pid, ttDraft.day, t2h(ttDraft.start), t2h(ttDraft.end)); if(blk){ toast(personLabel(rosterById(pid))+' 님은 '+blk.tip); return; } ttDraft.assignees.push(pid); }
     renderTTModal(); }; });
   b.querySelectorAll('#tt-con .conrm').forEach(function(bt){ bt.onclick=function(){ var i=+bt.dataset.idx; if(ttDraft.contacts && i>=0 && i<ttDraft.contacts.length){ ttDraft.contacts.splice(i,1); renderTTModal(); } }; });
   var pin=b.querySelector('#tt-conpick-input'), pmenu=b.querySelector('#tt-conpick-menu');
@@ -2398,7 +2423,7 @@ function renderStaff(){
       var teamCtrl = tk==='lead'
         ? '<span class="team-badge lead">홍보부장</span>'
         : '<span class="team-badge '+tk+'"></span><input class="team-name" data-team="'+tk+'" value="'+esc(teamNames()[tk])+'" placeholder="팀 이름" aria-label="팀 이름">';
-      htr.innerHTML='<td colspan="7"><div class="team-hd">'+teamCtrl+
+      htr.innerHTML='<td colspan="8"><div class="team-hd">'+teamCtrl+
         '<button class="btn xs team-add" data-team="'+tk+'">'+icon('plus',13)+' 인원 추가</button>'+
         '<span class="team-count">'+members.length+'명</span></div></td>';
       rb.appendChild(htr);
@@ -2419,9 +2444,11 @@ function renderStaff(){
           '<td class="mk" contenteditable data-f="duty">'+esc(m.duty)+'</td>'+
           '<td class="mk" contenteditable data-f="channel">'+esc(m.channel)+'</td>'+
           '<td class="mk" contenteditable data-f="contact">'+esc(m.contact)+'</td>'+
+          '<td class="arr-cell"><input type="datetime-local" class="arr-in" value="'+esc(m.arrive||'')+'" min="2026-08-02T00:00" max="2026-08-09T23:59" aria-label="입영 시점"></td>'+
           '<td>'+teamSel+'</td>'+
           '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
         tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); }); });
+        var arrIn=tr.querySelector('.arr-in'); if(arrIn) arrIn.addEventListener('change',function(){ m.arrive=this.value; saveRoster(); renderDerivedPlacement(); });   // 입영 시점 변경 → 저장 + 배치 충돌 표시 갱신
         tr.querySelector('.team-sel').onchange=function(){ m.team=this.value; renderStaff(); saveRoster(); renderDerivedPlacement(); };
         tr.querySelector('.rm').onclick=function(){ state.roster=rosterList().filter(function(x){return x!==m;}); renderStaff(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); };
         rb.appendChild(tr);
@@ -2459,7 +2486,7 @@ function wirePlaceSlots(box){
     el.onclick=function(){ if(el.dataset.prot) openProtAssign(el.dataset.prot); else openTT(el.dataset.id); };
   });
 }
-function placeSlotHTML(t, pid){ var dd=ymd(t.day); var off=pid?offConflict(pid,t.day,t2h(t.start),t2h(t.end)):null; return '<div class="pslot'+(off?' conflict':'')+'" data-id="'+esc(t.id)+'"'+(t._pid?(' data-prot="'+esc(t._pid)+'"'):'')+' title="'+(off?('오프타임('+off+')과 겹침'):'')+'"><span class="pdot" style="background:'+(t._color||ttCatColor(t.cat))+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span>'+(off?'<span class="pconf">오프충돌</span>':'')+'</div>'; }
+function placeSlotHTML(t, pid){ var dd=ymd(t.day); var blk=pid?assignBlock(pid,t.day,t2h(t.start),t2h(t.end)):null; return '<div class="pslot'+(blk?' conflict':'')+'" data-id="'+esc(t.id)+'"'+(t._pid?(' data-prot="'+esc(t._pid)+'"'):'')+' title="'+(blk?blk.tip:'')+'"><span class="pdot" style="background:'+(t._color||ttCatColor(t.cat))+'"></span><span class="pday">8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</span><span class="ptime mono">'+esc(t.start||'')+(t.end?('–'+t.end):'')+'</span><span class="pwhere">'+esc(t.place||'장소 미정')+'</span><span class="pwhat">'+esc(t.title||'')+'</span>'+(blk?('<span class="pconf">'+esc(blk.tag)+'</span>'):'')+'</div>'; }
 function dayIdx(d){ for(var i=0;i<JAM_DAYS.length;i++) if(JAM_DAYS[i][0]===d) return i; return 99; }
 function ttHours(t){ var s=t2h(t.start), e=t2h(t.end); if(s==null||e==null||e<=s) return 0; return e-s; }
 function fmtDur(h){ if(!h) return '0분'; var mins=Math.round(h*60), hh=Math.floor(mins/60), mm=mins%60; return (hh?hh+'시간':'')+(hh&&mm?' ':'')+(mm?mm+'분':'')||'0분'; }
@@ -2951,6 +2978,9 @@ function protAsTtLike(p){
 }
 function protDefaultEnd(p){ var s=t2h(p.time); return s==null?'':h2hhmm(Math.min(24,s+0.5)); }   // 종료 미입력 = 시작+30분(일정표 블록과 같은 규칙)
 function protEventName(p){ return (p.activity||'').trim()||'의전 일정'; }
+// 같은 시각·장소로 묶인 의전 항목들의 대표 이름 — 가장 짧은 활동명으로 통일한다.
+// (사람마다 '개영식 인사말'/'개영식'/'개영식·개회선언'처럼 조금씩 달라도 한 카드에서 '개영식'으로 보이게.)
+function protGroupName(people){ var ns=(people||[]).map(function(p){ return (p&&p.activity||'').trim(); }).filter(Boolean); return ns.length ? ns.slice().sort(function(a,b){ return a.length-b.length || a.localeCompare(b,'ko'); })[0] : '의전'; }
 function protAssignedTo(pid){
   return protocolList().filter(function(p){ return p.date && p.time && protAssignees(p).indexOf(pid)>=0; }).map(protAsTtLike);
 }
@@ -2972,18 +3002,18 @@ function protAssigneeChips(p, cls){
   if(!people.length) return '<span class="hintmini">먼저 <b>홍보부 인원</b> 탭에서 인원을 추가하세요.</span>';
   return people.map(function(m){
     var on=protAssignees(p).indexOf(m.id)>=0;
-    var off=p.date?offConflict(m.id, p.date, t2h(p.time), t2h(p.endTime||protDefaultEnd(p))):null;
-    return '<button type="button" class="'+(cls||'evkind')+' pr-asg'+(off?(on?' offwarn':' offdis'):'')+'" data-pid="'+esc(m.id)+'"'+
+    var blk=p.date?assignBlock(m.id, p.date, t2h(p.time), t2h(p.endTime||protDefaultEnd(p))):null;
+    return '<button type="button" class="'+(cls||'evkind')+' pr-asg'+(blk?(on?' offwarn':' offdis'):'')+'" data-pid="'+esc(m.id)+'"'+
       (on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+
-      ' title="'+(off?('오프타임('+off+') — 배정 불가'):'')+'">'+esc(personLabel(m))+(off?(' · 오프('+off+')'):'')+'</button>';
+      ' title="'+(blk?blk.tip:'')+'">'+esc(personLabel(m))+(blk?(' · '+blk.tag):'')+'</button>';
   }).join('');
 }
-// 오프타임과 겹치면 배정을 막는다(일정표 담당 칩과 같은 규칙) — 이미 배정된 사람은 해제만 허용
+// 입영 전·오프타임과 겹치면 배정을 막는다(일정표 담당 칩과 같은 규칙) — 이미 배정된 사람은 해제만 허용
 function wireProtAssignChips(box, p, after){
   box.querySelectorAll('.pr-asg[data-pid]').forEach(function(btn){
     btn.onclick=function(){
       var pid=btn.dataset.pid, on=protAssignees(p).indexOf(pid)>=0;
-      if(!on && btn.classList.contains('offdis')){ toast('오프타임과 겹쳐 배정할 수 없습니다.'); return; }
+      if(!on && btn.classList.contains('offdis')){ var blk=p.date?assignBlock(pid, p.date, t2h(p.time), t2h(p.endTime||protDefaultEnd(p))):null; toast(blk?(personLabel(rosterById(pid))+' 님은 '+blk.tip):'배정할 수 없습니다.'); return; }
       toggleProtAssignee(p, pid); (after||afterProtAssignChange)();
     };
   });

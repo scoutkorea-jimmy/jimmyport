@@ -665,6 +665,10 @@ th{font-size:var(--fs-1);letter-spacing:.02em;color:var(--muted);font-weight:700
 td.mk[contenteditable]{outline:none;min-width:80px;border-radius:var(--r-1)}
 td.mk[contenteditable]:focus{background:var(--accent-soft)}
 td.mk:empty::before{content:"입력…";color:var(--faint)}
+/* 입영 시점(현장 도착 일시) — R&R 표의 datetime-local 셀 */
+.arr-cell{white-space:nowrap}
+.arr-in{width:100%;min-width:150px;font:inherit;font-size:var(--fs-1);padding:6px 8px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.arr-in:focus{outline:none;border-color:var(--accent);background:var(--accent-soft)}
 /* ===== 모바일 반응형 표 — 좁은 화면에선 가로 스크롤 대신 행을 '라벨 + 값' 카드로 세로 스택 ===== */
 @media(max-width:640px){
   /* 스택된 표는 가로 스크롤이 필요 없다 — 감싼 tblscroll 의 잔여 가로 스크롤(빈 공간)을 막는다 */
