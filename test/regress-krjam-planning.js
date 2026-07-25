@@ -623,7 +623,7 @@ const SEED = () => {
     return { removed, gone0802: !m['2026-08-02'], kept0805: !!(m['2026-08-05'] && m['2026-08-05'].eve), has0802col: heads.some((h) => /8\/2/.test(h)), arrCells };
   });
   chk('입영 전 수동오프 정리(입영 후는 유지)', prune.removed === 2 && prune.gone0802 === true && prune.kept0805 === true, '지움=' + prune.removed + ' · 8/2삭제=' + prune.gone0802 + ' · 8/5유지=' + prune.kept0805);
-  chk('오프타임 그리드 8/2부터 포함 + 입영 전 앰버', prune.has0802col === true && prune.arrCells >= 2, '8/2열=' + prune.has0802col + ' · 앰버=' + prune.arrCells);
+  chk('오프타임 그리드 8/2부터 포함 + 입영 전 회색 음영', prune.has0802col === true && prune.arrCells >= 2, '8/2열=' + prune.has0802col + ' · 음영칸=' + prune.arrCells);
   const flush = await page.evaluate(async () => {
     window.__put.length = 0;
     rosterById('r1').name = '변경중';
