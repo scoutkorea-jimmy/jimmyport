@@ -670,11 +670,13 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .arrpick{display:flex;flex-direction:column;gap:5px}
 .arr-day{font:inherit;font-size:var(--fs-1);padding:6px 8px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
 .arr-day:focus{outline:none;border-color:var(--accent);background:var(--accent-soft)}
-.arrblks{display:flex;gap:4px}
-.arrblk{flex:1;font:inherit;font-size:var(--fs-1);font-weight:600;padding:0 6px;min-height:var(--h-ctl);border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--r-1);cursor:pointer;transition:var(--ease)}
-.arrblk:hover:not(:disabled){border-color:#8A5A0B;color:#8A5A0B}
-.arrblk.on{background:#8A5A0B;border-color:#8A5A0B;color:#fff}
-.arrblk:disabled{opacity:.4;cursor:not-allowed}
+/* 세그먼트 컨트롤(.card .seg 와 같은 톤) — 테두리 하나의 pill 안에 3칸이 분리선으로 연결 */
+.arrblks{display:flex;border:1px solid var(--line);border-radius:var(--pill);overflow:hidden;background:var(--surface)}
+.arrblk{flex:1;font:inherit;font-size:var(--fs-1);font-weight:600;padding:0 4px;min-height:var(--h-ctl);border:none;border-right:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:var(--ease)}
+.arrblk:last-child{border-right:none}
+.arrblk:hover:not(:disabled){background:var(--surface-3);color:#8A5A0B}
+.arrblk.on{background:#8A5A0B;color:#fff}
+.arrblk:disabled{color:var(--faint);cursor:not-allowed}
 /* ===== 모바일 반응형 표 — 좁은 화면에선 가로 스크롤 대신 행을 '라벨 + 값' 카드로 세로 스택 ===== */
 @media(max-width:640px){
   /* 스택된 표는 가로 스크롤이 필요 없다 — 감싼 tblscroll 의 잔여 가로 스크롤(빈 공간)을 막는다 */

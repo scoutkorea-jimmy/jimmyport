@@ -286,18 +286,25 @@ function mergeObj(stored, incoming) {
   if (!stored || typeof stored !== "object" || Array.isArray(stored)) return incoming;
   return Object.assign({}, stored, incoming); // 들어온 키가 이기고, 서버에만 있는 키는 보존
 }
+/* 병합('다른 사람이 편집 중')은 (1) 내가 불러온 버전과 서버 현재 버전이 다르고 (2) 그 변경을 **다른 작성자**가
+ * 했을 때만. 같은 작성자(=혼자·레이스·캐시로 baseVer 만 옛것)면 병합하지 않고 통짜 교체 → 오탐 방지. export=테스트용. */
+export function conflictByOther(baseVer, storedVer, storedAuthor, author) {
+  return !!(baseVer && storedVer && baseVer !== storedVer && storedAuthor && author && storedAuthor !== author);
+}
 // 도메인 저장 — 버전 가드 후 통짜 교체 또는 병합. 반환 {value, merged}. extra=추가 필드(roster.teams 등).
-async function saveDomain(env, KEY, field, cleaned, baseVer, kind, now, cap, extra) {
-  let stored = null, storedVer = null;
+// author: 마지막 저장자와 같으면(=혼자·같은 사람의 레이스/캐시로 baseVer 만 옛것) 병합하지 않고 통짜 교체.
+//         '다른 사람이 편집 중' 병합은 실제로 **다른 작성자**가 그 사이 바꿨을 때만 일어난다.
+async function saveDomain(env, KEY, field, cleaned, baseVer, kind, now, author, cap, extra) {
+  let stored = null, storedVer = null, storedAuthor = null;
   const raw = await env.SCOUT_KV.get(KEY);
-  if (raw) { try { const p = JSON.parse(raw); stored = p[field]; storedVer = p.updatedAt || null; } catch {} }
+  if (raw) { try { const p = JSON.parse(raw); stored = p[field]; storedVer = p.updatedAt || null; storedAuthor = p.author || null; } catch {} }
   let value = cleaned, merged = false;
-  if (baseVer && storedVer && baseVer !== storedVer) {   // 충돌 — 내가 불러온 뒤 서버가 바뀜
+  if (conflictByOther(baseVer, storedVer, storedAuthor, author)) {   // 내가 불러온 뒤 '다른 사람'이 바꿈
     value = kind === "obj" ? mergeObj(stored, cleaned) : mergeArrById(stored, cleaned);
     merged = true;
     if (kind !== "obj" && cap && Array.isArray(value) && value.length > cap) value = value.slice(0, cap);
   }
-  const wrap = Object.assign({ [field]: value, updatedAt: now }, extra || {});
+  const wrap = Object.assign({ [field]: value, updatedAt: now, author }, extra || {});
   await env.SCOUT_KV.put(KEY, JSON.stringify(wrap));
   return { value, merged };
 }
@@ -376,41 +383,41 @@ async function putImpl(ctx) {
   const BV = (body.baseVer && typeof body.baseVer === "object") ? body.baseVer : {};
 
   if (Array.isArray(body.marketing)) {
-    const r = await saveDomain(env, MKT, "marketing", body.marketing.slice(0, 300), BV.marketing, "arr", now, 300);
+    const r = await saveDomain(env, MKT, "marketing", body.marketing.slice(0, 300), BV.marketing, "arr", now, author, 300);
     await appendLog(env, { ts: now, action: "jp.marketing", count: 0, ip: clientIp(request) });
     return json({ ok: true, updatedAt: now, key: "marketing", merged: r.merged, value: r.value });
   }
 
   // 식사 메뉴 저장 (대원/운영요원 × 날짜 × 조·중·석식) — 객체
   if (body.meals && typeof body.meals === "object" && !Array.isArray(body.meals)) {
-    const r = await saveDomain(env, MEALS, "meals", cleanMeals(body.meals), BV.meals, "obj", now);
+    const r = await saveDomain(env, MEALS, "meals", cleanMeals(body.meals), BV.meals, "obj", now, author);
     return json({ ok: true, updatedAt: now, key: "meals", merged: r.merged, value: r.value });
   }
 
   // 촬영 필요 리스트 저장
   if (Array.isArray(body.shootlist)) {
-    const r = await saveDomain(env, SHOOTLIST, "shootlist", body.shootlist.slice(0, 500).map(cleanShoot2), BV.shootlist, "arr", now, 500);
+    const r = await saveDomain(env, SHOOTLIST, "shootlist", body.shootlist.slice(0, 500).map(cleanShoot2), BV.shootlist, "arr", now, author, 500);
     return json({ ok: true, updatedAt: now, key: "shootlist", merged: r.merged, value: r.value });
   }
 
   // 콘텐츠 종류 목록 저장 (문자열 배열 — id 없어 병합 불가 → 통짜)
   if (Array.isArray(body.types)) {
     const types = body.types.slice(0, 60).map((t) => (t || "").toString().slice(0, 40)).filter(Boolean);
-    const r = await saveDomain(env, TYPES, "types", types, BV.types, "arr", now, 60);
+    const r = await saveDomain(env, TYPES, "types", types, BV.types, "arr", now, author, 60);
     return json({ ok: true, updatedAt: now, key: "types", merged: r.merged, value: r.value });
   }
 
   // 운영 일정(events) 저장
   if (Array.isArray(body.events)) {
     const events = body.events.slice(0, 300).map(cleanEvent).filter((e) => e.start);
-    const r = await saveDomain(env, EVENTS, "events", events, BV.events, "arr", now, 300);
+    const r = await saveDomain(env, EVENTS, "events", events, BV.events, "arr", now, author, 300);
     return json({ ok: true, updatedAt: now, key: "events", merged: r.merged, value: r.value });
   }
 
   // 일자별 시간 일정표(timetable) 저장
   if (Array.isArray(body.timetable)) {
     const timetable = body.timetable.slice(0, 400).map(cleanTT).filter((e) => e.day);
-    const r = await saveDomain(env, TIMETABLE, "timetable", timetable, BV.timetable, "arr", now, 400);
+    const r = await saveDomain(env, TIMETABLE, "timetable", timetable, BV.timetable, "arr", now, author, 400);
     return json({ ok: true, updatedAt: now, key: "timetable", merged: r.merged, value: r.value });
   }
 
@@ -420,53 +427,53 @@ async function putImpl(ctx) {
     let teams = null;
     if (body.teams && typeof body.teams === "object") teams = cleanTeams(body.teams);
     else { try { teams = JSON.parse(await env.SCOUT_KV.get(ROSTER) || "{}").teams || null; } catch {} }
-    const r = await saveDomain(env, ROSTER, "roster", roster, BV.roster, "arr", now, 100, { teams });
+    const r = await saveDomain(env, ROSTER, "roster", roster, BV.roster, "arr", now, author, 100, { teams });
     return json({ ok: true, updatedAt: now, key: "roster", merged: r.merged, value: r.value, teams });
   }
 
   // 일정 종류(ttcats) 저장 (id 없어 통짜)
   if (Array.isArray(body.ttcats)) {
-    const r = await saveDomain(env, TTCATS, "ttcats", cleanTtCats(body.ttcats), BV.ttcats, "arr", now, 60);
+    const r = await saveDomain(env, TTCATS, "ttcats", cleanTtCats(body.ttcats), BV.ttcats, "arr", now, author, 60);
     return json({ ok: true, updatedAt: now, key: "ttcats", merged: r.merged, value: r.value });
   }
 
   // 취재 연락처(contacts) 저장
   if (Array.isArray(body.contacts)) {
     const contacts = body.contacts.slice(0, 300).map(cleanContact);
-    const r = await saveDomain(env, CONTACTS, "contacts", contacts, BV.contacts, "arr", now, 300);
+    const r = await saveDomain(env, CONTACTS, "contacts", contacts, BV.contacts, "arr", now, author, 300);
     return json({ ok: true, updatedAt: now, key: "contacts", merged: r.merged, value: r.value });
   }
 
   // 인원별 오프타임(offtimes) 저장 — 객체
   if (body.offtimes && typeof body.offtimes === "object" && !Array.isArray(body.offtimes)) {
-    const r = await saveDomain(env, OFFTIMES, "offtimes", cleanOff(body.offtimes), BV.offtimes, "obj", now);
+    const r = await saveDomain(env, OFFTIMES, "offtimes", cleanOff(body.offtimes), BV.offtimes, "obj", now, author);
     return json({ ok: true, updatedAt: now, key: "offtimes", merged: r.merged, value: r.value });
   }
 
   // 분단 명단(divisions) 저장
   if (Array.isArray(body.divisions)) {
     const divisions = body.divisions.slice(0, 60).map(cleanDivision);
-    const r = await saveDomain(env, DIVISIONS, "divisions", divisions, BV.divisions, "arr", now, 60);
+    const r = await saveDomain(env, DIVISIONS, "divisions", divisions, BV.divisions, "arr", now, author, 60);
     return json({ ok: true, updatedAt: now, key: "divisions", merged: r.merged, value: r.value });
   }
 
   // 의전 일정(protocol) 저장
   if (Array.isArray(body.protocol)) {
     const protocol = body.protocol.slice(0, 200).map(cleanProtocol);
-    const r = await saveDomain(env, PROTOCOL, "protocol", protocol, BV.protocol, "arr", now, 200);
+    const r = await saveDomain(env, PROTOCOL, "protocol", protocol, BV.protocol, "arr", now, author, 200);
     return json({ ok: true, updatedAt: now, key: "protocol", merged: r.merged, value: r.value });
   }
 
   // 현장 위치 지도 — 수동 배치(mappos) 저장 — 객체
   if (body.mappos && typeof body.mappos === "object" && !Array.isArray(body.mappos)) {
-    const r = await saveDomain(env, MAPPOS, "mappos", cleanMapPos(body.mappos), BV.mappos, "obj", now);
+    const r = await saveDomain(env, MAPPOS, "mappos", cleanMapPos(body.mappos), BV.mappos, "obj", now, author);
     return json({ ok: true, updatedAt: now, key: "mappos", merged: r.merged, value: r.value });
   }
 
   // 현장 지도 — 촬영 요청(shoots) 저장
   if (Array.isArray(body.shoots)) {
     const shoots = body.shoots.slice(0, 200).map(cleanShoot);
-    const r = await saveDomain(env, SHOOTS, "shoots", shoots, BV.shoots, "arr", now, 200);
+    const r = await saveDomain(env, SHOOTS, "shoots", shoots, BV.shoots, "arr", now, author, 200);
     return json({ ok: true, updatedAt: now, key: "shoots", merged: r.merged, value: r.value });
   }
 
