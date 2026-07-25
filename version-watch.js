@@ -2,15 +2,24 @@
  * scout-finder — version watcher
  * -------------------------------------------------------------------------
  * 페이지 로드 시 /VERSION 을 baseline 으로 잡고, 주기적으로 다시 받아 비교.
- * 값이 바뀌면(새 배포) 우측 상단에 "새로운 버전이 올라왔습니다" 알림 + 새로고침.
+ * 값이 바뀌면(새 배포) 우측 상단에 알림 + 작업 중 내용 자동 저장(flush) + 5초 뒤 강제 새로고침.
  * ========================================================================= */
 (function () {
   "use strict";
 
   var POLL_MS = 60000;     // 60초마다 확인
   var TIMEOUT_MS = 8000;
+  var COUNTDOWN = 5;       // 새 버전 감지 후 자동 새로고침까지(초) — 그 사이 작업 중 내용을 저장
   var baseline = null;
   var shown = false;
+
+  // 강제 새로고침 전, 현재 페이지의 대기 중 저장(디바운스 등)을 즉시 발사한다.
+  // 앱이 window.flushPendingSaves 를 노출하면 그걸 쓰고, 없으면 커스텀 이벤트로 알린다(페이지 무관·있으면 저장).
+  function flushSaves() {
+    try { if (typeof window.flushPendingSaves === "function") return window.flushPendingSaves(); } catch (e) {}
+    try { window.dispatchEvent(new Event("app:flush-save")); } catch (e) {}
+    return null;
+  }
 
   function fetchVersion() {
     var url = "/VERSION?_=" + Date.now();
@@ -34,6 +43,7 @@
       catch (e) { location.reload(); }
     }
     var tasks = [];
+    try { var fp = flushSaves(); if (fp && fp.then) tasks.push(fp.catch(function () {})); } catch (e) {}   // 새로고침 직전 저장 flush(수동 '지금' 클릭 포함)
     try { if (window.caches && caches.keys) tasks.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })); } catch (e) {}
     try { if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) tasks.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })); } catch (e) {}
     Promise.all(tasks).then(go, go);
@@ -43,7 +53,8 @@
   function showToast() {
     if (shown) return;
     shown = true;
-    var LEFT = 6;   // 자동 새로고침까지 남은 초
+    try { flushSaves(); } catch (e) {}   // 감지 즉시 작업 중 내용 저장 발사 — 새로고침까지 COUNTDOWN 초 여유
+    var LEFT = COUNTDOWN;   // 자동 새로고침까지 남은 초
     // 자체 스타일(인라인) — 어떤 페이지에서든 우측 상단 토스트로 동일하게 표시
     var el = document.createElement("div");
     el.setAttribute("role", "alert");
@@ -53,7 +64,7 @@
     el.innerHTML =
       '<div style="line-height:1.35;min-width:0;">' +
         '<strong style="display:block;font-size:13.5px;font-weight:700;">새 버전이 있습니다</strong>' +
-        '<span style="font-size:12px;color:#697066;" id="vw-sub">잠시 후 자동 새로고침</span>' +
+        '<span style="font-size:12px;color:#697066;" id="vw-sub">작업 내용 저장 중 · ' + COUNTDOWN + '초 후 자동 새로고침</span>' +
       "</div>" +
       '<button type="button" id="vw-now" style="flex:none;border:none;background:#6336B5;color:#fff;font:600 12.5px \'Hanken Grotesk\',sans-serif;padding:8px 14px;border-radius:9px;cursor:pointer;">지금 새로고침</button>';
     el.querySelector("#vw-now").addEventListener("click", function () { hardReload(); });

@@ -854,7 +854,7 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 
 /* ---- 인원별 오프타임 ---- */
 .offwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-2);background:var(--surface);box-shadow:var(--sh-1)}
-.offtbl{border-collapse:collapse;width:100%;min-width:760px;font-size:var(--fs-1)}
+.offtbl{border-collapse:collapse;width:100%;min-width:560px;font-size:var(--fs-1)}
 .offtbl th,.offtbl td{border:1px solid var(--line-2);padding:5px 6px;text-align:center;vertical-align:middle}
 .offtbl thead th{background:var(--surface-2);font-size:var(--fs-1);font-weight:700;color:var(--ink-2);line-height:1.2}
 .offtbl thead th span{display:block;font-size:var(--fs-1);color:var(--muted);font-weight:500}
@@ -863,7 +863,12 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .offtog{font:inherit;font-size:var(--fs-1);font-weight:600;padding:0 8px;min-height:var(--h-ctl);margin:1px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--pill);cursor:pointer;transition:var(--ease)}
 .offtog:hover{border-color:var(--danger);color:var(--danger-ink)}
 .offtog.off{background:var(--danger);border-color:var(--danger);color:#fff}
-.offtog.na{display:inline-block;border:1px dashed var(--line-2);background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--surface-3) 3px,var(--surface-3) 5px);color:var(--faint);cursor:not-allowed;text-decoration:line-through}
+.offtog.na{border:1px dashed var(--line-2);background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--surface-3) 3px,var(--surface-3) 5px);color:var(--faint);cursor:not-allowed;text-decoration:line-through}
+/* 입영 전 = 오프타임과 연계된 자동 배정 불가(앰버, 수동 오프[빨강]과 구분 · 토글 아님) */
+.offtog.arr{background:#8A5A0B;border-color:#8A5A0B;color:#fff;cursor:not-allowed}
+.offtog.arr:hover{border-color:#8A5A0B;color:#fff}
+/* 셀 안 3블록(오전·오후·저녁)을 세로 스택으로 통일 — 좁은 칸에서 2+1 로 깨지던 것 방지 */
+.offcell .offtog{display:block;width:100%;margin:3px 0;padding:0 6px;border-radius:var(--r-1)}
 /* 오프타임 충돌(배정 모달) */
 .evkind.offdis{opacity:.5;border-style:dashed;color:var(--danger-ink)}
 .evkind.offwarn{outline:2px solid var(--danger);outline-offset:-2px}

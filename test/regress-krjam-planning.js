@@ -557,6 +557,54 @@ const SEED = () => {
   });
   chk('입영 이전=차단 · 이후=허용 (판정)', arr.bTag === '입영 전' && arr.aNull === true && arr.seBlocked === true, '이전=' + arr.bTag + ' · 이후허용=' + arr.aNull + ' · 같은날이른차단=' + arr.seBlocked);
   chk('입영 전 담당 칩 배정 차단 (UI)', arr.dis === true && arr.blocked === true, arr.txt + ' · 차단=' + arr.blocked);
+  const enf = await page.evaluate(() => {
+    const r1 = rosterById('r1'); r1.arrive = ''; state.offtimes = {};
+    // 결정론: r1 을 모든 담당에서 제거 후 의전 prot-t1(8/5 20:00) 한 곳에만 배정
+    ttList().forEach((t) => { const a = t.assignees || []; const i = a.indexOf('r1'); if (i >= 0) a.splice(i, 1); });
+    protocolList().forEach((p) => { const a = p.assignees || []; const i = a.indexOf('r1'); if (i >= 0) a.splice(i, 1); });
+    shootListData().forEach((m) => { if (m.ttId || m.prId) return; const a = m.assignees || []; const i = a.indexOf('r1'); if (i >= 0) a.splice(i, 1); });
+    protById('prot-t1').assignees = ['r1'];
+    window.confirm = () => true;                        // 확인 다이얼로그 자동 수락
+    r1.arrive = '2026-08-06T09:00';                     // 입영을 8/6 로 늦게 설정 → 8/5 담당은 입영 전
+    const removed = enforceAvailability('r1');
+    const after = (protById('prot-t1').assignees || []).slice();
+    // 취소 시나리오 — confirm=false → 유지
+    protById('prot-t1').assignees = ['r1']; window.confirm = () => false;
+    const kept0 = enforceAvailability('r1');
+    const kept = (protById('prot-t1').assignees || []).slice();
+    r1.arrive = ''; protById('prot-t1').assignees = [];  // 정리
+    // 독립 촬영행: 자유 텍스트 sched 파싱 + 배정 가드
+    const parse = shootSchedWhen({ sched: '8/6 14:00~15:00' });
+    const r2 = rosterById('r2'); r2.arrive = '2026-08-06T18:00';
+    const shBlk = assignBlock('r2', parse.date, parse.sH, parse.eH);   // 8/6 14:00 < 입영 18:00 → 차단
+    r2.arrive = '';
+    return { removed, after, kept0, kept, pd: parse.date, ph: parse.sH, shTag: shBlk && shBlk.tag };
+  });
+  chk('입영 늦게 설정 → 기존 담당 해제(확인 수락)', enf.removed === 1 && enf.after.length === 0, '해제=' + enf.removed + ' · 남음=' + JSON.stringify(enf.after));
+  chk('확인 취소 시 배정 유지', enf.kept0 === 0 && JSON.stringify(enf.kept) === '["r1"]', '유지=' + JSON.stringify(enf.kept));
+  chk('촬영 sched 파싱 + 독립행 배정 가드', enf.pd === '2026-08-06' && enf.ph === 14 && enf.shTag === '입영 전', enf.pd + ' ' + enf.ph + ' · ' + enf.shTag);
+  const offlink = await page.evaluate(() => {
+    const r2 = rosterById('r2'); r2.arrive = '2026-08-06T09:00';   // 8/6 09:00 입영 → 그 이전 시간대 자동 오프
+    setView('staff'); renderStaff();
+    const arr = document.querySelectorAll('#offtimes .offtog.arr');
+    const noToggle = [].every.call(arr, (e) => !e.hasAttribute('data-pid'));   // 자동 오프는 토글 아님
+    const oneBtn = document.querySelector('#offtimes .offtog[data-pid]');
+    const stacked = oneBtn ? getComputedStyle(oneBtn).display === 'block' : false;   // 셀 3블록 세로 스택
+    r2.arrive = '';
+    return { n: arr.length, noToggle, stacked };
+  });
+  chk('입영 전 시간대가 오프타임 그리드에 자동표시(연계)', offlink.n > 0 && offlink.noToggle === true, offlink.n + '칸 · 토글아님=' + offlink.noToggle);
+  chk('오프타임 셀 3블록 세로 스택(좁은 화면 깨짐 방지)', offlink.stacked === true, 'display=' + (offlink.stacked ? 'block' : 'other'));
+  const flush = await page.evaluate(async () => {
+    window.__put.length = 0;
+    rosterById('r1').name = '변경중';
+    saveRoster();                                        // 디바운스(500ms) — 아직 서버 전송 전
+    const beforeFlush = window.__put.filter((x) => x.roster).length;
+    await window.flushPendingSaves();                    // 새 버전 감지 시 호출되는 flush → 즉시 발사
+    const afterFlush = window.__put.filter((x) => x.roster).length;
+    return { beforeFlush, afterFlush, hook: typeof window.flushPendingSaves };
+  });
+  chk('새 버전 flush: 대기 저장 즉시 발사(작업 유실 방지)', flush.hook === 'function' && flush.beforeFlush === 0 && flush.afterFlush >= 1, '훅=' + flush.hook + ' · 전=' + flush.beforeFlush + ' 후=' + flush.afterFlush);
   const ssj = await page.evaluate(() => {
     mergeSuperstarJ(); mergeSuperstarJ();   // 멱등 — 두 번 병합해도 5건
     const L = ttList().filter((t) => /^ssj-/.test(t.id));

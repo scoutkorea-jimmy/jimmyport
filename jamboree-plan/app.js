@@ -148,6 +148,51 @@ function assignBlock(pid,date,sH,eH){
   if(off) return {tip:'오프타임('+off+') — 배정 불가', tag:'오프('+off+')'};
   return null;
 }
+/* 촬영 리스트 행의 (날짜, 시작시각) — 배정 가드 판정용.
+ * 연동 행은 원본(일정표·의전)이 정답. 독립 행은 자유 텍스트 sched 를 "M/D … HH:MM" 패턴으로만 파싱(못 읽으면 null=차단 안 함).
+ * (연도는 잼버리 연도 2026 고정 — JAM_DAYS 와 동일한 단일 대회 전제.) */
+function shootSchedWhen(m){
+  var t=shootLinkedTt(m); if(t) return {date:t.day, sH:t2h(t.start), eH:t2h(t.end)};
+  var p=shootLinkedProt(m); if(p) return p.date?{date:p.date, sH:t2h(p.time), eH:t2h(p.endTime||protDefaultEnd(p))}:null;
+  var s=(m&&m.sched||'').trim(); if(!s) return null;
+  var md=s.match(/(\d{1,2})\s*\/\s*(\d{1,2})/); if(!md) return null;
+  var mo=+md[1], day=+md[2], hm=s.match(/(\d{1,2}):(\d{2})/);
+  return {date:'2026-'+(mo<10?'0':'')+mo+'-'+(day<10?'0':'')+day, sH:hm?(+hm[1]+(+hm[2])/60):null, eH:null};
+}
+/* 배정 이후에 입영/오프타임을 늦게 설정하면, 배정 시점엔 통과했던 기존 담당이 '배정 불가' 상태로 남는다.
+ * 그 잔여를 찾아(일정표·의전·독립 촬영행) 사용자 확인 후 해제한다 — 배정 시점 가드(assignBlock)와 짝을 이루는 사후 정리. */
+function findAvailabilityConflicts(pid){
+  var hits=[];
+  ttList().forEach(function(t){ if((t.assignees||[]).indexOf(pid)<0) return;
+    var blk=assignBlock(pid, t.day, t2h(t.start), t2h(t.end)); if(blk) hits.push({kind:'tt', item:t, blk:blk, label:(t.title||'일정')}); });
+  protocolList().forEach(function(p){ if(!p.date || protAssignees(p).indexOf(pid)<0) return;
+    var blk=assignBlock(pid, p.date, t2h(p.time), t2h(p.endTime||protDefaultEnd(p))); if(blk) hits.push({kind:'pr', item:p, blk:blk, label:protEventName(p)}); });
+  shootListData().forEach(function(m){ if(m.ttId||m.prId) return;              // 연동 행은 위 tt/pr 에서 이미 검사
+    if((m.assignees||[]).indexOf(pid)<0) return; var w=shootSchedWhen(m); if(!w) return;
+    var blk=assignBlock(pid, w.date, w.sH, w.eH); if(blk) hits.push({kind:'shoot', item:m, blk:blk, label:(m.title||'촬영')}); });
+  return hits;
+}
+function enforceAvailability(pid){
+  var hits=findAvailabilityConflicts(pid); if(!hits.length) return 0;
+  var nm=personLabel(rosterById(pid));
+  var msg=nm+' 님의 기존 담당 '+hits.length+'건이 배정 불가 시간(입영 전·오프타임)과 겹칩니다.\n\n'+
+    hits.slice(0,8).map(function(h){ return '· '+h.label+' ('+h.blk.tag+')'; }).join('\n')+(hits.length>8?('\n… 외 '+(hits.length-8)+'건'):'')+
+    '\n\n담당에서 해제할까요? (취소하면 배정을 그대로 둡니다)';
+  if(!confirm(msg)) return 0;
+  var tt=false, pr=false, sh=false;
+  hits.forEach(function(h){
+    var arr=(h.kind==='pr')?protAssignees(h.item):(h.item.assignees||[]);
+    var i=arr.indexOf(pid); if(i<0) return; arr.splice(i,1);
+    if(h.kind==='tt') tt=true; else if(h.kind==='pr') pr=true; else { h.item.owner=shootOwnerText(h.item); sh=true; }
+  });
+  if(tt) saveTimetable();
+  if(pr) saveProtocol();
+  if(sh) saveShootList();
+  if(pr) afterProtAssignChange();                                              // 의전 → 표·일정표·촬영·배치 일괄 갱신
+  else { if(tt&&typeof renderTimetable==='function') renderTimetable(); if((tt||sh)&&typeof renderPhotoList==='function') renderPhotoList(); }
+  toast(nm+' 님 담당 '+hits.length+'건 해제됨(배정 불가 시간)');
+  return hits.length;
+}
 function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-02',start:'10:00',end:'16:00',title:'사전 답사 · 영지 점검',place:'영지 전역',cat:'이동·기타',owner:'',memo:'촬영 동선 사전 점검'},
   {id:mkid(),day:'2026-08-03',start:'09:00',end:'18:00',title:'미디어센터 설치 · 장비 세팅',place:'미디어센터',cat:'홍보활동',owner:'',memo:'송출/촬영 장비 점검'},
@@ -364,7 +409,9 @@ function saveCard(k,s,now){        // per-card server save (즉시 또는 짧은
   if(cardTimers[k]) clearTimeout(cardTimers[k]);
   if(now){ doSaveCard(k,s); return; }
   setSt('저장 대기…');
-  cardTimers[k]=setTimeout(function(){ doSaveCard(k,s); }, 500);
+  var fire=function(){ if(cardTimers[k]){ clearTimeout(cardTimers[k]); delete cardTimers[k]; } clearFlush('card:'+k); return doSaveCard(k,s); };
+  registerFlush('card:'+k, fire);
+  cardTimers[k]=setTimeout(fire, 500);
 }
 /* 저장 안정성: 실패 시 pending에 등록 → 온라인/주기적으로 자동 재시도 */
 var pending={};
@@ -428,12 +475,15 @@ function saveMarketing(){
   saveLocal();
   if(mktTimer) clearTimeout(mktTimer);
   setSt('마케팅 저장 대기…');
-  mktTimer=setTimeout(function(){
+  var fire=function(){
+    if(mktTimer){ clearTimeout(mktTimer); mktTimer=null; } clearFlush('mkt');
     setSt('마케팅 저장 중…');
-    fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
+    return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
       body:JSON.stringify({marketing:state.marketing||[], author:authorVal()})})
       .then(function(r){return r.json();}).then(function(){ setSt('마케팅 저장됨',true); }).catch(function(){ setSt('마케팅 저장 실패'); });
-  }, 500);
+  };
+  registerFlush('mkt', fire);
+  mktTimer=setTimeout(fire, 500);
 }
 function applyServer(j){
   // MERGE(병합): 서버 카드는 자기 키만 갱신, 로컬 전용 카드는 보존 → 데이터 유실 방지
@@ -546,27 +596,47 @@ function saveEvents(){
   saveLocal();
   if(evTimer) clearTimeout(evTimer);
   setSt('일정 저장 대기…');
-  evTimer=setTimeout(function(){
+  var fire=function(){
+    if(evTimer){ clearTimeout(evTimer); evTimer=null; } clearFlush('ev');
     setSt('일정 저장 중…');
-    fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
+    return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
       body:JSON.stringify({events:state.events||[], author:authorVal(), baseVer:{events:boardVer.events}})})
       .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
       .then(function(j){ if(!j){ setSt('일정 저장 실패'); return; } var m=onPutResponse(j); setSt(m?'변경 병합됨':'일정 저장됨',true); }).catch(function(){ setSt('일정 저장 실패'); });
-  }, 500);
+  };
+  registerFlush('ev', fire);
+  evTimer=setTimeout(fire, 500);
 }
+/* ===== 강제 새로고침(새 배포) 전 대기 저장 flush =====
+ * 디바운스 저장(500ms 대기)이 아직 서버로 안 나갔을 때 강제 새로고침하면 그 편집이 유실된다.
+ * 각 저장 함수가 '즉시 실행' 클로저를 등록/해제하고, version-watch 가 새로고침 직전 window.flushPendingSaves() 로 전부 발사한다. */
+var __flushers={};
+function registerFlush(key, fn){ __flushers[key]=fn; }
+function clearFlush(key){ delete __flushers[key]; }
+function flushPendingSaves(){
+  saveLocal();
+  var ps=[];
+  Object.keys(__flushers).forEach(function(k){ var f=__flushers[k]; if(typeof f==='function'){ try{ var r=f(); if(r&&r.then) ps.push(r.catch(function(){})); }catch(e){} } });
+  return Promise.all(ps);
+}
+try{ window.flushPendingSaves=flushPendingSaves; }catch(e){}
 var ttTimer=null, rosterTimer=null;
 function debouncedPut(timerName, body, okMsg){
   saveLocal();
   var t=window[timerName]; if(t) clearTimeout(t);
   setSt('저장 대기…');
-  window[timerName]=setTimeout(function(){
+  var fire=function(){
+    if(window[timerName]){ clearTimeout(window[timerName]); window[timerName]=null; }
+    clearFlush(timerName);
     setSt('저장 중…');
-    fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
+    return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
       body:JSON.stringify(Object.assign({author:authorVal(), baseVer:pickBaseVer(body)}, body))})
       .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
       .then(function(j){ if(!j){ setSt('저장 실패'); return; } var merged=onPutResponse(j); setSt(merged?'변경 병합됨':(okMsg||'저장됨'),true); })
       .catch(function(){ setSt('저장 실패'); });
-  }, 500);
+  };
+  registerFlush(timerName, fire);
+  window[timerName]=setTimeout(fire, 500);
 }
 function saveTimetable(){ debouncedPut('ttTimer', {timetable: state.timetable||[]}, '일정표 저장됨'); }
 function saveRoster(){ debouncedPut('rosterTimer', {roster: state.roster||[], teams: teamNames()}, 'R&R 저장됨'); }
@@ -1834,8 +1904,10 @@ function openShootDetail(m){
   document.getElementById('shoot-mtitle').textContent=m.title||'촬영 상세';
   document.getElementById('shoot-msub').textContent=[(m.place||''),(m.sched||'')].filter(Boolean).join(' · ');
   var asgIds=shootAssignees(m);
+  var shWhen=shootSchedWhen(m);   // 일정을 알면(연동 행 또는 파싱된 sched) 입영 전·오프타임 배정을 막는다
   var asgChips=rosterList().filter(function(p){ return (p.name||'').trim(); }).map(function(p){ var on=asgIds.indexOf(p.id)>=0;
-    return '<button type="button" class="evkind asg'+(on?' on':'')+'" data-sh-asg="'+esc(p.id)+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(personLabel(p))+'</button>';
+    var blk=shWhen?assignBlock(p.id, shWhen.date, shWhen.sH, shWhen.eH):null;
+    return '<button type="button" class="evkind asg'+(on?' on':'')+(blk?(on?' offwarn':' offdis'):'')+'" data-sh-asg="'+esc(p.id)+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+' title="'+(blk?blk.tip:'')+'">'+esc(personLabel(p))+(blk?(' · '+blk.tag):'')+'</button>';
   }).join('')||'<span class="hintmini">먼저 <b>홍보부 인원</b> 탭에서 인원을 추가하세요.</span>';
   document.getElementById('shoot-body').innerHTML=
     '<div class="evfld"><label>행사 · 과정활동명</label><input id="sh-f-title" class="evinput" value="'+esc(m.title||'')+'"></div>'+
@@ -1850,8 +1922,10 @@ function openShootDetail(m){
   function bind(id,f){ var el=document.getElementById(id); if(el) el.addEventListener('input',function(){ m[f]=this.value; saveShootList(); if(f==='title') document.getElementById('shoot-mtitle').textContent=this.value||'촬영 상세'; }); }
   bind('sh-f-title','title'); bind('sh-f-place','place'); bind('sh-f-point','point'); bind('sh-f-sched','sched'); bind('sh-f-donedate','doneDate');
   var asgBox=document.getElementById('sh-asg'); if(asgBox) asgBox.addEventListener('click',function(e){ var btn=e.target.closest('[data-sh-asg]'); if(!btn) return;
-    toggleShootAssignee(m, btn.getAttribute('data-sh-asg'));
-    var on=shootAssignees(m).indexOf(btn.getAttribute('data-sh-asg'))>=0; btn.classList.toggle('on',on); if(on) btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); else btn.removeAttribute('style'); });
+    var pid=btn.getAttribute('data-sh-asg');
+    if(shootAssignees(m).indexOf(pid)<0){ var w=shootSchedWhen(m); var blk=w?assignBlock(pid, w.date, w.sH, w.eH):null; if(blk){ toast(personLabel(rosterById(pid))+' 님은 '+blk.tip); return; } }
+    toggleShootAssignee(m, pid);
+    var on=shootAssignees(m).indexOf(pid)>=0; btn.classList.toggle('on',on); if(on) btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); else btn.removeAttribute('style'); });
   var dc=document.getElementById('sh-f-done'); if(dc) dc.onchange=function(){ m.done=this.checked; if(m.done&&!m.doneDate){ m.doneDate=todayISO(); var dd=document.getElementById('sh-f-donedate'); if(dd) dd.value=m.doneDate; } saveShootList(); };
   document.getElementById('shoot-scrim').classList.add('show');
 }
@@ -2448,7 +2522,7 @@ function renderStaff(){
           '<td>'+teamSel+'</td>'+
           '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
         tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); }); });
-        var arrIn=tr.querySelector('.arr-in'); if(arrIn) arrIn.addEventListener('change',function(){ m.arrive=this.value; saveRoster(); renderDerivedPlacement(); });   // 입영 시점 변경 → 저장 + 배치 충돌 표시 갱신
+        var arrIn=tr.querySelector('.arr-in'); if(arrIn) arrIn.addEventListener('change',function(){ m.arrive=this.value; saveRoster(); enforceAvailability(m.id); renderOfftimes(); renderDerivedPlacement(); });   // 입영 시점 변경 → 저장 + 입영 전 담당 정리 + 오프타임 그리드(입영 전 자동표시)·배치 갱신
         tr.querySelector('.team-sel').onchange=function(){ m.team=this.value; renderStaff(); saveRoster(); renderDerivedPlacement(); };
         tr.querySelector('.rm').onclick=function(){ state.roster=rosterList().filter(function(x){return x!==m;}); renderStaff(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); };
         rb.appendChild(tr);
@@ -2471,6 +2545,7 @@ function renderOfftimes(){
     DAYS_E.forEach(function(d){
       H+='<td class="offcell">'+OFF_BLOCKS.map(function(bk,i){
         if(!offAllowed(d[0],i)) return '<span class="offtog na" title="이 시간은 오프 지정 불가">'+bk[1]+'</span>';
+        if(arriveConflict(m.id, d[0], bk[3])) return '<span class="offtog arr" title="입영('+arriveLabel(arriveOf(m.id))+') 이전 — 자동 배정 불가">'+bk[1]+'</span>';   // 입영 전 = 오프타임과 연계해 자동 배정 불가(앰버·토글 아님)
         var off=isOff(m.id,d[0],bk[0]); return '<button type="button" class="offtog'+(off?' off':'')+'" data-pid="'+esc(m.id)+'" data-d="'+d[0]+'" data-bk="'+bk[0]+'" title="'+bk[1]+' '+bk[2]+(off?' · 오프':'')+'">'+bk[1]+'</button>';
       }).join('')+'</td>';
     });
@@ -2478,7 +2553,7 @@ function renderOfftimes(){
   });
   H+='</tbody></table></div>';
   box.innerHTML=H;
-  box.querySelectorAll('.offtog').forEach(function(bt){ bt.onclick=function(){ toggleOff(bt.dataset.pid, bt.dataset.d, bt.dataset.bk); renderOfftimes(); renderDerivedPlacement(); }; });
+  box.querySelectorAll('.offtog[data-pid]').forEach(function(bt){ bt.onclick=function(){ toggleOff(bt.dataset.pid, bt.dataset.d, bt.dataset.bk); enforceAvailability(bt.dataset.pid); renderOfftimes(); renderDerivedPlacement(); }; });   // 토글 버튼만(na·arr 스팬 제외)
 }
 // 배치 슬롯 클릭 — 일반 일정은 시간 일정 모달, 의전 파생(_pid)은 촬영 담당 모달로
 function wirePlaceSlots(box){

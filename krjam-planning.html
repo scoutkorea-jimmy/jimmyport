@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.223"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.223">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.223">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.224"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.224">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.224">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -287,10 +287,10 @@
 
     <div class="sec-head" style="margin-top:26px">
       <h2>인원별 오프타임</h2>
-      <span class="sub">8/3 오후부터 · 오전 09–12 · 오후 14–17 · 저녁 19–22 — 표시된 칸은 배정 불가</span>
+      <span class="sub">8/3 오후부터 · 오전 09–12 · 오후 14–17 · 저녁 19–22 — <b style="color:var(--danger-ink)">빨강=오프</b> · <b style="color:#8A5A0B">앰버=입영 전</b> 칸은 배정 불가</span>
     </div>
     <div id="offtimes"></div>
-    <p class="note">오프타임은 <b>8/3 오후부터</b> 지정할 수 있습니다(빗금 칸은 지정 불가). 각 인원이 쉬는(배정 불가) 시간대를 클릭해 지정하면, 그 시간과 겹치는 일정에는 <b>잼버리 일정표</b>에서 해당 인원을 담당으로 배정할 수 없습니다.</p>
+    <p class="note">오프타임은 <b>8/3 오후부터</b> 지정할 수 있습니다(빗금 칸은 지정 불가). 각 인원이 쉬는(배정 불가) 시간대를 클릭해 지정하면, 그 시간과 겹치는 일정에는 <b>잼버리 일정표·의전</b>에서 해당 인원을 담당으로 배정할 수 없습니다. 각 인원의 <b>입영 시점 이전</b> 시간대는 위 R&amp;R 표의 입영 시점과 <b>연계되어 앰버색으로 자동 표시</b>됩니다(도착 전이라 배정 불가).</p>
 
     <div class="sec-head" style="margin-top:26px">
       <h2><span data-ic="mapPin" data-ic-size="17" style="vertical-align:-3px"></span> 현장 배치 (일정표 기반)</h2>
@@ -647,12 +647,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.223"></script>
+<script src="jamboree-plan/core.js?v=0.9.224"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.223"></script>
+<script src="jamboree-plan/upload.js?v=0.9.224"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.223"></script>
-<script src="jamboree-plan/app.js?v=0.9.223"></script>
-<script src="version-watch.js?v=0.9.223"></script>
+<script src="jamboree-plan/library.js?v=0.9.224"></script>
+<script src="jamboree-plan/app.js?v=0.9.224"></script>
+<script src="version-watch.js?v=0.9.224"></script>
 </body>
 </html>
