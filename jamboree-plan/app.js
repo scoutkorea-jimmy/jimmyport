@@ -193,6 +193,33 @@ function enforceAvailability(pid){
   toast(nm+' 님 담당 '+hits.length+'건 해제됨(배정 불가 시간)');
   return hits.length;
 }
+/* 입영 시점 입력 = 칩(오프타임과 같은 톤) — datetime 위젯 대신 '날짜 드롭다운 + 오전/오후/저녁 블록칩'.
+ * 저장은 기존과 동일한 "YYYY-MM-DDThh:mm"(블록 시작시각: 오전 09:00·오후 14:00·저녁 19:00)라 assignBlock·그리드 앰버가 그대로 동작. */
+function arriveStartTime(bk){ return pad2(bk[3])+':00'; }
+function arriveCellHtml(m){
+  var a=(m.arrive||'').trim(), day=a.slice(0,10), tm=a.slice(11,16), curBlk='';
+  OFF_BLOCKS.forEach(function(bk){ if(arriveStartTime(bk)===tm) curBlk=bk[0]; });
+  var dayOpts='<option value="">미정</option>'+JAM_DAYS.map(function(d){ var dd=ymd(d[0]); return '<option value="'+d[0]+'"'+(d[0]===day?' selected':'')+'>8/'+dd.getDate()+' ('+WDS[dd.getDay()]+')</option>'; }).join('');
+  var chips=OFF_BLOCKS.map(function(bk){ var on=curBlk===bk[0]; return '<button type="button" class="arrblk'+(on?' on':'')+'" data-blk="'+bk[0]+'"'+(day?'':' disabled')+' title="'+bk[1]+' 도착">'+bk[1]+'</button>'; }).join('');
+  return '<div class="arrpick"><select class="arr-day" aria-label="입영 날짜">'+dayOpts+'</select><div class="arrblks">'+chips+'</div></div>';
+}
+// 입영 칩 변경 반영 — 저장 + 입영 전 담당 정리 + 표·그리드 재렌더(칩 상태·앰버 갱신)
+function commitArrive(m){ saveRoster(); enforceAvailability(m.id); renderStaff(); }
+function wireArriveCell(cell, m){
+  var daySel=cell.querySelector('.arr-day'); if(!daySel) return;
+  daySel.addEventListener('change', function(){
+    var day=this.value;
+    if(!day){ m.arrive=''; }
+    else { var tm=(m.arrive||'').slice(11,16), has=false; OFF_BLOCKS.forEach(function(bk){ if(arriveStartTime(bk)===tm) has=true; });
+      m.arrive=day+'T'+(has?tm:arriveStartTime(OFF_BLOCKS[0])); }   // 블록 미선택 시 오전 기본
+    commitArrive(m);
+  });
+  cell.querySelectorAll('.arrblk').forEach(function(bt){ bt.addEventListener('click', function(){
+    if(bt.disabled) return; var day=daySel.value; if(!day) return;
+    var bk=OFF_BLOCKS.filter(function(x){ return x[0]===bt.dataset.blk; })[0]; if(!bk) return;
+    m.arrive=day+'T'+arriveStartTime(bk); commitArrive(m);
+  }); });
+}
 function defaultTimetable(){ return [
   {id:mkid(),day:'2026-08-02',start:'10:00',end:'16:00',title:'사전 답사 · 영지 점검',place:'영지 전역',cat:'이동·기타',owner:'',memo:'촬영 동선 사전 점검'},
   {id:mkid(),day:'2026-08-03',start:'09:00',end:'18:00',title:'미디어센터 설치 · 장비 세팅',place:'미디어센터',cat:'홍보활동',owner:'',memo:'송출/촬영 장비 점검'},
@@ -2518,11 +2545,11 @@ function renderStaff(){
           '<td class="mk" contenteditable data-f="duty">'+esc(m.duty)+'</td>'+
           '<td class="mk" contenteditable data-f="channel">'+esc(m.channel)+'</td>'+
           '<td class="mk" contenteditable data-f="contact">'+esc(m.contact)+'</td>'+
-          '<td class="arr-cell"><input type="datetime-local" class="arr-in" value="'+esc(m.arrive||'')+'" min="2026-08-02T00:00" max="2026-08-09T23:59" aria-label="입영 시점"></td>'+
+          '<td class="arr-cell">'+arriveCellHtml(m)+'</td>'+
           '<td>'+teamSel+'</td>'+
           '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
         tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); }); });
-        var arrIn=tr.querySelector('.arr-in'); if(arrIn) arrIn.addEventListener('change',function(){ m.arrive=this.value; saveRoster(); enforceAvailability(m.id); renderOfftimes(); renderDerivedPlacement(); });   // 입영 시점 변경 → 저장 + 입영 전 담당 정리 + 오프타임 그리드(입영 전 자동표시)·배치 갱신
+        var arrCell=tr.querySelector('.arr-cell'); if(arrCell) wireArriveCell(arrCell, m);   // 입영 = 날짜+블록 칩(오프타임 톤). 변경 시 입영 전 담당 정리 + 그리드 앰버 갱신
         tr.querySelector('.team-sel').onchange=function(){ m.team=this.value; renderStaff(); saveRoster(); renderDerivedPlacement(); };
         tr.querySelector('.rm').onclick=function(){ state.roster=rosterList().filter(function(x){return x!==m;}); renderStaff(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); };
         rb.appendChild(tr);

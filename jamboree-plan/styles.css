@@ -665,10 +665,16 @@ th{font-size:var(--fs-1);letter-spacing:.02em;color:var(--muted);font-weight:700
 td.mk[contenteditable]{outline:none;min-width:80px;border-radius:var(--r-1)}
 td.mk[contenteditable]:focus{background:var(--accent-soft)}
 td.mk:empty::before{content:"입력…";color:var(--faint)}
-/* 입영 시점(현장 도착 일시) — R&R 표의 datetime-local 셀 */
-.arr-cell{white-space:nowrap}
-.arr-in{width:100%;min-width:150px;font:inherit;font-size:var(--fs-1);padding:6px 8px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
-.arr-in:focus{outline:none;border-color:var(--accent);background:var(--accent-soft)}
+/* 입영 시점(현장 도착) — 날짜 드롭다운 + 오전/오후/저녁 블록칩(오프타임 앰버 톤과 통일) */
+.arr-cell{white-space:nowrap;min-width:158px}
+.arrpick{display:flex;flex-direction:column;gap:5px}
+.arr-day{font:inherit;font-size:var(--fs-1);padding:6px 8px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink)}
+.arr-day:focus{outline:none;border-color:var(--accent);background:var(--accent-soft)}
+.arrblks{display:flex;gap:4px}
+.arrblk{flex:1;font:inherit;font-size:var(--fs-1);font-weight:600;padding:0 6px;min-height:var(--h-ctl);border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:var(--r-1);cursor:pointer;transition:var(--ease)}
+.arrblk:hover:not(:disabled){border-color:#8A5A0B;color:#8A5A0B}
+.arrblk.on{background:#8A5A0B;border-color:#8A5A0B;color:#fff}
+.arrblk:disabled{opacity:.4;cursor:not-allowed}
 /* ===== 모바일 반응형 표 — 좁은 화면에선 가로 스크롤 대신 행을 '라벨 + 값' 카드로 세로 스택 ===== */
 @media(max-width:640px){
   /* 스택된 표는 가로 스크롤이 필요 없다 — 감싼 tblscroll 의 잔여 가로 스크롤(빈 공간)을 막는다 */

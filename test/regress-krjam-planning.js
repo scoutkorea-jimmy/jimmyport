@@ -319,7 +319,7 @@ const SEED = () => {
   chk('대시보드 통계 카드', (await page.$$('#dashboard .statcard, #dashboard .stat')).length > 0 || (await page.$('#dashboard')) !== null);
   await go('staff');
   chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
-  chk('인원 표에 입영 시점 입력 렌더', (await page.$$('#rostertbl .arr-in[type="datetime-local"]')).length > 0, (await page.$$('#rostertbl .arr-in')).length + '개');
+  chk('인원 표 입영 = 날짜+블록 칩 렌더(datetime 아님)', (await page.$$('#rostertbl .arr-cell .arr-day')).length > 0 && (await page.$$('#rostertbl .arr-cell .arrblk')).length >= 3 && (await page.$$('#rostertbl .arr-in')).length === 0, '드롭다운 ' + (await page.$$('#rostertbl .arr-day')).length + ' · 블록칩 ' + (await page.$$('#rostertbl .arrblk')).length);
 
   // ===== 현장 지도 — 촬영 공백 (v0.9.216) =====
   // 기준 시각에 일정은 있는데 인원이 없는 구역을 찾는다. smByZone(배치) × ttList(일정) 교차.
@@ -595,6 +595,19 @@ const SEED = () => {
   });
   chk('입영 전 시간대가 오프타임 그리드에 자동표시(연계)', offlink.n > 0 && offlink.noToggle === true, offlink.n + '칸 · 토글아님=' + offlink.noToggle);
   chk('오프타임 셀 3블록 세로 스택(좁은 화면 깨짐 방지)', offlink.stacked === true, 'display=' + (offlink.stacked ? 'block' : 'other'));
+  const arrchip = await page.evaluate(() => {
+    window.confirm = () => true;
+    rosterById('r1').arrive = ''; rosterById('r2').arrive = '';
+    setView('staff'); renderStaff();
+    const daySel = document.querySelectorAll('#rostertbl tr.member-row')[0].querySelector('.arr-day');   // r1
+    daySel.value = '2026-08-06'; daySel.dispatchEvent(new Event('change'));
+    const afterDay = rosterById('r1').arrive;                          // 날짜 선택 → 오전 기본(09:00)
+    document.querySelectorAll('#rostertbl tr.member-row')[0].querySelector('.arrblk[data-blk="eve"]').click();
+    const afterEve = rosterById('r1').arrive;                          // 저녁 칩 → 19:00
+    rosterById('r1').arrive = '';
+    return { afterDay, afterEve };
+  });
+  chk('입영 칩: 날짜→오전 기본, 저녁 칩→19:00 저장', arrchip.afterDay === '2026-08-06T09:00' && arrchip.afterEve === '2026-08-06T19:00', arrchip.afterDay + ' → ' + arrchip.afterEve);
   const flush = await page.evaluate(async () => {
     window.__put.length = 0;
     rosterById('r1').name = '변경중';
