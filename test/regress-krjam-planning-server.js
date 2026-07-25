@@ -2,7 +2,7 @@
  * 실행: node test/regress-krjam-planning-server.js
  * 동시편집 병합('다른 사람이 편집 중')은 실제로 다른 작성자가 그 사이 바꿨을 때만 일어나야 한다
  * (혼자·같은 사람의 레이스/캐시로 baseVer 만 옛것인 경우 = 오탐 → 병합 금지). */
-import { conflictByOther } from '../functions/api/jamboree-plan.js';
+import { conflictByOther, cleanRoster } from '../functions/api/jamboree-plan.js';
 
 const R = [];
 const chk = (n, got, exp) => { const p = got === exp; R.push(p); console.log((p ? '  PASS ' : '  FAIL ') + n + ' — ' + got); };
@@ -15,6 +15,11 @@ chk('baseVer 없음(첫 저장) → 병합 안 함', conflictByOther(null, 'V2',
 chk('storedVer 없음(빈 키) → 병합 안 함', conflictByOther('V1', null, '김기자', '이사진'), false);
 chk('구버전 데이터(작성자 없음) → 병합 안 함(통짜 저장)', conflictByOther('V1', 'V2', null, '이사진'), false);
 chk('현재 작성자 미상 → 병합 안 함', conflictByOther('V1', 'V2', '김기자', ''), false);
+
+console.log('\n[roster 저장 정리 — cleanRoster]');
+chk('입영(arrive) 필드 보존(저장마다 유실 방지)', cleanRoster({ id: 'r1', name: '김', arrive: '2026-08-05T09:00' }).arrive, '2026-08-05T09:00');
+chk('입영 없으면 빈 문자열(폭발 안 함)', cleanRoster({ id: 'r1', name: '김' }).arrive, '');
+chk('기존 필드(name·team) 유지', cleanRoster({ id: 'r1', name: '김', team: 't1' }).name + '/' + cleanRoster({ id: 'r1', team: 't1' }).team, '김/t1');
 
 const ok = R.filter(Boolean).length;
 console.log('=== ' + ok + '/' + R.length + ' PASS ===');

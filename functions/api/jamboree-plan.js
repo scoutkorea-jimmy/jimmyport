@@ -194,7 +194,7 @@ function cleanTT(e) {
     noCover: !!e.noCover,                              // 취재 불필요 — 일정표에서 흐리게 표시
   };
 }
-function cleanRoster(e) {
+export function cleanRoster(e) {   // export=테스트용(입영 arrive 필드 보존 회귀 방지)
   e = e && typeof e === "object" ? e : {};
   return {
     id: (e.id || "").toString().slice(0, 40),
@@ -204,6 +204,7 @@ function cleanRoster(e) {
     contact: (e.contact || "").toString().slice(0, 80),
     channel: (e.channel || "").toString().slice(0, 160),
     team: (e.team || "").toString().slice(0, 20),
+    arrive: (e.arrive || "").toString().slice(0, 20),   // 입영 시점 "YYYY-MM-DDThh:mm" — 없으면 매 저장마다 서버가 버려 데이터 유실(v0.9.223 누락 버그)
   };
 }
 function cleanTeams(t) {
