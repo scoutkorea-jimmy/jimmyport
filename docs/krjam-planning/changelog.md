@@ -741,3 +741,13 @@
 - `GLOBAL_OFF=[['2026-08-09','pm'],['2026-08-09','eve']]` + `isGlobalOff`/`globalOffConflict`. `assignBlock` 에 입영 다음 우선순위로 편입 → 모든 인원 8/9 오후·저녁 배정 불가(오전은 가능). 그리드에 **빨강 빗금** 셀(`.offtog.goff`·토글 아님)로 표시(회색 음영=입영 전, 빨강=수동 오프와 구분). 범례 갱신. 라이브 KV 미접촉(코드 규칙이라 인증 불필요).
 - ⚠️ 폐영식(8/9 저녁 19:00)도 전체 오프에 포함 — 지시대로 저녁까지 배정 불가. 저녁(폐영식)은 배정 가능해야 하면 GLOBAL_OFF 에서 eve 제거.
 - 검증: 회귀 **114→116/116**(8/9 오후·저녁 전체 오프 배정 불가·오전/타일 가능·그리드 goff 셀 신규) + 헤드리스 스크린샷(8/9 오후·저녁 빨강 빗금·오전 가능, 콘솔 0).
+
+### 16.93 v0.9.231 — dormant navsheet 잔재 제거(§16.63 이후 미정리) + 잔여 작업 현황 재확인
+- 사용자 "planning 사이트만 마저 작업" → handoff 의 '남은 일' 을 **코드 기준으로 전수 재확인**한 결과 4건 중 3건이 이미 완료 상태였다(문서만 옛 항목을 안고 있었음).
+  - **지도 공백구역**: v0.9.216(§16.78)에서 `computeCoverageGaps`/`renderCoverageGaps` 로 이미 구현 — handoff 미반영이었음.
+  - **`renderTimetable` 블록 렌더러 추출**: 이미 완료 — 현재 13줄로, 마크업(`ttColumnHtml`/`ttBlocksHtml`)·이벤트 배선(`wireTimetableGrid`)·컨트롤(`renderTTControls`)이 각각 분리돼 있다.
+  - **`toggleNoCover`/`deleteAsset` mutate→save→render 분리**: v0.9.224(§16.86 "남은 기술부채 모두 해결")에서 완료 — 순수 변경자 `setTtNoCover`·`removeTt`(app.js)·`removeAssetFromList`·`requestAssetDelete`(library.js) 추출됨.
+  - ⚠️ **조사 함정**: `jamboree-plan/app.js` 는 grep 이 **바이너리로 오판**해(`file`=UTF-8, very long lines 389) 매치를 조용히 0건으로 반환한다. **`grep -a` 를 반드시 붙일 것** — 이걸 놓치면 "구현 안 됨"으로 오진한다.
+- **실제 처리 = dormant navsheet 제거**(§16.63 v0.9.184 에서 모바일 하단 탭이 4공간으로 바뀌며 죽었으나 잔존): 호출처 0·다른 모듈 미사용 확인 후 3지점 삭제 — `krjam-planning.html` 의 `#navsheet` 블록 4줄, `app.js` 의 `closeNavSheet()`(유일 참조가 자기 자신), `styles.css` 의 `.sheet*` 18줄(+`@keyframes sheetUp`). (`library.js` 의 `sheet` 는 `spreadsheet` MIME 매칭이라 무관.)
+- **8/9 저녁(폐영식) 전체 오프**: 사용자 확인 결과 **현행 유지**(오후+저녁 모두 배정 불가) — `GLOBAL_OFF` 무변경.
+- 검증: `node --check`(app) + 회귀 **클라 116/116 · nav 19/19 · jebo 29/29 · 서버 10/10**(전부 불변 통과) + 잔재 grep 0. 운영 KV 파괴적 쓰기 없음.

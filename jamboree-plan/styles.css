@@ -227,26 +227,6 @@ h1{font-size:var(--fs-7);font-weight:800;margin:0 0 6px;letter-spacing:-.02em;li
   .bn:active{transform:scale(.96)}
   .wrap{padding-bottom:calc(var(--h-botnav) + 34px + env(safe-area-inset-bottom))}
 }
-/* 더보기 시트 — 나머지 탭 */
-.sheet{position:fixed;inset:0;z-index:60;display:none}
-.sheet.show{display:block}
-.sheet-bg{position:absolute;inset:0;background:rgba(22,32,26,.4)}
-.sheet-in{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;
-          padding:8px 16px calc(20px + env(safe-area-inset-bottom));max-height:80vh;overflow-y:auto;
-          animation:sheetUp .22s var(--ease)}
-@keyframes sheetUp{from{transform:translateY(14px);opacity:.7}to{transform:none;opacity:1}}
-.sheet-grip{width:38px;height:4px;border-radius:999px;background:var(--line);margin:6px auto 14px}
-.sheet-grp{font-size:var(--fs-1);font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin:14px 0 7px 3px}
-.sheet-grp:first-of-type{margin-top:0}
-.sheet-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.sheet-item{display:flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 13px;border:1px solid var(--line);
-            border-radius:var(--r-field);background:var(--surface-2);font:inherit;font-size:var(--fs-1);font-weight:700;
-            color:var(--ink-2);cursor:pointer;text-align:left;transition:var(--ease)}
-.sheet-item .ic{flex:0 0 auto;color:var(--muted)}
-.sheet-item.on{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
-.sheet-item.on .ic{color:var(--accent-ink)}
-@media (prefers-reduced-motion: reduce){ .sheet-in{animation:none} }
-
 /* ---- sections ---- */
 section{margin-top:34px}
 .sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}

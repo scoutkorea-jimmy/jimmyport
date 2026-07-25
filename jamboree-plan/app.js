@@ -3363,7 +3363,6 @@ function renderBotNav(){
   }).join('');
   document.documentElement.classList.add('botnav-ready');   // 이 시점부터만 상단 공간바를 숨긴다(CSS)
 }
-function closeNavSheet(){ var s=document.getElementById('navsheet'); if(s) s.classList.remove('show'); }
 function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); loadBoard(); resetAdminIdle(); }
 
 function wireAuthGate(){
