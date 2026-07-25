@@ -875,6 +875,8 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 /* 입영 전 = 입영 시점으로 자동 처리되는 오프데이 — 회색 음영(수동 오프[빨강]과 구분 · 토글 아님) */
 .offtog.arr{background:repeating-linear-gradient(45deg,var(--surface-2),var(--surface-2) 5px,var(--surface-3) 5px,var(--surface-3) 10px);border-color:var(--line-2);color:var(--muted);cursor:not-allowed}
 .offtog.arr:hover{border-color:var(--line-2);color:var(--muted)}
+/* 전체 오프(모든 인원·수정 불가) — 8/9 오후·저녁 폐영일 마무리. 빨강+빗금으로 '고정된 오프'임을 수동 오프와 구분 */
+.offtog.goff,.offtog.goff:hover{background:var(--danger);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.16),rgba(255,255,255,.16) 4px,transparent 4px,transparent 8px);border-color:var(--danger);color:#fff;cursor:not-allowed}
 /* 셀 안 3블록(오전·오후·저녁)을 세로 스택으로 통일 — 좁은 칸에서 2+1 로 깨지던 것 방지 */
 .offcell .offtog{display:block;width:100%;margin:3px 0;padding:0 6px;border-radius:var(--r-1)}
 /* 오프타임 충돌(배정 모달) */

@@ -119,6 +119,11 @@ function setTtCatColor(name,color){
 }
 /* ----- 인원별 오프타임 (배정 불가 시간) ----- */
 var OFF_BLOCKS=[['am','오전','09–12',9,12],['pm','오후','14–17',14,17],['eve','저녁','19–22',19,22]];
+/* 전체 오프 — 특정 날짜·블록을 '모든 인원' 배정 불가로 잠근다(개별 오프타임과 별개·수정 불가).
+ * 8/9 오후·저녁 = 폐영일 마무리(오후 이후 모두 오프, 사용자 지시). 확장하려면 [날짜, 블록키] 추가. */
+var GLOBAL_OFF=[['2026-08-09','pm'],['2026-08-09','eve']];
+function isGlobalOff(date,bk){ for(var i=0;i<GLOBAL_OFF.length;i++) if(GLOBAL_OFF[i][0]===date && GLOBAL_OFF[i][1]===bk) return true; return false; }
+function globalOffConflict(date,sH,eH){ if(sH==null||eH==null) return null; for(var i=0;i<OFF_BLOCKS.length;i++){ var b=OFF_BLOCKS[i]; if(isGlobalOff(date,b[0]) && sH<b[4] && eH>b[3]) return b[1]; } return null; }
 function offMap(){ if(!state.offtimes) state.offtimes={}; return state.offtimes; }
 function personOff(pid){ var m=offMap(); if(!m[pid]) m[pid]={}; return m[pid]; }
 function isOff(pid,date,bk){ var d=offMap()[pid]; return !!(d&&d[date]&&d[date][bk]); }
@@ -144,6 +149,8 @@ function arriveConflict(pid,date,sH){
 function assignBlock(pid,date,sH,eH){
   var a=arriveConflict(pid,date,sH);
   if(a) return {tip:'입영('+arriveLabel(a)+') 이전 — 배정 불가', tag:'입영 전'};
+  var g=globalOffConflict(date,sH,eH);
+  if(g) return {tip:'폐영일 마무리 — 전체 오프('+g+') · 배정 불가', tag:'전체 오프'};
   var off=offConflict(pid,date,sH,eH);
   if(off) return {tip:'오프타임('+off+') — 배정 불가', tag:'오프('+off+')'};
   return null;
@@ -2582,7 +2589,8 @@ function renderOfftimes(){
     DAYS_E.forEach(function(d){
       H+='<td class="offcell">'+OFF_BLOCKS.map(function(bk,i){
         if(!offAllowed(d[0],i)) return '<span class="offtog na" title="이 시간은 오프 지정 불가">'+bk[1]+'</span>';
-        if(arriveConflict(m.id, d[0], bk[3])) return '<span class="offtog arr" title="입영('+arriveLabel(arriveOf(m.id))+') 이전 — 자동 배정 불가">'+bk[1]+'</span>';   // 입영 전 = 오프타임과 연계해 자동 배정 불가(앰버·토글 아님)
+        if(arriveConflict(m.id, d[0], bk[3])) return '<span class="offtog arr" title="입영('+arriveLabel(arriveOf(m.id))+') 이전 — 자동 배정 불가">'+bk[1]+'</span>';   // 입영 전 = 오프타임과 연계해 자동 배정 불가(회색 음영·토글 아님)
+        if(isGlobalOff(d[0], bk[0])) return '<span class="offtog goff" title="폐영일 마무리 — 전체 오프(모든 인원·수정 불가)">'+bk[1]+'</span>';   // 8/9 오후·저녁 전원 오프
         var off=isOff(m.id,d[0],bk[0]); return '<button type="button" class="offtog'+(off?' off':'')+'" data-pid="'+esc(m.id)+'" data-d="'+d[0]+'" data-bk="'+bk[0]+'" title="'+bk[1]+' '+bk[2]+(off?' · 오프':'')+'">'+bk[1]+'</button>';
       }).join('')+'</td>';
     });

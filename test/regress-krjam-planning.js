@@ -624,6 +624,18 @@ const SEED = () => {
   });
   chk('입영 전 수동오프 정리(입영 후는 유지)', prune.removed === 2 && prune.gone0802 === true && prune.kept0805 === true, '지움=' + prune.removed + ' · 8/2삭제=' + prune.gone0802 + ' · 8/5유지=' + prune.kept0805);
   chk('오프타임 그리드 8/2부터 포함 + 입영 전 회색 음영', prune.has0802col === true && prune.arrCells >= 2, '8/2열=' + prune.has0802col + ' · 음영칸=' + prune.arrCells);
+  const goff = await page.evaluate(() => {
+    rosterById('r1').arrive = ''; rosterById('r2').arrive = '';
+    const pm = assignBlock('r2', '2026-08-09', 14, 15);    // 8/9 오후 → 전체 오프
+    const eve = assignBlock('r2', '2026-08-09', 19, 20);   // 8/9 저녁 → 전체 오프
+    const am = assignBlock('r2', '2026-08-09', 9, 10);     // 8/9 오전 → 배정 가능
+    const other = assignBlock('r2', '2026-08-05', 14, 15); // 다른 날 오후 → 배정 가능
+    setView('staff'); renderStaff();
+    const goffCells = document.querySelectorAll('#offtimes .offtog.goff').length;
+    return { pmTag: pm && pm.tag, eveTag: eve && eve.tag, amNull: am === null, otherNull: other === null, goffCells };
+  });
+  chk('8/9 오후·저녁 = 전체 오프(배정 불가) · 오전·타일 가능', goff.pmTag === '전체 오프' && goff.eveTag === '전체 오프' && goff.amNull === true && goff.otherNull === true, 'pm=' + goff.pmTag + ' eve=' + goff.eveTag + ' am가능=' + goff.amNull);
+  chk('오프타임 그리드에 전체 오프(빨강 빗금) 셀 표시', goff.goffCells > 0, goff.goffCells + '칸');
   const flush = await page.evaluate(async () => {
     window.__put.length = 0;
     rosterById('r1').name = '변경중';
