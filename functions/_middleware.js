@@ -36,8 +36,12 @@ export async function onRequest(context) {
   // build — and with a storable response it keeps that stale copy under the new
   // `?v=` URL for the full max-age. That is exactly how a page ends up running
   // new HTML against old CSS (v0.9.235 → visibly broken layout, see
-  // rules/handoff.md). Images/PDFs are versioned by filename, so plain
-  // revalidation is enough for them.
+  // rules/handoff.md).
+  //
+  // Images/PDFs are left alone on purpose — they are addressed by filename, so
+  // a stale copy is still the right bytes, and caching them keeps the 31-page
+  // flipbook cheap. (Observed live: they keep Pages' default max-age=14400
+  // regardless of what is set here, so do not expect `no-cache` on them.)
   if (!path.startsWith("/api/")) {
     const cc = /\.(html|js|css)$/i.test(path) || !/\.[a-z0-9]+$/i.test(path)
       ? "no-store"
