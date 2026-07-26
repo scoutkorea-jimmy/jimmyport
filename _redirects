@@ -4,8 +4,8 @@
 /jamboree.html       /krjam-cardnews   301
 /jamboree-plan       /krjam-planning   301
 /jamboree-plan.html  /krjam-planning   301
-/admin               /tour/admin       301
-/admin.html          /tour/admin       301
+# /admin 은 v0.9.257 부터 '운영 현황'(TOTP) 페이지다. 투어 관리자는 /tour/admin 그대로.
+/admin.html          /admin            301
 
 # 참가자가 직접 입력·공유하는 주소라 짧은 /jebo 도 받는다. 기존 /krjam-jebo 링크는 그대로 살아 있다.
 /jebo                /krjam-jebo       301

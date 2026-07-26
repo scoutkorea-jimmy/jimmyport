@@ -14,6 +14,8 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 // Cloudflare Pages 라우팅 흉내: /krjam-fnc-book → krjam-fnc-book.html (/krjam-fnc 는 안내 보드가 쓴다)
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
+  // 유입 비콘(v0.9.257) — 운영에는 있는 엔드포인트다. 하네스에도 있어야 404 가 안 난다.
+  if (p === '/api/hit') { res.writeHead(204); return res.end(); }
   if (p === '/krjam-fnc-book') p = '/krjam-fnc-book.html';
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }

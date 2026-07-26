@@ -1,0 +1,102 @@
+/* 운영 현황(/admin) — rules/ui-ux.md 준수: 글자 ≥13px · 조작 ≥40px · 대비 4.5+ · 카드 중첩 금지 */
+:root{
+  --ink:#1B1723; --ink-2:#463C57; --muted:#6C6478; --faint:#6E677B;
+  --line:#E4E0EC; --line-2:#EFEDF4;
+  --surface:#FFFFFF; --surface-2:#F7F5FB; --surface-3:#EFEBF6;
+  --accent:#5B2EA6; --accent-ink:#4A2489; --accent-soft:#EDE5FA; --accent-soft-2:#F6F1FD;
+  --ok:#1D6F42; --ok-bg:#E4F3EA; --danger:#B3261E; --danger-bg:#FBE7E5; --warn:#8A5A00; --warn-bg:#FBF0D8;
+  --r-1:8px; --r-2:12px; --pill:999px;
+  --sh-1:0 1px 2px rgba(27,23,35,.06); --sh-2:0 8px 24px rgba(27,23,35,.10);
+  --fs-1:13px; --fs-2:14.5px; --fs-3:17px; --fs-4:21px; --fs-5:28px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  color:var(--ink); background:var(--surface-2); font-size:var(--fs-2); line-height:1.6}
+[hidden]{display:none!important}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:0 14px;
+  border:1px solid var(--line); border-radius:var(--r-1); background:var(--surface); color:var(--ink);
+  font:inherit; font-size:var(--fs-1); font-weight:700; cursor:pointer; text-decoration:none}
+.btn:hover{border-color:var(--accent); background:var(--accent-soft-2)}
+.btn.solid{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn.solid:hover{background:var(--accent-ink)}
+.btn.ghost{background:transparent}
+
+/* ── 잠금 화면 ── */
+.gate{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:20px;
+  background:radial-gradient(120% 120% at 20% 0%, #F1ECFA, #F7F5FB 60%)}
+.gatebox{width:min(380px,100%); display:flex; flex-direction:column; align-items:center; gap:10px;
+  padding:30px 26px; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--sh-2)}
+.gatebox h1{margin:2px 0 0; font-size:var(--fs-4); font-weight:800}
+.gatebox p{margin:0 0 6px; font-size:var(--fs-1); color:var(--muted); text-align:center}
+.gatebox input{width:100%; min-height:52px; padding:0 14px; border:1px solid var(--line); border-radius:var(--r-1);
+  background:var(--surface-2); font:inherit; font-size:22px; font-weight:800; text-align:center; letter-spacing:.28em;
+  font-variant-numeric:tabular-nums; color:var(--ink)}
+.gatebox input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+.gatebox .btn{width:100%}
+.gate-msg{min-height:20px; font-size:var(--fs-1); font-weight:700; color:var(--danger)}
+.gate-back{font-size:var(--fs-1); color:var(--muted); text-decoration:none; min-height:40px; display:inline-flex; align-items:center}
+.gate-back:hover{color:var(--accent-ink)}
+
+/* ── 본 화면 ── */
+.top{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:10px 20px; background:rgba(255,255,255,.94); backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.brand{display:flex; align-items:center; gap:9px; min-height:40px; text-decoration:none; color:inherit}
+.brand b{display:block; font-size:var(--fs-3); font-weight:800; line-height:1.2}
+.brand em{display:block; font-style:normal; font-size:var(--fs-1); color:var(--muted)}
+.top .spacer{flex:1}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:var(--r-1); overflow:hidden; background:var(--surface)}
+.seg button{min-height:40px; padding:0 13px; border:none; background:none; font:inherit; font-size:var(--fs-1);
+  font-weight:700; color:var(--ink-2); cursor:pointer}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent); color:#fff}
+
+.main{max-width:2280px; margin:0 auto; padding:20px 20px 48px}
+.sec{margin:0 0 26px}
+.sec-h{position:relative; margin:0 0 8px; padding-left:13px; font-size:var(--fs-4); font-weight:800}
+.sec-h::before{content:''; position:absolute; left:0; top:.22em; bottom:.22em; width:5px; border-radius:3px;
+  background:linear-gradient(#5B2EA6,#1F4A80)}
+.lead{margin:0 0 12px; font-size:var(--fs-1); color:var(--muted); max-width:92ch}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-2); padding:16px 18px; box-shadow:var(--sh-1)}
+.card + .card{margin-top:12px}
+.tblwrap{overflow-x:auto}
+
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:12px}
+.sumcard{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-2); padding:14px 16px; box-shadow:var(--sh-1)}
+.sumcard .k{font-size:var(--fs-1); font-weight:800; color:var(--muted)}
+.sumcard .v{font-size:var(--fs-5); font-weight:800; letter-spacing:-.02em; color:var(--accent-ink); font-variant-numeric:tabular-nums}
+.sumcard .s{font-size:var(--fs-1); color:var(--muted)}
+
+/* 막대 그래프 — 값 자체를 가리지 않게 은은하게 */
+.chart{display:flex; align-items:flex-end; gap:6px; height:180px; padding-top:6px}
+.bar{flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:6px; min-width:0}
+.bar i{display:block; width:100%; border-radius:6px 6px 0 0; background:linear-gradient(#7B4FC4,#5B2EA6); min-height:2px}
+.bar b{font-size:var(--fs-1); font-weight:800; color:var(--ink-2); font-variant-numeric:tabular-nums}
+.bar span{font-size:var(--fs-1); color:var(--muted); white-space:nowrap}
+
+.tbl{width:100%; border-collapse:collapse; font-size:var(--fs-1)}
+.tbl th,.tbl td{padding:9px 10px; border-bottom:1px solid var(--line-2); text-align:left; white-space:nowrap}
+.tbl th{background:var(--surface-2); font-weight:800; color:var(--ink-2)}
+.tbl td.num{text-align:right; font-variant-numeric:tabular-nums}
+.tbl tr:last-child td{border-bottom:none}
+.tbl a{color:var(--accent-ink); text-decoration:none; font-weight:700}
+.tbl a:hover{text-decoration:underline}
+
+.chip{display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border-radius:var(--pill);
+  font-size:var(--fs-1); font-weight:800; background:var(--surface-3); color:var(--ink-2)}
+.chip.ok{background:var(--ok-bg); color:var(--ok)}
+.chip.bad{background:var(--danger-bg); color:var(--danger)}
+.chip.warn{background:var(--warn-bg); color:var(--warn)}
+
+.dl{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0}
+.dl dt{font-size:var(--fs-1); font-weight:700; color:var(--muted); white-space:nowrap}
+.dl dd{margin:0; font-weight:600}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+@media(max-width:720px){
+  .main{padding:14px 13px 40px}
+  .chart{height:150px}
+  .top{padding:9px 13px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }

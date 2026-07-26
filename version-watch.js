@@ -7,6 +7,32 @@
 (function () {
   "use strict";
 
+  /* ── 유입 집계 (v0.9.257) ──
+     이 스크립트는 모든 페이지에 들어가 있으므로 여기서 한 번만 센다.
+     ⚠️ 개인정보를 보내지 않는다 — 경로 하나뿐이다. 실패해도 화면에 영향을 주지 않는다(조용히 넘어간다).
+     ⚠️ 같은 탭에서 새로고침을 반복해도 30분에 한 번만 센다(숫자를 부풀리지 않기 위해). */
+  try {
+    var HK = "scoutingapp:hit:" + location.pathname;
+    var last = 0;
+    try { last = parseInt(sessionStorage.getItem(HK) || "0", 10) || 0; } catch (e) {}
+    if (Date.now() - last > 1800000) {
+      try { sessionStorage.setItem(HK, String(Date.now())); } catch (e) {}
+      // sendBeacon 은 실패해도 콘솔·네트워크 오류를 남기지 않는다(집계는 부수 기능이다).
+      // 지원하지 않는 환경에서만 fetch 로 떨어진다.
+      var payload = JSON.stringify({ route: location.pathname });
+      var sent = false;
+      try {
+        if (navigator.sendBeacon) sent = navigator.sendBeacon("/api/hit", new Blob([payload], { type: "application/json" }));
+      } catch (e) {}
+      if (!sent) {
+        try {
+          fetch("/api/hit", { method: "POST", headers: { "content-type": "application/json" },
+            body: payload, keepalive: true }).catch(function () {});
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
+
   var POLL_MS = 60000;     // 60초마다 확인
   var TIMEOUT_MS = 8000;
   var COUNTDOWN = 5;       // 새 버전 감지 후 자동 새로고침까지(초) — 그 사이 작업 중 내용을 저장

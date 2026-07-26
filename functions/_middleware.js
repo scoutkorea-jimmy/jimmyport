@@ -11,6 +11,7 @@ const BLOCKED = [
   /^\/\.assetsignore$/i,
   /^\/\.claude(\/|$)/i,      // local tooling/settings
   /^\/test(\/|$)/i,          // regression suite — internal only (*.md is covered above, but the .js is not)
+  /^\/scripts(\/|$)/i,       // 배포 때만 쓰는 생성 스크립트(gen-status.js) — 공개할 것이 아니다
   // Site-map original from 시설물자관리본부 (internal doc). Kept in the repo as the
   // high-res source for jamboree-plan/assets/sitemap.png, which is what the app
   // actually serves — the original itself must not be public.
