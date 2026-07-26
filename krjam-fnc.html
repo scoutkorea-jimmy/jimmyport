@@ -12,7 +12,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="제16회 한국잼버리" />
   <meta property="og:title" content="제16회 한국잼버리 급식편의본부 오리엔테이션" />
-  <meta property="og:description" content="운영요원(IST) 오리엔테이션 자료 34쪽 — 조직도 · 운영 개요 · 입퇴영 · 업무배정" />
+  <meta property="og:description" content="운영요원(IST) 오리엔테이션 자료 33쪽 — 조직도 · 운영 개요 · 입퇴영 · 업무배정" />
   <meta property="og:image" content="https://scoutingapp.net/krjam-fnc/assets/og-fnc.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
   <link rel="preload" as="image" href="/krjam-fnc/pages/p01.webp" />
-  <link rel="stylesheet" href="/krjam-fnc/styles.css?v=0.9.234" />
+  <link rel="stylesheet" href="/krjam-fnc/styles.css?v=0.9.235" />
 </head>
 <body>
 
@@ -33,23 +33,25 @@
 
   <!-- ── 상단 바 (원라인) ── -->
   <header class="topbar">
-    <a class="home" href="/" aria-label="도구 모음으로 이동" title="도구 모음">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg>
+    <button class="tbtn tocbtn" id="btnToc" aria-label="목차 열고 닫기" aria-expanded="true" title="목차 (T)">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span class="tlabel">목차</span>
+    </button>
+
+    <a class="brand" href="/" title="제16회 한국잼버리 · 도구 모음으로">
+      <img class="emblem" src="/jamboree/assets/logo.png" alt="제16회 한국잼버리 엠블럼" width="34" height="34" />
+      <span class="titles">
+        <span class="t1">제16회 한국잼버리 급식편의본부</span>
+        <span class="t2">The 16<sup>th</sup> KNJ Food Service &amp; Convenience Division · 운영요원(IST) 오리엔테이션</span>
+      </span>
     </a>
-    <div class="titles">
-      <h1>제16회 한국잼버리 급식편의본부</h1>
-      <p>The 16<sup>th</sup> KNJ Food Service &amp; Convenience Division · 운영요원(IST) 오리엔테이션</p>
-    </div>
+
     <div class="tools">
-      <button class="tbtn" id="btnToc" aria-label="목차 열기" title="목차 (T)">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-        <span class="tlabel">목차</span>
-      </button>
-      <button class="tbtn rotonly" id="btnRot" aria-label="가로로 크게 보기" title="가로로 크게 보기">
+      <button class="tbtn rotonly" id="btnRot" aria-label="가로로 크게 보기" aria-pressed="false" title="가로로 크게 보기">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 3.5 6.5 5 8 6.5M6.6 5H9a2 2 0 0 1 2 2v.5"/></svg>
       </button>
       <a class="tbtn" id="btnDown" href="/krjam-fnc/assets/KNJ16-FnC-Orientation.pdf"
-         download="제16회 한국잼버리 급식편의본부 오리엔테이션.pdf" aria-label="PDF 원본 내려받기" title="PDF 원본 내려받기">
+         download="제16회 한국잼버리 급식편의본부 오리엔테이션.pdf" aria-label="PDF 원본 내려받기 (약 6MB)" title="PDF 원본 내려받기 (약 6MB)">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 19h14"/></svg>
         <span class="tlabel">PDF</span>
       </a>
@@ -59,59 +61,65 @@
     </div>
   </header>
 
-  <!-- ── 뷰어 ── -->
-  <main class="stage" id="stage">
-    <div class="book" id="book">
-      <img class="leaf under" id="leafUnder" alt="" aria-hidden="true" draggable="false" hidden />
-      <div class="leaf flip" id="leafFlip" aria-hidden="true" hidden>
-        <img class="flipface" id="flipFace" alt="" draggable="false" />
-        <div class="flipshade" id="flipShade"></div>
+  <div class="body">
+
+    <!-- ── 목차 (좌측) ── -->
+    <aside class="toc" id="toc" aria-label="목차">
+      <div class="tochead">
+        <h2>목차</h2>
+        <span class="tcount" id="tocCount">33쪽</span>
+        <button class="tclose" id="btnTocClose" aria-label="목차 닫기">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
       </div>
-      <div class="zoomwrap" id="zoomWrap">
-        <img class="leaf top" id="leafTop" alt="1쪽" draggable="false" />
-      </div>
-    </div>
+      <nav class="toclist" id="tocGrid"></nav>
+    </aside>
+    <div class="tocmask" id="tocMask" hidden></div>
 
-    <button class="nav prev" id="btnPrev" aria-label="이전 쪽" title="이전 쪽 (←)">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
-    </button>
-    <button class="nav next" id="btnNext" aria-label="다음 쪽" title="다음 쪽 (→)">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
-    </button>
+    <div class="main">
+      <!-- ── 뷰어 ── -->
+      <main class="stage" id="stage">
+        <div class="book" id="book">
+          <img class="leaf under" id="leafUnder" alt="" aria-hidden="true" draggable="false" hidden />
+          <div class="leaf flip" id="leafFlip" aria-hidden="true" hidden>
+            <img class="flipface" id="flipFace" alt="" draggable="false" />
+            <div class="flipshade" id="flipShade"></div>
+          </div>
+          <div class="zoomwrap" id="zoomWrap">
+            <img class="leaf top" id="leafTop" alt="1쪽" draggable="false" />
+          </div>
+        </div>
 
-    <div class="zoombadge" id="zoomBadge" hidden>
-      <span id="zoomPct">100%</span>
-      <button id="btnZoomReset" type="button">원래대로</button>
-    </div>
-  </main>
+        <button class="nav prev" id="btnPrev" aria-label="이전 쪽" title="이전 쪽 (←)">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>
+        </button>
+        <button class="nav next" id="btnNext" aria-label="다음 쪽" title="다음 쪽 (→)">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+        </button>
 
-  <!-- ── 하단 바 ── -->
-  <footer class="bottombar">
-    <div class="pagenow">
-      <strong id="pgNum">1</strong><span class="slash">/</span><span id="pgTot">34</span>
-      <em class="pgtitle" id="pgTitle">표지</em>
-    </div>
-    <input class="scrub" id="scrub" type="range" min="1" max="34" value="1" step="1" aria-label="쪽 이동" />
-    <div class="hint">← → 넘김 · 더블클릭 확대 · T 목차</div>
-  </footer>
+        <div class="zoombadge" id="zoomBadge" hidden>
+          <span id="zoomPct">100%</span>
+          <button id="btnZoomReset" type="button">원래대로</button>
+        </div>
+      </main>
 
-  <!-- ── 목차 패널 ── -->
-  <div class="tocmask" id="tocMask" hidden></div>
-  <aside class="toc" id="toc" hidden aria-label="목차">
-    <div class="tochead">
-      <h2>목차 <span id="tocCount">34쪽</span></h2>
-      <button class="tclose" id="btnTocClose" aria-label="목차 닫기">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
+      <!-- ── 하단 바 ── -->
+      <footer class="bottombar">
+        <div class="pagenow">
+          <strong id="pgNum">1</strong><span class="slash">/</span><span id="pgTot">33</span>
+          <em class="pgtitle" id="pgTitle">표지</em>
+        </div>
+        <input class="scrub" id="scrub" type="range" min="1" max="33" value="1" step="1" aria-label="쪽 이동" />
+        <div class="hint">← → 넘김 · 더블클릭 확대 · T 목차</div>
+      </footer>
     </div>
-    <div class="tocgrid" id="tocGrid"></div>
-  </aside>
+  </div>
 
 </div>
 
 <div class="boot" id="boot">자료를 불러오는 중…</div>
 
-<script src="/krjam-fnc/app.js?v=0.9.234"></script>
-<script src="/version-watch.js?v=0.9.234"></script>
+<script src="/krjam-fnc/app.js?v=0.9.235"></script>
+<script src="/version-watch.js?v=0.9.235"></script>
 </body>
 </html>

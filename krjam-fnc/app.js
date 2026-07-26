@@ -14,8 +14,11 @@
 (function () {
   'use strict';
 
-  /* ── 자료 정의 ───────────────────────────────────────────── */
-  var TOTAL = 34;
+  /* ── 자료 정의 ───────────────────────────────────────────
+     쪽 제목은 각 슬라이드의 실제 머리말/내용을 보고 붙였다.
+     ⚠️ 구 31쪽(IST 업무배정 8/3·8/4·8/5)은 본부 요청으로 삭제(v0.9.235) →
+        이후 쪽 번호가 하나씩 당겨졌다. 이미지·썸네일·내려받기 PDF 모두 동일. */
+  var TOTAL = 33;
   var TITLES = [
     '표지 — 운영요원(IST) 오리엔테이션',
     '식순',
@@ -24,20 +27,20 @@
     '급식편의본부 조직도',
     '급식편의본부 운영 개요',
     '배치도 — 잼버리 식당 · JHQ-F&C',
-    '급식편의지원부 — 업무',
-    '식자재보급운영부 — 참가자 식자재 보급',
-    '식자재보급운영부 — 신선도 유지(Cold-Chain)',
-    '식자재보급운영부 — 위기상황 대처방안',
-    '잼버리식당운영부 — 운영요원 · 컵스카우트 참관단',
-    '식자재보급운영부 — 식사 제공 안내',
-    '잼버리식당운영부 — 식당 운영(1·2·3식당)',
-    '잼버리식당운영부 — 식권 종류',
-    '편의시설운영부 — 급식편의운영 · 급식시설운영',
-    '편의시설운영부 — 팀 체계 · 주요업무',
-    '급식편의운영팀 — IST 운영관리 · 식음료안전대책',
-    '급식편의시설운영팀 — 편의시설 운영(북카페·CU·커피차)',
-    '급식편의시설운영팀 — 소모임 장소 제공',
-    '안전보호 교육 안내(Safe from Harm)',
+    '급식편의지원부 업무 — 입퇴영 · 체계 · 위기사항',
+    '참가자 식자재 보급 (1개소 11식)',
+    '신선도 유지 체계 (Cold-Chain)',
+    '식자재 박스 위기상황 대처방안',
+    '운영요원 · 컵스카우트 참관단 (2개소 15식)',
+    '식사 제공 안내 — 조식 · 중식(간편식) · 석식',
+    '식당 운영 — 1식당 · 2식당 · 3식당',
+    '잼버리식당 식권 종류 (패스트트랙 포함)',
+    '급식편의운영 · 급식시설운영 업무',
+    '팀 체계 운영 · 주요업무',
+    'IST 운영 관리 계획 · 식음료안전대책',
+    '편의시설 운영 — 북카페 · CU · 이디야커피차',
+    '소모임 장소 제공 (미니 라운지)',
+    '안전보호 교육 안내 (Safe from Harm)',
     '입영 안내 — 8/3(월) 14:00',
     '입영 안내 — 잼버리장 도착 절차',
     '입영 안내도 — GATE 5',
@@ -47,10 +50,21 @@
     '숙박 안내 — 잼버리텐트',
     '운영요원 체크리스트',
     '급식편의본부 주요 업무추진 일정',
-    'IST 업무배정 — 8/3 · 8/4 · 8/5',
     'IST 업무배정 — 8/6 · 8/7',
     'IST 업무배정 — 8/8 · 8/9 + 운영시간 요약',
     '맺음말 — 급식편의본부 JPT'
+  ];
+  // 목차 챕터: [시작쪽, 제목] — 자료의 부서/주제 전환 지점 기준
+  var CHAPTERS = [
+    [1,  '행사 · 본부 개요'],
+    [8,  '급식편의지원부'],
+    [9,  '식자재보급운영부'],
+    [12, '잼버리식당 · 식사 제공'],
+    [16, '편의시설운영부'],
+    [21, '안전교육 · 입퇴영 안내'],
+    [27, '운영요원 안내'],
+    [30, '업무 일정 · IST 배정'],
+    [33, '맺음말']
   ];
 
   var pageURL  = function (n) { return '/krjam-fnc/pages/p' + pad(n) + '.webp'; };
@@ -356,25 +370,38 @@
     }
   }, { passive: false });
 
-  /* ── 목차 ────────────────────────────────────────────────── */
+  /* ── 목차 ────────────────────────────────────────────────
+     넓은 화면: 좌측 상시 사이드바(레이아웃 일부 — 접으면 뷰어가 넓어진다).
+     좁은 화면: 좌측 드로어 + 배경 마스크. 열림 상태는 기기별로 기억한다. */
+  var TOC_KEY = 'krjam-fnc:toc';
+  var mqWide = window.matchMedia('(min-width:1024px)');
+
   function buildToc() {
     var frag = document.createDocumentFragment();
+    var sec = null, next = 0;
     for (var i = 1; i <= TOTAL; i++) {
+      if (next < CHAPTERS.length && CHAPTERS[next][0] === i) {
+        sec = document.createElement('div');
+        sec.className = 'tocsec';
+        sec.innerHTML = '<div class="tocsec-h">' + esc(CHAPTERS[next][1]) + '</div>';
+        frag.appendChild(sec);
+        next++;
+      }
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'tocitem';
       b.dataset.p = i;
       b.innerHTML =
         '<img src="' + thumbURL(i) + '" alt="" loading="lazy" width="320" height="180">' +
-        '<span class="cap"><span class="n">' + i + '</span><span>' + esc(title(i)) + '</span></span>';
-      frag.appendChild(b);
+        '<span class="cap"><span class="n">' + i + '</span><span class="t">' + esc(title(i)) + '</span></span>';
+      (sec || frag).appendChild(b);
     }
     tocGrid.appendChild(frag);
     tocGrid.addEventListener('click', function (ev) {
       var it = ev.target.closest('.tocitem');
       if (!it) return;
       goTo(parseInt(it.dataset.p, 10), true);
-      closeToc();
+      if (!mqWide.matches) closeToc();     // 드로어일 때만 닫는다
     });
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -383,19 +410,37 @@
     var on = tocGrid.querySelector('.tocitem.on');
     if (on) on.classList.remove('on');
     var cur = tocGrid.querySelector('.tocitem[data-p="' + page + '"]');
-    if (cur) cur.classList.add('on');
+    if (!cur) return;
+    cur.classList.add('on');
+    if (!toc.hidden) cur.scrollIntoView({ block: 'nearest' });
   }
-  function openToc() {
-    toc.hidden = false; tocMask.hidden = false;
-    btnToc.setAttribute('aria-expanded', 'true');
-    var cur = tocGrid.querySelector('.tocitem[data-p="' + page + '"]');
-    if (cur) cur.scrollIntoView({ block: 'center' });
+  function setToc(open, remember) {
+    toc.hidden = !open;
+    tocMask.hidden = !open;
+    btnToc.setAttribute('aria-expanded', open ? 'true' : 'false');
+    // 기억은 넓은 화면에서만. 드로어(좁은 화면)의 여닫음까지 저장하면
+    // 다음 방문 때 드로어가 열린 채로 떠서 뷰어를 덮는다.
+    if (remember !== false && mqWide.matches) { try { localStorage.setItem(TOC_KEY, open ? '1' : '0'); } catch (e) {} }
+    if (open) {
+      var cur = tocGrid.querySelector('.tocitem[data-p="' + page + '"]');
+      if (cur) cur.scrollIntoView({ block: 'center' });
+    }
   }
-  function closeToc() {
-    toc.hidden = true; tocMask.hidden = true;
-    btnToc.setAttribute('aria-expanded', 'false');
+  function openToc() { setToc(true); }
+  function closeToc() { setToc(false); }
+  function toggleToc() { setToc(toc.hidden); }
+
+  // 넓은 화면: 기본 열림(사용자가 접어뒀으면 그대로). 좁은 화면: 항상 닫힘으로 시작.
+  function initToc() {
+    if (!mqWide.matches) { setToc(false, false); return; }
+    var saved = null;
+    try { saved = localStorage.getItem(TOC_KEY); } catch (e) {}
+    setToc(saved !== '0', false);
   }
-  function toggleToc() { toc.hidden ? openToc() : closeToc(); }
+  // 데스크톱 ↔ 모바일 폭을 오갈 때 저장값이 아니라 그 화면의 기본값으로 되돌린다
+  // (좁은 화면에서 드로어가 열린 채로 남아 뷰어를 가리는 것을 막는다).
+  if (mqWide.addEventListener) mqWide.addEventListener('change', function () { setToc(mqWide.matches, false); });
+  else if (mqWide.addListener) mqWide.addListener(function () { setToc(mqWide.matches, false); });
 
   /* ── 전체화면 ────────────────────────────────────────────── */
   function toggleFs() {
@@ -423,7 +468,12 @@
   document.addEventListener('keydown', function (ev) {
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     var k = ev.key;
-    if (k === 'Escape') { if (!toc.hidden) { closeToc(); ev.preventDefault(); } else if (zoom.s > 1.001) { resetZoom(true); ev.preventDefault(); } return; }
+    // Esc: 드로어(좁은 화면)만 닫는다 — 넓은 화면의 상시 사이드바는 건드리지 않는다.
+    if (k === 'Escape') {
+      if (!toc.hidden && !mqWide.matches) { closeToc(); ev.preventDefault(); }
+      else if (zoom.s > 1.001) { resetZoom(true); ev.preventDefault(); }
+      return;
+    }
     if (ev.target && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName) && k !== 'ArrowLeft' && k !== 'ArrowRight') return;
     if (k === 'ArrowRight' || k === 'PageDown' || k === ' ') { next(); ev.preventDefault(); }
     else if (k === 'ArrowLeft' || k === 'PageUp') { prev(); ev.preventDefault(); }
@@ -454,6 +504,7 @@
   scrub.max = TOTAL;
   $('tocCount').textContent = TOTAL + '쪽';
   buildToc();
+  initToc();
   page = fromHash() || 1;
   render();
 
