@@ -12,7 +12,7 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 3회 연속 통과**한다. 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 137 · nav 19 · server 16 · motion 25 · press 31 · news 94 · jebo 29 · fnc 92 · 랜딩 38 · a11y스윕 32` = 513건 (한 바퀴 약 16분)
+   - `planning 137 · nav 19 · server 16 · motion 25 · press 31 · news 102 · jebo 29 · fnc(플립북) 92 · fnc보드 46 · 랜딩 38 · a11y스윕 36` = 571건 (한 바퀴 약 18분)
    - **3회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
      (v0.9.244 실제 사례: 3회 중 2회 실패 → 장식 애니메이션이 기하 검사를 흔들고 있었다).
 2. **발견한 버그는 예외 없이 회귀로 고정**한다 — 재현 → 수정 → **그 버그를 잡는 케이스 추가**가 한 세트다.
@@ -37,7 +37,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`
+  - fnc 보드: `test/regress-krjam-fnc-board.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -85,6 +85,18 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-26 (20) — /krjam-fnc 안내 보드 · 담당 배정 · 취재 담당자/협조부서 (v0.9.253)
+대상: `/krjam-fnc`(신규 보드) · `/krjam-fnc-book`(기존 플립북 이전) · 신규 `functions/api/jp-meals.js`.
+상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md).
+- PDF 플립북 → **화면 9개짜리 안내 보드**(대시보드·조직·급식·메뉴·편의시설·입퇴영·운영요원·일정·원문). 좌측 내비 + 모바일 하단 탭 + 전체 검색.
+- 살아 있는 것: 입영·개영·퇴영 카운트다운 · **지금 식사 운영 중** 계산 · 오늘 본부 일정 · 체크리스트(기기 저장) · 원문 쪽 딥링크.
+- ⚠️ **플립북은 지우지 않았다** — `/krjam-fnc-book` 으로 옮겼고 회귀(92건)도 그 경로로 갱신했다. 자료 원본은 반드시 필요해진다.
+- ⚠️ **식사 메뉴는 홍보부 보드와 같은 자료**(KV `jp:meals`)를 읽는다. 신규 `/api/jp-meals` 는 **읽기 전용 · 로그인 없이 읽힘 · 메뉴 텍스트만**. 쓰기는 여전히 `/api/jamboree-plan` 한 곳뿐이다(두 곳에서 쓰면 서로 덮어쓴다).
+- ⚠️ 보드 코드에 메뉴를 적어 두지 않는다 — 회귀가 감시한다(적어 두면 홍보부에서 고친 메뉴와 어긋난다).
+- 자료의 숫자·시간은 원문 그대로 옮겼고 회귀가 12종을 문자열로 비교한다(잘못 옮기면 현장에서 헛걸음한다).
+- **담당 배정**(신규 `/api/jp-fnc`) — 구역·업무 10종에 담당·지원·메모. **읽기는 공개, 쓰기는 회원 세션**(홍보부 보드 로그인을 그대로 쓴다 — 비밀번호를 하나 더 만들지 않는다). 업무키는 서버 화이트리스트로 막는다.
+- 홍보부 기사 탭: **취재 담당자** 배정 + **협조부서** 목록(칩·연락처 소속 후보). 둘 다 담당 지정 축이라 **버전을 올리지 않는다**.
 
 ### 2026-07-26 (19) — 서버 알림함 · 우선순위 별점 · 영문 가공 검토 (v0.9.252)
 대상: `/krjam-planning` 기사 탭 + 신규 `functions/api/jp-noti.js`. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.102.

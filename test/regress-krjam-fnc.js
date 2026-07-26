@@ -1,4 +1,4 @@
-/* /krjam-fnc 플립북 회귀 (v0.9.239)
+/* /krjam-fnc-book 플립북 회귀 (v0.9.239 · v0.9.253 에서 /krjam-fnc → /krjam-fnc-book 로 이전)
    확인 대상: 31쪽 자산이 전부 살아있는가(IST 업무배정 3쪽이 전부 삭제됐는가) · 좌측 목차/넘김/딥링크/확대가
    동작하는가 · 모바일 드로어와 가로 보기가 동작하는가 · 콘솔 에러 0.
    실행: NODE_PATH=<scratch>/node_modules node test/regress-krjam-fnc.js   (puppeteer-core 필요) */
@@ -11,10 +11,10 @@ const PORT = 8884;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
   '.webp': 'image/webp', '.pdf': 'application/pdf', '.svg': 'image/svg+xml' };
 
-// Cloudflare Pages 라우팅 흉내: /krjam-fnc → krjam-fnc.html (디렉터리보다 .html 우선)
+// Cloudflare Pages 라우팅 흉내: /krjam-fnc-book → krjam-fnc-book.html (/krjam-fnc 는 안내 보드가 쓴다)
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
-  if (p === '/krjam-fnc') p = '/krjam-fnc.html';
+  if (p === '/krjam-fnc-book') p = '/krjam-fnc-book.html';
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
   res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
@@ -63,7 +63,7 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   const failedReq = [];
   p.on('requestfailed', (r) => { if (r.url().startsWith(base)) failedReq.push(r.url()); });
   p.on('response', (r) => { if (r.url().startsWith(base) && r.status() >= 400) failedReq.push(r.status() + ' ' + r.url()); });
-  await p.goto(`${base}/krjam-fnc`, { waitUntil: 'networkidle2' });
+  await p.goto(`${base}/krjam-fnc-book`, { waitUntil: 'networkidle2' });
   await wait(400);
 
   chk('첫 페이지 이미지 렌더', await p.evaluate(() => {
@@ -245,16 +245,16 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   const p2 = await b.newPage(); await p2.setViewport({ width: 1440, height: 900 });
   p2.on('pageerror', (e) => errors.push(e.message));
   p2.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await p2.goto(`${base}/krjam-fnc#p12`, { waitUntil: 'networkidle2' }); await wait(400);
+  await p2.goto(`${base}/krjam-fnc-book#p12`, { waitUntil: 'networkidle2' }); await wait(400);
   chk('#p12 진입 시 12쪽', await p2.evaluate(() => document.getElementById('pgNum').textContent) === '12');
   chk('#p12 이미지 일치', await p2.evaluate(() => /p12\.webp/.test(document.getElementById('leafTop').src)));
   // 같은 문서 내 해시 변경은 리로드가 없으므로 새 탭에서 확인한다.
   const p2b = await b.newPage(); await p2b.setViewport({ width: 1440, height: 900 });
   p2b.on('pageerror', (e) => errors.push(e.message));
   p2b.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await p2b.goto(`${base}/krjam-fnc#p99`, { waitUntil: 'networkidle2' }); await wait(300);
+  await p2b.goto(`${base}/krjam-fnc-book#p99`, { waitUntil: 'networkidle2' }); await wait(300);
   chk('범위 밖 해시(#p99) → 1쪽', await p2b.evaluate(() => document.getElementById('pgNum').textContent) === '1');
-  await p2b.goto(`${base}/krjam-fnc#p32`, { waitUntil: 'networkidle2' }); await wait(300);
+  await p2b.goto(`${base}/krjam-fnc-book#p32`, { waitUntil: 'networkidle2' }); await wait(300);
   chk('삭제로 사라진 #p32 → 1쪽', await p2b.evaluate(() => document.getElementById('pgNum').textContent) === '1');
 
   // ── 9. 모바일 ──
@@ -263,7 +263,7 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   await p3.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   p3.on('pageerror', (e) => errors.push(e.message));
   p3.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await p3.goto(`${base}/krjam-fnc`, { waitUntil: 'networkidle2' }); await wait(700);
+  await p3.goto(`${base}/krjam-fnc-book`, { waitUntil: 'networkidle2' }); await wait(700);
 
   // ── 이어보기(세로 스크롤) — 터치 기본 모드 ──
   console.log('  · 이어보기 모드');

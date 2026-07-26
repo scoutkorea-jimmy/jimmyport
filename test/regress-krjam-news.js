@@ -23,7 +23,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const NEWS = [
   { id: 'n1', title: '개영식 현장', subtitle: '첫날 밤의 기록', body: '<p>본문 <b>서식</b></p>',
-    images: ['/jamboree/assets/logo.png'], tags: ['개영식', '현장'], stage: 'published', cardnewsDone: true, photographer: '김사진', priority: 3.5, en: 'need',
+    images: ['/jamboree/assets/logo.png'], tags: ['개영식', '현장'], stage: 'published', cardnewsDone: true, photographer: '김사진', reporter: '박취재', depts: ['기획조정본부', '운영본부'], priority: 3.5, en: 'need',
     author: 'jimmy', authorName: '박지민', createdAt: '2026-07-01T10:00:00Z',
     version: 3,
     history: [
@@ -54,7 +54,8 @@ const SEED = function (news, role) {
       const bb = JSON.parse(o.body);
       if (bb.action === 'comment') { window.__cmt = bb; return J({ ok: true, article: news[0] }); }
       if (bb.action === 'flags') {
-        const what = bb.photographer !== undefined ? 'photog=' + bb.photographer
+        const what = bb.reporter !== undefined ? 'reporter=' + bb.reporter
+          : bb.photographer !== undefined ? 'photog=' + bb.photographer
           : bb.priority !== undefined ? 'pri=' + bb.priority
           : bb.en !== undefined ? 'en=' + bb.en : bb.stage;
         window.__flag.push(bb.id + ':' + what); return J({ ok: true });
@@ -153,6 +154,19 @@ async function boardPage(b, base, role) {
   chk('알림 쓰기 실패가 코멘트 저장을 막지 않음(try/catch)', /try \{ await fanoutComment/.test(vsrc) && /catch \{ return false; \}/.test(nsrc));
   chk('사람당 보관 상한 + 같은 코멘트 중복 방지', notiApi.NOTI_MAX === 100 && /items\.some\(\(x\) => x\.id === item\.id\)/.test(nsrc));
 
+  console.log('\n[서버 — 취재 담당자 · 협조부서]');
+  chk('협조부서는 이름 배열(공백 접기·중복 제거·10개)', (() => {
+    const r = api.cleanDepts(['기획조정본부', '  운영본부 ', '기획조정본부', 'x'.repeat(60)]);
+    return r.length === 3 && r[1] === '운영본부' && r[2].length === 40;
+  })());
+  chk('취재 담당자·협조부서가 세 저장 경로에 있다',
+    (vsrc.match(/reporter = cleanPerson|reporter: cleanPerson/g) || []).length >= 3
+    && (vsrc.match(/depts = cleanDepts|depts: cleanDepts/g) || []).length >= 3);
+  chk('취재 담당자·협조부서도 버전을 올리지 않는다', (() => {
+    const cmp = vsrc.split('export const sameContent')[1].split('};')[0];
+    return !/reporter/.test(cmp) && !/depts/.test(cmp);
+  })());
+
   console.log('\n[목록 — 게시판]');
   const p = await boardPage(b, base, 'admin');
   p.on('pageerror', (e) => errors.push(e.message));
@@ -230,7 +244,19 @@ async function boardPage(b, base, role) {
     return bs.length === 3 && bs.map((x) => x.dataset.nst).join(',') === 'draft,reviewed,published'
       && document.querySelector('#news-stage [data-nst="draft"]').classList.contains('on');
   }));
-  chk('저장 payload 에 부제목·태그·단계가 실린다', await p.evaluate(async () => {
+  chk('협조부서 칩 입력(Enter 커밋 · 중복 차단)', await p.evaluate(() => {
+    const ip = document.getElementById('news-deptinput');
+    ip.value = '급식편의본부'; ip.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    const one = document.querySelectorAll('#news-deptsec .news-tag').length;
+    const ip2 = document.getElementById('news-deptinput');
+    ip2.value = '급식편의본부'; ip2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    return one === 1 && document.querySelectorAll('#news-deptsec .news-tag').length === 1;
+  }));
+  chk('부서 후보(datalist)가 붙는다', await p.evaluate(() => {
+    const dl = document.getElementById('news-dept-list');
+    return !!dl && dl.querySelectorAll('option').length >= 5;
+  }));
+  chk('저장 payload 에 부제목·태그·단계·협조부서가 실린다', await p.evaluate(async () => {
     document.getElementById('news-title').value = '새 기사';
     document.getElementById('news-title').dispatchEvent(new Event('input', { bubbles: true }));
     document.getElementById('news-subtitle').value = '부제 테스트';
@@ -239,7 +265,8 @@ async function boardPage(b, base, role) {
     newsEdit.body = '<p>본문</p>';
     commitNews(); await new Promise((r) => setTimeout(r, 250));
     const s = window.__save;
-    return !!s && s.title === '새 기사' && s.subtitle === '부제 테스트' && s.stage === 'reviewed' && Array.isArray(s.tags) && s.tags[0] === '개영식';
+    return !!s && s.title === '새 기사' && s.subtitle === '부제 테스트' && s.stage === 'reviewed'
+      && Array.isArray(s.tags) && s.tags[0] === '개영식' && Array.isArray(s.depts) && s.depts[0] === '급식편의본부';
   }));
 
   console.log('\n[읽기 모달]');
@@ -292,6 +319,21 @@ async function boardPage(b, base, role) {
   chk('사진 담당자가 목록·모달에 보인다', await p.evaluate(() =>
     /김사진/.test(document.querySelector('#news-list td.nr-author').textContent)
     && /사진 김사진/.test(document.querySelector('#nv-body .pv-meta').textContent)));
+  chk('취재 담당자가 목록·모달에 보인다', await p.evaluate(() =>
+    /취재 박취재/.test(document.querySelector('#news-list td.nr-author').textContent)
+    && /취재 박취재/.test(document.querySelector('#nv-body .pv-meta').textContent)));
+  chk('협조부서가 모달에 칩으로 보인다', await p.evaluate(() => {
+    const el = document.querySelector('#nv-body .nv-depts');
+    return !!el && /기획조정본부/.test(el.textContent) && /운영본부/.test(el.textContent)
+      && el.querySelectorAll('.news-tag.dept').length === 2;
+  }));
+  chk('취재 담당자도 모달에서 배정된다', await p.evaluate(async () => {
+    window.__flag = [];
+    document.getElementById('nv-reporter-in').value = '최기자';
+    document.querySelector('[data-nv-reporter]').click();
+    await new Promise((r) => setTimeout(r, 400));
+    return window.__flag.join(',') === 'n1:reporter=최기자';
+  }));
   chk('담당자 배정칸 + 명단 후보(datalist)', await p.evaluate(() => {
     const ip = document.getElementById('nv-photog-in');
     return !!ip && ip.value === '김사진' && !!document.getElementById('nv-photog-list') && !!document.querySelector('[data-nv-photog]');

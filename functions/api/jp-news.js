@@ -25,6 +25,9 @@
  * en(v0.9.252): 영문 가공 검토 — '' 미검토 | 'need' 영문 필요 | 'done' 영문 완료 | 'skip' 불필요.
  *   카드뉴스 가공과 같은 축(가공 트랙)이라 **버전을 올리지 않는다**. 모르는 값은 '' 로 떨어뜨린다.
  *
+ * reporter/depts(v0.9.253): 취재 담당자 이름 + 협조부서 목록. 사진 담당자와 같은 축(담당 지정)이라
+ *   **버전을 올리지 않는다**. 협조부서는 이름 문자열 배열(최대 10개) — id 로 묶으면 부서 목록이 바뀔 때 끊긴다.
+ *
  * stage(v0.9.250): 'draft'(초안) | 'reviewed'(최종검수 완료) | 'published'(퍼블리싱 완료)
  *   ⚠️ 그 전에는 published(boolean) 하나로 '퍼블리싱 여부'만 있었다. 기존 레코드에 stage 가 없으면
  *      **읽을 때** published→'published' / 아니면 'draft' 로 유도한다(운영 KV 파괴적 쓰기 금지).
@@ -70,6 +73,17 @@ export const cleanPriority = (v) => {
   return Math.min(5, Math.round(n * 2) / 2);
 };
 export const cleanPerson = (v) => String(v || "").trim().replace(/\s+/g, " ").slice(0, 40);
+/* 협조부서 — 이름 배열. 태그와 같은 방식이지만 길이를 넉넉히 준다(부서 이름은 길다). */
+export const cleanDepts = (v) => {
+  const raw = Array.isArray(v) ? v : String(v || "").split(",");
+  const out = [];
+  for (const t of raw) {
+    const s = String(t || "").trim().replace(/\s+/g, " ").slice(0, 40);
+    if (s && out.indexOf(s) < 0) out.push(s);
+    if (out.length >= 10) break;
+  }
+  return out;
+};
 const cleanTags = (v) => {
   const raw = Array.isArray(v) ? v : String(v || "").split(",");
   const out = [];
@@ -137,7 +151,7 @@ export async function onRequestGet({ request, env }) {
   } while (cursor);
   articles.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   // 구 레코드(stage 없음)를 읽을 때만 유도한다 — KV 는 건드리지 않는다
-  for (const a of articles) { a.stage = cleanStage(a.stage, a); if (!Array.isArray(a.tags)) a.tags = []; if (typeof a.subtitle !== "string") a.subtitle = ""; if (typeof a.photographer !== "string") a.photographer = ""; a.priority = cleanPriority(a.priority); a.en = cleanEn(a.en); deriveVersion(a); }
+  for (const a of articles) { a.stage = cleanStage(a.stage, a); if (!Array.isArray(a.tags)) a.tags = []; if (typeof a.subtitle !== "string") a.subtitle = ""; if (typeof a.photographer !== "string") a.photographer = ""; if (typeof a.reporter !== "string") a.reporter = ""; if (!Array.isArray(a.depts)) a.depts = []; a.priority = cleanPriority(a.priority); a.en = cleanEn(a.en); deriveVersion(a); }
   return json({ ok: true, articles });
 }
 
@@ -182,6 +196,8 @@ export async function onRequestPost({ request, env }) {
     if (typeof body.cardnewsDone === "boolean") rec.cardnewsDone = body.cardnewsDone;
     if (body.stage !== undefined) { rec.stage = cleanStage(body.stage, rec); rec.published = rec.stage === "published"; }
     if (body.photographer !== undefined) rec.photographer = cleanPerson(body.photographer);
+    if (body.reporter !== undefined) rec.reporter = cleanPerson(body.reporter);
+    if (body.depts !== undefined) rec.depts = cleanDepts(body.depts);
     if (body.priority !== undefined) rec.priority = cleanPriority(body.priority);
     if (body.en !== undefined) rec.en = cleanEn(body.en);
     rec.updatedAt = new Date().toISOString();
@@ -195,7 +211,8 @@ export async function onRequestPost({ request, env }) {
   const rec = {
     id: newId(), title, subtitle: String(body.subtitle || "").trim().slice(0, 200),
     body: text, images: cleanImages(body.images), tags: cleanTags(body.tags), stage: cleanStage(body.stage, null),
-    photographer: cleanPerson(body.photographer), priority: cleanPriority(body.priority), en: cleanEn(body.en),
+    photographer: cleanPerson(body.photographer), reporter: cleanPerson(body.reporter), depts: cleanDepts(body.depts),
+    priority: cleanPriority(body.priority), en: cleanEn(body.en),
     author: who.username || "admin",
     authorName: who.username ? String(who.name || who.username).slice(0, 40) : "관리자",   // 세션 서명값만 — body.authorName 무시(사칭 차단)
     published: cleanStage(body.stage, null) === "published", cardnewsDone: false,
@@ -225,6 +242,8 @@ export async function onRequestPut({ request, env }) {
   if (body.subtitle !== undefined) rec.subtitle = String(body.subtitle || "").trim().slice(0, 200);
   if (body.tags !== undefined) rec.tags = cleanTags(body.tags);
   if (body.photographer !== undefined) rec.photographer = cleanPerson(body.photographer);
+  if (body.reporter !== undefined) rec.reporter = cleanPerson(body.reporter);
+  if (body.depts !== undefined) rec.depts = cleanDepts(body.depts);
   if (body.priority !== undefined) rec.priority = cleanPriority(body.priority);
   if (body.en !== undefined) rec.en = cleanEn(body.en);
   if (body.stage !== undefined) { rec.stage = cleanStage(body.stage, rec); rec.published = rec.stage === "published"; }

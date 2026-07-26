@@ -18,7 +18,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.jsx': 'text/jsx
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.pdf': 'application/pdf' };
 const ROUTES = { '/': '/index.html', '/tour': '/tour/index.html', '/krjam-cardnews': '/krjam-cardnews.html',
   '/krjam-dcount': '/krjam-dcount.html', '/krjam-jebo': '/krjam-jebo.html', '/privacy': '/privacy.html',
-  '/krjam-planning': '/krjam-planning.html', '/krjam-fnc': '/krjam-fnc.html' };
+  '/krjam-planning': '/krjam-planning.html', '/krjam-fnc': '/krjam-fnc.html', '/krjam-fnc-book': '/krjam-fnc-book.html' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (ROUTES[p]) p = ROUTES[p];
@@ -39,7 +39,7 @@ const EXCEPT = {
   '/tour': { fontSel: ['.leaflet-marker-icon', '.leaflet-control-attribution', '.leaflet-tooltip'] },
 };
 
-const PAGES = ['/', '/tour', '/krjam-cardnews', '/krjam-dcount', '/krjam-jebo', '/privacy', '/krjam-planning', '/krjam-fnc'];
+const PAGES = ['/', '/tour', '/krjam-cardnews', '/krjam-dcount', '/krjam-jebo', '/privacy', '/krjam-planning', '/krjam-fnc', '/krjam-fnc-book'];
 const VIEWPORTS = [['모바일', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
                    ['PC', { width: 1440, height: 900 }]];
 

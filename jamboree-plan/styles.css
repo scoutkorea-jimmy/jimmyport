@@ -1851,3 +1851,10 @@ html.net-busy .netbar{opacity:1;animation:jpNet 1.1s ease-in-out infinite}
 .press-stat.en b{ color:var(--st-draft, var(--accent-ink)); }
 .pv-stset .pv-lb{ display:inline-flex; align-items:center; font-size:var(--fs-1); font-weight:700; color:var(--muted); margin-right:2px; }
 @media(max-width:640px){ .newstbl th.nr-en,.newstbl td.nr-en{ display:none } }
+
+/* ── 취재 담당자 · 협조부서 (v0.9.253) ── */
+.news-depts{ margin-top:10px; }
+.news-depts>label{ display:block; font-size:var(--fs-1); font-weight:700; color:var(--ink-2); margin-bottom:6px; }
+.news-tag.dept{ background:var(--info-bg, var(--surface-3)); color:var(--info, var(--ink-2)); }
+.nv-depts{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0 2px; }
+.nv-depts .nv-lb{ font-size:var(--fs-1); font-weight:700; color:var(--muted); }
