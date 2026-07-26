@@ -12,6 +12,17 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8906;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 const GOOD = '123456';
+const RUN = { ok: true, configured: true, staleMs: 90000, now: new Date().toISOString(), run: {
+  label: '전체 회귀', rounds: 1, roundTotal: 3, done: 17, total: 42, fails: 2, checks: 900,
+  items: [{ round: 2, name: 'regress-krjam-news', pass: 111, total: 111, ok: true },
+          { round: 2, name: 'regress-krjam-press', pass: 30, total: 31, ok: false }],
+  failures: [{ round: 2, file: 'regress-krjam-press', check: '표가 가로로 넘치지 않음', detail: '48px 넘침' },
+             { round: 2, file: 'regress-krjam-news', check: '콘솔 에러 0', detail: 'TypeError: x is not a function' }],
+  running: 'test/regress-krjam-fnc.js', startedAt: new Date(Date.now() - 300000).toISOString(),
+  updatedAt: new Date().toISOString(), finishedAt: '', ok: false } };
+const CONTENT = { ok: true, counts: [{ key: 'news', label: '기사', n: 12 }, { key: 'press', label: '보도자료', n: 3 },
+  { key: 'tips', label: '소식 제보', n: 5 }, { key: 'members', label: '회원', n: 9 }, { key: 'assets', label: '자료실', n: 21 }],
+  latest: [{ title: '개영식 현장', stage: 'published', at: '2026-08-05T22:00:00Z' }] };
 const STATS = {
   ok: true,
   days: ['2026-07-24', '2026-07-25', '2026-07-26', '2026-07-27'],
@@ -40,6 +51,15 @@ const server = http.createServer((req, res) => {
   }
   const authed = /Bearer T/.test(req.headers.authorization || '');
   if (p === '/api/me') { res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' }); return res.end('{"ok":' + authed + '}'); }
+  if (p === '/api/run-status') {
+    res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify(authed ? RUN : { ok: false }));
+  }
+  if (p === '/api/admin-content') {
+    res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify(authed ? CONTENT : { ok: false }));
+  }
+  if (p === '/api/hit') { res.writeHead(204); return res.end(); }
   if (p === '/api/admin-stats') {
     res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(authed ? STATS : { ok: false, error: 'unauthorized' }));
@@ -70,9 +90,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   console.log('\n[잠금]');
   chk('인증 전에는 대시보드가 안 보인다', await p.evaluate(() =>
     !document.getElementById('gate').hidden && document.getElementById('shell').hidden));
-  chk('유입·라우팅·배포 내용이 화면에 없다', await p.evaluate(() =>
-    !document.querySelector('#hittbl tbody') && !document.querySelector('#routetbl tbody')
-    && document.body.innerText.indexOf('유입 현황') < 0));
+  chk('인증 전에는 데이터가 하나도 없다', await p.evaluate(() =>
+    !document.querySelector('#views').innerHTML.trim() && !document.querySelector('.sumcard') && !document.querySelector('.rnd')));
   chk('짧은 코드는 서버로 보내지 않는다', await p.evaluate(async () => {
     document.getElementById('code').value = '123';
     document.getElementById('gate-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
@@ -97,30 +116,51 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   chk('토큰은 sessionStorage 에만 둔다(localStorage 아님)', await p.evaluate(() =>
     !!sessionStorage.getItem('scoutingapp:admin') && !localStorage.getItem('scoutingapp:admin')));
   await wait(700);
-  chk('요약 카드 4장 · 오늘 수치', await p.evaluate(() => {
-    const cs = document.querySelectorAll('#sumcards .sumcard');
-    return cs.length === 4 && /45/.test(cs[0].textContent);
+  chk('개요 맨 위가 회귀 진행', await p.evaluate(() => {
+    var secs = [...document.querySelectorAll('#views .sec-h')].map((e) => e.textContent.trim());
+    return secs[0] === '회귀 진행' && !!document.querySelector('.rnd');
   }));
-  chk('막대 그래프가 날짜 수만큼', await p.evaluate(() => document.querySelectorAll('#chart .bar').length) === 4);
-  chk('유입 표가 많이 열린 순', await p.evaluate(() => {
-    const rows = [...document.querySelectorAll('#hittbl tbody tr')];
-    return rows.length === 3 && /krjam-planning/.test(rows[0].textContent) && /100/.test(rows[0].textContent);
+  chk('라운드 3칸 · 현재 라운드 표시', await p.evaluate(() => {
+    var r = document.querySelectorAll('.rnd');
+    return r.length === 3 && r[0].classList.contains('done') && r[1].classList.contains('cur');
   }));
-  chk('라우팅 점검 표가 응답을 채운다', await p.evaluate(async () => {
-    await new Promise((r) => setTimeout(r, 1200));
-    const rows = [...document.querySelectorAll('#routetbl tbody tr')];
-    const filled = rows.filter((r) => !/확인 중/.test(r.querySelector('.st').textContent));
-    return rows.length >= 10 && filled.length === rows.length;
+  chk('진행률·검사 수·지금 도는 검사', await p.evaluate(() => {
+    var t = document.querySelector('.runhead').textContent + document.querySelector('.runnow').textContent;
+    return /40%/.test(t) && /17 \/ 42/.test(t) && /regress-krjam-fnc\.js/.test(t);
   }));
-  chk('보호된 API 는 "보호됨"으로 읽는다', await p.evaluate(() => {
-    const tr = document.querySelector('[data-u="/api/jp-noti"]');
-    return !!tr && /정상|보호됨/.test(tr.textContent);
+  chk('실패는 어디서·무엇이·왜 를 남긴다', await p.evaluate(() => {
+    var rows = [...document.querySelectorAll('.failrow')];
+    if (rows.length !== 2) return false;
+    var t = rows.map((r) => r.textContent).join(' ');
+    return /regress-krjam-press/.test(t) && /표가 가로로 넘치지 않음/.test(t) && /48px 넘침/.test(t)
+      && /TypeError/.test(t);
   }));
-  chk('배포·검증 기록 표시', await p.evaluate(() => {
-    const t = document.getElementById('deploybox').textContent;
+  chk('요약 카드 4장', await p.evaluate(() => document.querySelectorAll('#views .sumcard').length) === 4);
+  chk('좌측 메뉴 7개 · 묶음 구분', await p.evaluate(() =>
+    document.querySelectorAll('#sidenav .navitem').length === 7 && document.querySelectorAll('#sidenav .sidegrp').length >= 2));
+  chk('유입 화면으로 이동하면 표가 그려진다', await p.evaluate(async () => {
+    window.__admin.setView('traffic'); await new Promise((r) => setTimeout(r, 300));
+    var rows = document.querySelectorAll('#views table tbody tr');
+    return rows.length >= 3 && /krjam-planning/.test(document.querySelector('#views').textContent);
+  }));
+  chk('콘텐츠 현황 집계', await p.evaluate(async () => {
+    window.__admin.setView('content'); await new Promise((r) => setTimeout(r, 300));
+    var t = document.querySelector('#views').textContent;
+    return /기사/.test(t) && /12/.test(t) && /자료실/.test(t);
+  }));
+  chk('라우팅 점검이 응답을 채운다', await p.evaluate(async () => {
+    window.__admin.setView('routes'); await new Promise((r) => setTimeout(r, 1500));
+    var rows = [...document.querySelectorAll('#routetbl tbody tr')];
+    return rows.length >= 10 && rows.every((r) => !/확인 중/.test(r.querySelector('.st').textContent));
+  }));
+  chk('배포·검증 기록', await p.evaluate(async () => {
+    window.__admin.setView('deploy'); await new Promise((r) => setTimeout(r, 300));
+    var t = document.querySelector('#views').textContent;
     return /0\.9\.257/.test(t) && /abc1234/.test(t) && /3라운드 전부 통과/.test(t);
   }));
-  chk('기간 전환(7·14·30일)', await p.evaluate(() => document.querySelectorAll('#rangeseg button').length) === 3);
+  chk('잼버리 로고를 쓰지 않는다(스카우팅앱 공용)', await p.evaluate(() =>
+    !document.querySelector('img[src*="jamboree"]') && !!document.querySelector('.mark')));
+  await p.evaluate(() => window.__admin.setView('home'));
 
   console.log('\n[다시 잠금]');
   chk('잠그기를 누르면 토큰이 사라지고 잠금 화면', await p.evaluate(async () => {

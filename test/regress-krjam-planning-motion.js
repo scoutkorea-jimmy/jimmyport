@@ -16,6 +16,8 @@ const PORT = 8887;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
+  // 유입 비콘(v0.9.257) — sendBeacon 은 window.fetch 목업을 타지 않으므로 서버가 받아 준다
+  if (p === '/api/hit') { res.writeHead(204); return res.end(); }
   if (p === '/krjam-planning') p = '/krjam-planning.html';
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }

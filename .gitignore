@@ -7,3 +7,6 @@
 
 # 회귀 진행 현황(로컬 전용) — 10초마다 자동 갱신, 커밋하지 않는다
 _regress-status.md
+
+# 회귀 상태 업로드 토큰은 리포에 두지 않는다(~/.config/knj/run-token)
+run-token

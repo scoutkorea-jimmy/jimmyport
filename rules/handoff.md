@@ -41,7 +41,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - fnc 보드: `test/regress-krjam-fnc-board.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`
+  - /admin: `test/regress-admin.js`, 디자인 감사: `test/audit-krjam-fnc.js`·`test/audit-krjam-planning.js`, fnc 보드: `test/regress-krjam-fnc-board.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -89,6 +89,20 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-27 (23) — /admin 운영 현황 (v0.9.257) + 디자인 규칙 픽셀 감사 (v0.9.256)
+대상: 신규 `/admin` · 신규 `functions/api/hit.js`·`admin-stats.js` · 감사 도구 2종.
+- **/admin — TOTP 잠금 운영 현황**: 화면별 유입(PV) · 라우팅 실시간 점검 · 배포/검증 상태.
+  토큰은 **sessionStorage 에만**(탭 닫으면 잠김, 공용 PC 대비). 인증 전에는 데이터가 오지 않는다(API 401).
+- **유입 집계**: 모든 페이지가 이미 로드하는 `version-watch.js` 에 비콘 한 줄. ⚠️ **IP·UA·referrer 저장 안 함**,
+  라우트 화이트리스트만, 탭당 30분 1회, 90일 TTL. KV 는 원자적 증가가 없어 동시 접속 시 몇 건이 겹쳐 사라진다(추세용).
+- ⚠️ `/admin` 은 예전 `/tour/admin` 리다이렉트였다. **투어 관리자는 /tour/admin 그대로.**
+- ⚠️ 비콘을 넣자 **플립북 회귀가 404 로 깨졌다** — 그 하네스만 정적 파일만 서빙했다. 하네스도 운영 라우트를 흉내내야 한다.
+  비콘은 `sendBeacon` 우선(실패해도 콘솔·네트워크 오류를 남기지 않는다).
+- **디자인 규칙 픽셀 감사**(v0.9.256, `test/audit-krjam-fnc.js`·`audit-krjam-planning.js`) — 8종을 화면에서 직접 잰다.
+  급식본부 23건·홍보부 85건 → **0건**. 🔴 그중 하나는 **콘텐츠 보드가 페이지 전체를 400px 밀던 것**(칸반 최소폭 전파).
+- `/status.json` 은 배포 때 `scripts/gen-status.js` 가 만든다(버전·커밋·마지막 검증). ⚠️ 회귀 **진행 중** 상태는 여기 오지 않는다 —
+  테스트는 작업자 컴퓨터에서 돌기 때문이다. 진행은 `_regress-status.md`(프로젝트 폴더, 10초 갱신, gitignore).
 
 ### 2026-07-27 (22) — 넓은 화면 폭 활용 (v0.9.255)
 대상: `/krjam-fnc`. 상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md).

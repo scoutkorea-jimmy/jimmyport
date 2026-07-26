@@ -29,6 +29,9 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
 .gatebox{width:min(380px,100%); display:flex; flex-direction:column; align-items:center; gap:10px;
   padding:30px 26px; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--sh-2)}
 .gatebox h1{margin:2px 0 0; font-size:var(--fs-4); font-weight:800}
+.mark{display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:14px;
+  background:linear-gradient(135deg,#5B2EA6,#1F4A80); color:#fff; font-size:26px; font-weight:800; letter-spacing:-.02em}
+.mark.sm{width:32px; height:32px; border-radius:9px; font-size:17px}
 .gatebox p{margin:0 0 6px; font-size:var(--fs-1); color:var(--muted); text-align:center}
 .gatebox input{width:100%; min-height:52px; padding:0 14px; border:1px solid var(--line); border-radius:var(--r-1);
   background:var(--surface-2); font:inherit; font-size:22px; font-weight:800; text-align:center; letter-spacing:.28em;
@@ -100,3 +103,58 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
   .top{padding:9px 13px}
 }
 @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
+
+/* ── 좌측 메뉴 · 본문 틀 (v0.9.258) ── 관리 항목을 성격별로 나눈다 */
+.app{display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh}
+.side{position:sticky; top:0; height:100vh; display:flex; flex-direction:column;
+  background:var(--surface); border-right:1px solid var(--line)}
+.sidebrand{display:flex; align-items:center; gap:10px; min-height:64px; padding:12px 14px;
+  border-bottom:1px solid var(--line); text-decoration:none; color:inherit}
+.sidebrand b{display:block; font-size:var(--fs-2); font-weight:800}
+.sidebrand em{display:block; font-style:normal; font-size:var(--fs-1); color:var(--muted)}
+.sidenav{flex:1; overflow:auto; padding:10px}
+.sidegrp{padding:14px 8px 6px; font-size:var(--fs-1); font-weight:800; color:var(--muted)}
+.navitem{display:flex; align-items:center; gap:9px; width:100%; min-height:40px; padding:0 10px; margin-bottom:2px;
+  border:none; border-radius:var(--r-1); background:none; color:var(--ink-2);
+  font:inherit; font-size:var(--fs-2); font-weight:600; text-align:left; cursor:pointer}
+.navitem:hover{background:var(--surface-2); color:var(--ink)}
+.navitem.on{background:var(--accent-soft); color:var(--accent-ink); font-weight:800}
+.navitem .ni-ic{width:18px; text-align:center; flex:0 0 auto}
+.sidefoot{display:flex; align-items:center; gap:8px; padding:12px; border-top:1px solid var(--line)}
+.sidefoot .btn{flex:1}
+.livechip{font-size:var(--fs-1); font-weight:800; color:var(--muted); white-space:nowrap}
+.livechip.running{color:var(--ok)} .livechip.stale,.livechip.fail{color:var(--danger)}
+.sidemask{position:fixed; inset:0; background:rgba(27,23,35,.42); z-index:39}
+.wrap{min-width:0; max-width:100%; display:flex; flex-direction:column}
+.iconbtn{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px;
+  border:1px solid var(--line); border-radius:var(--r-1); background:var(--surface); color:var(--ink-2); cursor:pointer}
+.menubtn{display:none}
+.topttl{margin:0; font-size:var(--fs-4); font-weight:800; white-space:nowrap}
+
+/* ── 회귀 진행 ── */
+.runhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px}
+.runhead .spacer{flex:1}
+.runpct{font-size:var(--fs-5); font-weight:800; letter-spacing:-.02em; color:var(--accent-ink); font-variant-numeric:tabular-nums}
+.rounds{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-bottom:12px}
+.rnd{border:1px solid var(--line); border-radius:var(--r-1); padding:9px 11px; background:var(--surface-2)}
+.rnd.cur{border-color:var(--accent); background:var(--accent-soft-2)}
+.rnd.done{border-color:#BFE3CD; background:var(--ok-bg)}
+.rnd .rh{display:flex; align-items:center; justify-content:space-between; font-size:var(--fs-1); margin-bottom:6px}
+.rnd .rh b{font-weight:800}
+.rnd .rh span{color:var(--muted); font-weight:700}
+.rnd .track{height:8px; border-radius:var(--pill); background:var(--surface-3); overflow:hidden}
+.rnd .track i{display:block; height:100%; border-radius:var(--pill); background:var(--accent); transition:width .3s ease}
+.rnd.done .track i{background:var(--ok)}
+.runnow{margin:0 0 12px; font-size:var(--fs-1); color:var(--muted)}
+.failh{margin:16px 0 8px; font-size:var(--fs-3); font-weight:800; color:var(--danger)}
+.failrow td{background:var(--danger-bg)}
+.failrow td.detail{white-space:normal; word-break:break-word; min-width:220px}
+.sumcard.ok{border-color:#BFE3CD} .sumcard.bad{border-color:#F0C9C6}
+.sumcard.bad .v{color:var(--danger)}
+
+@media(max-width:1024px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed; inset:0 auto 0 0; width:240px; z-index:40; transform:translateX(-100%); transition:transform .2s ease}
+  .side.open{transform:none; box-shadow:var(--sh-2)}
+  .menubtn{display:inline-flex}
+}

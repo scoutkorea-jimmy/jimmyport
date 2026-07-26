@@ -1,11 +1,11 @@
 {
-  "version": "0.9.257",
-  "commit": "91b0055",
-  "commitSubject": "feat(v0.9.257): /admin status dashboard (TOTP) with per-route traffic, route health and deploy state",
-  "commitAt": "2026-07-27T03:38:56+09:00",
-  "deployedAt": "2026-07-26T18:38:56.994Z",
+  "version": "0.9.258",
+  "commit": "efe9853",
+  "commitSubject": "chore: refresh status.json for v0.9.257",
+  "commitAt": "2026-07-27T03:38:57+09:00",
+  "deployedAt": "2026-07-26T18:48:23.763Z",
   "verification": {
-    "at": "2026-07-26T18:38:56.995Z",
+    "at": "2026-07-26T18:48:23.764Z",
     "rounds": [
       {
         "round": 1,
@@ -38,9 +38,9 @@
           },
           {
             "name": "regress-krjam-fnc",
-            "pass": 90,
+            "pass": 92,
             "total": 92,
-            "fails": 2
+            "fails": 0
           },
           {
             "name": "regress-krjam-fnc-board",
@@ -68,15 +68,15 @@
           },
           {
             "name": "regress-krjam-planning-motion",
-            "pass": 25,
+            "pass": 24,
             "total": 25,
-            "fails": 0
+            "fails": 1
           },
           {
             "name": "regress-krjam-planning-nav",
-            "pass": 19,
+            "pass": 18,
             "total": 19,
-            "fails": 0
+            "fails": 1
           },
           {
             "name": "regress-krjam-planning-server",
