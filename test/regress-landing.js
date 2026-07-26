@@ -1,4 +1,4 @@
-/* / 랜딩 허브 회귀 (v0.9.239)
+/* / 랜딩 허브 회귀 (v0.9.240)
    확인 대상: 도구 카드가 전부 살아있는가 · 연출이 레이아웃/클릭을 망치지 않는가 ·
    이동 시 로딩 표시가 뜨는가 · 모션 줄이기에서 장식이 꺼지는가 · 콘솔 에러 0.
    실행: NODE_PATH=<scratch>/node_modules node test/regress-landing.js */
@@ -46,6 +46,25 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
     })));
   chk('배경 레이어 3겹 + 매듭선 3줄', await p.evaluate(() =>
     document.querySelectorAll('.bg .blob').length === 3 && document.querySelectorAll('.weave path').length === 3));
+  chk('오로라 2겹 + 그레인', await p.evaluate(() =>
+    document.querySelectorAll('.aurora i').length === 2 && !!document.querySelector('.grain')));
+  chk('불티 생성(PC 24개)', await p.evaluate(() => document.querySelectorAll('.embers i').length) === 24);
+  chk('타이틀 글자가 전부 보임', await p.evaluate(() => {
+    const bs = [...document.querySelectorAll('h1 b')].filter((e) => e.textContent.trim());
+    return bs.length === 11 && bs.every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98);
+  }));
+  chk('카드마다 아우라·시트 요소', await p.evaluate(() =>
+    document.querySelectorAll('.card .ring').length === 5 && document.querySelectorAll('.card .sheen').length === 5));
+  // v0.9.240 실제 버그: .card>*:not(.ring) 이 .sheen 까지 position:relative 로 덮어
+  // 크기 0인 인라인 박스가 되면서 빛 줄기가 카드 밖으로 새어나갔다.
+  chk('빛 줄기가 카드 안에 갇힘', await p.evaluate(() => {
+    const c = document.querySelector('.card'), sh = c.querySelector('.sheen');
+    const cs = getComputedStyle(sh);
+    const r = sh.getBoundingClientRect(), cr = c.getBoundingClientRect();
+    return cs.position === 'absolute' && cs.overflow === 'hidden'
+      // inset:0 은 패딩 박스 기준이라 1px 테두리만큼(양쪽 2px) 작다
+      && Math.abs(r.width - cr.width) <= 2.5 && Math.abs(r.height - cr.height) <= 2.5;
+  }));
   chk('배경은 클릭을 가로채지 않음', await p.evaluate(() =>
     getComputedStyle(document.querySelector('.bg')).pointerEvents === 'none'
     && getComputedStyle(document.querySelector('.weave')).pointerEvents === 'none'));
@@ -54,6 +73,53 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
     const n = document.getElementById('np');
     return !!n && !n.classList.contains('on');
   }));
+
+  // 커서를 따라 기울기·광원 변수가 갱신되는가
+  await p.mouse.move(300, 240); await wait(120);
+  await p.hover('.card'); await wait(60);
+  const cbox = await p.evaluate(() => {
+    const r = document.querySelector('.card').getBoundingClientRect();
+    return { x: r.x + r.width * 0.78, y: r.y + r.height * 0.28 };
+  });
+  await p.mouse.move(cbox.x, cbox.y); await wait(200);
+  chk('커서 위치에 따라 기울기·광원 갱신', await p.evaluate(() => {
+    const c = document.querySelector('.card');
+    const ry = c.style.getPropertyValue('--ry'), mx = c.style.getPropertyValue('--mx');
+    return !!ry && parseFloat(ry) !== 0 && !!mx && parseFloat(mx) > 55;
+  }));
+  // v0.9.240 실제 버그: .ring 이 요소 자체를 rotate 해서 회전 사각형의 대각선만큼
+  // 박스가 커졌고, 후광이 위아래 카드까지 길게 번졌다. 각도만 돌려야 한다.
+  chk('호버 후광이 카드에 붙어 있음', await p.evaluate(() => {
+    const c = document.querySelector('.card');
+    const cr = c.getBoundingClientRect(), rr = c.querySelector('.ring').getBoundingClientRect();
+    return rr.top > cr.top - 12 && rr.bottom < cr.bottom + 12
+      && rr.left > cr.left - 12 && rr.right < cr.right + 12;
+  }));
+  chk('호버한 카드가 맨 위로', await p.evaluate(() =>
+    getComputedStyle(document.querySelector('.card:hover')).zIndex === '3'));
+  // 후광이 카드 뒤에서 배어 나와 본문 대비를 깎지 않는지 **실제 픽셀로** 잰다.
+  // (backdrop-filter 의 saturate 때문에 한 번 4.45 까지 떨어졌던 지점)
+  const dbox = await p.evaluate(() => {
+    const d = document.querySelector('.card:hover .desc').getBoundingClientRect();
+    return { x: Math.round(d.x), y: Math.round(d.y), width: Math.round(d.width), height: Math.round(d.height) };
+  });
+  const shot = await p.screenshot({ clip: dbox, encoding: 'base64' });
+  const contrast = await p.evaluate(async (b64) => {
+    const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    const L = (r, g, b) => { const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    let hi = -1, lo = 2;
+    for (let i = 0; i < d.length; i += 4) { const l = L(d[i], d[i + 1], d[i + 2]); if (l > hi) hi = l; if (l < lo) lo = l; }
+    return +((hi + 0.05) / (lo + 0.05)).toFixed(2);
+  }, shot);
+  chk('호버 상태 본문 대비 4.5 이상', contrast >= 4.5, '측정 ' + contrast);
+
+  await p.mouse.move(5, 5); await wait(220);
+  chk('벗어나면 기울기 복귀', await p.evaluate(() =>
+    parseFloat(document.querySelector('.card').style.getPropertyValue('--rx')) === 0));
 
   // 카드 클릭 → 로딩 표시(이동은 막고 표시만 확인)
   await p.evaluate(() => {
@@ -80,6 +146,9 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
   }));
   chk('모바일 카드 터치 타깃 충분', await m.evaluate(() =>
     [...document.querySelectorAll('.card')].every((a) => a.getBoundingClientRect().height >= 44)));
+  chk('모바일은 불티를 줄임(14개)', await m.evaluate(() => document.querySelectorAll('.embers i').length) === 14);
+  chk('모바일에선 기울기 미적용', await m.evaluate(() =>
+    !document.querySelector('.card').style.getPropertyValue('--rx')));
 
   console.log('\n[모션 줄이기]');
   const rm = await b.newPage(); await rm.setViewport({ width: 1440, height: 900 });
@@ -89,7 +158,13 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
   await rm.goto(`${base}/`, { waitUntil: 'networkidle2' }); await wait(500);
   chk('장식 애니메이션 정지', await rm.evaluate(() =>
     getComputedStyle(document.querySelector('.blob')).animationName === 'none'
-    && getComputedStyle(document.querySelector('.mark')).animationName === 'none'));
+    && getComputedStyle(document.querySelector('.mark')).animationName === 'none'
+    && getComputedStyle(document.querySelector('.aurora i')).animationName === 'none'));
+  chk('불티는 아예 만들지 않음', await rm.evaluate(() => document.querySelectorAll('.embers i').length) === 0);
+  chk('타이틀은 읽히는 색으로 표시', await rm.evaluate(() => {
+    const b = document.querySelector('h1 b');
+    return parseFloat(getComputedStyle(b).opacity) > 0.98;
+  }));
   chk('그래도 내용은 다 보임', await rm.evaluate(() =>
     [...document.querySelectorAll('.reveal')].every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98)
     && document.querySelectorAll('.card').length === 5));
