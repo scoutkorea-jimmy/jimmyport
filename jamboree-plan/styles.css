@@ -1696,3 +1696,26 @@ html.net-busy .netbar{opacity:1;animation:jpNet 1.1s ease-in-out infinite}
    로그인 게이트의 '관리자 인증코드로 입장' 은 텍스트버튼이라 23px 였다.
    조작 요소는 40px 이 하한이다(ui-ux.md) — 게이트도 예외가 아니다. */
 #auth-admin-link{ min-height:40px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center; }
+
+/* ── 보도자료 게시판 (v0.9.249) ──
+   목록은 '읽는 곳', 모달은 '보고 관리하는 곳'으로 분리했다.
+   전에는 행을 펼쳐 본문을 아래에 끼워 넣어서, 글이 길면 표가 통째로 밀렸다. */
+.presstbl .nr-ck{ width:38px; text-align:center; }
+.presstbl input.pck{ width:18px; height:18px; accent-color:var(--accent); cursor:pointer; }
+.presstbl .news-row.picked{ background:var(--accent-soft-2); }
+.presstbl .nr-titlebtn{ text-align:left; }
+/* 단계 칩 — 색만으로 말하지 않도록 글자를 함께 둔다(tokens.css 규칙 ③) */
+.pst{ display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border-radius:var(--pill);
+  font-size:var(--fs-1); font-weight:700; white-space:nowrap; }
+/* 일괄 작업 바 — 선택이 있을 때만 통계 자리를 대신한다 */
+.press-bulk{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%;
+  padding:8px 10px; border:1px solid var(--accent); border-radius:var(--r-2); background:var(--accent-soft-2); }
+.press-bulk .pb-lb{ font-size:var(--fs-1); color:var(--muted); }
+.press-bulk .pb-sep{ width:1px; height:18px; background:var(--line); }
+.press-bulk .spacer{ flex:1; }
+/* 읽기 모달 */
+.pv-meta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;
+  font-size:var(--fs-1); color:var(--muted); }
+.pv-text{ margin-bottom:12px; }
+.pv-tools{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.pv-stset{ display:flex; gap:6px; flex-wrap:wrap; }

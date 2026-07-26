@@ -4,7 +4,10 @@
  *  POST   /api/jp-press { action:'status', id, status }                          (홍보부/관리자) 상태 토글
  *  PUT    /api/jp-press { id, ... }                                              (작성자 본인 또는 관리자)
  *  DELETE /api/jp-press?id=<id>                                                  (작성자 본인 또는 관리자)
- * status: 'draft'(작성중) | 'released'(배포 완료)
+ * status: 'draft'(초안) | 'reviewed'(최종검수 완료) | 'published'(퍼블리싱 완료)
+ *   ⚠️ 2단계('draft'|'released')로 저장된 기존 레코드가 KV 에 남아 있다. 마이그레이션 쓰기를
+ *      하지 않고(운영 KV 파괴적 쓰기 금지), 읽을 때·쓸 때 'released' → 'published' 로 승격한다.
+ *      그래서 옛 글도 바로 '퍼블리싱 완료'로 보이고, 저장하면 새 값으로 굳는다.
  * body 는 리치텍스트 HTML — 표시 시 클라이언트가 sanitizeHtml 로 정화(저장은 원문).
  * KV: "jpp:<id>" = {id,title,body,date,contact,outlets,status,attachments[],author,authorName,createdAt,updatedAt,ip}
  */
@@ -26,7 +29,13 @@ function cleanAttachments(arr) {
     .slice(0, 10);
 }
 const cleanDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? String(v) : "");
-const cleanStatus = (v) => (v === "released" ? "released" : "draft");
+// 회귀에서 직접 부르려고 내보낸다(라우팅은 onRequest* 만 쓰므로 영향 없음)
+export const PRESS_STATUS = ["draft", "reviewed", "published"];
+export const cleanStatus = (v) => {
+  const s = String(v || "");
+  if (s === "released") return "published";            // 구 2단계 승격
+  return PRESS_STATUS.indexOf(s) >= 0 ? s : "draft";   // 모르는 값은 초안으로
+};
 
 async function readPress(env, id) {
   try { const raw = await env.SCOUT_KV.get(KEY(id)); return raw ? JSON.parse(raw) : null; } catch { return null; }
@@ -42,6 +51,7 @@ export async function onRequestGet({ request, env }) {
     cursor = res.list_complete ? null : res.cursor;
   } while (cursor);
   press.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  for (const p of press) p.status = cleanStatus(p.status);   // 읽을 때만 승격 — KV 는 건드리지 않는다
   return json({ ok: true, press });
 }
 

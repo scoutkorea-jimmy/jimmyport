@@ -420,23 +420,47 @@ const SEED = () => {
     no: (document.querySelector('#press-list td.nr-no') || {}).textContent,
     date: (document.querySelector('#press-list td.nr-date') || {}).textContent,
     contact: (document.querySelector('#press-list td.nr-author') || {}).textContent,
-    status: !!document.querySelector('#press-list [data-press-status]'),
+    chip: !!document.querySelector('#press-list .pst'),
     bar: (document.getElementById('press-bar') || {}).textContent }));
-  chk('보도자료 목차 5열(번호·제목·배포일·담당자·상태) + 통계바', PR.table && PR.ths.join(',') === '번호,제목,배포일,담당자,상태' && /전체/.test(PR.bar), PR.ths.join(','));
-  chk('배포일·담당자 표기 + 상태 토글', PR.no === '1' && PR.date === '2026-08-05' && PR.contact === '박지민' && PR.status, JSON.stringify(PR));
-  const PRx = await page.evaluate(() => { document.querySelector('[data-press-expand]').click();
-    const d = document.querySelector('#press-list .news-detailrow'); return { rows: document.querySelectorAll('#press-list .news-detailrow').length, strong: !!(d && d.querySelector('.news-text strong')), att: !!(d && d.querySelector('.press-att')), outlets: !!(d && d.querySelector('.pd-o')) }; });
-  chk('제목 클릭 → 본문(정화)·첨부·배포매체 펼침', PRx.rows === 1 && PRx.strong && PRx.att && PRx.outlets, JSON.stringify(PRx));
-  const PRs = await page.evaluate(async () => { document.querySelector('[data-press-status]').click(); await new Promise((r) => setTimeout(r, 200)); return window.__pressSave; });
-  chk('상태 토글 → status API(released)', PRs && PRs.action === 'status' && PRs.status === 'released', JSON.stringify(PRs));
+  // v0.9.249: 아코디언 → 게시판(선택 체크박스 · 읽기 모달 · 단계 3종). 깊은 검증은 regress-krjam-press.js.
+  chk('보도자료 목차 6열(선택·번호·제목·배포일·담당자·단계) + 통계바',
+    PR.table && PR.ths.join(',') === ',번호,제목,배포일,담당자,단계' && /전체/.test(PR.bar), PR.ths.join(','));
+  chk('배포일·담당자 표기 + 단계 칩', PR.no === '1' && PR.date === '2026-08-05' && PR.contact === '박지민' && PR.chip, JSON.stringify(PR));
+  const PRx = await page.evaluate(async () => {
+    document.querySelector('[data-press-view]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    const sc = document.getElementById('pressview-scrim'), body = document.getElementById('pv-body');
+    const out = { open: sc.classList.contains('show'), inline: document.querySelectorAll('#press-list .news-detailrow').length,
+      strong: !!body.querySelector('.news-text strong'), att: !!body.querySelector('.press-att'),
+      outlets: /연합뉴스|강원일보|매체/.test(body.textContent), stages: document.querySelectorAll('#pv-tools [data-pv-st]').length };
+    document.getElementById('pv-cancel').click();
+    return out;
+  });
+  chk('제목 클릭 → 읽기 모달(본문 정화·첨부·매체·단계 3종)',
+    PRx.open && PRx.inline === 0 && PRx.strong && PRx.att && PRx.outlets && PRx.stages === 3, JSON.stringify(PRx));
+  const PRs = await page.evaluate(async () => {
+    document.querySelector('[data-press-view]').click(); await new Promise((r) => setTimeout(r, 250));
+    document.querySelector('#pv-tools [data-pv-st="published"]').click(); await new Promise((r) => setTimeout(r, 250));
+    document.getElementById('pv-cancel').click();
+    return window.__pressSave;
+  });
+  chk('단계 지정 → status API(published)', PRs && PRs.action === 'status' && PRs.status === 'published', JSON.stringify(PRs));
+  const PRb = await page.evaluate(async () => {
+    document.getElementById('press-ckall').click(); await new Promise((r) => setTimeout(r, 250));
+    const bar = document.querySelector('.press-bulk');
+    const out = { bulk: !!bar, bulkSt: document.querySelectorAll('[data-press-bulk-st]').length, del: !!document.querySelector('[data-press-bulk-del]') };
+    if (document.querySelector('[data-press-selnone]')) document.querySelector('[data-press-selnone]').click();
+    return out;
+  });
+  chk('다중 선택 → 일괄 바(단계 3 · 삭제)', PRb.bulk && PRb.bulkSt === 3 && PRb.del, JSON.stringify(PRb));
   const PRn = await page.evaluate(async () => { openPressEditor(null); await new Promise((r) => setTimeout(r, 140));
     const has = { title: !!document.getElementById('pe-title'), date: !!document.getElementById('pe-date'), outlets: !!document.getElementById('pe-outlets'), body: !!document.getElementById('pe-bodywrap'), status: !!document.getElementById('pe-status'), atts: !!document.getElementById('pe-atts'), secs: document.querySelectorAll('#press-body .fl-sec').length };
     document.getElementById('pe-title').value = '새 보도자료'; document.getElementById('pe-title').dispatchEvent(new Event('input', { bubbles: true }));
     document.getElementById('pe-outlets').value = '강원일보'; document.getElementById('pe-outlets').dispatchEvent(new Event('input', { bubbles: true }));
-    document.querySelector('#pe-status [data-pst="released"]').click();
+    document.querySelector('#pe-status [data-pst="published"]').click();
     pressEdit.body = '<p>본문</p>'; document.getElementById('press-save').click(); await new Promise((r) => setTimeout(r, 200));
     return { has, save: window.__pressSave }; });
-  chk('작성 모달(제목·배포일·매체·본문·상태·첨부) + 저장(released·매체)', PRn.has.title && PRn.has.date && PRn.has.outlets && PRn.has.body && PRn.has.status && PRn.has.atts && PRn.save && PRn.save.title === '새 보도자료' && PRn.save.status === 'released' && PRn.save.outlets === '강원일보', JSON.stringify({ has: PRn.has, s: PRn.save && PRn.save.status }));
+  chk('작성 모달(제목·배포일·매체·본문·단계·첨부) + 저장(published·매체)', PRn.has.title && PRn.has.date && PRn.has.outlets && PRn.has.body && PRn.has.status && PRn.has.atts && PRn.save && PRn.save.title === '새 보도자료' && PRn.save.status === 'published' && PRn.save.outlets === '강원일보', JSON.stringify({ has: PRn.has, s: PRn.save && PRn.save.status }));
   chk('모달 섹션이 박스로 구분(.fl-sec) — 입력 영역 구분', PRn.has.secs >= 5, PRn.has.secs + '박스');
 
   // ===== 동시편집 유실 방지 — 버전 가드 + 서버 병합 반영 (v0.9.221) =====

@@ -51,3 +51,11 @@ node test/regress-a11y-sweep.js       # 32 케이스 (8화면 × 2해상도)
 ```
 `/` · `/tour` · `/krjam-cardnews` · `/krjam-dcount` · `/krjam-jebo` · `/privacy` · `/krjam-planning`(게이트) · `/krjam-fnc` 를 모바일 390 · PC 1440 에서 열어 **글자 ≥13px · 조작 요소 ≥40px** 를 전수로 잰다. 규칙은 **검사가 있는 화면에서만** 지켜진다 — 이 스윕이 없던 동안 6개 화면에 139건이 쌓여 있었다(v0.9.248).
 예외는 파일 상단 `EXCEPT` 에 **사유와 함께** 적는다(지도 핀 글자·OSM 출처 표기). `display:inline` 인 링크는 조작 요소로 세지 않는다.
+
+## 보도자료 게시판 (krjam-planning 기사 탭)
+
+```bash
+node test/regress-krjam-press.js      # 26 케이스
+```
+v0.9.249 에서 아코디언을 게시판으로 바꾼 계약을 지킨다 — **본문을 목록에 끼워 넣지 않는가**(아코디언이 되살아나면 잡힌다) · 읽기 모달(본문 정화·첨부·매체·단계 강조) · 다중 선택과 일괄 단계/삭제 · **권한 없는 글을 건드리지 않는가**(관리자 3건 vs 부원 2건) · 서버 `cleanStatus` 정규화(구 `released` → `published`, 모르는 값 차단).
+⚠️ `Auth.isStaff()` 는 관리자이거나 **MANAGE_TABS**(staff·contacts·orginfo·protocol) 권한이 있는 부원이다. 세션 픽스처에서 `tabs:['press']` 로는 기사 탭이 보이지 않는다.
