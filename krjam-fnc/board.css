@@ -93,7 +93,11 @@ a{color:var(--accent-ink)}
 }
 
 /* ── 본문 ── */
-.main{flex:1; padding:22px 20px 40px; max-width:1180px; width:100%}
+/* PC 에서는 화면을 채운다(사용자 요청) — 다만 긴 문장은 한 줄이 너무 길면 못 읽으니
+   본문 문단만 읽기 폭으로 잡아 둔다. 표·도표·카드는 화면 폭을 그대로 쓴다. */
+.main{flex:1; padding:22px 28px 44px; max-width:2280px; width:100%; margin:0 auto}
+.lead{max-width:92ch}
+.card>p,.card>ul{max-width:110ch}
 .view{display:none}
 .view.on{display:block; animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -321,4 +325,12 @@ a{color:var(--accent-ink)}
   .split{grid-template-columns:1fr}
   .figrow,.figgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
   .cover{padding:14px 15px}
+}
+
+/* 넓은 화면에서는 카드가 지나치게 길어지지 않게 한 줄에 더 놓는다 */
+@media(min-width:1660px){
+  .grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .figrow{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .figgrid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .hero{gap:16px}
 }

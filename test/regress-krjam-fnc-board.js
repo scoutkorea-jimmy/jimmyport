@@ -315,6 +315,24 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     await pa.close();
   }
 
+  console.log('\n[넓은 화면 — 폭 활용]');
+  const pw = await b.newPage(); await pw.setViewport({ width: 2000, height: 1100 });
+  await pw.goto(base + '/krjam-fnc', { waitUntil: 'networkidle2' }); await wait(700);
+  const wide = await pw.evaluate(async () => {
+    const out = {};
+    const m = document.querySelector('.main');
+    out.mainRatio = m.getBoundingClientRect().width / (window.innerWidth - document.querySelector('.side').getBoundingClientRect().width);
+    window.__fncBoard.setView('menu'); await new Promise((r) => setTimeout(r, 600));
+    const t = document.querySelector('#menubox table');
+    out.tableRatio = t ? t.getBoundingClientRect().width / m.getBoundingClientRect().width : 0;
+    out.over = document.documentElement.scrollWidth - window.innerWidth;
+    return out;
+  });
+  chk('본문이 화면 폭을 채운다(90% 이상)', wide.mainRatio >= 0.9, (wide.mainRatio * 100).toFixed(0) + '%');
+  chk('표가 본문 폭을 채운다(90% 이상)', wide.tableRatio >= 0.9, (wide.tableRatio * 100).toFixed(0) + '%');
+  chk('넓은 화면에서도 가로 넘침 없음', wide.over <= 0, wide.over + 'px');
+  await pw.close();
+
   console.log('\n[콘솔]');
   chk('콘솔 에러 0', errors.length === 0, errors.slice(0, 3).join(' | '));
   chk('요청 실패 0', failed.length === 0, failed.slice(0, 3).join(' | '));
