@@ -82,6 +82,7 @@ function meetingSeeds(){ return [
 ]; }
 /* 서버 events에 회의 시드가 없으면 병합(라이브 보드에도 회의가 보이도록). 추가가 있으면 저장. */
 function mergeSeedMeetings(){
+  if(domainStored('events')) return;   // 사용자가 지운 회의 시드를 매 로드마다 되살리지 않는다
   var evs=eventList(); var have={}; evs.forEach(function(e){ have[e.id]=1; });
   var added=0; meetingSeeds().forEach(function(m){ if(!have[m.id]){ evs.push(Object.assign({},m)); added++; } });
   if(added) saveEvents();
@@ -199,6 +200,18 @@ function enforceAvailability(pid){
   else { if(tt&&typeof renderTimetable==='function') renderTimetable(); if((tt||sh)&&typeof renderPhotoList==='function') renderPhotoList(); }
   toast(nm+' 님 담당 '+hits.length+'건 해제됨(배정 불가 시간)');
   return hits.length;
+}
+/* enforceAvailability 는 '그 사람의 입영/오프타임을 바꾼 순간'에만 돈다. 그래서 **규칙이 나중에 생긴** 경우
+ * — 예: v0.9.230 이 8/9 오후·저녁을 전체 오프로 만들기 전에 잡아 둔 배정 — 는 아무도 건드리지 않아
+ * 화면엔 '배정 불가'인데 데이터에는 담당이 그대로 남는다. 전원을 훑어 그 잔여를 찾아 보여 준다.
+ * 자동 삭제는 하지 않는다(중복 점검 배너와 같은 원칙 — 무엇을 남길지는 사람이 정한다). */
+function findAllAvailabilityConflicts(){
+  var out=[];
+  rosterList().forEach(function(m){
+    if(!m||!m.id) return;
+    findAvailabilityConflicts(m.id).forEach(function(h){ out.push({pid:m.id, who:personLabel(m), h:h}); });
+  });
+  return out;
 }
 /* 입영 시점 입력 = 칩(오프타임과 같은 톤) — datetime 위젯 대신 '날짜 드롭다운 + 오전/오후/저녁 블록칩'.
  * 저장은 기존과 동일한 "YYYY-MM-DDThh:mm"(블록 시작시각: 오전 09:00·오후 14:00·저녁 19:00)라 assignBlock·그리드 앰버가 그대로 동작. */
@@ -338,7 +351,9 @@ function mergeCubObservers(){
   // 구 스킴(단일 트랙 cub-MMDD-HHMM) 제거 → 신 기수 스킴(cub-<기수>-…)으로 대체. 시드 전용 id 만 매칭(사용자 생성분 불변)
   list=list.filter(function(t){ return !/^cub-\d{4}-\d{4}$/.test(t.id); });
   var have={}; list.forEach(function(t){ have[t.id]=1; });
-  var added=0; cubObserverSeeds().forEach(function(s){ if(!have[s.id]){ list.push(s); added++; } });
+  // 시드 주입은 새 보드에만. 아래 track/batch 복구는 '파손 수리'라 저장본이 있어도 계속 돈다.
+  var added=0;
+  if(!domainStored('timetable')) cubObserverSeeds().forEach(function(s){ if(!have[s.id]){ list.push(s); added++; } });
   /* ⚠️ 데이터 복구(v0.9.213): v0.9.195 이전 `buildCleanTT` 는 track/batch 를 빠뜨렸다.
    * 그래서 컵 일정을 한 번이라도 **편집한** 항목은 track 이 벗겨진 채 저장됐고, 이후로도 계속
    * '잼버리 일정' 열에 섞여 나온다(= "컵 1기가 섞였다"의 정체). 코드는 고쳤지만 이미 망가진 값은 그대로다.
@@ -559,6 +574,25 @@ function applyServer(j){
 var boardVer={};
 var DOMAIN_KEYS=['marketing','meals','shootlist','types','events','timetable','roster','ttcats','contacts','offtimes','divisions','protocol','mappos','shoots'];
 function pickBaseVer(body){ var bv={}; DOMAIN_KEYS.forEach(function(k){ if(body[k]!==undefined && boardVer[k]) bv[k]=boardVer[k]; }); return bv; }
+/* ===== 시드 재주입 금지 (v0.9.232) =====
+ * 로드 시 도는 시드/복원 로직들(upgradeProtocol·upgradeMeals·upgradeShootList·mergeSeedMeetings·
+ * mergeSuperstarJ·mergeCubObservers·mergeShootlistGates)은 "그 id 가 없다"를 "아직 안 들어왔다"로만
+ * 해석해서, 사용자가 **지운** 항목을 매 로드마다 되살리고 서버에 다시 PUT 했다.
+ * 최악의 경우 의전 시드를 전부 지우고 직접 짠 일정이 통째로 시드 41건으로 덮어써졌다(공유 KV·복구 불가).
+ *
+ * 판정 기준: 서버 GET 의 versions 맵은 **그 도메인 KV 키가 존재할 때만** 키를 담는다
+ * (functions/api/jamboree-plan.js 의 rd(): `if (!raw) return null;` 이후에야 versions[vkey] 대입).
+ * 따라서 versions 에 도메인이 있으면 = 누군가 한 번이라도 저장한 보드 = 지금 값이 사용자의 뜻이다.
+ * → 시드는 '그 도메인이 서버에 저장된 적 없는 새 보드'에만 넣는다.
+ * (멱등 '복구'—컵 track/batch 되살리기·id 중복 정리—는 데이터 파손 수리라 이 가드와 무관하게 계속 돈다.) */
+function domainStored(k){ return !!(boardVer && Object.prototype.hasOwnProperty.call(boardVer, k)); }
+/* 편집 창 id — 같은 계정이라도 PC·휴대폰·다른 탭은 서로 다른 편집 맥락이다(서버 conflictByOther 참고).
+ * sessionStorage 라 탭마다 다르고 새로고침해도 유지된다 → 같은 탭의 연속 저장은 계속 '나' 로 판정(오탐 방지 유지). */
+var CLIENT_ID=(function(){
+  var rnd=function(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); };
+  try{ var k='jamboree-plan:client', v=sessionStorage.getItem(k); if(!v){ v=rnd(); sessionStorage.setItem(k,v); } return v; }
+  catch(e){ return rnd(); }   // 프라이빗 모드 등 sessionStorage 불가 → 매번 새 id(= 항상 병합측, 안전측)
+})();
 function rerenderCurrent(){
   var v=curViewMode;
   if(v==='timetable') renderTimetable();
@@ -664,7 +698,7 @@ function debouncedPut(timerName, body, okMsg){
     clearFlush(timerName);
     setSt('저장 중…');
     return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-      body:JSON.stringify(Object.assign({author:authorVal(), baseVer:pickBaseVer(body)}, body))})
+      body:JSON.stringify(Object.assign({author:authorVal(), client:CLIENT_ID, baseVer:pickBaseVer(body)}, body))})
       .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
       .then(function(j){ if(!j){ setSt('저장 실패'); return; } var merged=onPutResponse(j); setSt(merged?'변경 병합됨':(okMsg||'저장됨'),true); })
       .catch(function(){ setSt('저장 실패'); });
@@ -1707,7 +1741,7 @@ function defaultMeals(){
 function mealsHasContent(){ var m=mealsData(); return MEAL_GROUPS.some(function(g){ var gg=m[g[0]]||{}; return Object.keys(gg).some(function(d){ var r=gg[d]||{}; return !!(r.b||r.l||r.d); }); }); }
 // 내용(음식명)이 하나도 없으면 사용자 제공 메뉴로 시드 + 저장(공유 보드 반영). 빈 구조만 저장돼 있어도 시드된다.
 // 내용이 하나라도 있으면 보존(사용자 편집 유지). — 서버에 빈 meals 가 저장돼 seed 가 막히던 문제 대응.
-function upgradeMeals(){ if(!mealsHasContent()){ state.meals=defaultMeals(); saveMeals(); } }
+function upgradeMeals(){ if(domainStored('meals')) return; if(!mealsHasContent()){ state.meals=defaultMeals(); saveMeals(); } }   // 저장된 적 있으면(=비운 것도 사용자 뜻) 재시드 금지
 function renderMeals(){
   var seg=document.getElementById('meal-groupseg');
   if(seg) seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.mg===mealGroup); });
@@ -1791,6 +1825,7 @@ function shootGateSeeds(){
   return g;
 }
 function mergeShootlistGates(){
+  if(domainStored('shootlist')) return;   // 삭제한 게이트 촬영행이 되살아나지 않게
   var list=shootListData(), have={}; list.forEach(function(r){ have[r.id]=1; });
   var added=0; shootGateSeeds().forEach(function(g){ if(!have[g.id]){ list.push(g); added++; } });
   if(added) saveShootList();
@@ -1818,6 +1853,7 @@ var SHOOT_POINT_SEED={
   'ssj-0808-1300':'최종 참가팀 공연, 결과 집계 관련 장면'
 };
 function mergeSuperstarJ(){
+  if(domainStored('timetable')) return;   // 삭제한 슈퍼스타J 일정이 되살아나지 않게
   var list=ttList(), have={}; list.forEach(function(t){ have[t.id]=1; });
   var added=0; superstarJSeeds().forEach(function(s){ if(!have[s.id]){ list.push(s); added++; } });
   if(added){ state.timetable=list; saveTimetable(); }
@@ -1851,6 +1887,7 @@ function mergeShootlistFromTimetable(){
     if(t.track==='cub') return;                     // 컵 참관단은 별도(과정활동 목록에 이미 포함)
     if(SHOOT_CAL_CATS.indexOf(t.cat)<0) return;     // 개·폐영식·프로그램·행사만
     if(!(t.title||'').trim()) return;
+    if(t.noCover && !byTt['tt:'+t.id]) return;      // '취재 불필요'로 표시한 일정은 새로 만들지 않는다(지운 행이 되살아나던 문제)
     var key='tt:'+t.id, owner=ttOwnerNames(t);
     var dd=t.day?('8/'+(new Date(t.day+'T00:00:00').getDate())):'';
     var sched=(dd+' '+(t.start||'')+(t.end?('~'+t.end):'')).trim();
@@ -1884,7 +1921,7 @@ function mergeShootlistFromProtocol(){
 }
 function shootListHasContent(){ return shootListData().some(function(x){ return (x.title||'').trim(); }); }
 // 제목이 있는 행이 하나도 없으면(=비어 있음) 사용자 제공 목록으로 시드 + 서버 저장. 내용이 있으면 보존.
-function upgradeShootList(){ if(!shootListHasContent()){ state.shootlist=defaultShootList(); saveShootList(); } }
+function upgradeShootList(){ if(domainStored('shootlist')) return; if(!shootListHasContent()){ state.shootlist=defaultShootList(); saveShootList(); } }
 // 담당 선택 — 홍보부 인원(roster)에서 불러오기. 현재 값이 명단에 없으면 그 값도 옵션으로 유지.
 function shootOwnerCell(m){
   var cur=m.owner||'', opts='<option value="">— 담당 —</option>', found=false;
@@ -2239,6 +2276,28 @@ function renderTTDupes(){
     removeTt(t.id); afterTimetableChange();
   }; });
 }
+/* 배정 불가 시간(입영 전·전체 오프·오프타임)에 남아 있는 기존 담당 — 인원별로 묶어 보여 주고,
+ * 해제는 기존 enforceAvailability(확인 후 해제)를 그대로 재사용한다(파괴적 경로를 새로 만들지 않는다). */
+function renderTTAvail(){
+  var box=document.getElementById('tt-avail'); if(!box) return;
+  var hits=findAllAvailabilityConflicts();
+  if(!hits.length){ box.style.display='none'; box.innerHTML=''; return; }
+  var by={}, ord=[];
+  hits.forEach(function(x){ if(!by[x.pid]){ by[x.pid]={who:x.who, list:[]}; ord.push(x.pid); } by[x.pid].list.push(x.h); });
+  box.style.display='';
+  box.innerHTML='<div class="ttdup-h">'+icon('alert',15)+'<b>배정 불가 시간에 남은 담당 '+hits.length+'건</b> — 입영 전 · 전체 오프(8/9 오후·저녁) · 오프타임과 겹칩니다. 규칙이 나중에 생기면 기존 배정은 자동으로 풀리지 않습니다.</div>'+
+    '<div class="ttdup-list">'+ord.map(function(pid){
+      var g=by[pid];
+      return '<div class="ttdup-g"><div class="ttdup-t">'+esc(g.who)+' <span class="ttdup-n">'+g.list.length+'건</span></div>'+
+        g.list.map(function(h){
+          return '<div class="ttdup-r"><span class="ttdup-id">'+esc(h.blk.tag)+'</span><span class="ttdup-x">'+esc(h.label)+'</span>'+
+            (h.kind==='tt'?('<button class="btn xs ghost" data-avopen="'+esc(h.item.id)+'">열기</button>'):'')+'</div>';
+        }).join('')+
+        '<div class="ttdup-r"><button class="btn xs danger" data-avclear="'+esc(pid)+'">이 인원 '+g.list.length+'건 담당 해제</button></div></div>';
+    }).join('')+'</div>';
+  box.querySelectorAll('[data-avopen]').forEach(function(b){ b.onclick=function(){ openTT(b.dataset.avopen); }; });
+  box.querySelectorAll('[data-avclear]').forEach(function(b){ b.onclick=function(){ if(enforceAvailability(b.dataset.avclear)) renderTimetable(); }; });
+}
 function renderTTLegend(){
   var leg=document.getElementById('tt-legend'); if(!leg) return;
   // 카테고리(잼버리 일정 종류) + 구분선 + 컵 참관단 트랙(1·2기, 별도 색)
@@ -2273,6 +2332,7 @@ function renderTimetable(){
   renderTTControls();
   renderTTLegend();
   renderTTDupes();
+  renderTTAvail();
   var box=document.getElementById('tt-grid'); if(!box) return;
   var dayView=(ttMode==='day');
   var days=dayView ? [ jamDay(ttDay) || JAM_DAYS[3] ] : JAM_DAYS;
@@ -3065,11 +3125,13 @@ function defaultProtocol(){
 // 서버에 실제 저장본이 없거나(=시드 재생성) 구 기본 시드(시각 하나도 없음)면 상세 의전표로 확정 + 서버 저장.
 // → 공유 보드에 확실히 반영·영속. 상세본은 시각이 있어 재실행되지 않음(멱등). 사용자 실제 편집(서버 저장 + 시각 있음)은 보존.
 function upgradeProtocol(){
-  var L=protocolList();   // 서버에 없으면 여기서 상세 default 로 채워짐
-  // 상세본은 고유 id(prot-NN)를 쓴다. 그 id가 하나도 없으면 = 구 개략 시드(random id) → 상세 41건으로 확정 + 서버 저장.
-  // (구 시드에 사용자가 시각을 한둘 채워 넣었어도 상세본으로 교체된다. 상세본을 편집한 경우엔 prot-NN 이 있어 보존.)
-  var hasDetailed = L.some(function(e){ return /^prot-\d/.test(e.id||''); });
-  if(!hasDetailed){ state.protocol=defaultProtocol(); saveProtocol(); state._protoFromServer=true; }
+  /* ⚠️ 예전 판정(id 에 prot-NN 이 하나도 없으면 상세 시드 41건으로 교체)은 데이터 소실 버그였다.
+   * addProtocol() 은 mkid() 로 행을 만들어 **사용자가 직접 추가한 행은 절대 prot-NN 이 아니다**.
+   * 그래서 시드를 다 지우고 의전을 직접 짜 넣으면, 다음 로드에서 그 입력이 통째로 시드로 교체되고
+   * 공유 KV 에까지 PUT 됐다(전원 영향·백업 없음). → 서버에 저장본이 있으면 절대 손대지 않는다. */
+  if(domainStored('protocol')) return;                                   // 서버 저장본 있음 → 사용자 데이터가 정답
+  if(Array.isArray(state.protocol) && state.protocol.length) return;     // 서버엔 없어도 로컬(localStorage)에 편집분이 있으면 그대로 둔다
+  state.protocol=defaultProtocol(); saveProtocol(); state._protoFromServer=true;   // 아무데도 없는 새 보드에만 시드 + 공유 저장
 }
 function protocolList(){
   if(!state.protocol) state.protocol=defaultProtocol();

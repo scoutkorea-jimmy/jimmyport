@@ -41,6 +41,10 @@
 - **scout-finder(`/tour`)**: 공개 '단위대 추가 제안 폼'(`/api/submissions`) + 관리자 승인대기/변경로그(`/api/log`)/댓글관리 뷰 — [brief §14](../docs/scout-finder/brief.md). 죽은 편집기 CSS 정리는 디자인 자료 수령 후.
 - Superpowers 플러그인: 설치는 대화형 `/plugin install superpowers@claude-plugins-official`(에이전트가 실행 불가, 사용자 안내만).
 
+## 🧨 데이터 소실을 부르는 두 패턴 (신규 코드 작성 전 반드시 확인)
+1. **서버 `clean*` 화이트리스트 누락** — roster/timetable/protocol 등에 **새 필드를 추가하면 `functions/api/jamboree-plan.js` 의 해당 `clean*` 에도 반드시 추가**한다. 안 하면 저장할 때마다 서버가 조용히 버린다(v0.9.229 `arrive` 실제 사고).
+2. **로드 시 자동 시드·복원이 사용자의 삭제를 되돌림** — "그 id 가 없다"는 "아직 안 들어왔다"가 아니라 **"사용자가 지웠다"일 수 있다**. 시드 주입은 `domainStored(k)` 로 **저장된 적 없는 새 보드에만** 한다(v0.9.232). 데이터 파손 '복구'(id 중복 정리 등)와 '시드 주입'을 섞지 말 것.
+
 ## 🧪 조사할 때 걸리는 함정
 - **`grep` 이 `jamboree-plan/app.js` 를 바이너리로 오판**해 매치를 **조용히 0건**으로 반환한다(`file` 판정은 UTF-8, very long lines 389). **`grep -a` 를 반드시 붙일 것.** 이걸 놓치면 멀쩡히 구현된 기능을 "미구현"으로 오진한다(실제로 v0.9.231 조사에서 발생).
 - 회귀에 필요한 `puppeteer-core` 는 리포에 없다 → 스크래치패드에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules` 로 실행.
@@ -48,6 +52,15 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-26 (2) — 기능 오류 조사 → 6건 수정 (v0.9.232)
+대상: `/krjam-planning`. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.94.
+- 사용자 "검증이 필요한 것들을 찾아봐" → "검증하고 개선해". 6건 발견, **4건은 실제 Chrome 재현 후** 수정.
+- **🔴 시드 복원이 사용자 데이터를 덮어씀**: `upgradeProtocol` 이 사용자가 직접 넣은 의전(랜덤 id)을 시드 41건으로 교체+공유 KV PUT 했다. 지운 시드(회의·컵·슈퍼스타J·촬영 게이트)도 매 로드마다 부활했고, 식사를 비우면 재시드됐다. → 신규 **`domainStored(k)`**(서버 `versions` 에 도메인 키가 있으면 = 저장된 보드 = 사용자 값이 정답) 가드를 6개 함수에 적용.
+- **잔여 배정 점검 배너**(`renderTTAvail`): 나중에 생긴 규칙(8/9 전체 오프)에 걸린 기존 배정을 전원 스캔해 일정표에 표시. 해제는 기존 `enforceAvailability` 재사용, **자동 삭제 없음**.
+- **다기기 동시편집**: 편집 창 id(`client`, sessionStorage) 도입 → 같은 계정이라도 다른 창이면 병합(lost update 방지). 같은 탭 연속 저장은 병합 안 함(v0.9.226 오탐 방지 유지).
+- **개인정보 응답 캐시**: 보드 GET 을 `private, no-store` 로(엣지 캐시 사본은 유지해 KV 읽기 절감).
+- 상태: **회귀 클라 124/124 · nav 19/19 · jebo 29/29 · 서버 16/16 통과, 콘솔 0, 프로덕션 v0.9.232 배포.**
 
 ### 2026-07-26 — 잔여 작업 현황 재확인 + dormant navsheet 제거 (v0.9.231)
 대상: `/krjam-planning`. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.93.

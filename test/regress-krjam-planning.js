@@ -80,13 +80,19 @@ const SEED = () => {
     if (u.startsWith('/api/jamboree-plan')) {
       if (o && o.method === 'PUT') { window.__put.push(JSON.parse(o.body)); return J({ ok: true }); }
       return J({ ok: true, versions: { timetable: 'V1', roster: 'V1', contacts: 'V1', divisions: 'V1', protocol: 'V1', ttcats: 'V1', events: 'V1', types: 'V1', marketing: 'V1', meals: 'V1', shootlist: 'V1', mappos: 'V1', offtimes: 'V1', shoots: 'V1' },
-        types: [], events: [], marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], ttcats: [], offtimes: {},
+        types: [], marketing: [], contacts: [], divisions: [], mappos: {}, shoots: [], ttcats: [], offtimes: {},
+        // ⚠️ versions 에 도메인이 있으면 = '이미 저장된 보드' → v0.9.232 부터 시드를 다시 주입하지 않는다.
+        //    그러므로 목업도 실제 라이브 보드처럼 **시드를 이미 담고 있는** 상태로 돌려줘야 한다.
+        //    (이 fetch 훅은 app.js 로드 후에 불리므로 앱의 시드 함수를 그대로 쓸 수 있다.)
+        events: [],        // 사용자가 회의 시드를 지운 보드 — 되살아나면 안 된다(아래 회귀)
+        protocol: [{ id: 'usr-pr1', role: '대회장', name: '홍길동', title: '총재', date: '2026-08-05', time: '20:00', endTime: '21:30', activity: '개영식 인사말', place: '대집회장', memo: '', assignees: [] }],
         roster: [{ id: 'r1', name: '김기자', role: '취재', team: 't1' }, { id: 'r2', name: '이사진', role: '사진', team: 't2' }],
         timetable: [
           { id: 't1', day: '2026-08-05', start: '20:00', end: '21:30', title: '개영식', place: '메인무대', zone: 'stage', cat: '개·폐영식', assignees: ['r1'], contacts: [], rundown: [{ time: '20:00', title: '개회 선언', note: '' }], noCover: false },
           { id: 't2', day: '2026-08-05', start: '12:00', end: '13:00', title: '중식', place: '급식소', zone: 'food', cat: '식사', assignees: [], contacts: [], rundown: [], noCover: true },
           { id: 't3', day: '2026-08-06', start: '09:00', end: '10:00', title: '분단 회의', place: 'JHQ 본부', zone: 'jhq', cat: '회의', assignees: ['r2'], contacts: [], rundown: [], noCover: false },
-        ],
+        ].concat(typeof cubObserverSeeds === 'function' ? cubObserverSeeds() : [],
+                 typeof superstarJSeeds === 'function' ? superstarJSeeds() : []),
         slots: {
           '2026-07-20#extra#c1': { edit: { title: '가나 대표단 소개', status: 'planned', owner: '박지민', due: '2026-07-25', channels: ['페이스북'] } },
           '2026-07-21#extra#c2': { edit: { title: '나이지리아 대표단', status: 'draft', owner: '김철수', channels: ['인스타그램'] } },
@@ -113,6 +119,16 @@ const SEED = () => {
 
   // 2단 내비게이션: 뷰 전환은 setView 로 직접(세부탭은 활성 공간에서만 보이므로) — 이 스위트는 뷰 동작 검증이 목적
   const go = async (v) => { await page.evaluate((x) => setView(x), v); await new Promise((r) => setTimeout(r, 250)); };
+
+  // 시드 재주입 금지(v0.9.232) 검증은 **부팅 직후 상태**를 봐야 한다 — 뒤쪽 의전·캘린더 테스트가
+  // state.protocol/events 를 자기 픽스처로 덮어쓰므로, 로드 결과를 여기서 찍어 두고 아래에서 단언한다.
+  const bootSnap = await page.evaluate(() => ({
+    stored: domainStored('timetable') && domainStored('events') && domainStored('protocol'),
+    fresh: domainStored('nosuchdomain'),
+    events: (state.events || []).length,
+    protoUser: (state.protocol || []).filter((p) => p.id === 'usr-pr1').length,
+    protoSeed: (state.protocol || []).filter((p) => /^prot-\d/.test(p.id)).length,
+  }));
 
   console.log('\n[부팅 · 탭]');
   chk('게이트 통과 · 사이드바 렌더', await page.$('.side-nav') !== null);
@@ -655,6 +671,66 @@ const SEED = () => {
   });
   chk('슈퍼스타J 5회차 일정표 병합(멱등)', ssj.n === 5 && ssj.place === '소무대' && ssj.cat === '행사', ssj.n + '건 @' + ssj.place);
   chk('슈퍼스타J → 촬영 리스트 + 촬영 포인트 시드', ssj.shoot === 5 && /첫 참가팀/.test(ssj.pt || ''), ssj.shoot + '행 · ' + (ssj.pt || ''));
+
+  /* ===== 시드 재주입 금지 (v0.9.232) =====
+   * 로드 때 도는 시드/복원 로직이 "그 id 가 없다"를 "아직 안 들어왔다"로만 읽어, 사용자가 **지운** 것을
+   * 매 로드마다 되살리고 서버에 다시 PUT 했다. 최악은 의전 — 시드를 다 지우고 직접 짠 일정이
+   * 통째로 시드 41건으로 덮어써졌다(공유 KV·복구 불가). 양방향(저장된 보드 / 새 보드) 모두 고정한다. */
+  console.log('\n[시드 재주입 금지]');
+  const guard = bootSnap;   // 부팅 직후 스냅샷(위에서 채집) — 이후 테스트의 픽스처 덮어쓰기와 무관
+  chk('저장된 보드 판정(versions 에 도메인 존재)', guard.stored === true && guard.fresh === false, '저장됨=' + guard.stored + ' · 미저장=' + guard.fresh);
+  chk('지운 회의 시드가 되살아나지 않음', guard.events === 0, guard.events + '건');
+  chk('사용자 의전 행이 시드 41건으로 교체되지 않음(데이터 소실 방지)', guard.protoUser === 1 && guard.protoSeed === 0, '사용자행=' + guard.protoUser + ' · 시드행=' + guard.protoSeed);
+  const freshSeed = await page.evaluate(() => {
+    const bv = window.boardVer, ev = state.events, pr = state.protocol, ml = state.meals;
+    window.boardVer = {};                                   // 저장본이 없는 새 보드
+    state.events = []; state.protocol = []; state.meals = {};
+    mergeSeedMeetings(); upgradeProtocol(); upgradeMeals();
+    const out = { ev: (state.events || []).length, pr: (state.protocol || []).length, ml: Object.keys((state.meals || {}).crew_n || {}).length };
+    window.boardVer = bv; state.events = ev; state.protocol = pr; state.meals = ml;
+    return out;
+  });
+  chk('새 보드에는 시드가 정상 주입(회의·의전·식사)', freshSeed.ev > 0 && freshSeed.pr === 41 && freshSeed.ml > 0, '회의 ' + freshSeed.ev + ' · 의전 ' + freshSeed.pr + ' · 식사 ' + freshSeed.ml + '일');
+  const nocov = await page.evaluate(() => {
+    const t = ttById('t1'), key = 'tt:t1';                  // 개영식 = 촬영 리스트 연동 대상
+    state.shootlist = shootListData().filter((r) => r.ttId !== key);   // 그 행을 지운 상태
+    t.noCover = true; mergeShootlistFromTimetable();
+    const back = shootListData().some((r) => r.ttId === key);
+    t.noCover = false; mergeShootlistFromTimetable();
+    const restored = shootListData().some((r) => r.ttId === key);
+    return { back, restored };
+  });
+  chk("'취재 불필요' 일정은 지운 촬영행을 되살리지 않음", nocov.back === false && nocov.restored === true, '불필요=' + nocov.back + ' · 되돌리면 복구=' + nocov.restored);
+
+  /* ===== 나중에 생긴 규칙에 걸린 기존 배정 점검 (v0.9.232) =====
+   * enforceAvailability 는 '그 사람의 입영/오프타임을 바꾼 순간'에만 돈다. v0.9.230 이 8/9 오후·저녁을
+   * 전체 오프로 만들기 전에 잡아 둔 배정은 아무도 건드리지 않아 화면과 데이터가 어긋난 채 남았다. */
+  console.log('\n[배정 불가 잔여 담당 점검]');
+  const avail = await page.evaluate(() => {
+    rosterById('r1').arrive = ''; rosterById('r2').arrive = '';
+    ttList().push({ id: 'gof-1', day: '2026-08-09', start: '15:00', end: '16:00', title: '폐영 준비 취재', place: '대집회장', zone: 'stage', cat: '행사', assignees: ['r1'], contacts: [], rundown: [], noCover: false });
+    setView('timetable'); renderTimetable();
+    const box = document.getElementById('tt-avail');
+    const shown = !!box && box.style.display !== 'none' && /배정 불가 시간에 남은 담당/.test(box.textContent);
+    const groups = box ? box.querySelectorAll('[data-avclear]').length : 0;
+    window.confirm = () => true;
+    const btn = box && box.querySelector('[data-avclear]'); if (btn) btn.click();
+    const cleared = ((ttById('gof-1') || {}).assignees || []).length === 0;
+    const after = document.getElementById('tt-avail');
+    const hidden = !!after && after.style.display === 'none';
+    removeTt('gof-1'); renderTimetable();
+    return { shown, groups, cleared, hidden };
+  });
+  chk('배정 불가 시간에 남은 기존 담당 → 점검 배너', avail.shown === true && avail.groups === 1, '배너=' + avail.shown + ' · 인원 ' + avail.groups);
+  chk('배너에서 해제 → 담당 제거 + 배너 사라짐(자동 삭제는 안 함)', avail.cleared === true && avail.hidden === true, '해제=' + avail.cleared + ' · 배너숨김=' + avail.hidden);
+  const cli = await page.evaluate(async () => {
+    window.__put.length = 0;
+    rosterById('r1').name = '김기자'; saveRoster();
+    await window.flushPendingSaves();
+    const p = window.__put.filter((x) => x.roster).slice(-1)[0];
+    return { client: (p && p.client) || '', author: (p && p.author) || '' };
+  });
+  chk('저장 시 편집 창 id(client) 동봉 — 같은 계정 다기기 병합 판정용', cli.client.length > 0 && cli.author.length > 0, 'client=' + cli.client.slice(0, 8) + '… · author=' + cli.author);
   // ⚠️ v0.9.210 의 @container 규칙이 폭 58px 레인의 제목을 통째로 숨겨 "일정이 추가 안 된" 것처럼 보이게 했다.
   // 데이터가 있는데 화면에서 사라지는 실패는 사용자가 발견하기 전에 여기서 걸려야 한다(기본 = 전체 기간 뷰).
   await go('timetable');   // ⚠️ 숨겨진 섹션에서 재면 전부 0px 라 "안 보임"으로 잡힌다 — 반드시 일정표를 띄운 뒤 측정

@@ -16,6 +16,16 @@ chk('storedVer 없음(빈 키) → 병합 안 함', conflictByOther('V1', null, 
 chk('구버전 데이터(작성자 없음) → 병합 안 함(통짜 저장)', conflictByOther('V1', 'V2', null, '이사진'), false);
 chk('현재 작성자 미상 → 병합 안 함', conflictByOther('V1', 'V2', '김기자', ''), false);
 
+/* 같은 사람이 PC·휴대폰(또는 두 탭)에서 같이 열어 두면, 작성자만 보던 판정은 나중 저장이 앞 저장을
+ * 경고 없이 통째로 덮어썼다(lost update). client = 탭 단위 id → 창이 다르면 '다른 편집 맥락'으로 병합. */
+console.log('\n[같은 작성자 · 다른 편집 창(client)]');
+chk('같은 작성자 + 다른 창 → 병합(다기기 유실 방지)', conflictByOther('V1', 'V2', '김기자', '김기자', 'cA', 'cB'), true);
+chk('같은 작성자 + 같은 창 → 병합 안 함(v0.9.226 오탐 방지 유지)', conflictByOther('V1', 'V2', '김기자', '김기자', 'cA', 'cA'), false);
+chk('같은 작성자 + 저장본에 client 없음(구버전) → 병합 안 함', conflictByOther('V1', 'V2', '김기자', '김기자', null, 'cB'), false);
+chk('같은 작성자 + 요청에 client 없음(구버전 클라) → 병합 안 함', conflictByOther('V1', 'V2', '김기자', '김기자', 'cA', ''), false);
+chk('버전 같으면 창이 달라도 병합 안 함', conflictByOther('V2', 'V2', '김기자', '김기자', 'cA', 'cB'), false);
+chk('다른 작성자면 창 정보 없어도 병합', conflictByOther('V1', 'V2', '김기자', '이사진', null, null), true);
+
 console.log('\n[roster 저장 정리 — cleanRoster]');
 chk('입영(arrive) 필드 보존(저장마다 유실 방지)', cleanRoster({ id: 'r1', name: '김', arrive: '2026-08-05T09:00' }).arrive, '2026-08-05T09:00');
 chk('입영 없으면 빈 문자열(폭발 안 함)', cleanRoster({ id: 'r1', name: '김' }).arrive, '');
