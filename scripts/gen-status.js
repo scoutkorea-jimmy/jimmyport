@@ -32,9 +32,14 @@ function readRuns(dir) {
     const name = f.replace(/^r\d-/, '').replace(/\.log$/, '');
     const body = fs.readFileSync(path.join(dir, f), 'utf8');
     const m = body.match(/결과:\s*(\d+)\/(\d+)/) || body.match(/===\s*(\d+)\/(\d+)\s*PASS\s*===/);
-    const fails = (body.match(/^ {2}FAIL /gm) || []).length;
+    // 실패는 개수만 세지 말고 '어느 케이스가 왜' 인지까지 담는다 — 대시보드에서 사유를 봐야 한다.
+    const failLines = (body.match(/^ {2}FAIL .*$/gm) || []).map((l) => {
+      const t = l.replace(/^ {2}FAIL /, '');
+      const i = t.indexOf(' — ');
+      return { file: name, check: (i > 0 ? t.slice(0, i) : t).trim(), detail: i > 0 ? t.slice(i + 3).trim() : '' };
+    });
     (rounds[round] = rounds[round] || []).push({
-      name, pass: m ? +m[1] : null, total: m ? +m[2] : null, fails,
+      name, pass: m ? +m[1] : null, total: m ? +m[2] : null, fails: failLines.length, failures: failLines,
     });
   }
   const list = Object.keys(rounds).sort().map((r) => {
@@ -43,7 +48,8 @@ function readRuns(dir) {
       round: +r,
       checks: items.reduce((s, x) => s + (x.total || 0), 0),
       fails: items.reduce((s, x) => s + x.fails, 0),
-      items,
+      failures: items.flatMap((x) => (x.failures || []).map((f) => Object.assign({ round: +r }, f))),
+      items: items.map((x) => ({ name: x.name, pass: x.pass, total: x.total, fails: x.fails })),
     };
   });
   return list;

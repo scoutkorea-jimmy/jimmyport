@@ -33,8 +33,10 @@ const STATS = {
   ],
   totals: [11, 22, 34, 45],
   status: { version: '0.9.257', commit: 'abc1234', commitSubject: 'test', deployedAt: '2026-07-27T00:00:00Z',
-    verification: { at: '2026-07-27T00:00:00Z', green: true, checksPerRound: 587,
-      rounds: [{ round: 1, checks: 587, fails: 0 }, { round: 2, checks: 587, fails: 0 }, { round: 3, checks: 587, fails: 0 }] } },
+    verification: { at: '2026-07-27T00:00:00Z', green: false, checksPerRound: 587,
+      rounds: [{ round: 1, checks: 587, fails: 0, failures: [] },
+               { round: 2, checks: 587, fails: 1, failures: [{ round: 2, file: 'regress-krjam-news', check: '표가 가로로 넘치지 않음', detail: '48px 넘침' }] },
+               { round: 3, checks: 587, fails: 0, failures: [] }] } },
 };
 let logins = 0;
 let RUN_MODE = 'running';   // running | none | done — 화면이 상태를 구분해 말하는지 본다
@@ -137,12 +139,23 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     var t = document.querySelector('.runhead').textContent + document.querySelector('.runnow').textContent;
     return /40%/.test(t) && /17 \/ 42/.test(t) && /regress-krjam-fnc\.js/.test(t);
   }));
-  chk('실패는 어디서·무엇이·왜 를 남긴다', await p.evaluate(() => {
-    var rows = [...document.querySelectorAll('.failrow')];
-    if (rows.length !== 2) return false;
-    var t = rows.map((r) => r.textContent).join(' ');
-    return /regress-krjam-press/.test(t) && /표가 가로로 넘치지 않음/.test(t) && /48px 넘침/.test(t)
-      && /TypeError/.test(t);
+  chk('실패 사유가 비개발자 말로 항상 보인다', await p.evaluate(() => {
+    var cards = [...document.querySelectorAll('.failcard')];
+    if (cards.length !== 2) return false;
+    var plain = cards.map((c) => c.querySelector('.fc-plain').textContent).join(' | ');
+    var where = cards.map((c) => c.querySelector('.fc-h b').textContent).join(' | ');
+    return /좌우로 밀려/.test(plain) && /오류가 나서/.test(plain) && /홍보부 운영보드/.test(where);
+  }));
+  chk('개발자용 상세는 접혀 있다(펼치면 원문)', await p.evaluate(() => {
+    var d = document.querySelector('.failcard .fc-dev');
+    if (!d || d.open) return false;
+    var t = d.textContent;
+    return /regress-krjam-press/.test(t) && /48px 넘침/.test(t);
+  }));
+  chk('접힌 상세를 펼칠 수 있다', await p.evaluate(async () => {
+    var d = document.querySelector('.failcard .fc-dev');
+    d.open = true; await new Promise((r) => setTimeout(r, 100));
+    return d.open && d.querySelector('dl');
   }));
   chk('요약 카드 4장', await p.evaluate(() => document.querySelectorAll('#views .sumcard').length) === 4);
   chk('좌측 메뉴 7개 · 묶음 구분', await p.evaluate(() =>
@@ -162,10 +175,19 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     var rows = [...document.querySelectorAll('#routetbl tbody tr')];
     return rows.length >= 10 && rows.every((r) => !/확인 중/.test(r.querySelector('.st').textContent));
   }));
+  chk('배포 상태에도 실패 사유가 나온다', await p.evaluate(async () => {
+    window.__admin.setView('deploy'); await new Promise((r) => setTimeout(r, 300));
+    var cards = [...document.querySelectorAll('#views .failcard')];
+    if (!cards.length) return false;
+    var t = cards[0].textContent;
+    return /통과하지 못한 검사/.test(document.querySelector('#views').textContent)
+      && /좌우로 밀려/.test(cards[0].querySelector('.fc-plain').textContent)
+      && !cards[0].querySelector('.fc-dev').open && /48px 넘침/.test(t);
+  }));
   chk('배포·검증 기록', await p.evaluate(async () => {
     window.__admin.setView('deploy'); await new Promise((r) => setTimeout(r, 300));
     var t = document.querySelector('#views').textContent;
-    return /0\.9\.257/.test(t) && /abc1234/.test(t) && /3라운드 전부 통과/.test(t);
+    return /0\.9\.257/.test(t) && /abc1234/.test(t) && /실패 있음/.test(t);
   }));
   chk('잼버리 로고를 쓰지 않는다(스카우팅앱 공용)', await p.evaluate(() =>
     !document.querySelector('img[src*="jamboree"]') && !!document.querySelector('.mark')));

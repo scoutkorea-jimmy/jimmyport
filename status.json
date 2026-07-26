@@ -1,16 +1,30 @@
 {
-  "version": "0.9.261",
-  "commit": "7aea2ae",
-  "commitSubject": "fix(v0.9.260): actually override cache-control on static assets",
-  "commitAt": "2026-07-27T03:53:49+09:00",
-  "deployedAt": "2026-07-26T19:01:42.308Z",
+  "version": "0.9.262",
+  "commit": "e149173",
+  "commitSubject": "feat(v0.9.261): live progress bar and an explicit idle state on the dashboard",
+  "commitAt": "2026-07-27T04:01:42+09:00",
+  "deployedAt": "2026-07-26T19:05:44.887Z",
   "verification": {
-    "at": "2026-07-26T19:01:42.308Z",
+    "at": "2026-07-26T19:05:44.888Z",
     "rounds": [
       {
         "round": 1,
         "checks": 613,
         "fails": 2,
+        "failures": [
+          {
+            "round": 1,
+            "file": "regress-krjam-planning-motion",
+            "check": "콘솔 에러 0",
+            "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+          },
+          {
+            "round": 1,
+            "file": "regress-krjam-planning-nav",
+            "check": "에러 0",
+            "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+          }
+        ],
         "items": [
           {
             "name": "audit-krjam-fnc",

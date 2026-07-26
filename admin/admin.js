@@ -158,6 +158,64 @@
     if (lc) { lc.textContent = st.kind === 'running' ? '● 실시간' : (st.kind === 'stale' ? '● 끊김' : '○ 대기'); lc.className = 'livechip ' + st.kind; }
   }
 
+  /* ── 실패를 사람 말로 옮긴다 ──
+     이 화면을 보는 사람은 개발자가 아니다(사용자 지정). 그래서 실패마다
+       · 항상 보이는 '쉬운 설명' — 어느 화면에서 무엇이 잘못됐고 사용자에게 어떻게 보이는지
+       · 접어 둔 '개발자용' — 검사 파일·케이스 이름·측정값 원문
+     두 가지를 함께 만든다. 규칙에 없는 실패는 정직하게 "원문 그대로" 를 보여 준다. */
+  var WHERE = [
+    [/krjam-news|krjam-press/, '홍보부 운영보드 — 기사 · 보도자료'],
+    [/krjam-planning-nav/, '홍보부 운영보드 — 메뉴 이동'],
+    [/krjam-planning-server/, '서버 저장 로직'],
+    [/krjam-planning-motion/, '홍보부 운영보드 — 화면 전환'],
+    [/krjam-planning/, '홍보부 운영보드'],
+    [/krjam-fnc-board|audit-krjam-fnc/, '급식편의본부 안내'],
+    [/krjam-fnc/, '급식편의본부 자료 원문(플립북)'],
+    [/krjam-jebo/, '공개 소식 제보'],
+    [/landing/, '첫 화면(도구 모음)'],
+    [/a11y/, '전 화면 접근성'],
+    [/admin/, '운영 대시보드'],
+  ];
+  var WHY = [
+    [/가로.*넘치|가로 스크롤|overflow/i, '화면이 좌우로 밀려서 내용이 잘려 보입니다.'],
+    [/콘솔 에러|pageerror|TypeError|ReferenceError/i, '페이지에서 오류가 나서 일부 기능이 동작하지 않을 수 있습니다.'],
+    [/요청 실패|404|Failed to load/i, '페이지가 필요한 파일을 받지 못했습니다.'],
+    [/13px|글자/i, '글자가 규정(13px)보다 작아 읽기 어렵습니다.'],
+    [/40px|조작 요소|터치/i, '버튼이 손가락으로 누르기에 작습니다.'],
+    [/대비|contrast/i, '글자와 배경의 색 차이가 약해 잘 보이지 않습니다.'],
+    [/카드 중첩/i, '카드 안에 카드가 들어가 화면이 탁해 보입니다.'],
+    [/저장|대기|유실/i, '저장이 제대로 되지 않을 수 있는 상태입니다.'],
+    [/권한|관리자|401|403/i, '권한이 없는 사람이 할 수 없어야 할 일을 할 수 있거나, 반대로 막혀 있습니다.'],
+    [/버전|history/i, '기사 버전 기록이 규칙대로 쌓이지 않았습니다.'],
+    [/정렬|필터/i, '목록 정렬이나 거르기가 기대와 다르게 동작합니다.'],
+    [/메뉴|목록|열/i, '목록의 열 구성이 기대와 다릅니다.'],
+  ];
+  function explain(f) {
+    var where = '알 수 없는 화면';
+    for (var i = 0; i < WHERE.length; i++) if (WHERE[i][0].test(f.file || '')) { where = WHERE[i][1]; break; }
+    var text = '';
+    var hay = (f.check || '') + ' ' + (f.detail || '');
+    for (var j = 0; j < WHY.length; j++) if (WHY[j][0].test(hay)) { text = WHY[j][1]; break; }
+    if (!text) text = '「' + (f.check || '이름 없는 검사') + '」 검사가 통과하지 못했습니다.';
+    return { where: where, text: text };
+  }
+  function failureList(list, idPrefix) {
+    if (!list || !list.length) return '';
+    return '<div class="fails">' + list.map(function (f, i) {
+      var e = explain(f);
+      return '<div class="failcard">' +
+        '<div class="fc-h"><span class="chip bad">실패</span><b>' + esc(e.where) + '</b>' +
+        (f.round ? '<span class="muted">' + f.round + '라운드</span>' : '') + '</div>' +
+        '<p class="fc-plain">' + esc(e.text) + '</p>' +
+        '<details class="fc-dev"><summary>개발자용 상세</summary>' +
+        '<dl class="dl mono">' +
+        '<dt>검사 파일</dt><dd>' + esc(f.file || '—') + '</dd>' +
+        '<dt>실패한 케이스</dt><dd>' + esc(f.check || '—') + '</dd>' +
+        '<dt>측정·메시지</dt><dd>' + esc(f.detail || '—') + '</dd>' +
+        '</dl></details></div>';
+    }).join('') + '</div>';
+  }
+
   /* ── 회귀 진행 ── 이 페이지의 본체 */
   function runState() {
     if (!run) return { kind: 'loading', text: '불러오는 중…' };
@@ -212,12 +270,7 @@
         '<td>' + (x.ok ? '<span class="chip ok">통과</span>' : '<span class="chip bad">실패</span>') + '</td></tr>';
     }).join('');
     var fails = (r.failures || []).length
-      ? '<h3 class="failh">실패 상세 ' + r.failures.length + '건</h3>' +
-        '<div class="tblwrap"><table class="tbl"><thead><tr><th>라운드</th><th>검사 파일</th><th>실패한 케이스</th><th>왜</th></tr></thead><tbody>' +
-        r.failures.map(function (f) {
-          return '<tr class="failrow"><td>' + f.round + 'R</td><td class="mono">' + esc(f.file) + '</td>' +
-            '<td>' + esc(f.check) + '</td><td class="detail">' + (f.detail ? esc(f.detail) : '<span class="muted">—</span>') + '</td></tr>';
-        }).join('') + '</tbody></table></div>'
+      ? '<h3 class="failh">실패 ' + r.failures.length + '건 — 무엇이 잘못됐나</h3>' + failureList(r.failures)
       : '';
     return '<div class="card">' + head + '<div class="rounds">' + rounds + '</div>' + now +
       '<div class="tblwrap"><table class="tbl"><thead><tr><th>라운드</th><th>검사</th><th class="num">결과</th><th>상태</th></tr></thead>' +
@@ -324,7 +377,12 @@
       '<dt>배포 시각</dt><dd>' + esc(when(s.deployedAt)) + '</dd>' +
       (v ? '<dt>검증</dt><dd>' + (v.green ? '<span class="chip ok">' + v.rounds.length + '라운드 전부 통과</span>' : '<span class="chip bad">실패 있음</span>') +
         ' <span class="muted">· ' + esc(when(v.at)) + '</span></dd>' : '') +
-      '</dl>' + (rows ? '<div class="tblwrap" style="margin-top:12px"><table class="tbl"><thead><tr><th>라운드</th><th class="num">검사</th><th>결과</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '') + '</div>';
+      '</dl>' + (rows ? '<div class="tblwrap" style="margin-top:12px"><table class="tbl"><thead><tr><th>라운드</th><th class="num">검사</th><th>결과</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '') + '</div>' +
+      (function () {
+        var all = v ? v.rounds.reduce(function (a, r) { return a.concat((r.failures || []).map(function (f) { return Object.assign({ round: r.round }, f); })); }, []) : [];
+        if (!all.length) return '';
+        return '<div class="card"><h3 class="failh">이 배포에서 통과하지 못한 검사 ' + all.length + '건</h3>' + failureList(all) + '</div>';
+      })();
   }
   function linksBlock() {
     var L = [

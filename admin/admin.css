@@ -173,3 +173,18 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
   background-size:200% 100%; animation:flow 1.6s linear infinite}
 @keyframes flow{0%{background-position:200% 0} 100%{background-position:0 0}}
 @media (prefers-reduced-motion: reduce){ .livedot.on,.rnd.cur .track i{animation:none} }
+
+/* 실패 사유 — 쉬운 설명은 항상, 개발자용은 접어 둔다 (v0.9.262) */
+.fails{display:flex; flex-direction:column; gap:10px}
+.failcard{border:1px solid #F0C9C6; border-radius:var(--r-2); background:var(--danger-bg); padding:12px 14px}
+.fc-h{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px}
+.fc-h b{font-size:var(--fs-2); font-weight:800}
+.fc-plain{margin:0 0 8px; font-size:var(--fs-2); color:var(--ink)}
+.fc-dev{border-top:1px dashed #E7BDB9; padding-top:8px}
+.fc-dev summary{min-height:40px; display:flex; align-items:center; font-size:var(--fs-1); font-weight:800;
+  color:var(--ink-2); cursor:pointer; list-style:none}
+.fc-dev summary::-webkit-details-marker{display:none}
+.fc-dev summary::before{content:'▸ '; margin-right:4px}
+.fc-dev[open] summary::before{content:'▾ '}
+.fc-dev .dl{margin-top:6px; font-size:var(--fs-1)}
+.fc-dev .dl dd{font-weight:600; word-break:break-word}
