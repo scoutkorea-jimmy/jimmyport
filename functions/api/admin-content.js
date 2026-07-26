@@ -28,20 +28,21 @@ async function countPrefix(env, prefix) {
 
 export async function onRequestGet({ request, env }) {
   if (!(await isAdmin(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
-  const counts = [];
-  for (const g of GROUPS) {
-    try { const r = await countPrefix(env, g.prefix); counts.push({ key: g.key, label: g.label, n: r.n }); }
-    catch { counts.push({ key: g.key, label: g.label, n: null }); }
-  }
+  // 다섯 묶음을 동시에 센다(하나씩 기다리면 화면이 늦게 뜬다)
+  const counts = await Promise.all(GROUPS.map(async (g) => {
+    try { const r = await countPrefix(env, g.prefix); return { key: g.key, label: g.label, n: r.n }; }
+    catch { return { key: g.key, label: g.label, n: null }; }
+  }));
   // 최근 기사 5건 — 제목·단계·작성일만(본문 없음)
   let latest = [];
   try {
     const r = await countPrefix(env, "jpn:");
-    const items = [];
-    for (const name of r.names.slice(0, 60)) {
-      try { const raw = await env.SCOUT_KV.get(name); if (raw) { const a = JSON.parse(raw);
-        items.push({ title: String(a.title || "").slice(0, 80), stage: String(a.stage || ""), at: a.createdAt || "" }); } } catch {}
-    }
+    // 최근 몇 건만 보여 주면 되므로 12개만, 그것도 동시에 읽는다
+    const items = (await Promise.all(r.names.slice(0, 12).map(async (name) => {
+      try { const raw = await env.SCOUT_KV.get(name); if (!raw) return null; const a = JSON.parse(raw);
+        return { title: String(a.title || "").slice(0, 80), stage: String(a.stage || ""), at: a.createdAt || "" }; }
+      catch { return null; }
+    }))).filter(Boolean);
     items.sort((a, b) => String(b.at).localeCompare(String(a.at)));
     latest = items.slice(0, 5);
   } catch {}

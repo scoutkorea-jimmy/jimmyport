@@ -1,11 +1,11 @@
 {
-  "version": "0.9.258",
-  "commit": "efe9853",
-  "commitSubject": "chore: refresh status.json for v0.9.257",
-  "commitAt": "2026-07-27T03:38:57+09:00",
-  "deployedAt": "2026-07-26T18:48:23.763Z",
+  "version": "0.9.259",
+  "commit": "715adc3",
+  "commitSubject": "feat(v0.9.258): admin dashboard shows live regression rounds, grouped menus, failure details",
+  "commitAt": "2026-07-27T03:48:23+09:00",
+  "deployedAt": "2026-07-26T18:52:04.020Z",
   "verification": {
-    "at": "2026-07-26T18:48:23.764Z",
+    "at": "2026-07-26T18:52:04.021Z",
     "rounds": [
       {
         "round": 1,

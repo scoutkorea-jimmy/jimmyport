@@ -55,7 +55,9 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
 .seg button + button{border-left:1px solid var(--line)}
 .seg button.on{background:var(--accent); color:#fff}
 
-.main{max-width:2280px; margin:0 auto; padding:20px 20px 48px}
+/* flex 세로 컨테이너에서 margin:0 auto 를 주면 stretch 가 풀려 내용 폭만큼만 차지한다
+   (그래서 넓은 화면에서 가운데 좁은 기둥처럼 보였다). width:100% 로 폭을 되돌린다. */
+.main{width:100%; max-width:2280px; margin:0 auto; padding:20px 24px 48px}
 .sec{margin:0 0 26px}
 .sec-h{position:relative; margin:0 0 8px; padding-left:13px; font-size:var(--fs-4); font-weight:800}
 .sec-h::before{content:''; position:absolute; left:0; top:.22em; bottom:.22em; width:5px; border-radius:3px;

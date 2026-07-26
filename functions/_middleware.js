@@ -32,21 +32,21 @@ export async function onRequest(context) {
   // so new deploys can take hours to reach browsers. Force-revalidate every
   // static asset / HTML here. API routes (/api/*) keep their own cache headers.
   //
-  // HTML/JS/CSS get `no-store`, not `no-cache`. A deploy replaces files one by
-  // one, so for a few seconds the edge can answer a request with the PREVIOUS
-  // build — and with a storable response it keeps that stale copy under the new
-  // `?v=` URL for the full max-age. That is exactly how a page ends up running
-  // new HTML against old CSS (v0.9.235 → visibly broken layout, see
-  // rules/handoff.md).
+  // HTML/JS/CSS: `no-cache` (저장은 하되 매번 재검증). v0.9.259 에서 `no-store` 에서 바꿨다.
+  //
+  // no-store 를 골랐던 이유는 배포 중 엣지가 옛 빌드를 새 `?v=` 주소에 max-age(4시간) 동안
+  // 물고 있던 사고였다(v0.9.235 - 새 HTML + 옛 CSS 로 화면이 깨졌다). 그 원인은 max-age 이지
+  // '저장' 자체가 아니다. no-cache 는 max-age 를 주지 않으므로 브라우저·엣지가 항상 서버에 물어보고,
+  // 바뀌지 않았으면 304(수백 바이트)만 받는다. 최신성은 그대로이고 매번 450KB 를 다시 받지 않는다.
+  //
+  // 되돌리려면 반드시 "배포 직후 새 HTML + 옛 JS" 조합이 나오는지부터 확인할 것.
   //
   // Images/PDFs are left alone on purpose — they are addressed by filename, so
   // a stale copy is still the right bytes, and caching them keeps the 31-page
   // flipbook cheap. (Observed live: they keep Pages' default max-age=14400
   // regardless of what is set here, so do not expect `no-cache` on them.)
   if (!path.startsWith("/api/")) {
-    const cc = /\.(html|js|css)$/i.test(path) || !/\.[a-z0-9]+$/i.test(path)
-      ? "no-store"
-      : "no-cache";
+    const cc = "no-cache";
     // Static-asset responses can carry immutable headers; fall back to rebuilding.
     try {
       res.headers.set("Cache-Control", cc);

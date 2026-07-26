@@ -22,15 +22,18 @@ export async function onRequestGet({ request, env }) {
   const days = Math.min(90, Math.max(1, parseInt(url.searchParams.get("days") || "14", 10) || 14));
   const list = dayList(days, new Date());
 
-  // 라우트 × 날짜 — 값이 없으면 0. (KV 조회가 라우트 수 × 일수만큼 나가지만 관리자 한 명이 가끔 보는 화면이다.)
-  const routes = [];
-  for (const r of ROUTES) {
-    const counts = await Promise.all(list.map(async (d) => {
-      try { return parseInt((await env.SCOUT_KV.get(KEY(r, d))) || "0", 10) || 0; } catch { return 0; }
-    }));
-    routes.push({ route: r, counts, total: counts.reduce((a, b) => a + b, 0) });
-  }
-  routes.sort((a, b) => b.total - a.total);
+  // 라우트 x 날짜 - 전부 한꺼번에 던진다. 라우트마다 순서대로 기다리면
+  // 11 x 14 = 154번을 줄 세우게 되어 화면이 눈에 띄게 느려진다(그래서 느렸다).
+  const cells = await Promise.all(ROUTES.flatMap((r) => list.map(async (d) => {
+    try { return { r, v: parseInt((await env.SCOUT_KV.get(KEY(r, d))) || "0", 10) || 0 }; }
+    catch { return { r, v: 0 }; }
+  })));
+  const byRoute = {};
+  cells.forEach((c) => { (byRoute[c.r] = byRoute[c.r] || []).push(c.v); });
+  const routes = ROUTES.map((r) => {
+    const counts = byRoute[r] || list.map(() => 0);
+    return { route: r, counts, total: counts.reduce((a, b) => a + b, 0) };
+  }).sort((a, b) => b.total - a.total);
 
   // 배포·검증 상태는 배포 때 만들어 둔 정적 파일에서 읽는다(같은 도메인이라 그냥 fetch 한다)
   let status = null;
