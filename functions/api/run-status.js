@@ -14,7 +14,9 @@
 import { json, isAdmin } from "./_lib.js";
 
 const KEY = "run:status";
+const HKEY = "run:history";
 const TTL = 24 * 3600;
+export const HISTORY_MAX = 20;      // 최근 20회만 남긴다(사용자 지정)
 export const STALE_MS = 90 * 1000;      // 이 시간 넘게 갱신이 없으면 '끊김'으로 본다
 
 const num = (v, max) => { const n = parseInt(v, 10); return isFinite(n) && n >= 0 ? Math.min(n, max) : 0; };
@@ -57,13 +59,46 @@ export async function onRequestPost({ request, env }) {
   const rec = cleanRun(body);
   rec.updatedAt = new Date().toISOString();
   await env.SCOUT_KV.put(KEY, JSON.stringify(rec), { expirationTtl: TTL });
+
+  /* 실행이 끝나면 기록으로 남긴다 — "무엇을 검증했고 문제가 있었는지" 를 나중에도 볼 수 있어야 한다.
+     같은 실행이 여러 번 올라와도 startedAt 으로 한 번만 남긴다. */
+  if (rec.finishedAt) {
+    try {
+      let hist = [];
+      const raw = await env.SCOUT_KV.get(HKEY);
+      if (raw) { const p = JSON.parse(raw); if (Array.isArray(p)) hist = p; }
+      if (!hist.some((h) => h.startedAt && h.startedAt === rec.startedAt)) {
+        hist.unshift(summarize(rec));
+        hist = hist.slice(0, HISTORY_MAX);
+        await env.SCOUT_KV.put(HKEY, JSON.stringify(hist));
+      }
+    } catch {}
+  }
   return json({ ok: true });
 }
 
+/* 기록 한 줄 — 무엇을 검증했는지(검사 이름들) · 얼마나 걸렸는지 · 문제는 무엇이었는지 */
+export const summarize = (r) => ({
+  startedAt: r.startedAt,
+  finishedAt: r.finishedAt,
+  label: r.label,
+  rounds: r.rounds,
+  roundTotal: r.roundTotal,
+  done: r.done,
+  total: r.total,
+  checks: r.checks,
+  fails: r.fails,
+  ok: r.ok,
+  // 어떤 검사를 돌렸는지 — 이름만 중복 없이(라운드마다 같은 목록이 반복되므로)
+  suites: [...new Set((r.items || []).map((x) => x.name))].slice(0, 30),
+  failures: (r.failures || []).slice(0, 20),
+});
+
 export async function onRequestGet({ request, env }) {
   if (!(await isAdmin(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
-  let run = null;
+  let run = null, history = [];
   try { const raw = await env.SCOUT_KV.get(KEY); if (raw) run = JSON.parse(raw); } catch {}
+  try { const raw = await env.SCOUT_KV.get(HKEY); if (raw) { const p = JSON.parse(raw); if (Array.isArray(p)) history = p.slice(0, HISTORY_MAX); } } catch {}
   const configured = !!env.RUN_TOKEN;
-  return json({ ok: true, configured, run, staleMs: STALE_MS, now: new Date().toISOString() });
+  return json({ ok: true, configured, run, history, staleMs: STALE_MS, now: new Date().toISOString() });
 }

@@ -277,6 +277,38 @@
       '<tbody>' + list + '</tbody></table></div>' + fails + '</div>';
   }
 
+  /* ── 최근 검증 기록 ── 무엇을 검증했고 문제가 있었는지, 최근 20회까지 남는다 */
+  function historyBlock(compact) {
+    var h = (run && run.history) || [];
+    if (!h.length) return '<div class="card"><p class="muted">아직 남은 검증 기록이 없습니다. 회귀가 끝나면 여기에 쌓입니다.</p></div>';
+    var list = compact ? h.slice(0, 5) : h;
+    return '<div class="hist">' + list.map(function (x, i) {
+      var mins = (function () {
+        try { var d = (new Date(x.finishedAt) - new Date(x.startedAt)) / 60000; return d > 0 ? Math.round(d) + '분' : ''; }
+        catch (e) { return ''; }
+      })();
+      return '<div class="histrow' + (x.ok ? '' : ' bad') + '">' +
+        '<div class="hr-h">' +
+          (x.ok ? '<span class="chip ok">이상 없음</span>' : '<span class="chip bad">문제 ' + nf(x.fails) + '건</span>') +
+          '<b>' + esc(when(x.finishedAt || x.startedAt)) + '</b>' +
+          '<span class="muted">' + esc(x.label || '회귀') + ' · ' + nf(x.rounds) + '/' + nf(x.roundTotal) + '라운드' +
+          (x.checks ? ' · 케이스 ' + nf(x.checks) : '') + (mins ? ' · ' + mins : '') + '</span>' +
+        '</div>' +
+        '<div class="hr-suites"><span class="muted">검증한 것</span> ' +
+          (x.suites && x.suites.length
+            ? x.suites.map(function (n) { return '<span class="pill">' + esc(suiteName(n)) + '</span>'; }).join('')
+            : '<span class="muted">기록 없음</span>') + '</div>' +
+        (x.ok ? '<p class="hr-ok">문제 없음 — 모든 검사가 통과했습니다.</p>' : failureList(x.failures)) +
+        '</div>';
+    }).join('') + '</div>' +
+      (compact && h.length > 5 ? '<p><button class="btn sm" data-go="run">검증 기록 전체 보기</button></p>' : '');
+  }
+  /* 검사 파일 이름을 사람이 아는 이름으로 — 개발자가 아니어도 무엇을 봤는지 알 수 있게 */
+  function suiteName(n) {
+    var e = explain({ file: n, check: '', detail: '' });
+    return e.where === '알 수 없는 화면' ? n : e.where;
+  }
+
   /* ── 화면 ── */
   function render() {
     var host = $('views'); if (!host || $('shell').hidden) return;
@@ -286,7 +318,8 @@
     $('rangeseg').style.display = (view === 'traffic' || view === 'home') ? '' : 'none';
     host.innerHTML =
       view === 'home' ? viewHome() :
-      view === 'run' ? sec('회귀 · 검증', '작업자 컴퓨터에서 도는 회귀를 그대로 중계합니다. 5초마다 갱신됩니다.', runBlock(false)) :
+      view === 'run' ? sec('회귀 · 검증', '작업자 컴퓨터에서 도는 회귀를 그대로 중계합니다. 진행 중이면 3초, 아니면 15초마다 확인합니다.', runBlock(false)) +
+        sec('최근 검증 기록', '무엇을 검증했고 문제가 있었는지 최근 20회까지 남습니다.', historyBlock(false)) :
       view === 'deploy' ? sec('배포 상태', '배포 시점에 기록된 값입니다.', deployBlock()) :
       view === 'traffic' ? sec('유입 현황', '각 화면이 몇 번 열렸는지(PV)입니다. 방문자 수가 아니고 개인정보는 저장하지 않습니다.', trafficBlock()) :
       view === 'routes' ? sec('라우팅 점검', '지금 이 브라우저에서 각 주소를 실제로 열어 응답을 확인합니다.', '<div class="card tblwrap"><table class="tbl" id="routetbl"></table></div>') :
@@ -301,6 +334,7 @@
   function viewHome() {
     return sec('회귀 진행', '이 대시보드의 본체입니다 — 5초마다 스스로 갱신합니다.', runBlock(true)) +
       sec('한눈에', '', summaryCards()) +
+      sec('최근 검증 기록', '', historyBlock(true)) +
       sec('최근 유입', '', trafficMini());
   }
   function summaryCards() {

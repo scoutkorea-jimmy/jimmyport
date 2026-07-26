@@ -75,7 +75,7 @@ function collect() {
     total: perRoundTotal * TOTAL_ROUNDS,
     fails: failures.length,
     checks: items.reduce((s, x) => s + (x.total || 0), 0),
-    items: items.slice(-14),
+    items: items.slice(-20),   // 최근 20건(서버가 기록으로 20회까지 남긴다)
     failures: failures.slice(-20),
     running: finished ? '' : running,
     startedAt: (() => { try { return fs.statSync(OUT).birthtime.toISOString(); } catch { return ''; } })(),

@@ -12,7 +12,14 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8906;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json' };
 const GOOD = '123456';
-const RUN = { ok: true, configured: true, staleMs: 90000, now: new Date().toISOString(), run: {
+const HISTORY = Array.from({ length: 22 }, (_, i) => ({
+  startedAt: '2026-07-2' + (i % 7) + 'T01:00:00Z', finishedAt: '2026-07-2' + (i % 7) + 'T01:20:00Z',
+  label: '전체 회귀', rounds: 3, roundTotal: 3, done: 42, total: 42, checks: 1180,
+  fails: i === 0 ? 1 : 0, ok: i !== 0,
+  suites: ['regress-krjam-news', 'regress-krjam-fnc-board', 'regress-landing'],
+  failures: i === 0 ? [{ round: 2, file: 'regress-krjam-news', check: '콘솔 에러 0', detail: 'TypeError: x' }] : [],
+})).slice(0, 20);
+const RUN = { ok: true, configured: true, staleMs: 90000, now: new Date().toISOString(), history: HISTORY, run: {
   label: '전체 회귀', rounds: 1, roundTotal: 3, done: 17, total: 42, fails: 2, checks: 900,
   items: [{ round: 2, name: 'regress-krjam-news', pass: 111, total: 111, ok: true },
           { round: 2, name: 'regress-krjam-press', pass: 30, total: 31, ok: false }],
@@ -140,20 +147,20 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     return /40%/.test(t) && /17 \/ 42/.test(t) && /regress-krjam-fnc\.js/.test(t);
   }));
   chk('실패 사유가 비개발자 말로 항상 보인다', await p.evaluate(() => {
-    var cards = [...document.querySelectorAll('.failcard')];
+    var cards = [...document.querySelectorAll('#views .sec:first-child .failcard')];
     if (cards.length !== 2) return false;
     var plain = cards.map((c) => c.querySelector('.fc-plain').textContent).join(' | ');
     var where = cards.map((c) => c.querySelector('.fc-h b').textContent).join(' | ');
     return /좌우로 밀려/.test(plain) && /오류가 나서/.test(plain) && /홍보부 운영보드/.test(where);
   }));
   chk('개발자용 상세는 접혀 있다(펼치면 원문)', await p.evaluate(() => {
-    var d = document.querySelector('.failcard .fc-dev');
+    var d = document.querySelector('#views .sec:first-child .failcard .fc-dev');
     if (!d || d.open) return false;
     var t = d.textContent;
     return /regress-krjam-press/.test(t) && /48px 넘침/.test(t);
   }));
   chk('접힌 상세를 펼칠 수 있다', await p.evaluate(async () => {
-    var d = document.querySelector('.failcard .fc-dev');
+    var d = document.querySelector('#views .sec:first-child .failcard .fc-dev');
     d.open = true; await new Promise((r) => setTimeout(r, 100));
     return d.open && d.querySelector('dl');
   }));
@@ -201,6 +208,27 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     return el.textContent !== 'XX';
   }));
   await p.evaluate(() => window.__admin.setView('home'));
+
+  console.log('\n[최근 검증 기록]');
+  await p.evaluate(() => window.__admin.setView('run')); await wait(500);
+  chk('기록은 최대 20건', await p.evaluate(() => document.querySelectorAll('.histrow').length) === 20);
+  chk('무엇을 검증했는지 사람 말로 남는다', await p.evaluate(() => {
+    var pills = [...document.querySelectorAll('.histrow .pill')].map((e) => e.textContent);
+    return pills.length >= 3 && pills.some((t) => /홍보부 운영보드/.test(t)) && pills.some((t) => /첫 화면/.test(t));
+  }));
+  chk('문제 없던 실행은 "문제 없음"', await p.evaluate(() =>
+    /문제 없음/.test(document.querySelectorAll('.histrow')[1].textContent)));
+  chk('문제 있던 실행은 사유가 쉬운 말로 · 상세는 접힘', await p.evaluate(() => {
+    var row = document.querySelectorAll('.histrow')[0];
+    var card = row.querySelector('.failcard');
+    return /문제 1건/.test(row.textContent) && !!card
+      && /오류가 나서/.test(card.querySelector('.fc-plain').textContent)
+      && !card.querySelector('.fc-dev').open;
+  }));
+  chk('개요에도 최근 기록이 요약된다', await p.evaluate(async () => {
+    window.__admin.setView('home'); await new Promise((r) => setTimeout(r, 300));
+    return document.querySelectorAll('.histrow').length === 5 && !!document.querySelector('[data-go="run"]');
+  }));
 
   console.log('\n[진행 중인 회귀가 없을 때]');
   RUN_MODE = 'none';

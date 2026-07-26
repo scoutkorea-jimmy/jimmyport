@@ -1,11 +1,11 @@
 {
-  "version": "0.9.262",
-  "commit": "e149173",
-  "commitSubject": "feat(v0.9.261): live progress bar and an explicit idle state on the dashboard",
-  "commitAt": "2026-07-27T04:01:42+09:00",
-  "deployedAt": "2026-07-26T19:05:44.887Z",
+  "version": "0.9.263",
+  "commit": "964efe6",
+  "commitSubject": "feat(v0.9.262): failure reasons in plain language, developer detail folded away",
+  "commitAt": "2026-07-27T04:05:44+09:00",
+  "deployedAt": "2026-07-26T19:12:13.863Z",
   "verification": {
-    "at": "2026-07-26T19:05:44.888Z",
+    "at": "2026-07-26T19:12:13.864Z",
     "rounds": [
       {
         "round": 1,

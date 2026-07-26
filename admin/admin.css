@@ -188,3 +188,14 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
 .fc-dev[open] summary::before{content:'▾ '}
 .fc-dev .dl{margin-top:6px; font-size:var(--fs-1)}
 .fc-dev .dl dd{font-weight:600; word-break:break-word}
+
+/* 최근 검증 기록 (v0.9.263) */
+.hist{display:flex; flex-direction:column; gap:10px}
+.histrow{border:1px solid var(--line); border-radius:var(--r-2); background:var(--surface); padding:12px 14px; box-shadow:var(--sh-1)}
+.histrow.bad{border-color:#F0C9C6}
+.hr-h{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px}
+.hr-h b{font-size:var(--fs-2); font-weight:800}
+.hr-suites{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:var(--fs-1); margin-bottom:8px}
+.pill{display:inline-flex; align-items:center; min-height:24px; padding:0 9px; border-radius:var(--pill);
+  background:var(--surface-3); color:var(--ink-2); font-size:var(--fs-1); font-weight:700}
+.hr-ok{margin:0; font-size:var(--fs-1); color:var(--ok); font-weight:700}
