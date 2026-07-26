@@ -181,15 +181,26 @@
   }
 
   // 이미지 디코드 대기(최대 400ms). 캐시된 경우 즉시 통과.
+  // 곧바로 못 그리는 경우에만 상단 진행바를 띄운다 — 캐시된 대부분의 넘김에서는
+  // 깜빡이지 않도록 120ms 늦춰서 켠다.
   function ready(src, cb) {
     var im = new Image();
     var done = false;
-    var go = function () { if (!done) { done = true; cb(); } };
+    var late = window.setTimeout(function () { showLoad(true); }, 120);
+    var go = function () {
+      if (done) return;
+      done = true;
+      window.clearTimeout(late);
+      showLoad(false);
+      cb();
+    };
     im.onload = go;
     im.onerror = go;
     im.src = src;
     if (im.complete) go(); else window.setTimeout(go, 400);
   }
+  var topload = $('topload');
+  function showLoad(on) { if (topload) topload.classList.toggle('on', !!on); }
 
   /* ── 이어보기(세로 스크롤) — 터치 기기 전용 ───────────────
      모바일에서는 한 장씩 넘기는 것보다 문서처럼 죽 내려 읽는 편이 빠르다.
@@ -209,6 +220,7 @@
       var d = document.createElement('div');
       d.className = 'fpage';
       d.dataset.p = i;
+      d.className += ' loading';
       d.innerHTML =
         '<img src="' + pageURL(i) + '" alt="' + i + '쪽 — ' + esc(title(i)) + '"' +
         ' loading="lazy" width="1920" height="1080" draggable="false">' +
@@ -216,6 +228,13 @@
       frag.appendChild(d);
     }
     feed.appendChild(frag);
+    // 아직 안 내려온 쪽은 스켈레톤이 흐르게 두고, 도착하면 그 자리에서 걷는다.
+    [].forEach.call(feed.querySelectorAll('.fpage'), function (el) {
+      var im = el.querySelector('img');
+      var done = function () { el.classList.remove('loading'); el.classList.add('ready'); };
+      if (im.complete && im.naturalWidth) done();
+      else { im.addEventListener('load', done); im.addEventListener('error', done); }
+    });
     feedBuilt = true;
   }
 
@@ -595,12 +614,35 @@
   try { savedMode = localStorage.getItem(MODE_KEY); } catch (e) {}
   setMode(isTouch && savedMode !== 'flip', false);
 
+  /* ── 부팅 진행 표시 ──────────────────────────────────────
+     실제로 기다리는 것(글꼴 · 첫 장 이미지)에 맞춰 단계를 올린다.
+     그 사이에도 막대가 멈춰 보이지 않게 90% 까지 천천히 기어간다. */
+  var bootFill = $('bootFill'), bootNote = $('bootNote');
+  var bootPct = 0, bootCreep = 0;
+  function bootTo(pct, note) {
+    bootPct = Math.max(bootPct, pct);
+    if (bootFill) bootFill.style.width = bootPct.toFixed(1) + '%';
+    if (note && bootNote) bootNote.textContent = note;
+  }
   function hideBoot() {
     if (!boot || boot.classList.contains('gone')) return;
+    window.clearInterval(bootCreep);
+    bootTo(100, '거의 다 됐어요');
     boot.classList.add('gone');
-    window.setTimeout(function () { if (boot && boot.parentNode) boot.parentNode.removeChild(boot); }, 300);
+    window.setTimeout(function () { if (boot && boot.parentNode) boot.parentNode.removeChild(boot); }, 340);
+  }
+
+  bootTo(22, '자료를 불러오는 중…');
+  bootCreep = window.setInterval(function () {
+    if (bootPct < 90) bootTo(bootPct + (90 - bootPct) * 0.09);
+  }, 260);
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+    document.fonts.ready.then(function () { bootTo(55); });
   }
   if (leafTop.complete && leafTop.naturalWidth) hideBoot();
-  else { leafTop.addEventListener('load', hideBoot); leafTop.addEventListener('error', hideBoot); }
-  window.setTimeout(hideBoot, 2500);
+  else {
+    leafTop.addEventListener('load', hideBoot);
+    leafTop.addEventListener('error', hideBoot);
+  }
+  window.setTimeout(hideBoot, 4000);              // 이미지가 끝내 안 와도 화면은 연다
 })();

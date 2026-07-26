@@ -13,7 +13,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - nav: `test/regress-krjam-planning-nav.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`
+  - nav: `test/regress-krjam-planning-nav.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -52,6 +52,13 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-26 (8) — 랜딩·플립북 연출 + 로딩 표시 · 캐시 근본 수정 (v0.9.238~239)
+대상: `/` 랜딩 + `/krjam-fnc`. 상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) §19.5.
+- **v0.9.238 캐시**: 정적 자산이 `max-age=14400` 으로 나가고 있었다(미들웨어의 `no-cache` 가 JS/CSS 엔 안 먹었음). 배포 전파 몇 초 사이에 엣지가 **새 `?v=` URL 로 이전 빌드를 캐싱**해 최대 4시간 구/신이 섞였다 — v0.9.235 화면 깨짐의 진짜 원인. **html/js/css → `no-store`**(라이브 `BYPASS` 확인). 이미지·PDF 는 파일명으로 버전이 갈리므로 그대로(실측상 Pages 기본 4시간 유지).
+- **v0.9.239 연출**(사용자: "화려하게" + "로딩 바"): 랜딩 = 표류 그라데이션 3겹 + 매듭선 + 카드 stagger/호버 스윕 + **이동 로딩바**. 플립북 = **부팅 진행바**(글꼴·첫 장 기준 단계) · **넘김 진행바**(캐시 미스일 때만, 120ms 지연) · **이어보기 스켈레톤** · 스테이지 배경.
+- ⚠️ **`transform` 을 등장 애니메이션에 쓰면 안 되는 요소가 있다**: `.book` 에 `rise`(translateY)를 걸었더니 `fill-mode:both` 로 값이 남아 **'가로 보기'의 `rotate(90deg)` 를 덮어썼다**. 다른 transform 이 걸리는 요소는 **opacity 만** 애니메이션할 것.
+- 상태: **fnc 89/89 · 랜딩(신규) 15/15 · planning 132/132 · nav 19/19 · jebo 29/29 · server 16/16**, 콘솔 0, VERSION 0.9.239.
 
 ### 2026-07-26 (7) — `/krjam-fnc` 모바일 이어보기(세로 스크롤) + 시크릿 전수 점검 (v0.9.237)
 대상: `/krjam-fnc` + 저장소 전역 보안 점검. 상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) §19.4, [stack-routing.md §8.1](stack-routing.md).

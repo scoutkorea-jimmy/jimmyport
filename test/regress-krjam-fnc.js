@@ -1,4 +1,4 @@
-/* /krjam-fnc 플립북 회귀 (v0.9.237)
+/* /krjam-fnc 플립북 회귀 (v0.9.239)
    확인 대상: 31쪽 자산이 전부 살아있는가(IST 업무배정 3쪽이 전부 삭제됐는가) · 좌측 목차/넘김/딥링크/확대가
    동작하는가 · 모바일 드로어와 가로 보기가 동작하는가 · 콘솔 에러 0.
    실행: NODE_PATH=<scratch>/node_modules node test/regress-krjam-fnc.js   (puppeteer-core 필요) */
@@ -76,6 +76,22 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   chk('한국잼버리 엠블럼 표시', await p.evaluate(() => {
     const im = document.querySelector('.emblem');
     return !!im && im.naturalWidth > 0 && /jamboree\/assets\/logo\.png$/.test(im.src);
+  }));
+  chk('부팅 진행바가 100%까지 차고 사라짐', await p.evaluate(() => {
+    // boot 는 제거됐고(위 검사), 남아 있었다면 채워진 상태여야 한다
+    const b = document.getElementById('boot');
+    return !b || (document.getElementById('bootFill') || {}).style.width === '100.0%';
+  }));
+  chk('상단 로딩바 존재·기본 꺼짐', await p.evaluate(() => {
+    const t = document.getElementById('topload');
+    return !!t && !t.classList.contains('on');
+  }));
+  chk('배경 연출 레이어 2겹', await p.evaluate(() =>
+    document.querySelectorAll('.stagebg i').length) === 2);
+  chk('배경이 뷰어를 가리지 않음(book 이 위)', await p.evaluate(() => {
+    const r = document.getElementById('book').getBoundingClientRect();
+    const e = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return !!e && !e.closest('.stagebg');
   }));
   chk('이전 버튼 비활성(1쪽)', await p.evaluate(() => document.getElementById('btnPrev').disabled));
   chk('PC 는 이어보기 아님(피드 숨김·모드버튼 숨김)', await p.evaluate(() =>
@@ -255,6 +271,16 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   }));
   chk('모드 버튼 노출(터치)', await p3.evaluate(() =>
     getComputedStyle(document.getElementById('btnMode')).display !== 'none'));
+  chk('내려온 쪽은 스켈레톤이 걷힘', await p3.evaluate(() => {
+    const el = document.querySelector('.fpage[data-p="1"]');
+    return el.classList.contains('ready') && !el.classList.contains('loading');
+  }));
+  chk('아직 안 내려온 쪽은 스켈레톤 유지', await p3.evaluate(() => {
+    const els = [...document.querySelectorAll('.fpage')].slice(-6);
+    return els.some((e) => e.classList.contains('loading'));
+  }));
+  chk('이어보기에선 배경 연출 끔', await p3.evaluate(() =>
+    getComputedStyle(document.querySelector('.stagebg')).display === 'none'));
   chk('이어보기 중엔 가로보기 숨김', await p3.evaluate(() =>
     getComputedStyle(document.getElementById('btnRot')).display === 'none'));
 
