@@ -40,7 +40,7 @@
        레이아웃/리페인트가 없다. blur 는 정적으로 한 번만 걸린다. */
 
     /* 1) 오로라 — 색면이 아주 느리게 회전한다 */
-    .aurora{position:fixed;inset:-25%;z-index:-4;pointer-events:none;filter:blur(58px);opacity:.62}
+    .aurora{position:fixed;inset:-25%;z-index:-4;pointer-events:none;filter:blur(64px);opacity:.34}
     .aurora i{position:absolute;inset:0;border-radius:45%;mix-blend-mode:multiply;will-change:transform}
     .aurora i:nth-child(1){
       background:conic-gradient(from 0deg at 42% 46%,rgba(159,122,234,.85),rgba(126,183,229,.55),rgba(232,163,206,.6),rgba(159,122,234,.85));
@@ -52,7 +52,7 @@
 
     /* 2) 표류하는 색덩어리 */
     .bg{position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none}
-    .blob{position:absolute;border-radius:50%;filter:blur(64px);opacity:.62;will-change:transform}
+    .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.38;will-change:transform}
     .b1{width:44vmax;height:44vmax;left:-13vmax;top:-16vmax;
       background:radial-gradient(circle at 32% 32%,#c4a9f6,#9f7ae8 52%,rgba(159,122,232,0) 72%);
       animation:drift1 26s ease-in-out infinite alternate}
@@ -67,11 +67,11 @@
     @keyframes drift3{from{transform:translate3d(0,0,0) scale(1)}   to{transform:translate3d(7vmax,-9vmax,0) scale(1.14)}}
 
     /* 3) 스카우트 매듭을 연상시키는 선 */
-    .weave{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.3}
-    .weave path{fill:none;stroke:var(--brand);stroke-width:1.8;stroke-linecap:round;
-      stroke-dasharray:26 300;animation:flowline 18s linear infinite}
-    .weave path:nth-child(2){stroke:var(--sky);animation-duration:24s;animation-delay:-6s}
-    .weave path:nth-child(3){stroke:var(--rose);animation-duration:21s;animation-delay:-13s}
+    .weave{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.11}
+    .weave path{fill:none;stroke:var(--brand);stroke-width:1.2;stroke-linecap:round;
+      stroke-dasharray:26 300;animation:flowline 30s linear infinite}
+    .weave path:nth-child(2){stroke:var(--sky);animation-duration:38s;animation-delay:-9s}
+    .weave path:nth-child(3){stroke:var(--rose);animation-duration:34s;animation-delay:-19s}
     @keyframes flowline{to{stroke-dashoffset:-326}}
 
     /* 4) 모닥불 불티 — 아주 작은 점들이 천천히 떠오른다 */
@@ -81,13 +81,13 @@
       animation:ember linear infinite;will-change:transform,opacity}
     @keyframes ember{
       0%  {transform:translate3d(0,0,0) scale(.5);opacity:0}
-      14% {opacity:.9}
-      70% {opacity:.55}
+      16% {opacity:.5}
+      70% {opacity:.3}
       100%{transform:translate3d(var(--dx,20px),-106vh,0) scale(1.15);opacity:0}
     }
 
     /* 5) 미세한 그레인 — 색면이 밋밋해지지 않게 */
-    .grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;
+    .grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.035;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
 
     .wrap{width:100%;max-width:880px;position:relative;z-index:1}
@@ -119,10 +119,7 @@
        제목 대비가 2.63:1 까지 떨어졌다(실측). 지금 값은 최저 5.3:1. */
     h1 b{font-weight:700;display:inline-block;opacity:0;animation:rise .5s var(--ease) forwards;
       background:linear-gradient(100deg,#3D1D6E 8%,#5B2EA6 30%,#1F4A80 50%,#5B2EA6 70%,#3D1D6E 92%);
-      background-size:280% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-      animation-name:rise,titleflow;animation-duration:.5s,7s;animation-iteration-count:1,infinite;
-      animation-timing-function:var(--ease),linear;animation-fill-mode:forwards,none}
-    @keyframes titleflow{to{background-position:280% 0}}
+      background-size:100% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
     h1 .sp{width:.32em}
     /* 배경이 움직이는 색면이라 --muted(4.14) 로는 모자란다 — 실측 기준으로 낮춰 잡은 값 */
     .sub{color:#494256;font-size:14.5px;margin:9px 0 32px;line-height:1.5}
@@ -163,10 +160,10 @@
        @property 미지원 브라우저에서는 정지한 무지개 후광으로 자연스럽게 낮아진다. */
     @property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
     .ring{position:absolute;inset:-5px;border-radius:22px;z-index:-1;opacity:0;filter:blur(9px);
-      background:conic-gradient(from var(--ang,0deg),var(--brand),var(--brand-2),var(--sky),var(--rose),var(--brand));
+      background:conic-gradient(from var(--ang,0deg),var(--brand),var(--brand-2),var(--sky),var(--brand-2),var(--brand));
       animation:ringspin 5.5s linear infinite;animation-play-state:paused;transition:opacity .34s}
     @keyframes ringspin{to{--ang:360deg}}
-    .card:hover .ring,.card:focus-visible .ring{opacity:.72;animation-play-state:running}
+    .card:hover .ring,.card:focus-visible .ring{opacity:.42;animation-play-state:running}
 
     /* 커서를 따라오는 광원 */
     .card::before{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;z-index:1;
@@ -317,16 +314,16 @@
   /* ── 불티 ── 화면 폭에 맞춰 개수를 줄인다(모바일 부담 방지) */
   if (!reduce) {
     var box = document.getElementById('embers');
-    var n = window.innerWidth < 620 ? 14 : 24;
+    var n = window.innerWidth < 620 ? 6 : 10;
     var tint = ['#b892f0', '#8fc4ea', '#eeaad4', '#c9b3f7'];
     var html = '';
     for (var i = 0; i < n; i++) {
-      var dur = 13 + (i * 7) % 12;                 // 13~24초
+      var dur = 18 + (i * 7) % 14;                 // 18~31초 — 더 천천히
       html += '<i style="left:' + ((i * 37) % 100) + '%'
             + ';--dx:' + (((i * 29) % 60) - 30) + 'px'
             + ';--c:' + tint[i % tint.length]
-            + ';width:' + (3 + (i % 3) * 1.6).toFixed(1) + 'px'
-            + ';height:' + (3 + (i % 3) * 1.6).toFixed(1) + 'px'
+            + ';width:' + (2.5 + (i % 3) * 1.1).toFixed(1) + 'px'
+            + ';height:' + (2.5 + (i % 3) * 1.1).toFixed(1) + 'px'
             + ';animation-duration:' + dur + 's'
             + ';animation-delay:-' + ((i * 3.1) % dur).toFixed(1) + 's"></i>';
     }

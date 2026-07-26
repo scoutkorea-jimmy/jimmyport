@@ -72,7 +72,7 @@ async function contrastOf(page, sel) {
     document.querySelectorAll('.bg .blob').length === 3 && document.querySelectorAll('.weave path').length === 3));
   chk('오로라 2겹 + 그레인', await p.evaluate(() =>
     document.querySelectorAll('.aurora i').length === 2 && !!document.querySelector('.grain')));
-  chk('불티 생성(PC 24개)', await p.evaluate(() => document.querySelectorAll('.embers i').length) === 24);
+  chk('불티 생성(PC 10개)', await p.evaluate(() => document.querySelectorAll('.embers i').length) === 10);
   chk('타이틀 글자가 전부 보임', await p.evaluate(() => {
     const bs = [...document.querySelectorAll('h1 b')].filter((e) => e.textContent.trim());
     return bs.length === 11 && bs.every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98);
@@ -173,7 +173,7 @@ async function contrastOf(page, sel) {
   }));
   chk('모바일 카드 터치 타깃 충분', await m.evaluate(() =>
     [...document.querySelectorAll('.card')].every((a) => a.getBoundingClientRect().height >= 44)));
-  chk('모바일은 불티를 줄임(14개)', await m.evaluate(() => document.querySelectorAll('.embers i').length) === 14);
+  chk('모바일은 불티를 줄임(6개)', await m.evaluate(() => document.querySelectorAll('.embers i').length) === 6);
   chk('모바일에선 기울기 미적용', await m.evaluate(() =>
     !document.querySelector('.card').style.getPropertyValue('--rx')));
 
