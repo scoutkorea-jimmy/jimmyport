@@ -19,9 +19,9 @@
 <meta name="twitter:description" content="SNS · 콘텐츠 · 일정 · 인원 · 기사 통합 관리">
 <meta name="twitter:image" content="https://scoutingapp.net/jamboree/assets/og-planning.png">
 
-<script type="module" src="jamboree-plan/editor.js?v=0.9.250"></script>
-<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.250">
-<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.250">
+<script type="module" src="jamboree-plan/editor.js?v=0.9.252"></script>
+<link rel="stylesheet" href="jamboree-plan/tokens.css?v=0.9.252">
+<link rel="stylesheet" href="jamboree-plan/styles.css?v=0.9.252">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('jamboree-plan:session')||'null');if(s&&s.token&&s.exp&&s.exp>Date.now())document.documentElement.classList.add('pw-ok');}catch(e){}})();</script>
 </head>
 <body>
@@ -88,6 +88,16 @@
     <div class="clock"><span class="big" id="m-clock"></span><span class="sub" id="m-clocksub"></span></div>
     <span class="st" id="syncst">자동 저장</span>
     <div class="tb-acts">
+      <!-- 알림 — 내 기사에 달린 검수 코멘트 (v0.9.251). 읽음 표시는 기기별 localStorage 기준 -->
+      <div class="notiwrap">
+        <button class="btn sm ghost notibtn" id="noti-btn" aria-label="알림" aria-expanded="false" style="display:none">
+          <span data-ic="bell" data-ic-size="14"></span><span class="notidot" id="noti-count" hidden>0</span>
+        </button>
+        <div class="notipanel" id="noti-panel" hidden role="dialog" aria-label="알림">
+          <div class="notihead"><b>알림</b><button class="btn xs ghost" id="noti-readall">모두 읽음</button></div>
+          <div class="notilist" id="noti-list"></div>
+        </div>
+      </div>
       <button class="btn sm ghost" id="members-btn" style="display:none"><span data-ic="users" data-ic-size="14"></span> 회원</button>
       <button class="btn sm ghost" id="changepw-btn" style="display:none">비밀번호</button>
       <button class="btn sm ghost" id="reload" aria-label="새로고침"><span data-ic="refresh" data-ic-size="14"></span></button>
@@ -117,7 +127,7 @@
       <h2><span data-ic="fileText" data-ic-size="17" style="vertical-align:-3px"></span> 홍보부원 기사</h2>
       <button class="btn sm solid" id="news-add"><span data-ic="plus" data-ic-size="14"></span> 기사 작성</button>
     </div>
-    <p class="note">홍보부원 누구나 <b>제목 · 부제목 · 내용 · 사진(최대 3장) · 태그</b>로 기사를 올릴 수 있습니다. 본문은 <b>서식 편집기</b>로 작성합니다. 모든 기사는 <b>초안 → 최종검수 완료 → 퍼블리싱 완료</b> 3단계를 가집니다. 목록에서 제목을 누르면 <b>모달로 열려</b> 본문·사진·검수 의견을 보고 단계 변경·수정까지 할 수 있고, 체크박스로 <b>여러 건을 골라 한 번에</b> 단계를 바꾸거나 삭제(관리자)할 수 있습니다.</p>
+    <p class="note">홍보부원 누구나 <b>제목 · 부제목 · 내용 · 사진(최대 3장) · 태그</b>로 기사를 올릴 수 있습니다. 본문은 <b>서식 편집기</b>로 작성합니다. 모든 기사는 <b>초안 → 최종검수 완료 → 퍼블리싱 완료</b> 3단계를 가집니다. 기사를 고칠 때마다 <b>버전이 V1부터 1씩 오르고 모든 판이 기록</b>되며, <b>검수 코멘트는 그대로 남고 어느 버전에 달린 의견인지</b> 함께 표시됩니다. 목록에서 <b>우선순위(별 5개 · 반개 단위)</b>와 <b>영문 가공 필요 여부</b>를 바로 매길 수 있고, 사진 담당자도 배정합니다. 내 기사에 검수 코멘트가 달리면 <b>상단 종 알림</b>으로 알려 드립니다. 목록에서 제목을 누르면 <b>모달로 열려</b> 본문·사진·검수 의견을 보고 단계 변경·수정까지 할 수 있고, 체크박스로 <b>여러 건을 골라 한 번에</b> 단계를 바꾸거나 삭제(관리자)할 수 있습니다.</p>
     <div class="pressbar" id="news-bar"></div>
     <div class="newslist" id="news-list"></div>
   </section>
@@ -696,12 +706,12 @@
 <div class="toast" id="toast"></div>
 
 <!-- core.js: 의존성 없는 leaf 유틸(문자열·날짜·아이콘·토스트·업로드). app.js 보다 먼저 로드 -->
-<script src="jamboree-plan/core.js?v=0.9.250"></script>
+<script src="jamboree-plan/core.js?v=0.9.252"></script>
 <!-- upload.js: 첨부 저장소 선택(KV 8MB 이하 / R2 8MB 초과 멀티파트). 자료실·콘텐츠 첨부 공용 -->
-<script src="jamboree-plan/upload.js?v=0.9.250"></script>
+<script src="jamboree-plan/upload.js?v=0.9.252"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
-<script src="jamboree-plan/library.js?v=0.9.250"></script>
-<script src="jamboree-plan/app.js?v=0.9.250"></script>
-<script src="version-watch.js?v=0.9.250"></script>
+<script src="jamboree-plan/library.js?v=0.9.252"></script>
+<script src="jamboree-plan/app.js?v=0.9.252"></script>
+<script src="version-watch.js?v=0.9.252"></script>
 </body>
 </html>

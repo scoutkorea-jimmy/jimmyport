@@ -402,12 +402,15 @@ const SEED = () => {
     ths: [...document.querySelectorAll('.newstbl th')].map((t) => t.textContent.trim()),
     no: (document.querySelector('.newstbl td.nr-no') || {}).textContent,
     ckall: !!document.getElementById('news-ckall'), ck: document.querySelectorAll('[data-news-ck]').length,
-    st: !!document.querySelector('#news-list .pst'), cn: !!document.querySelector('.flagtog.cn'),
+    st: !!document.querySelector('#news-list td.nr-pub .pst'), cn: !!document.querySelector('.flagtog.cn'),
+    pri: !!document.querySelector('#news-list td.nr-pri .star'), en: !!document.querySelector('#news-list td.nr-en .enchip'),
     inline: document.querySelectorAll('.news-detailrow').length }));
-  chk('목차 표 7열(선택·번호·제목·작성자·작성일·단계·카드뉴스)', nl.table && nl.ths.join(',') === ',번호,제목,작성자,작성일,단계,카드뉴스', nl.ths.join(','));
+  chk('목차 표 9열(선택·번호·제목·작성자·작성일·우선순위·단계·영문·카드뉴스)', nl.table
+    && nl.ths.join(',') === ',번호,제목,작성자,작성일,우선순위,단계,영문,카드뉴스', nl.ths.join(','));
   chk('글 번호 표기', nl.no === '1', nl.no);
   chk('선택 체크박스(전체 + 행)', nl.ckall && nl.ck === 1, 'ckall=' + nl.ckall + ' ck=' + nl.ck);
   chk('단계 칩·카드뉴스 토글 존재', nl.st && nl.cn);
+  chk('우선순위 별점·영문 검토 칩 존재 (v0.9.252)', nl.pri && nl.en, '별=' + nl.pri + ' 영문=' + nl.en);
   chk('본문을 목록에 끼워 넣지 않음', nl.inline === 0, 'inline=' + nl.inline);
   const exp = await page.evaluate(async () => { document.querySelector('[data-news-view]').click();
     await new Promise((r) => setTimeout(r, 300));

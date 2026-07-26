@@ -3625,7 +3625,7 @@ function renderBotNav(){
   }).join('');
   document.documentElement.classList.add('botnav-ready');   // 이 시점부터만 상단 공간바를 숨긴다(CSS)
 }
-function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); loadBoard(); resetAdminIdle(); }
+function onAuthed(){ document.documentElement.classList.add('pw-ok'); reflectAuthUI(); loadNews(); loadNoti(); loadBoard(); resetAdminIdle(); }
 
 function wireAuthGate(){
   var gate=document.getElementById('auth-gate'); if(!gate) return;
@@ -3720,9 +3720,67 @@ var NEWS_ST=[['draft','초안','var(--st-planned-bg)','var(--st-planned)'],
 function newsStDef(v){ for(var i=0;i<NEWS_ST.length;i++) if(NEWS_ST[i][0]===v) return NEWS_ST[i]; return NEWS_ST[0]; }
 function newsStChip(v){ var d=newsStDef(v); return '<span class="pst" style="background:'+d[2]+';color:'+d[3]+'">'+esc(d[1])+'</span>'; }
 var newsSel={}, newsView=null;
+/* 사진 담당자 (v0.9.251) — 홍보부 인원에서 고르거나 직접 입력한다.
+   ⚠️ 인원 id 가 아니라 **이름**을 저장한다. 명단에서 빠져도 "누가 찍기로 했는지"는 남아야 한다. */
+function newsPhotoOptions(){
+  var seen={}, out=[];
+  (rosterList()||[]).forEach(function(r){ var n=(r&&r.name||'').trim(); if(n&&!seen[n]){ seen[n]=1; out.push(n); } });
+  return out;
+}
+function newsPhotoDatalist(id){
+  return '<datalist id="'+id+'">'+newsPhotoOptions().map(function(n){ return '<option value="'+esc(n)+'"></option>'; }).join('')+'</datalist>';
+}
+/* ── 우선순위 별점 (v0.9.252) ── 0~5, 반개 단위.
+   별 하나가 버튼 하나이고, 누른 x 좌표가 별의 왼쪽 절반이면 .5 다(별 10개를 늘어놓으면 손가락으로 못 누른다).
+   같은 값을 다시 누르면 0(미지정)으로 지운다. 색만으로 말하지 않도록 숫자도 함께 읽어 준다. */
+function newsStars(a, editable){
+  var p=+(a.priority||0), out='';
+  for(var i=1;i<=5;i++){
+    var fill = p>=i ? 'full' : (p>=i-0.5 ? 'half' : 'none');
+    out += '<button type="button" class="star '+fill+'"'+(editable?(' data-news-star="'+esc(a.id)+'~'+i+'"'):' disabled')+
+      ' aria-label="'+i+'점"><span class="s-bg">★</span><span class="s-fg">★</span></button>';
+  }
+  return '<div class="stars'+(p?'':' zero')+'" role="group" aria-label="우선순위 '+(p||0)+'점 (5점 만점)" title="우선순위 '+(p||0)+' / 5">'+
+    out+'<span class="starnum">'+(p?p.toFixed(1).replace(/\.0$/,''):'—')+'</span></div>';
+}
+function setNewsPriority(id, val){
+  var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
+  if(!canFlagNews(a)){ toast('권한이 없습니다'); return; }
+  var v=Math.min(5, Math.max(0, Math.round(val*2)/2));
+  if(+(a.priority||0)===v) v=0;                       // 같은 값을 다시 누르면 지운다
+  var prev=a.priority||0; a.priority=v; renderNews(); if(newsView===id) renderNewsView();
+  fetch('/api/jp-news',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'flags',id:id,priority:v})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('권한이 없습니다'); return null; } return r.json(); })
+    .then(function(j){ if(!j||!j.ok){ a.priority=prev; renderNews(); if(newsView===id) renderNewsView(); if(j) toast('저장 실패'); } })
+    .catch(function(){ a.priority=prev; renderNews(); toast('네트워크 오류'); });
+}
+/* ── 영문 가공 검토 (v0.9.252) ──
+   "이 기사는 영문으로도 내보내야 하나?"를 기사마다 남긴다. 카드뉴스 가공과 같은 축이라 버전은 안 오른다.
+   목록의 칩을 누르면 미검토 → 필요 → 완료 → 불필요 순으로 돈다(모달에는 버튼 4개로 직접 고른다). */
+var NEWS_EN=[['','미검토','var(--surface-3)','var(--muted)'],
+             ['need','영문 필요','var(--st-draft-bg)','var(--st-draft)'],
+             ['done','영문 완료','var(--st-ready-bg)','var(--st-ready)'],
+             ['skip','불필요','var(--surface-3)','var(--faint,#9AA39C)']];
+function newsEnDef(v){ for(var i=0;i<NEWS_EN.length;i++) if(NEWS_EN[i][0]===String(v||'')) return NEWS_EN[i]; return NEWS_EN[0]; }
+function newsEnChip(a, editable){
+  var d=newsEnDef(a.en);
+  return '<button type="button" class="pst enchip" style="background:'+d[2]+';color:'+d[3]+'"'+
+    (editable?(' data-news-en="'+esc(a.id)+'" title="눌러서 영문 가공 검토 상태 변경"'):' disabled')+'>'+esc(d[1])+'</button>';
+}
+function setNewsEn(id, v){
+  var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
+  if(!canFlagNews(a)){ toast('권한이 없습니다'); return; }
+  var prev=a.en||'';
+  if(v===undefined){ var i=NEWS_EN.map(function(d){return d[0];}).indexOf(prev); v=NEWS_EN[(i+1)%NEWS_EN.length][0]; }
+  a.en=v; renderNews(); if(newsView===id) renderNewsView();
+  fetch('/api/jp-news',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'flags',id:id,en:v})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('권한이 없습니다'); return null; } return r.json(); })
+    .then(function(j){ if(!j||!j.ok){ a.en=prev; renderNews(); if(newsView===id) renderNewsView(); if(j) toast('저장 실패'); } })
+    .catch(function(){ a.en=prev; renderNews(); toast('네트워크 오류'); });
+}
 function newsSelIds(){ return Object.keys(newsSel).filter(function(k){ return newsSel[k] && newsItems.some(function(x){return x.id===k;}); }); }
 function loadNews(){
-  fetch('/api/jp-news',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); }).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); })
+  fetch('/api/jp-news',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); }).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; notiPing(); if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); })
     .catch(function(){ newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
 function canEditNews(a){ return Auth.isAdmin() || (Auth.username && a.author===Auth.username); }
@@ -3750,16 +3808,24 @@ function articleToCardnews(id){
 function renderArticleComments(a){
   var list=(a.comments||[]).map(function(c){
     var del=(Auth.isAdmin()||(Auth.username&&c.username===Auth.username))?'<button class="ac-del" data-ac-del="'+esc(a.id)+'~'+esc(c.id)+'" aria-label="삭제">'+icon('x',12)+'</button>':'';
-    return '<div class="ac-item"><div class="ac-h"><b>'+esc(c.author||'')+'</b><span>'+esc(fmtNewsTime(c.ts))+'</span>'+del+'</div><div class="ac-t">'+esc(c.text||'').replace(/\n/g,'<br>')+'</div></div>';
+    // 어느 판을 보고 쓴 의견인지 — 버전이 올라도 코멘트는 남으므로 기준 버전이 없으면 맥락을 잃는다
+    var vb=c.v?('<span class="ac-v" title="V'+c.v+' 기준 검수 의견">V'+c.v+'</span>'):'';
+    return '<div class="ac-item"><div class="ac-h"><b>'+esc(c.author||'')+'</b>'+vb+'<span>'+esc(fmtNewsTime(c.ts))+'</span>'+del+'</div><div class="ac-t">'+esc(c.text||'').replace(/\n/g,'<br>')+'</div></div>';
   }).join('');
   return '<div class="ac-box">'+(list||'<div class="ac-empty">아직 검수 코멘트가 없습니다.</div>')+
-    (Auth.authed()?('<div class="ac-add"><input class="ac-input" data-ac-input="'+esc(a.id)+'" placeholder="검수 의견·수정 요청…" maxlength="1000"><button class="btn xs solid" data-ac-send="'+esc(a.id)+'">등록</button></div>'):'')+'</div>';
+    (Auth.authed()?('<div class="ac-add">'+
+      '<textarea class="ac-input" data-ac-input="'+esc(a.id)+'" rows="2" maxlength="4000" placeholder="검수 의견·수정 요청… (줄바꿈은 Enter, 등록은 아래 버튼 또는 &#8984;/Ctrl+Enter)"></textarea>'+
+      '<button class="btn xs solid" data-ac-send="'+esc(a.id)+'">등록</button></div>'):'')+'</div>';
 }
+/* 코멘트 칸 자동 높이 — 줄이 늘면 따라 커지고, 너무 커지면 스크롤로 넘긴다.
+   textarea 로 바꾼 이유: 검수 의견은 한 줄로 끝나지 않는다(사용자 요청). Enter 는 줄바꿈이고,
+   등록은 버튼 또는 ⌘/Ctrl+Enter — Enter 로 보내면 두 번째 줄을 못 쓴다. */
+function growComment(el){ if(!el) return; el.style.height='auto'; el.style.height=Math.min(el.scrollHeight+2, 260)+'px'; }
 function addNewsComment(id){
   var inp=document.querySelector('[data-ac-input="'+id+'"]'); if(!inp) return; var text=(inp.value||'').trim(); if(!text) return;
   fetch('/api/jp-news',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'comment',id:id,text:text,authorName:Auth.name||Auth.username})})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
-    .then(function(j){ if(j&&j.ok&&j.article){ var i=newsItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) newsItems[i]=j.article; renderNews(); if(newsView===id) renderNewsView(); } else toast('등록 실패'); })
+    .then(function(j){ if(j&&j.ok&&j.article){ var i=newsItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) newsItems[i]=j.article; renderNews(); renderNoti(); if(newsView===id) renderNewsView(); } else toast('등록 실패'); })
     .catch(function(){ toast('네트워크 오류'); });
 }
 function deleteNewsComment(id, cid){
@@ -3788,8 +3854,10 @@ function renderNews(){
     } else {
       var cnt={}; NEWS_ST.forEach(function(d){ cnt[d[0]]=0; });
       newsItems.forEach(function(a){ cnt[newsStDef(a.stage)[0]]++; });
+      var enNeed=newsItems.filter(function(a){ return (a.en||'')==='need'; }).length;
       bar.innerHTML='<span class="press-stat">전체 <b>'+newsItems.length+'</b></span>'+
-        NEWS_ST.map(function(d){ return '<span class="press-stat">'+esc(d[1])+' <b>'+cnt[d[0]]+'</b></span>'; }).join('');
+        NEWS_ST.map(function(d){ return '<span class="press-stat">'+esc(d[1])+' <b>'+cnt[d[0]]+'</b></span>'; }).join('')+
+        (enNeed?('<span class="press-stat en">영문 필요 <b>'+enNeed+'</b></span>'):'');
     }
   }
   if(!newsItems.length){ box.innerHTML='<div class="news-empty">아직 올라온 기사가 없습니다. <b>기사 작성</b>으로 첫 기사를 올려보세요.</div>'; return; }
@@ -3808,20 +3876,23 @@ function renderNews(){
         (imgn?('<span class="nr-badge">'+icon('image',11)+imgn+'</span>'):'')+
         (rvn?('<span class="nr-badge rv">'+icon('fileText',11)+rvn+'</span>'):'')+
         (a.subtitle?('<span class="nr-sub">'+esc(a.subtitle)+'</span>'):'')+tags+'</button></td>'+
-      '<td class="nr-author">'+esc(a.authorName||a.author||'홍보부원')+'</td>'+
+      '<td class="nr-author">'+esc(a.authorName||a.author||'홍보부원')+
+        (a.photographer?('<span class="nr-photog">'+icon('image',11)+' '+esc(a.photographer)+'</span>'):'')+'</td>'+
       '<td class="nr-date">'+esc(fmtNewsTime(a.createdAt))+'</td>'+
+      '<td class="nr-pri">'+newsStars(a, canFlagNews(a))+'</td>'+
       '<td class="nr-pub">'+newsStChip(newsStDef(a.stage)[0])+'</td>'+
+      '<td class="nr-en">'+newsEnChip(a, canFlag)+'</td>'+
       '<td class="nr-cn">'+cnBtn+'</td>'+
     '</tr>';
   }).join('');
   box.innerHTML='<div class="tblscroll"><table class="newstbl presstbl"><thead><tr>'+
     '<th class="nr-ck"><input type="checkbox" class="pck" id="news-ckall"'+(allOn?' checked':'')+' aria-label="전체 선택"></th>'+
-    '<th class="nr-no">번호</th><th class="nr-title">제목</th><th class="nr-author">작성자</th><th class="nr-date">작성일</th><th class="nr-pub">단계</th><th class="nr-cn">카드뉴스</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<th class="nr-no">번호</th><th class="nr-title">제목</th><th class="nr-author">작성자</th><th class="nr-date">작성일</th><th class="nr-pri">우선순위</th><th class="nr-pub">단계</th><th class="nr-en">영문</th><th class="nr-cn">카드뉴스</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 /* ── 기사 읽기 모달 ── 목록에 본문을 끼워 넣지 않는다(보도자료와 같은 방식) */
 function openNewsView(id){
   var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
-  newsView=id; document.getElementById('newsview-scrim').classList.add('show'); renderNewsView();
+  newsView=id; newsVerShow=null; document.getElementById('newsview-scrim').classList.add('show'); renderNewsView();
 }
 function closeNewsView(){ newsView=null; var sc=document.getElementById('newsview-scrim'); if(sc) sc.classList.remove('show'); }
 function renderNewsView(){
@@ -3829,9 +3900,13 @@ function renderNewsView(){
   var body=document.getElementById('nv-body'), head=document.getElementById('nv-title'), foot=document.getElementById('nv-tools');
   if(!a||!body){ closeNewsView(); return; }
   head.textContent=a.title||'(제목 없음)';
+  var ver=a.version||1;
   var meta=[newsStChip(newsStDef(a.stage)[0]),
+    '<span class="nv-ver" title="수정할 때마다 1씩 오릅니다">V'+ver+'</span>',
     '<span>'+icon('user',13)+' '+esc(a.authorName||a.author||'홍보부원')+'</span>',
     '<span>'+esc(fmtNewsTime(a.createdAt))+((a.updatedAt&&a.updatedAt!==a.createdAt)?' · 수정됨':'')+'</span>'];
+  meta.push(newsStars(a, canFlagNews(a)));
+  if(a.photographer) meta.push('<span>'+icon('image',13)+' 사진 '+esc(a.photographer)+'</span>');
   if(a.cardnewsDone) meta.push('<span>'+icon('check',13)+' 카드뉴스 가공됨</span>');
   var imgs=(a.images||[]).map(function(u){ return '<img class="nv-img" src="'+esc(u)+'" alt="" data-lb="'+esc(u)+'" loading="lazy">'; }).join('');
   var tags=(a.tags||[]).map(function(t){ return '<span class="news-tag">#'+esc(t)+'</span>'; }).join('');
@@ -3841,19 +3916,76 @@ function renderNewsView(){
     (a.body?('<div class="news-text pv-text">'+newsBodyHtml(a.body)+'</div>'):'<div class="news-text muted">본문 없음</div>')+
     (imgs?('<div class="nv-imgs">'+imgs+'</div>'):'')+
     (tags?('<div class="news-tags nv-tags">'+tags+'</div>'):'')+
+    (canFlagNews(a)?('<div class="nv-photog"><label for="nv-photog-in">사진 담당자</label>'+
+      '<input class="ti" id="nv-photog-in" type="text" list="nv-photog-list" maxlength="40" placeholder="이름 입력 또는 명단에서 선택" value="'+esc(a.photographer||'')+'">'+
+      newsPhotoDatalist('nv-photog-list')+
+      '<button type="button" class="btn xs solid" data-nv-photog="'+esc(a.id)+'">배정</button></div>'):'')+
+    '<div class="nvv" id="nv-verview" hidden></div>'+
+    renderNewsHistory(a)+
     '<div class="news-review-h">검수 코멘트 '+((a.comments||[]).length||0)+'</div>'+
     renderArticleComments(a);
   var t='';
   if(canFlagNews(a)) t+='<div class="pv-stset">'+NEWS_ST.map(function(d){
     return '<button type="button" class="btn sm'+(newsStDef(a.stage)[0]===d[0]?' solid':' ghost')+'" data-nv-st="'+d[0]+'">'+esc(d[1])+'</button>'; }).join('')+'</div>';
+  if(canFlagNews(a)) t+='<div class="pv-stset en"><span class="pv-lb">영문</span>'+NEWS_EN.map(function(d){
+    return '<button type="button" class="btn sm'+(newsEnDef(a.en)[0]===d[0]?' solid':' ghost')+'" data-nv-en="'+esc(a.id)+'~'+d[0]+'">'+esc(d[1])+'</button>'; }).join('')+'</div>';
   if(canFlagNews(a)) t+='<button type="button" class="btn sm'+(a.cardnewsDone?' solid':' ghost')+'" data-news-flag="'+esc(a.id)+'~cardnewsDone">'+
     icon('check',13)+' 카드뉴스 '+(a.cardnewsDone?'가공됨':'미가공')+'</button>';
   // 카드뉴스 만들기도 아코디언 시절 도구다 — 이 기사 내용·사진으로 제작기를 채운다.
   t+='<button type="button" class="btn sm ghost" data-news-tocard="'+esc(a.id)+'" title="이 기사 내용·사진으로 카드뉴스 제작기 채우기">'+icon('image',13)+' 카드뉴스 만들기</button>';
   foot.innerHTML=t;
+  renderNewsVerView();
   var ed=document.getElementById('nv-edit'), dl=document.getElementById('nv-del');
   if(ed) ed.style.display=canEditNews(a)?'':'none';
   if(dl) dl.style.display=(Auth.isAdmin()?'':'none');
+}
+/* ── 버전 기록 (v0.9.251) ──
+   history 에는 각 판의 내용이 통째로 들어 있다. 목록에서 하나를 고르면 그 판을 그 자리에서 읽는다.
+   현재 판은 언제나 목록 맨 위에 있고, 되돌리기(현재 판 교체)는 하지 않는다 — 읽기 전용이다. */
+var newsVerOpen={}, newsVerShow=null;
+function renderNewsHistory(a){
+  var h=(a.history||[]).slice().sort(function(x,y){ return (y.v||0)-(x.v||0); });
+  if(h.length<2 && !a.historyTrimmed) return '';   // 판이 하나뿐이면 기록을 보여줄 게 없다
+  var open=!!newsVerOpen[a.id];
+  var rows=h.map(function(sn){
+    var cur=(sn.v===(a.version||1));
+    return '<button type="button" class="nvh-row'+(newsVerShow===sn.v?' on':'')+'" data-nv-ver="'+sn.v+'">'+
+      '<span class="nvh-v">V'+sn.v+'</span>'+
+      '<span class="nvh-t">'+esc(sn.title||'(제목 없음)')+'</span>'+
+      '<span class="nvh-m">'+esc(sn.byName||sn.by||'')+' · '+esc(fmtNewsTime(sn.at))+(cur?' · 현재':'')+'</span></button>';
+  }).join('');
+  var trimmed=a.historyTrimmed?('<div class="nvh-note">오래된 '+a.historyTrimmed+'판은 저장 용량 때문에 보관하지 않습니다.</div>'):'';
+  return '<div class="nvh">'+
+    '<button type="button" class="nvh-h" data-nv-hist="'+esc(a.id)+'" aria-expanded="'+open+'">'+
+      '<span>'+(open?'▾':'▸')+' 버전 기록 '+h.length+'판</span></button>'+
+    (open?('<div class="nvh-list">'+rows+trimmed+'</div>'):'')+'</div>';
+}
+function renderNewsVerView(){
+  var a=newsItems.filter(function(x){return x.id===newsView;})[0]; if(!a) return;
+  var wrap=document.getElementById('nv-verview'); if(!wrap) return;
+  var sn=(a.history||[]).filter(function(x){ return x.v===newsVerShow; })[0];
+  if(!sn || newsVerShow===(a.version||1)){ wrap.innerHTML=''; wrap.hidden=true; return; }
+  var imgs=(sn.images||[]).map(function(u){ return '<img class="nv-img" src="'+esc(u)+'" alt="" data-lb="'+esc(u)+'" loading="lazy">'; }).join('');
+  var tags=(sn.tags||[]).map(function(t){ return '<span class="news-tag">#'+esc(t)+'</span>'; }).join('');
+  wrap.hidden=false;
+  wrap.innerHTML='<div class="nvv-h"><b>V'+sn.v+'</b> <span>'+esc(sn.byName||sn.by||'')+' · '+esc(fmtNewsTime(sn.at))+'</span>'+
+      '<button type="button" class="btn xs ghost" data-nv-vclose="1">현재 판으로</button></div>'+
+    '<div class="nvv-t">'+esc(sn.title||'(제목 없음)')+'</div>'+
+    (sn.subtitle?('<div class="nv-sub">'+esc(sn.subtitle)+'</div>'):'')+
+    (sn.body?('<div class="news-text">'+newsBodyHtml(sn.body)+'</div>'):'<div class="news-text muted">본문 없음</div>')+
+    (imgs?('<div class="nv-imgs">'+imgs+'</div>'):'')+
+    (tags?('<div class="news-tags">'+tags+'</div>'):'');
+}
+function setNewsPhotographer(id){
+  var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
+  if(!canFlagNews(a)){ toast('권한이 없습니다'); return; }
+  var el=document.getElementById('nv-photog-in'); if(!el) return;
+  var name=(el.value||'').trim().slice(0,40);
+  fetch('/api/jp-news',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'flags',id:id,photographer:name})})
+    .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('권한이 없습니다'); return null; } return r.json(); })
+    .then(function(j){ if(j&&j.ok){ a.photographer=name; renderNews(); renderNewsView();
+        toast(name?('사진 담당자를 '+name+'(으)로 배정했습니다'):'사진 담당자를 비웠습니다'); } else if(j) toast('배정 실패'); })
+    .catch(function(){ toast('네트워크 오류'); });
 }
 function setNewsStage(id, st){
   var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return Promise.resolve(false);
@@ -3889,12 +4021,101 @@ function newsBulkDelete(){
     toast(okIds.length+'건 삭제됨'+(okIds.length<ids.length?(' · 실패 '+(ids.length-okIds.length)+'건'):''));
   });
 }
+/* ── 알림 (v0.9.251) ── 내 기사에 달린 검수 코멘트를 알려 준다.
+   ⚠️ 서버에 알림 저장소를 새로 두지 않았다 — 코멘트는 이미 기사 레코드에 있으므로 화면에서 뽑아낸다.
+      (KV 스키마를 늘리면 저장 실패·유실 경로가 하나 더 생긴다. 읽음 표시만 기기별 localStorage.)
+   대상: 내가 쓴 기사에 달린 남의 코멘트 + 내가 코멘트를 단 기사에 달린 남의 코멘트(대화 참여자). */
+var NOTI_LS='jamboree-plan:noti-read', notiOpen=false;
+/* 서버 알림함(v0.9.252). 읽음 시각이 서버에 있어 기기 간에 맞는다.
+   ⚠️ 서버가 안 되면 화면에서 뽑는 방식(v0.9.251)으로 되돌아간다 — 알림 하나 때문에 보드가 멈추면 안 된다. */
+var notiBox=null;   // {items, readAt} · null 이면 아직 못 받았다(로컬 유도 사용)
+function loadNoti(){
+  if(!Auth.authed()) return Promise.resolve(null);
+  return fetch('/api/jp-noti',{headers:authHeader()})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){ if(j&&j.ok){ notiBox={items:j.items||[], readAt:j.readAt||''}; renderNoti(); } return j; })
+    .catch(function(){ return null; });
+}
+function notiReadAt(){
+  if(notiBox) return notiBox.readAt||'';
+  try{ var m=JSON.parse(localStorage.getItem(NOTI_LS)||'{}'); return m[Auth.username||'?']||''; }catch(e){ return ''; }
+}
+function notiMarkAll(){
+  var now=new Date().toISOString();
+  if(notiBox) notiBox.readAt=now;
+  try{ var m=JSON.parse(localStorage.getItem(NOTI_LS)||'{}'); m[Auth.username||'?']=now;
+    localStorage.setItem(NOTI_LS, JSON.stringify(m)); }catch(e){}   // 서버가 안 되도 이 기기에서는 읽음으로
+  renderNoti();
+  if(Auth.authed()) fetch('/api/jp-noti',{method:'POST',headers:authJsonHeaders(),body:JSON.stringify({action:'read'})})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){ if(j&&j.ok){ notiBox={items:j.items||[], readAt:j.readAt||''}; renderNoti(); } })
+    .catch(function(){});
+}
+function notiItems(){
+  // 서버 알림함이 있으면 그것이 사실이다(다른 기기에서 읽은 것까지 반영된다)
+  if(notiBox) return notiBox.items.map(function(n){
+    return { id:n.articleId, title:n.title, who:n.whoName||n.who, text:n.text, ts:n.ts, v:n.v||0,
+             mine:(newsItems||[]).some(function(a){ return a.id===n.articleId && a.author===Auth.username; }) };
+  }).slice(0,50);
+  return notiItemsLocal();
+}
+function notiItemsLocal(){
+  var me=Auth.username||'', out=[];
+  if(!me) return out;
+  (newsItems||[]).forEach(function(a){
+    var cs=a.comments||[]; if(!cs.length) return;
+    var mine = (a.author===me) || cs.some(function(c){ return c.username===me; });
+    if(!mine) return;
+    cs.forEach(function(c){ if(c.username===me) return;
+      out.push({ id:a.id, title:a.title||'(제목 없음)', who:c.author||'', text:c.text||'', ts:c.ts||'', v:c.v||0, mine:a.author===me }); });
+  });
+  out.sort(function(x,y){ return String(y.ts).localeCompare(String(x.ts)); });
+  return out.slice(0,50);
+}
+function notiUnread(){ var at=notiReadAt(); return notiItems().filter(function(n){ return String(n.ts)>at; }); }
+function renderNoti(){
+  var btn=document.getElementById('noti-btn'), cnt=document.getElementById('noti-count'), list=document.getElementById('noti-list');
+  if(!btn) return;
+  btn.style.display = Auth.authed()?'':'none';
+  var un=notiUnread(), at=notiReadAt();
+  if(cnt){ cnt.hidden = un.length===0; cnt.textContent = un.length>99?'99+':String(un.length); }
+  btn.classList.toggle('has', un.length>0);
+  if(!list) return;
+  var items=notiItems();
+  list.innerHTML = items.length ? items.map(function(n){
+    var isNew=String(n.ts)>at;
+    return '<button type="button" class="notiitem'+(isNew?' new':'')+'" data-noti="'+esc(n.id)+'">'+
+      '<span class="ni-h"><b>'+esc(n.who)+'</b>'+(n.v?('<span class="ac-v">V'+n.v+'</span>'):'')+
+        '<span class="ni-t">'+esc(fmtNewsTime(n.ts))+'</span></span>'+
+      '<span class="ni-a">'+esc(n.mine?'내 기사':'참여한 기사')+' · '+esc(n.title)+'</span>'+
+      '<span class="ni-x">'+esc(String(n.text).replace(/\s+/g,' ').slice(0,60))+'</span></button>';
+  }).join('') : '<div class="noti-empty">새 검수 코멘트가 없습니다.</div>';
+}
+function toggleNoti(on){
+  var p=document.getElementById('noti-panel'), b=document.getElementById('noti-btn');
+  notiOpen = (on===undefined) ? !notiOpen : !!on;
+  if(p) p.hidden=!notiOpen;
+  if(b) b.setAttribute('aria-expanded', notiOpen?'true':'false');
+  if(notiOpen) renderNoti();
+}
+/* 새 코멘트가 도착하면 한 번만 알린다 — 목록을 다시 불러올 때마다 같은 걸 또 띄우지 않게 마지막 개수를 기억한다 */
+var notiSeenTs='';
+function notiPing(){
+  loadNoti();
+  var un=notiUnread(); renderNoti();
+  if(!un.length) return;
+  var top=un[0].ts;
+  if(top && top!==notiSeenTs){ notiSeenTs=top;
+    if(un.length===1) toast(un[0].who+'님이 「'+un[0].title+'」에 검수 코멘트를 남겼습니다');
+    else toast('새 검수 코멘트 '+un.length+'건');
+  }
+}
 function openNewsEditor(id){
   if(!Auth.authed()){ toast('로그인 후 작성할 수 있습니다'); return; }
   var src=id?newsItems.filter(function(x){return x.id===id;})[0]:null;
   newsEdit = src
-    ? {id:src.id, title:src.title||'', subtitle:src.subtitle||'', body:src.body||'', images:(src.images||[]).slice(0,3), tags:(src.tags||[]).slice(0,10), stage:newsStDef(src.stage)[0]}
-    : {title:'', subtitle:'', body:'', images:[], tags:[], stage:'draft'};
+    ? {id:src.id, title:src.title||'', subtitle:src.subtitle||'', body:src.body||'', images:(src.images||[]).slice(0,3), tags:(src.tags||[]).slice(0,10), stage:newsStDef(src.stage)[0], photographer:src.photographer||''}
+    : {title:'', subtitle:'', body:'', images:[], tags:[], stage:'draft', photographer:''};
   document.getElementById('news-mtitle').textContent = id?'기사 수정':'기사 작성';
   renderNewsEditor();
   document.getElementById('news-scrim').classList.add('show');
@@ -3908,12 +4129,16 @@ function renderNewsEditor(){
     '<label class="fl">부제목</label><input class="ti" id="news-subtitle" type="text" maxlength="200" placeholder="한 줄 부제목 (선택)" value="'+esc(newsEdit.subtitle||'')+'">'+
     '<label class="fl">내용</label><div class="news-bodyed" id="news-bodywrap"></div>'+
     '<label class="fl">사진 (최대 3장 · 장당 10MB 이하)</label><div class="news-slots" id="news-photos-sec"></div>'+
+    '<div class="news-photog"><label for="news-photog">사진 담당자</label>'+
+      '<input class="ti" id="news-photog" type="text" list="news-photog-list" maxlength="40" placeholder="이름 입력 또는 명단에서 선택" value="'+esc(newsEdit.photographer||'')+'">'+
+      newsPhotoDatalist('news-photog-list')+'</div>'+
     '<label class="fl">태그 (최대 10개 · 쉼표나 Enter 로 구분)</label><div class="news-tagsec" id="news-tagsec"></div>'+
     '<label class="fl">단계</label><div class="seg statusseg" id="news-stage">'+
       NEWS_ST.map(function(d){ return '<button type="button" data-nst="'+d[0]+'"'+(newsStDef(newsEdit.stage)[0]===d[0]?' class="on"':'')+'>'+esc(d[1])+'</button>'; }).join('')+
     '</div>';
   var ti=document.getElementById('news-title'); if(ti) ti.oninput=function(){ newsEdit.title=this.value; };
   var sb=document.getElementById('news-subtitle'); if(sb) sb.oninput=function(){ newsEdit.subtitle=this.value; };
+  var pg=document.getElementById('news-photog'); if(pg) pg.oninput=function(){ newsEdit.photographer=this.value; };
   var stg=document.getElementById('news-stage');
   if(stg) stg.onclick=function(e){ var btn=e.target.closest('[data-nst]'); if(!btn) return; newsEdit.stage=btn.getAttribute('data-nst');
     this.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x===btn); }); };
@@ -3986,7 +4211,8 @@ function commitNews(){
   if(!title && !bodyText){ toast('제목 또는 본문을 입력하세요'); return; }
   var method=newsEdit.id?'PUT':'POST';
   var payload={title:title, subtitle:(newsEdit.subtitle||'').trim(), body:body, images:newsEdit.images,
-               tags:newsEdit.tags||[], stage:newsEdit.stage||'draft', authorName:Auth.name||Auth.username};
+               tags:newsEdit.tags||[], stage:newsEdit.stage||'draft', photographer:(newsEdit.photographer||'').trim(),
+               authorName:Auth.name||Auth.username};
   if(newsEdit.id) payload.id=newsEdit.id;
   fetch('/api/jp-news',{method:method,headers:authJsonHeaders(),body:JSON.stringify(payload)})
     .then(function(r){ if(r.status===401){ authExpired(); return null; } if(r.status===403){ toast('수정 권한이 없습니다'); return null; } return r.json(); })
@@ -4902,6 +5128,15 @@ function init(){
     var dl=e.target.closest('[data-news-del]'); if(dl){ deleteNews(dl.getAttribute('data-news-del')); return; }
     var tc=e.target.closest('[data-news-tocard]'); if(tc){ articleToCardnews(tc.getAttribute('data-news-tocard')); return; }
     var nv=e.target.closest('[data-news-view]'); if(nv){ openNewsView(nv.getAttribute('data-news-view')); return; }
+    var nh=e.target.closest('[data-nv-hist]'); if(nh){ var hid=nh.getAttribute('data-nv-hist'); newsVerOpen[hid]=!newsVerOpen[hid]; renderNewsView(); return; }
+    var nvv=e.target.closest('[data-nv-ver]'); if(nvv){ newsVerShow=+nvv.getAttribute('data-nv-ver'); renderNewsView(); return; }
+    var nvc=e.target.closest('[data-nv-vclose]'); if(nvc){ newsVerShow=null; renderNewsView(); return; }
+    var npg=e.target.closest('[data-nv-photog]'); if(npg){ setNewsPhotographer(npg.getAttribute('data-nv-photog')); return; }
+    var en=e.target.closest('[data-news-en]'); if(en){ setNewsEn(en.getAttribute('data-news-en')); return; }
+    var ne=e.target.closest('[data-nv-en]'); if(ne){ setNewsEn(ne.getAttribute('data-nv-en').split('~')[0], ne.getAttribute('data-nv-en').split('~')[1]); return; }
+    var st=e.target.closest('[data-news-star]'); if(st){ var sp=st.getAttribute('data-news-star').split('~');
+      var r=st.getBoundingClientRect(), half=(e.clientX-r.left) < r.width/2;
+      setNewsPriority(sp[0], (+sp[1]) - (half?0.5:0)); return; }
     var nck=e.target.closest('[data-news-ck]'); if(nck){ newsSel[nck.getAttribute('data-news-ck')]=nck.checked; renderNews(); return; }
     if(e.target && e.target.id==='news-ckall'){ var non=e.target.checked; newsSel={}; if(non) newsItems.forEach(function(a){ newsSel[a.id]=true; }); renderNews(); return; }
     var nbs=e.target.closest('[data-news-bulk-st]'); if(nbs){ newsBulkStage(nbs.getAttribute('data-news-bulk-st')); return; }
@@ -4913,6 +5148,15 @@ function init(){
   }
   var nwl=document.getElementById('news-list'); if(nwl) nwl.addEventListener('click', newsDelegate);
   var nwb=document.getElementById('news-bar'); if(nwb) nwb.addEventListener('click', newsDelegate);
+  var nbtn=document.getElementById('noti-btn'); if(nbtn) nbtn.onclick=function(e){ e.stopPropagation(); toggleNoti(); if(notiOpen) loadNoti(); };
+  // 탭을 다시 볼 때 · 5분마다 알림함을 확인한다(가벼운 GET 하나)
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) loadNoti(); });
+  setInterval(function(){ if(!document.hidden && Auth.authed()) loadNoti(); }, 300000);
+  var nall=document.getElementById('noti-readall'); if(nall) nall.onclick=function(e){ e.stopPropagation(); notiMarkAll(); };
+  var nlist=document.getElementById('noti-list');
+  if(nlist) nlist.addEventListener('click',function(e){ var it=e.target.closest('[data-noti]'); if(!it) return;
+    var id=it.getAttribute('data-noti'); notiMarkAll(); toggleNoti(false); setView('news'); openNewsView(id); });
+  document.addEventListener('click',function(e){ if(notiOpen && !e.target.closest('.notiwrap')) toggleNoti(false); });
   var nvx=document.getElementById('nv-close'); if(nvx) nvx.onclick=closeNewsView;
   var nvc=document.getElementById('nv-cancel'); if(nvc) nvc.onclick=closeNewsView;
   var nvs=document.getElementById('newsview-scrim'); if(nvs) nvs.addEventListener('click',function(e){ if(e.target===this) closeNewsView(); });
@@ -4923,11 +5167,12 @@ function init(){
     setNewsStage(newsView, b.getAttribute('data-nv-st')).then(function(){ renderNews(); renderNewsView(); }); });
   // 모달 안에도 같은 위임을 건다 — 사진 라이트박스·검수 코멘트 등록/삭제·카드뉴스 만들기가 여기서 산다
   var nvb=document.getElementById('nv-body'); if(nvb) nvb.addEventListener('click', newsDelegate);
+  if(nvb) nvb.addEventListener('input',function(e){ if(e.target.closest('[data-ac-input]')) growComment(e.target); });
   if(nvt) nvt.addEventListener('click', newsDelegate);
   if(nvb) nvb.addEventListener('keydown',function(e){
-    if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } } });
+    if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } } });
   document.getElementById('news-list').addEventListener('keydown',function(e){
-    if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } }
+    if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)&&!e.isComposing&&e.keyCode!==229){ var inp=e.target.closest('[data-ac-input]'); if(inp){ e.preventDefault(); addNewsComment(inp.getAttribute('data-ac-input')); } }
   });
   // 보도자료 게시판 배선
   var pra=document.getElementById('press-add'); if(pra) pra.onclick=function(){ openPressEditor(null); };
