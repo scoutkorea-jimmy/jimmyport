@@ -445,6 +445,121 @@
   function doDownload() {
     try { var blob = new Blob(["window.SCOUT_UNITS = " + JSON.stringify(units, null, 2) + ";\n"], { type: "text/javascript" }); var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "data.js"; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000); toast("Downloaded data.js"); } catch (e) {}
   }
+  /* ── CSV ──────────────────────────────────────────────────────────
+     한 줄 = 한 장소. 따옴표 안의 쉼표·줄바꿈까지 처리한다(엑셀이 그렇게 내보낸다).
+     ⚠️ 엑셀은 UTF-8 BOM 이 없으면 한글을 깨뜨린다 → 내보낼 때 BOM 을 붙인다. */
+  var CSV_COLS = ["name", "kind", "subtitle", "country", "nso", "region", "lang", "lat", "lng",
+                  "address", "sections", "tags", "desc", "instagram", "homepage", "phone", "email", "status"];
+  var CSV_SAMPLE = '"서울 1대","unit","시범 단위대","Korea","KSAK","APR","ko",37.5665,126.9780,' +
+                   '"서울특별시 중구","비버;컵;스카우트","도심;주간","설명 문구","","https://example.org","02-000-0000","a@b.c","published"';
+
+  function parseCsv(text) {
+    var rows = [], row = [], cell = "", q = false;
+    text = String(text || "").replace(/^\uFEFF/, "");     // 엑셀 BOM 제거
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) {
+        if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (c === '"') q = false;
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+      else if (c === "\r") { /* 무시 */ }
+      else cell += c;
+    }
+    if (cell.length || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (x) { return String(x).trim() !== ""; }); });
+  }
+  function csvCell(v) {
+    var s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function unitsToCsv(list) {
+    var head = CSV_COLS.join(",");
+    var body = (list || []).map(function (u) {
+      return CSV_COLS.map(function (k) {
+        if (k === "sections" || k === "tags") return csvCell((u[k] || []).join(";"));
+        return csvCell(u[k]);
+      }).join(",");
+    }).join("\n");
+    return head + "\n" + body;
+  }
+  function downloadCsv(text, filename) {
+    try {
+      var payload = "\uFEFF" + text;                                                  // BOM = 엑셀 한글
+      try { window.__lastCsv = payload; } catch (e) {}                                // 회귀에서 내용 확인용
+      var blob = new Blob([payload], { type: "text/csv;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      toast("내려받았습니다: " + filename);
+    } catch (e) { toast("내려받기 실패", "error"); }
+  }
+  // 열 이름은 영문·한글 둘 다 받는다(엑셀에서 한글 머리글을 쓰는 사람이 많다)
+  var CSV_ALIAS = {
+    "이름": "name", "명칭": "name", "종류": "kind", "구분": "kind", "부제": "subtitle",
+    "국가": "country", "나라": "country", "연맹": "nso", "지역": "region", "언어": "lang",
+    "위도": "lat", "경도": "lng", "주소": "address", "부문": "sections", "태그": "tags",
+    "설명": "desc", "인스타": "instagram", "홈페이지": "homepage", "전화": "phone",
+    "이메일": "email", "상태": "status",
+  };
+  function importCsv(text) {
+    var rows = parseCsv(text);
+    if (rows.length < 2) { $("csv-report").textContent = "내용이 없습니다. 첫 줄에 열 이름이 있어야 합니다."; return; }
+    var head = rows[0].map(function (h) {
+      var k = String(h || "").trim();
+      return CSV_ALIAS[k] || k.toLowerCase();
+    });
+    if (head.indexOf("name") < 0 || head.indexOf("lat") < 0 || head.indexOf("lng") < 0) {
+      $("csv-report").textContent = "필수 열이 없습니다 — name(이름) · lat(위도) · lng(경도) 는 반드시 있어야 합니다.";
+      return;
+    }
+    var made = [], skipped = [];
+    for (var i = 1; i < rows.length; i++) {
+      var r = rows[i], o = {};
+      head.forEach(function (k, j) { if (k) o[k] = (r[j] == null ? "" : String(r[j]).trim()); });
+      var name = o.name || "";
+      var lat = parseFloat(o.lat), lng = parseFloat(o.lng);
+      if (!name) { skipped.push(i + 1 + "번째 줄: 이름이 비어 있음"); continue; }
+      if (!isFinite(lat) || !isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        skipped.push(i + 1 + "번째 줄(" + name + "): 위도·경도가 숫자가 아니거나 범위를 벗어남"); continue;
+      }
+      made.push(normUnit({
+        id: "unit-" + Date.now().toString(36) + "-" + i, name: name, kind: o.kind || "unit", subtitle: o.subtitle || "",
+        country: o.country || "", nso: o.nso || "", region: o.region || "", lang: o.lang || "",
+        lat: lat, lng: lng, address: o.address || "",
+        sections: (o.sections || "").split(/[;|]/).map(function (x) { return x.trim(); }).filter(Boolean),
+        tags: (o.tags || "").split(/[;|]/).map(function (x) { return x.trim(); }).filter(Boolean),
+        desc: o.desc || "", instagram: o.instagram || "", homepage: o.homepage || "",
+        phone: o.phone || "", email: o.email || "", status: o.status || "published",
+      }));
+    }
+    if (!made.length) {
+      $("csv-report").textContent = "가져올 수 있는 줄이 없습니다. " + (skipped[0] || "");
+      return;
+    }
+    var mode = (document.querySelector('input[name="csv-mode"]:checked') || {}).value || "merge";
+    if (mode === "replace") {
+      units = made;
+    } else {
+      var byName = {};
+      units.forEach(function (u, idx) { byName[(u.name || "").trim()] = idx; });
+      made.forEach(function (u) {
+        var at = byName[(u.name || "").trim()];
+        if (at != null) { u.id = units[at].id; units[at] = u; }   // 같은 이름은 갱신(id 유지)
+        else units.push(u);
+      });
+    }
+    state.selectedId = units[0] ? units[0].id : null;
+    renderRail(); renderForm(); syncMarker(true); touch();
+    try { window.__units = units; } catch (e) {}
+    var msg = made.length + "곳을 " + (mode === "replace" ? "전체 교체" : "반영") + "했습니다.";
+    if (skipped.length) msg += " 건너뛴 줄 " + skipped.length + "개 — " + skipped.slice(0, 3).join(" / ");
+    $("csv-report").textContent = msg;
+    toast(made.length + "곳 가져옴" + (skipped.length ? " · " + skipped.length + "줄 건너뜀" : ""));
+  }
+
   function doImport() {
     try {
       var p = JSON.parse($("import-text").value); var arr = Array.isArray(p) ? p : p.units; if (!Array.isArray(arr)) throw 0;
@@ -649,7 +764,19 @@
     $("filter-cancel").addEventListener("click", function () { $("filter-modal").style.display = "none"; });
     $("filter-modal").addEventListener("click", function (e) { if (e.target === $("filter-modal")) $("filter-modal").style.display = "none"; });
     $("filter-save").addEventListener("click", saveFilter);
-    $("import-btn").addEventListener("click", function () { $("import-text").value = ""; $("import-modal").style.display = "flex"; });
+    // ── CSV 가져오기/내보내기 (v0.9.264) ──
+    // 엑셀에서 편집한 표를 그대로 올릴 수 있게 한다. 잘못된 줄은 건너뛰고 몇 줄을 왜 건너뛰었는지 알려 준다
+    // (조용히 버리면 "올렸는데 없다"가 된다).
+    $("csv-template").addEventListener("click", function () { downloadCsv(CSV_COLS.join(",") + "\n" + CSV_SAMPLE, "scout-map-template.csv"); });
+    $("csv-export").addEventListener("click", function () { downloadCsv(unitsToCsv(units), "scout-map-" + new Date().toISOString().slice(0, 10) + ".csv"); });
+    $("csv-file").addEventListener("change", function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () { importCsv(String(rd.result || "")); };
+      rd.onerror = function () { $("csv-report").textContent = "파일을 읽지 못했습니다."; };
+      rd.readAsText(f, "utf-8");
+    });
+    $("import-btn").addEventListener("click", function () { $("import-text").value = ""; $("csv-report").textContent = ""; $("import-modal").style.display = "flex"; });
     $("import-cancel").addEventListener("click", function () { $("import-modal").style.display = "none"; });
     $("import-load").addEventListener("click", doImport);
     $("signout-btn").addEventListener("click", function () { Auth.signOut(); });

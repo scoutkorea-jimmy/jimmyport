@@ -150,7 +150,7 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
 .runnow{margin:0 0 12px; font-size:var(--fs-1); color:var(--muted)}
 .failh{margin:16px 0 8px; font-size:var(--fs-3); font-weight:800; color:var(--danger)}
 .failrow td{background:var(--danger-bg)}
-.failrow td.detail{white-space:normal; word-break:break-word; min-width:220px}
+.failrow td.detail{white-space:normal; word-break:keep-all; min-width:220px}
 .sumcard.ok{border-color:#BFE3CD} .sumcard.bad{border-color:#F0C9C6}
 .sumcard.bad .v{color:var(--danger)}
 
@@ -187,7 +187,7 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
 .fc-dev summary::before{content:'▸ '; margin-right:4px}
 .fc-dev[open] summary::before{content:'▾ '}
 .fc-dev .dl{margin-top:6px; font-size:var(--fs-1)}
-.fc-dev .dl dd{font-weight:600; word-break:break-word}
+.fc-dev .dl dd{font-weight:600; word-break:keep-all}
 
 /* 최근 검증 기록 (v0.9.263) */
 .hist{display:flex; flex-direction:column; gap:10px}
@@ -199,3 +199,10 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
 .pill{display:inline-flex; align-items:center; min-height:24px; padding:0 9px; border-radius:var(--pill);
   background:var(--surface-3); color:var(--ink-2); font-size:var(--fs-1); font-weight:700}
 .hr-ok{margin:0; font-size:var(--fs-1); color:var(--ok); font-weight:700}
+
+/* ── 줄바꿈 규칙 (v0.9.264, 사용자 지시) ──
+   한글은 기본값(break-word/normal)에서 **글자 단위**로 잘린다("개영 / 식 현장").
+   word-break:keep-all 이 단어(어절) 단위로 끊고, 한 어절이 칸보다 길 때만
+   overflow-wrap:break-word 로 마지막 수단을 쓴다. 두 줄을 함께 걸어야 한다. */
+html{word-break:keep-all; overflow-wrap:break-word}
+body,button,input,select,textarea{word-break:keep-all; overflow-wrap:break-word}
