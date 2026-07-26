@@ -50,7 +50,7 @@ const SEED = () => {
     if (u.startsWith('/api/me')) return J({ ok: true });
     if (u.startsWith('/api/jp-news')) {
       if (o && o.method === 'POST') { const b = JSON.parse(o.body || '{}');
-        if (b.action === 'flags') { if (typeof b.published === 'boolean') window.__news0.published = b.published; if (typeof b.cardnewsDone === 'boolean') window.__news0.cardnewsDone = b.cardnewsDone; window.__newsFlag = b; return J({ ok: true, article: window.__news0 }); }
+        if (b.action === 'flags') { if (typeof b.stage === 'string') window.__news0.stage = b.stage; if (typeof b.published === 'boolean') window.__news0.published = b.published; if (typeof b.cardnewsDone === 'boolean') window.__news0.cardnewsDone = b.cardnewsDone; window.__newsFlag = b; return J({ ok: true, article: window.__news0 }); }
         return J({ ok: true, article: window.__news0 }); }
       if (o && (o.method === 'PUT' || o.method === 'DELETE')) return J({ ok: true, article: window.__news0 });
       return J({ ok: true, articles: [window.__news0] });
@@ -395,22 +395,31 @@ const SEED = () => {
   await page.evaluate(() => { const x = document.querySelector('.scrim.show .x, .scrim.show #modal-close, .scrim.show [data-close]'); if (x) x.click(); else if (typeof closeModal === 'function') closeModal(); });
   await new Promise((r) => setTimeout(r, 150));
 
-  // ===== 기사 목차 — 글번호·퍼블리싱·카드뉴스 가공 + 리치텍스트 본문 (v0.9.216) =====
-  console.log('\n[기사 목차]');
+  // ===== 기사 게시판 — 선택칸·단계·카드뉴스 + 모달 본문 (v0.9.250, 구 아코디언 대체) =====
+  console.log('\n[기사 게시판]');
   await go('news');
   const nl = await page.evaluate(() => ({ table: !!document.querySelector('.newstbl'),
     ths: [...document.querySelectorAll('.newstbl th')].map((t) => t.textContent.trim()),
     no: (document.querySelector('.newstbl td.nr-no') || {}).textContent,
-    pub: !!document.querySelector('.flagtog.pub'), cn: !!document.querySelector('.flagtog.cn') }));
-  chk('목차 표 6열(번호·제목·작성자·작성일·퍼블리싱·카드뉴스)', nl.table && nl.ths.join(',') === '번호,제목,작성자,작성일,퍼블리싱,카드뉴스', nl.ths.join(','));
+    ckall: !!document.getElementById('news-ckall'), ck: document.querySelectorAll('[data-news-ck]').length,
+    st: !!document.querySelector('#news-list .pst'), cn: !!document.querySelector('.flagtog.cn'),
+    inline: document.querySelectorAll('.news-detailrow').length }));
+  chk('목차 표 7열(선택·번호·제목·작성자·작성일·단계·카드뉴스)', nl.table && nl.ths.join(',') === ',번호,제목,작성자,작성일,단계,카드뉴스', nl.ths.join(','));
   chk('글 번호 표기', nl.no === '1', nl.no);
-  chk('퍼블리싱·카드뉴스 가공 토글 존재', nl.pub && nl.cn);
-  const exp = await page.evaluate(() => { document.querySelector('[data-news-expand]').click();
-    const d = document.querySelector('.news-detailrow'); return { rows: document.querySelectorAll('.news-detailrow').length, strong: !!(d && d.querySelector('.news-text strong')) }; });
-  chk('제목 클릭 → 본문 펼침 + 리치텍스트(strong) 정화 렌더', exp.rows === 1 && exp.strong, 'rows=' + exp.rows);
-  const nflag = await page.evaluate(async () => { document.querySelector('.flagtog.pub').click(); await new Promise((r) => setTimeout(r, 250));
-    return { f: window.__newsFlag, on: document.querySelector('.flagtog.pub').classList.contains('on') }; });
-  chk('퍼블리싱 토글 → flags API(published=true) + on', nflag.f && nflag.f.action === 'flags' && nflag.f.published === true && nflag.on, JSON.stringify(nflag.f));
+  chk('선택 체크박스(전체 + 행)', nl.ckall && nl.ck === 1, 'ckall=' + nl.ckall + ' ck=' + nl.ck);
+  chk('단계 칩·카드뉴스 토글 존재', nl.st && nl.cn);
+  chk('본문을 목록에 끼워 넣지 않음', nl.inline === 0, 'inline=' + nl.inline);
+  const exp = await page.evaluate(async () => { document.querySelector('[data-news-view]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    const b = document.getElementById('nv-body');
+    return { open: document.getElementById('newsview-scrim').classList.contains('show'),
+      strong: !!(b && b.querySelector('.news-text strong')), inline: document.querySelectorAll('.news-detailrow').length }; });
+  chk('제목 클릭 → 읽기 모달 + 리치텍스트(strong) 정화 렌더', exp.open && exp.strong && exp.inline === 0, JSON.stringify(exp));
+  const nflag = await page.evaluate(async () => { document.querySelector('[data-nv-st="published"]').click(); await new Promise((r) => setTimeout(r, 300));
+    return { f: window.__newsFlag, on: document.querySelector('[data-nv-st="published"]').className.includes('solid') }; });
+  chk('단계 버튼 → flags API(stage=published) + 강조', nflag.f && nflag.f.action === 'flags' && nflag.f.stage === 'published' && nflag.on, JSON.stringify(nflag.f));
+  await page.evaluate(() => { const x = document.getElementById('nv-cancel'); if (x) x.click(); });
+  await new Promise((r) => setTimeout(r, 200));
 
   // ===== 보도자료 게시판 (v0.9.219) — 홍보부 전용 목차 + 상태 + 첨부 + 작성 =====
   console.log('\n[보도자료 게시판]');
@@ -861,6 +870,13 @@ const SEED = () => {
   chk('저장 실패 → 대기 큐 등록 + 상태 표시', savefail.pending >= 1 && savefail.unsaved.indexOf('roster') >= 0 && /저장 대기 \d+건/.test(savefail.st),
     savefail.pending + '건 [' + savefail.unsaved.join(',') + '] · ' + savefail.st);
   chk('대기 도메인을 localStorage 에 표식(새로고침해도 살아남게)', /roster/.test(savefail.marker), savefail.marker);
+  // 카드 저장이 늦게 끝나며 "저장 대기 N건" 을 덮으면, 안 저장된 작업이 저장된 듯 보인다(회귀 2건 목격).
+  const cardOver = await page.evaluate(async () => {
+    doSaveCard('2026-08-05#x1', { title: 'x' });
+    await new Promise((r) => setTimeout(r, 250));
+    return { st: (document.getElementById('syncst') || {}).textContent || '', pending: pendingCount() };
+  });
+  chk('카드 저장 실패가 대기 건수 표시를 덮지 않음', cardOver.pending >= 1 && /저장 대기 \d+건/.test(cardOver.st), cardOver.st);
   chk('저장 가드 바 노출 + version-watch 훅 노출', savefail.guard === true && savefail.hasHook === true, '바=' + savefail.guard + ' · 훅=' + savefail.hasHook);
   const noOverwrite = await page.evaluate(() => {
     // 대기 중인 도메인은 서버 응답이 와도 덮이지 않아야 한다(예전엔 여기서 작업분이 사라졌다)

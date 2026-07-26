@@ -172,6 +172,35 @@ async function boardPage(b, base, role) {
   chk('기본값은 초안', await p.evaluate(() =>
     document.querySelector('#pe-status [data-pst="draft"]').classList.contains('on')));
 
+  console.log('\n[모바일 레이아웃 — 실측]');
+  /* 표 머리(th)에 클래스를 안 주면 좁은 화면에서 td 만 숨겨져 열이 어긋나고 제목 칸이 눌린다.
+     v0.9.249 배포분이 실제로 그 상태였다(v0.9.250 에서 머리에도 같은 클래스를 줬다). */
+  const pm = await b.newPage();
+  await pm.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await pm.evaluateOnNewDocument(SEED, PRESS, 'admin');
+  await pm.goto(base + '/krjam-planning', { waitUntil: 'networkidle2' });
+  await wait(700); await pm.evaluate(() => setView('press')); await wait(600);
+  const mo = await pm.evaluate(async () => {
+    const vis = (el) => getComputedStyle(el).display !== 'none';
+    const ths = [...document.querySelectorAll('#press-list thead th')].filter(vis).length;
+    const tds = [...document.querySelectorAll('#press-list tbody tr:first-child td')].filter(vis).length;
+    const sc = document.querySelector('#press-list .tblscroll');
+    const title = document.querySelector('#press-list td.nr-title').getBoundingClientRect().width;
+    document.querySelector('[data-press-view]').click(); await new Promise((r) => setTimeout(r, 400));
+    const modal = document.querySelector('#pressview-scrim .modal').getBoundingClientRect();
+    const out = [...document.querySelectorAll('#pressview-scrim .mfoot button')]
+      .filter((x) => x.getBoundingClientRect().right > modal.right + 1 || x.getBoundingClientRect().left < modal.left - 1)
+      .map((x) => x.textContent.trim());
+    return { ths, tds, over: sc.scrollWidth - sc.clientWidth, title: Math.round(title), out,
+      docOver: document.documentElement.scrollWidth - window.innerWidth };
+  });
+  chk('표 머리와 몸통의 열 수가 같음(열 어긋남 없음)', mo.ths === mo.tds, 'th=' + mo.ths + ' td=' + mo.tds);
+  chk('표가 가로로 넘치지 않음', mo.over <= 0, mo.over + 'px 넘침');
+  chk('제목 칸이 눌리지 않음(120px 이상)', mo.title >= 120, mo.title + 'px');
+  chk('읽기 모달 바닥 버튼이 모달 밖으로 나가지 않음', mo.out.length === 0, mo.out.join(' | '));
+  chk('페이지 가로 스크롤 없음', mo.docOver <= 0, mo.docOver + 'px');
+  await pm.close();
+
   console.log('\n[콘솔]');
   chk('콘솔 에러 0', errors.length === 0, errors.slice(0, 3).join(' | '));
 

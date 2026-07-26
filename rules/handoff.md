@@ -12,7 +12,7 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 3회 연속 통과**한다. 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 133 · nav 19 · server 16 · motion 25 · press 26 · jebo 29 · fnc 92 · 랜딩 38 · a11y스윕 32` = 410건 (한 바퀴 약 16분)
+   - `planning 136 · nav 19 · server 16 · motion 25 · press 31 · news 43 · jebo 29 · fnc 92 · 랜딩 38 · a11y스윕 32` = 461건 (한 바퀴 약 16분)
    - **3회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
      (v0.9.244 실제 사례: 3회 중 2회 실패 → 장식 애니메이션이 기하 검사를 흔들고 있었다).
 2. **발견한 버그는 예외 없이 회귀로 고정**한다 — 재현 → 수정 → **그 버그를 잡는 케이스 추가**가 한 세트다.
@@ -37,7 +37,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`
+  - nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -54,6 +54,8 @@
 > 2026-07-26 코드 기준 전수 재확인 완료. **아래 목록에 없으면 남은 일이 아니다.** (지도 공백구역·renderTimetable 렌더러 추출·toggleNoCover/deleteAsset 분리는 **이미 완료**된 항목인데 이 문서가 옛 changelog 문구를 안고 있었다 → v0.9.231 에서 정리.)
 
 **krjam-planning — 코드 작업 없음(현재 열린 기능/부채 0).** 남은 건 아래 사용자 액션·판단 대기뿐:
+- **판단 대기 — 보도자료 탭 개편 존치 여부**(2026-07-26): v0.9.249 는 사용자가 지목한 '기사' 탭이 아니라 '보도자료' 탭을 고쳤다. 개선 자체는 유효해 그대로 뒀다. 되돌리려면 §16.98 커밋 역적용 + `test/regress-krjam-press.js` 제거가 필요하다.
+- **관측된 검사 한계**: 본 회귀의 타이포·컨트롤 스윕(12개 뷰)은 **PC 폭에서만** 잰다. 모바일 폭은 레이아웃 검사(390·430)와 a11y 스윕이 보지만, a11y 스윕은 로그인 게이트 화면까지만 들어간다 → **모바일 폭 12뷰 전수는 아직 없다.**
 - **유실된 입영 데이터 재입력**(사용자): v0.9.229 이전 저장으로 사라진 값은 복구 불가(백업 없음). 이제 정상 보존되므로 R&R 표에서 재입력만 하면 됨.
 - **식사 메뉴명 검수**(사용자): v0.9.195 시드는 제공 이미지 판독분 → 화면에서 인라인 수정 가능.
 - **화면 내부 레이아웃 재배치**: §16.77~16.78 결론대로 **의도적 보류** — 추측 재배치는 운영자가 외운 위치만 흔든다. **실사용 피드백 수령 후** 진행.
@@ -64,6 +66,11 @@
 - **문서 이행 마지막 단계(미착수·큰 리스크)**: 코드의 서비스 폴더 이동(`app.js`·`tour/`·`jamboree/`·`jamboree-plan/` → 서비스 폴더)은 **라우팅·`?v=`·HTML src 전면 재배선** 필요. 라이브 라우팅이 깨질 수 있어 반드시 계획+단계적+회귀·헤드리스 검증 후, 사용자 확인하에 진행. → [stack-routing.md](stack-routing.md).
 - **scout-finder(`/tour`)**: 공개 '단위대 추가 제안 폼'(`/api/submissions`) + 관리자 승인대기/변경로그(`/api/log`)/댓글관리 뷰 — [brief §14](../docs/scout-finder/brief.md). 죽은 편집기 CSS 정리는 디자인 자료 수령 후.
 - Superpowers 플러그인: 설치는 대화형 `/plugin install superpowers@claude-plugins-official`(에이전트가 실행 불가, 사용자 안내만).
+
+## 🖥 화면을 갈아엎을 때 (v0.9.250 교훈)
+1. **옛 화면의 기능을 먼저 목록으로 적는다.** 함수와 이벤트 위임이 남아 있어도 **부르는 곳이 없으면 기능은 사라진 것**이다(검수 코멘트·카드뉴스 만들기가 그렇게 없어졌다). 회귀에 "그 기능이 아직 보이는가"를 넣는다.
+2. **표는 머리(th)와 몸통(td)에 같은 클래스를 준다.** 좁은 화면에서 열을 숨기는 규칙이 td 에만 걸리면 열이 어긋나고 제목 칸이 눌린다. 회귀에서 **보이는 th 수 == 보이는 td 수**로 잰다.
+3. **모달 안도 접근성 검사 대상**이다. 화면 단위 스윕은 모달을 못 본다 — 새 모달을 만들면 그 안을 따로 잰다(글자 13px+ · 조작 40px+ · 버튼이 모달 밖으로 안 나감).
 
 ## 🧨 데이터 소실을 부르는 두 패턴 (신규 코드 작성 전 반드시 확인)
 1. **서버 `clean*` 화이트리스트 누락** — roster/timetable/protocol 등에 **새 필드를 추가하면 `functions/api/jamboree-plan.js` 의 해당 `clean*` 에도 반드시 추가**한다. 안 하면 저장할 때마다 서버가 조용히 버린다(v0.9.229 `arrive` 실제 사고).
@@ -77,8 +84,20 @@
 
 ## 🗓 세션 이력 (최신 순)
 
-### 2026-07-26 (15) — 보도자료 탭 게시판화 (v0.9.249)
-대상: `/krjam-planning` 기사(보도자료) 탭. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.98.
+### 2026-07-26 (16) — 기사 탭 게시판화 (v0.9.250) + 저장 상태 표시 결함
+대상: `/krjam-planning` **기사(홍보부원)** 탭 — 사용자가 원래 지목한 그 탭. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.99.
+- 아코디언 → **읽기 모달**(`#newsview-scrim`) · **다중 선택 + 일괄 단계/삭제**(삭제는 관리자만) · **단계 3종** · **작성 순서 `제목 → 부제목 → 내용 → 사진 → 태그`**(사용자 지정) · 부제목·태그(칩) 신설.
+- ⚠️ **서버 화이트리스트를 먼저 넓혔다** — `jp-news.js` 는 `published` boolean 만 알았다. 구 데이터는 **읽을 때** `published:true→published` 로 유도(KV 파괴적 쓰기 없음). 하위호환으로 boolean 도 계속 저장한다.
+- 🔴 **카드 저장이 "저장 대기 N건" 표시를 덮고 있었다.** `setSaveSt()` 의 "대기분이 항상 이긴다" 규칙을 `doSaveCard()` 콜백만 우회해 `setSt()` 를 직접 불렀다 → 안 저장된 작업이 있는데 표시가 사라졌다. `cardSt()` 로 같은 규칙을 태우고 회귀 1건 추가. (본 회귀가 라운드마다 흔들린 원인이었다 — 플레이키는 결함이다.)
+- ⚠️ 또 걸렸다: **`grep` 이 `app.js` 를 바이너리로 오판**해 멀쩡한 구현을 "미구현"으로 오진할 뻔했다. `grep -a` 필수(위 '조사 함정' 참조).
+- 🔴 **아코디언을 모달로 옮기며 검수 코멘트·카드뉴스 만들기가 사라졌었다.** 함수도 위임 리스너도 살아 있는데 **부르는 곳만 없어져** 조용히 없어진다 — 화면을 갈아엎을 때는 **옛 화면이 갖고 있던 기능을 목록으로 적어 놓고 하나씩 옮겨야** 한다.
+- 🔴 **좁은 화면에서 표가 깨져 있었다** — `<th>` 에만 클래스가 없어 모바일에서 td 만 숨겨지고 머리 7칸·몸통 5칸이 됐다(제목 칸 72px, 글자가 세로로). **v0.9.249 보도자료도 같은 결함으로 배포돼 있었다** → 둘 다 고치고 양쪽 회귀에 모바일 실측 추가.
+- 접근성은 **모달 안까지** 재야 한다 — 기존 스윕은 '화면'만 훑어서 두 모달이 사각지대였다(서식 도구 28px·코멘트 x 17px 발견 → 터치에서 40px).
+- 상태: **전체 스위트 3회 연속 실패 0건**(410 → 461건 ×3), VERSION 0.9.250.
+
+### 2026-07-26 (15) — 보도자료 탭 게시판화 (v0.9.249) ⚠️ 대상 오인
+대상: `/krjam-planning` **보도자료** 탭. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.98.
+- ⚠️ **사용자가 말한 탭은 '기사'였는데 '보도자료'를 고쳤다**(§16.99 에서 정정). 개편 자체는 유지 — 같은 문제를 같은 방식으로 푼 개선이고 회귀 26건으로 고정돼 있다.
 - 아코디언 → **읽기 모달** · **다중 선택 + 일괄 단계 변경/삭제** · **단계 3종**(초안 · 최종검수 완료 · 퍼블리싱 완료).
 - ⚠️ **서버 화이트리스트를 먼저 넓혔다** — `jp-press.js` 의 `cleanStatus` 가 `released|draft` 만 받았다. 새 값을 그냥 보냈으면 조용히 초안이 됐다. 구 `released` 는 **읽을 때 승격**(KV 파괴적 쓰기 없음).
 - ⚠️ 일괄 작업은 `canEditPress` 로 거르고 **제외 건수를 사용자에게 알린다**. 남의 글은 건드리지 않는다.
