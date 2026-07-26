@@ -53,14 +53,14 @@
     $('gate').hidden = false; $('shell').hidden = true;
     $('gate-msg').textContent = msg || '';
     if (timer) { clearInterval(timer); timer = null; }
+    if (secTimer) { clearInterval(secTimer); secTimer = null; }
     setTimeout(function () { $('code').focus(); }, 30);
   }
   function showBoard() {
     $('gate').hidden = true; $('shell').hidden = false;
     buildNav(); setView(location.hash.replace('#', '') || 'home');
     loadAll();
-    if (timer) clearInterval(timer);
-    timer = setInterval(tick, 5000);      // 회귀 진행은 5초마다
+    schedule();
   }
 
   $('gate-form').addEventListener('submit', function (e) {
@@ -128,7 +128,12 @@
   function loadRun() {
     return fetch('/api/run-status', { headers: auth() })
       .then(function (r) { if (r.status === 401) { unauth(); return null; } return r.json(); })
-      .then(function (j) { if (j && j.ok) { run = j; render(); } }).catch(function () {});
+      .then(function (j) {
+        if (!j || !j.ok) return;
+        var was = isLive();
+        run = j; render();
+        if (was !== isLive()) schedule();     // 시작/끝나면 주기를 바꾼다
+      }).catch(function () {});
   }
   function loadContent() {
     return fetch('/api/admin-content', { headers: auth() })
@@ -136,25 +141,45 @@
       .then(function (j) { if (j && j.ok) { content = j; render(); } }).catch(function () {});
   }
   function loadAll() { loadRun(); loadStats(); loadContent(); }
-  function tick() { loadRun(); }      // 실시간이 필요한 건 회귀 진행뿐이다
+  /* 진행 중이면 3초, 아니면 15초마다 확인한다 — 돌고 있을 때만 자주 묻는다.
+     '몇 초 전'은 매초 갱신하되 화면 전체를 다시 그리지 않는다(깜빡임 방지). */
+  var secTimer = null;
+  function schedule() {
+    if (timer) clearInterval(timer);
+    timer = setInterval(function () { loadRun(); }, isLive() ? 3000 : 15000);
+    if (!secTimer) secTimer = setInterval(freshen, 1000);
+  }
+  function freshen() {
+    [].forEach.call(document.querySelectorAll('[data-since]'), function (el) {
+      el.textContent = ago(el.getAttribute('data-since'));
+    });
+    var st = runState();
+    var lc = $('livechip');
+    if (lc) { lc.textContent = st.kind === 'running' ? '● 실시간' : (st.kind === 'stale' ? '● 끊김' : '○ 대기'); lc.className = 'livechip ' + st.kind; }
+  }
 
   /* ── 회귀 진행 ── 이 페이지의 본체 */
   function runState() {
     if (!run) return { kind: 'loading', text: '불러오는 중…' };
     if (!run.configured) return { kind: 'off', text: '연결 안 됨 — 서버에 RUN_TOKEN 이 없습니다' };
-    if (!run.run) return { kind: 'idle', text: '최근 실행 기록 없음' };
+    if (!run.run) return { kind: 'none', text: '진행 중인 회귀 없음' };
     var r = run.run;
     var age = Date.now() - new Date(r.updatedAt).getTime();
-    if (r.finishedAt) return { kind: r.ok ? 'done' : 'fail', text: r.ok ? '완료 — 전부 통과' : '완료 — 실패 있음' };
+    if (r.finishedAt) return { kind: r.ok ? 'done' : 'fail', text: r.ok ? '진행 중인 회귀 없음 · 마지막 실행 통과' : '진행 중인 회귀 없음 · 마지막 실행 실패' };
     if (age > (run.staleMs || 90000)) return { kind: 'stale', text: '끊김 — ' + ago(r.updatedAt) + '부터 갱신 없음' };
     return { kind: 'running', text: '진행 중' };
   }
+  function isLive() { return runState().kind === 'running'; }
   function runBlock(compact) {
     var st = runState();
     var chip = { loading: '', idle: '', off: 'bad', stale: 'warn', running: 'ok', done: 'ok', fail: 'bad' }[st.kind] || '';
-    if (!run || !run.run) {
-      return '<div class="card"><div class="runhead"><span class="chip ' + chip + '">' + esc(st.text) + '</span></div>' +
-        '<p class="muted">회귀를 돌리면 여기에 라운드 진행이 실시간으로 표시됩니다.</p></div>';
+    if (!run || !run.run || st.kind === 'off') {
+      return '<div class="card idlecard">' +
+        '<div class="idlebig">' + (st.kind === 'off' ? '연결 안 됨' : '진행 중인 회귀 없음') + '</div>' +
+        '<p class="muted">' + (st.kind === 'off'
+          ? '서버에 RUN_TOKEN 이 설정돼 있지 않아 진행을 받을 수 없습니다.'
+          : '회귀를 돌리면 여기에서 라운드가 실시간으로 채워집니다. 이 화면은 스스로 갱신하니 새로고침하지 않아도 됩니다.') +
+        '</p></div>';
     }
     var r = run.run;
     var pct = r.total ? Math.round(r.done / r.total * 100) : 0;
@@ -169,14 +194,17 @@
         '<div class="rh"><b>' + i + '라운드</b><span>' + (doneRound ? '통과' : (cur ? inRound + '/' + perRound : '대기')) + '</span></div>' +
         '<div class="track"><i style="width:' + (doneRound ? 100 : (cur ? rp : 0)) + '%"></i></div></div>';
     }
+    var idle = (st.kind === 'done' || st.kind === 'fail');
     var head = '<div class="runhead">' +
+      (idle ? '<span class="idlebadge">진행 중 아님</span>' : '') +
       '<span class="chip ' + chip + '">' + esc(st.text) + '</span>' +
       '<b class="runpct">' + pct + '%</b>' +
       '<span class="muted">' + nf(r.done) + ' / ' + nf(r.total) + ' 검사' +
       (r.checks ? ' · 케이스 ' + nf(r.checks) : '') + '</span>' +
       '<span class="spacer"></span>' +
       (r.fails ? '<span class="chip bad">실패 ' + nf(r.fails) + '</span>' : '<span class="chip ok">실패 0</span>') +
-      '<span class="muted">' + esc(ago(r.updatedAt)) + ' 갱신</span></div>';
+      '<span class="muted"><span class="livedot' + (st.kind === 'running' ? ' on' : '') + '"></span>' +
+      '<span data-since="' + esc(r.updatedAt) + '">' + esc(ago(r.updatedAt)) + '</span> 갱신</span></div>';
     var now = r.running ? '<p class="runnow">지금 도는 검사 <b class="mono">' + esc(r.running) + '</b></p>' : '';
     var list = (r.items || []).slice().reverse().slice(0, compact ? 6 : 20).map(function (x) {
       return '<tr><td>' + x.round + 'R</td><td class="mono">' + esc(x.name) + '</td>' +

@@ -1,11 +1,11 @@
 {
-  "version": "0.9.259",
-  "commit": "715adc3",
-  "commitSubject": "feat(v0.9.258): admin dashboard shows live regression rounds, grouped menus, failure details",
-  "commitAt": "2026-07-27T03:48:23+09:00",
-  "deployedAt": "2026-07-26T18:52:04.020Z",
+  "version": "0.9.261",
+  "commit": "7aea2ae",
+  "commitSubject": "fix(v0.9.260): actually override cache-control on static assets",
+  "commitAt": "2026-07-27T03:53:49+09:00",
+  "deployedAt": "2026-07-26T19:01:42.308Z",
   "verification": {
-    "at": "2026-07-26T18:52:04.021Z",
+    "at": "2026-07-26T19:01:42.308Z",
     "rounds": [
       {
         "round": 1,

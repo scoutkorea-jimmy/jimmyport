@@ -160,3 +160,16 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFo
   .side.open{transform:none; box-shadow:var(--sh-2)}
   .menubtn{display:inline-flex}
 }
+
+/* 진행 없음 · 실시간 표시 (v0.9.261) */
+.idlecard{display:flex; flex-direction:column; align-items:center; gap:6px; padding:34px 18px; text-align:center}
+.idlebig{font-size:var(--fs-4); font-weight:800; color:var(--muted)}
+.idlebadge{display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border-radius:var(--pill);
+  background:var(--surface-3); color:var(--ink-2); font-size:var(--fs-1); font-weight:800}
+.livedot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--faint); margin-right:6px; vertical-align:1px}
+.livedot.on{background:var(--ok); animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1; transform:scale(1)} 50%{opacity:.35; transform:scale(.8)}}
+.rnd.cur .track i{background-image:linear-gradient(90deg, var(--accent) 0%, #8A63D2 50%, var(--accent) 100%);
+  background-size:200% 100%; animation:flow 1.6s linear infinite}
+@keyframes flow{0%{background-position:200% 0} 100%{background-position:0 0}}
+@media (prefers-reduced-motion: reduce){ .livedot.on,.rnd.cur .track i{animation:none} }

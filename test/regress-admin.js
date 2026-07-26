@@ -37,6 +37,7 @@ const STATS = {
       rounds: [{ round: 1, checks: 587, fails: 0 }, { round: 2, checks: 587, fails: 0 }, { round: 3, checks: 587, fails: 0 }] } },
 };
 let logins = 0;
+let RUN_MODE = 'running';   // running | none | done — 화면이 상태를 구분해 말하는지 본다
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/api/login') {
@@ -53,7 +54,15 @@ const server = http.createServer((req, res) => {
   if (p === '/api/me') { res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' }); return res.end('{"ok":' + authed + '}'); }
   if (p === '/api/run-status') {
     res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' });
-    return res.end(JSON.stringify(authed ? RUN : { ok: false }));
+    if (!authed) return res.end(JSON.stringify({ ok: false }));
+    if (RUN_MODE === 'none') return res.end(JSON.stringify({ ok: true, configured: true, staleMs: 90000, run: null }));
+    if (RUN_MODE === 'done') {
+      const done = JSON.parse(JSON.stringify(RUN));
+      done.run.finishedAt = new Date().toISOString(); done.run.ok = true; done.run.fails = 0;
+      done.run.failures = []; done.run.rounds = 3; done.run.done = 42; done.run.running = '';
+      return res.end(JSON.stringify(done));
+    }
+    return res.end(JSON.stringify(RUN));
   }
   if (p === '/api/admin-content') {
     res.writeHead(authed ? 200 : 401, { 'content-type': 'application/json' });
@@ -160,7 +169,38 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   }));
   chk('잼버리 로고를 쓰지 않는다(스카우팅앱 공용)', await p.evaluate(() =>
     !document.querySelector('img[src*="jamboree"]') && !!document.querySelector('.mark')));
+  await p.evaluate(() => window.__admin.setView('home')); await wait(400);
+  chk('진행 중이면 실시간 표시가 살아 있다', await p.evaluate(() =>
+    !!document.querySelector('.livedot.on') && /실시간/.test(document.getElementById('livechip').textContent)));
+  chk('경과 시간이 1초마다 스스로 바뀐다', await p.evaluate(async () => {
+    var el = document.querySelector('[data-since]'); if (!el) return false;
+    el.textContent = 'XX';
+    await new Promise((r) => setTimeout(r, 1400));
+    return el.textContent !== 'XX';
+  }));
   await p.evaluate(() => window.__admin.setView('home'));
+
+  console.log('\n[진행 중인 회귀가 없을 때]');
+  RUN_MODE = 'none';
+  chk('없으면 "진행 중인 회귀 없음"이라고 말한다', await (async () => {
+    const pn = await b.newPage(); await pn.setViewport({ width: 1440, height: 1000 });
+    await pn.evaluateOnNewDocument(() => sessionStorage.setItem('scoutingapp:admin', 'T'));
+    await pn.goto(base + '/admin', { waitUntil: 'networkidle2' }); await wait(900);
+    const t = await pn.evaluate(() => document.querySelector('#views').textContent);
+    const noBars = await pn.evaluate(() => document.querySelectorAll('.rnd').length === 0);
+    await pn.close();
+    return /진행 중인 회귀 없음/.test(t) && noBars;
+  })());
+  RUN_MODE = 'done';
+  chk('끝난 실행은 "진행 중 아님"으로 구분한다', await (async () => {
+    const pd = await b.newPage(); await pd.setViewport({ width: 1440, height: 1000 });
+    await pd.evaluateOnNewDocument(() => sessionStorage.setItem('scoutingapp:admin', 'T'));
+    await pd.goto(base + '/admin', { waitUntil: 'networkidle2' }); await wait(900);
+    const t = await pd.evaluate(() => document.querySelector('#views').textContent);
+    await pd.close();
+    return /진행 중 아님/.test(t) && /마지막 실행 통과/.test(t);
+  })());
+  RUN_MODE = 'running';
 
   console.log('\n[다시 잠금]');
   chk('잠그기를 누르면 토큰이 사라지고 잠금 화면', await p.evaluate(async () => {
