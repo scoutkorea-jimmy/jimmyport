@@ -107,7 +107,7 @@ var TTCAT_PALETTE=['#B03E24','#2F5D4A','#6B4FA0','#0B6E6E','#8A5A0B','#2E6FAE','
 function defaultTtCats(){ return [['개·폐영식','#B03E24'],['프로그램','#2F5D4A'],['행사','#6B4FA0'],['홍보활동','#0B6E6E'],['식사','#8A5A0B'],['회의','#2E6FAE'],['이동·기타','#6B5C4A']]; }
 function ttCats(){ if(!state.ttcats) state.ttcats=defaultTtCats(); return state.ttcats; }
 function ttCatColor(c){ var L=ttCats(); for(var i=0;i<L.length;i++) if(L[i][0]===c) return L[i][1]; return '#7A6A57'; }
-function saveTtCats(){ debouncedPut('ttcatTimer', {ttcats: ttCats()}, '종류 저장됨'); }
+function saveTtCats(){ debouncedPut('ttcatTimer', DOMAIN_BODY.ttcats, '종류 저장됨'); }
 function addTtCat(name){ name=(name||'').trim(); if(!name) return false; var L=ttCats(); if(L.some(function(x){return x[0]===name;})){ toast('이미 있는 종류'); return false; } var used=L.map(function(x){return x[1];}); var col=TTCAT_PALETTE.filter(function(c){return used.indexOf(c)<0;})[0]||TTCAT_PALETTE[L.length%TTCAT_PALETTE.length]; L.push([name,col]); saveTtCats(); return true; }
 function deleteTtCat(name){ var L=ttCats(); if(L.length<=1){ toast('최소 1개 종류는 필요합니다'); return false; } if(!confirm('종류 "'+name+'"을(를) 삭제할까요?\n이 종류를 쓰던 일정은 기본색으로 표시됩니다.')) return false; state.ttcats=L.filter(function(x){return x[0]!==name;}); saveTtCats(); return true; }
 /* 블록에 흰 글씨를 얹으므로 대비 미달 색은 그대로 둘 수 없다 → 통과할 때까지 어둡게 보정하고 이유를 알린다.
@@ -130,7 +130,7 @@ function personOff(pid){ var m=offMap(); if(!m[pid]) m[pid]={}; return m[pid]; }
 function isOff(pid,date,bk){ var d=offMap()[pid]; return !!(d&&d[date]&&d[date][bk]); }
 function toggleOff(pid,date,bk){ var po=personOff(pid); if(!po[date]) po[date]={}; if(po[date][bk]) delete po[date][bk]; else po[date][bk]=true; if(!Object.keys(po[date]).length) delete po[date]; saveOfftimes(); }
 function offConflict(pid,date,sH,eH){ if(sH==null||eH==null) return null; for(var i=0;i<OFF_BLOCKS.length;i++){ if(!offAllowed(date,i)) continue; var bk=OFF_BLOCKS[i]; if(isOff(pid,date,bk[0]) && sH<bk[4] && eH>bk[3]) return bk[1]; } return null; }
-function saveOfftimes(){ debouncedPut('offTimer', {offtimes: offMap()}, '오프타임 저장됨'); }
+function saveOfftimes(){ debouncedPut('offTimer', DOMAIN_BODY.offtimes, '오프타임 저장됨'); }
 /* ----- 입영 시점 (현장 도착 전 배정 불가) -----
  * 각 인원의 입영(현장 도착) 일시 = roster[].arrive("YYYY-MM-DDThh:mm", datetime-local 값).
  * 이 시점 이전 시각의 업무에는 그 인원을 담당으로 배정할 수 없다 — 오프타임과 같은 취지의 가드다.
@@ -397,7 +397,7 @@ function contactList(){ if(!state.contacts) state.contacts=defaultContacts(); re
 function contactById(id){ var l=contactList(); for(var i=0;i<l.length;i++) if(l[i].id===id) return l[i]; return null; }
 function contactLabel(c){ if(!c) return '?'; return (c.name||'').trim() || (c.org||'').trim() || (c.role||'').trim() || '(이름 미입력)'; }
 function ttContacts(t){ return ((t&&t.contacts)||[]).map(contactById).filter(Boolean); }
-function saveContacts(){ debouncedPut('contactTimer', {contacts: contactList()}, '연락처 저장됨'); }
+function saveContacts(){ debouncedPut('contactTimer', DOMAIN_BODY.contacts, '연락처 저장됨'); }
 function addContactRow(){ contactList().push({id:mkid(),name:'',org:'',role:'',phone:'',email:'',memo:''}); }
 var CTYPE_COLOR={'회의 · 기획조정본부':'#6B4FA0','회의 · 홍보부':'#0F8A8A'};
 function ctypeColor(t){ if(CTYPE_COLOR[t]) return CTYPE_COLOR[t]; if(/회의/.test(t||'')) return '#7A6A57'; return 'var(--accent)'; }
@@ -520,20 +520,8 @@ function addHistoryNote(k, html){
     .catch(function(){ setSt('저장 실패 (네트워크)'); });
 }
 var mktTimer=null;
-function saveMarketing(){
-  saveLocal();
-  if(mktTimer) clearTimeout(mktTimer);
-  setSt('마케팅 저장 대기…');
-  var fire=function(){
-    if(mktTimer){ clearTimeout(mktTimer); mktTimer=null; } clearFlush('mkt');
-    setSt('마케팅 저장 중…');
-    return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-      body:JSON.stringify({marketing:state.marketing||[], author:authorVal()})})
-      .then(function(r){return r.json();}).then(function(){ setSt('마케팅 저장됨',true); }).catch(function(){ setSt('마케팅 저장 실패'); });
-  };
-  registerFlush('mkt', fire);
-  mktTimer=setTimeout(fire, 500);
-}
+// 마케팅도 다른 도메인과 같은 경로로(실패 재시도·baseVer 병합) — 전에는 raw fetch 라 실패 시 그냥 사라졌다.
+function saveMarketing(){ debouncedPut('mktTimer', DOMAIN_BODY.marketing, '마케팅 저장됨'); }
 function applyServer(j){
   // MERGE(병합): 서버 카드는 자기 키만 갱신, 로컬 전용 카드는 보존 → 데이터 유실 방지
   var slots=j&&j.slots||{};
@@ -550,23 +538,28 @@ function applyServer(j){
     if(r.notes) state.notes[k]=r.notes;
     if(isExtra){ var p=k.split('#'), date=p[0], id=p[2]; if(!state.extra[date]) state.extra[date]=[]; if(!state.extra[date].some(function(x){return x.id===id;})) state.extra[date].push({id:id,category:(r.edit&&r.edit.category)||'콘텐츠'}); }
   });
-  if(j&&j.marketing) state.marketing=j.marketing;
-  if(j&&Array.isArray(j.shootlist)) state.shootlist=j.shootlist;
+  if(j&&j.marketing && !hasUnsaved('marketing')) state.marketing=j.marketing;
+  if(j&&Array.isArray(j.shootlist) && !hasUnsaved('shootlist')) state.shootlist=j.shootlist;
+  /* ⚠️ 아직 서버에 못 올린 편집이 있는 도메인은 서버 값으로 덮지 않는다 (v0.9.233).
+   * 전에는 무조건 덮어써서, 저장이 실패한 채 새로고침하면 화면은 물론 saveLocal() 을 통해
+   * localStorage 백업까지 서버 값이 되어 복구 경로가 사라졌다. 이제 대기분은 그대로 두고
+   * 저장 가드 바(renderSaveGuard)가 '다시 저장 / 서버 값으로 되돌리기'를 사람에게 묻는다. */
+  var keep=function(dom){ return hasUnsaved(dom); };
   state._mealsFromServer=!!(j&&j.meals&&typeof j.meals==='object'&&Object.keys(j.meals).length);
-  if(state._mealsFromServer) state.meals=j.meals;
-  if(j&&j.types) state.types=j.types;
-  if(j&&j.events) state.events=j.events;
-  if(j&&j.timetable) state.timetable=j.timetable;
-  if(j&&j.roster){ var r=j.roster.filter(function(x){ return x && ((x.name||'').trim()||(x.role||'').trim()||(x.duty||'').trim()||(x.contact||'').trim()||(x.channel||'').trim()); }); if(r.length) state.roster=r; }
-  if(j&&j.teams&&typeof j.teams==='object'&&!Array.isArray(j.teams)) state.teams=Object.assign(defaultTeams(), j.teams);
-  if(j&&Array.isArray(j.ttcats)&&j.ttcats.length) state.ttcats=j.ttcats;
-  if(j&&j.offtimes&&typeof j.offtimes==='object'&&!Array.isArray(j.offtimes)) state.offtimes=j.offtimes;
-  if(j&&Array.isArray(j.contacts)&&j.contacts.length) state.contacts=j.contacts;
-  if(j&&Array.isArray(j.divisions)&&j.divisions.length) state.divisions=j.divisions;
+  if(state._mealsFromServer && !keep('meals')) state.meals=j.meals;
+  if(j&&j.types && !keep('types')) state.types=j.types;
+  if(j&&j.events && !keep('events')) state.events=j.events;
+  if(j&&j.timetable && !keep('timetable')) state.timetable=j.timetable;
+  if(j&&j.roster && !keep('roster')){ var r=j.roster.filter(function(x){ return x && ((x.name||'').trim()||(x.role||'').trim()||(x.duty||'').trim()||(x.contact||'').trim()||(x.channel||'').trim()); }); if(r.length) state.roster=r; }
+  if(j&&j.teams&&typeof j.teams==='object'&&!Array.isArray(j.teams) && !keep('roster')) state.teams=Object.assign(defaultTeams(), j.teams);
+  if(j&&Array.isArray(j.ttcats)&&j.ttcats.length && !keep('ttcats')) state.ttcats=j.ttcats;
+  if(j&&j.offtimes&&typeof j.offtimes==='object'&&!Array.isArray(j.offtimes) && !keep('offtimes')) state.offtimes=j.offtimes;
+  if(j&&Array.isArray(j.contacts)&&j.contacts.length && !keep('contacts')) state.contacts=j.contacts;
+  if(j&&Array.isArray(j.divisions)&&j.divisions.length && !keep('divisions')) state.divisions=j.divisions;
   state._protoFromServer=!!(j&&Array.isArray(j.protocol)&&j.protocol.length);   // 서버에 실제 저장본이 있었는지(상세 시드 확정 판단용)
-  if(state._protoFromServer) state.protocol=j.protocol;
-  if(j&&j.mappos&&typeof j.mappos==='object'&&!Array.isArray(j.mappos)) state.mappos=j.mappos;
-  if(j&&Array.isArray(j.shoots)) state.shoots=j.shoots;
+  if(state._protoFromServer && !keep('protocol')) state.protocol=j.protocol;
+  if(j&&j.mappos&&typeof j.mappos==='object'&&!Array.isArray(j.mappos) && !keep('mappos')) state.mappos=j.mappos;
+  if(j&&Array.isArray(j.shoots) && !keep('shoots')) state.shoots=j.shoots;
   if(j&&j.versions&&typeof j.versions==='object') boardVer=j.versions;   // 동시편집 병합용 버전
 }
 /* ===== 동시편집 유실 방지(클라) — 저장 시 불러온 버전(baseVer)을 함께 보내고,
@@ -653,28 +646,9 @@ function watchDataTables(){
     try{ new MutationObserver(function(){ labelizeTable(t); }).observe(tb, {childList:true}); }catch(e){}
   });
 }
-function saveTypes(){
-  saveLocal();
-  fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-    body:JSON.stringify({types:typeList(), author:authorVal(), baseVer:{types:boardVer.types}})})
-    .then(function(r){ return r.ok?r.json():null; }).then(function(j){ if(j) onPutResponse(j); }).catch(function(){});
-}
+function saveTypes(){ debouncedPut('typeTimer', DOMAIN_BODY.types, '콘텐츠 종류 저장됨'); }
 var evTimer=null;
-function saveEvents(){
-  saveLocal();
-  if(evTimer) clearTimeout(evTimer);
-  setSt('일정 저장 대기…');
-  var fire=function(){
-    if(evTimer){ clearTimeout(evTimer); evTimer=null; } clearFlush('ev');
-    setSt('일정 저장 중…');
-    return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-      body:JSON.stringify({events:state.events||[], author:authorVal(), baseVer:{events:boardVer.events}})})
-      .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
-      .then(function(j){ if(!j){ setSt('일정 저장 실패'); return; } var m=onPutResponse(j); setSt(m?'변경 병합됨':'일정 저장됨',true); }).catch(function(){ setSt('일정 저장 실패'); });
-  };
-  registerFlush('ev', fire);
-  evTimer=setTimeout(fire, 500);
-}
+function saveEvents(){ debouncedPut('evTimer', DOMAIN_BODY.events, '일정 저장됨'); }
 /* ===== 강제 새로고침(새 배포) 전 대기 저장 flush =====
  * 디바운스 저장(500ms 대기)이 아직 서버로 안 나갔을 때 강제 새로고침하면 그 편집이 유실된다.
  * 각 저장 함수가 '즉시 실행' 클로저를 등록/해제하고, version-watch 가 새로고침 직전 window.flushPendingSaves() 로 전부 발사한다. */
@@ -689,6 +663,157 @@ function flushPendingSaves(){
 }
 try{ window.flushPendingSaves=flushPendingSaves; }catch(e){}
 var ttTimer=null, rosterTimer=null;
+/* ===== 저장 신뢰성 — 실패 재시도 큐 (v0.9.233) =====
+ * 슬롯(카드) 저장에는 pending 재시도 큐가 있었는데(위 sendEdit) **14개 도메인 저장에는 없었다**.
+ * 그래서 네트워크가 한 번 흔들리면 '저장 실패' 한 줄만 남기고 편집이 사라졌다 —
+ * 새로고침하면 applyServer 가 서버 값으로 화면은 물론 localStorage 백업까지 덮어써 복구 경로가 없었다.
+ * (재현: 저장 실패 → 12초간 재시도 0회 → 새로고침 → 편집분 소실.)
+ * 이제 도메인 저장도 같은 수준으로 올린다: 실패 → 대기 등록 → 자동 재시도(주기·온라인 복귀) → 성공까지 로컬 값 유지.
+ *
+ * ⚠️ body 는 **함수(thunk)** 로 받는다. 저장할 배열은 dedupe·병합 등으로 통째 교체(state.timetable=out)되므로,
+ *    한 번 만든 객체를 들고 있으면 재시도가 **옛 배열**을 보낸다. 보낼 때마다 현재 state 에서 다시 만든다. */
+var domPending={};             // key = 도메인 조합 -> {bodyFn, okMsg, domains:[...]}
+var RETRY_MS=15000;
+var LS_UNSAVED='jamboree-plan:unsaved';
+/* 도메인별 '무엇을 보낼지'를 한 곳에 모은다. 저장 함수도, 새로고침 뒤 복구도 같은 정의를 쓴다. */
+var DOMAIN_BODY={
+  marketing:function(){ return {marketing: state.marketing||[]}; },
+  meals:function(){ return {meals: mealsData()}; },
+  shootlist:function(){ return {shootlist: shootListData()}; },
+  types:function(){ return {types: typeList()}; },
+  events:function(){ return {events: state.events||[]}; },
+  timetable:function(){ return {timetable: state.timetable||[]}; },
+  roster:function(){ return {roster: state.roster||[], teams: teamNames()}; },
+  ttcats:function(){ return {ttcats: ttCats()}; },
+  contacts:function(){ return {contacts: contactList()}; },
+  offtimes:function(){ return {offtimes: offMap()}; },
+  divisions:function(){ return {divisions: state.divisions||[]}; },
+  protocol:function(){ return {protocol: state.protocol||[]}; },
+  mappos:function(){ return {mappos: mapPosMap()}; },
+  shoots:function(){ return {shoots: shootList()}; }
+};
+/* 대기 큐가 메모리에만 있으면 새로고침 한 번에 그대로 사라진다(= 고치려던 그 유실).
+ * 어떤 도메인이 아직 못 올라갔는지를 localStorage 에 남겨, 다음 로드에서 로컬 값을 지키고 다시 올린다. */
+function persistUnsaved(){
+  try{ var d=unsavedDomains(); if(d.length) localStorage.setItem(LS_UNSAVED, JSON.stringify(d)); else localStorage.removeItem(LS_UNSAVED); }catch(e){}
+}
+function restoreUnsaved(){
+  var d=[]; try{ d=JSON.parse(localStorage.getItem(LS_UNSAVED)||'[]')||[]; }catch(e){ d=[]; }
+  if(!Array.isArray(d)||!d.length) return 0;
+  d.forEach(function(dom){ var fn=DOMAIN_BODY[dom]; if(fn) domPending[dom]={bodyFn:fn, okMsg:'저장됨', domains:[dom]}; });
+  setSaveSt();
+  return pendingCount();
+}
+function resolveBody(b){ return (typeof b==='function') ? b() : b; }
+function bodyDomains(body){ return DOMAIN_KEYS.filter(function(k){ return body[k]!==undefined; }); }
+function pendingCount(){ return Object.keys(domPending).length; }
+function unsavedDomains(){ var s={}; Object.keys(domPending).forEach(function(k){ (domPending[k].domains||[]).forEach(function(d){ s[d]=1; }); }); return Object.keys(s); }
+function hasUnsaved(dom){ return unsavedDomains().indexOf(dom)>=0; }
+try{ window.hasUnsavedWork=function(){ return pendingCount(); }; }catch(e){}   // version-watch 가 강제 새로고침 전에 확인
+// 저장 상태 한 줄 — 대기분이 있으면 그게 항상 이긴다(성공 메시지가 실패를 덮지 않게).
+function setSaveSt(msg, ok){
+  var n=pendingCount(), e=document.getElementById('syncst');
+  if(e) e.classList.toggle('warn', n>0);
+  if(n) setSt('저장 대기 '+n+'건 — 자동 재시도');
+  else if(msg) setSt(msg, ok);
+  persistUnsaved();
+  renderSaveGuard();
+}
+function sendDomainPut(bodyFn, okMsg){
+  var body=resolveBody(bodyFn), doms=bodyDomains(body), key=doms.join('+')||'misc';
+  return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
+    body:JSON.stringify(Object.assign({author:authorVal(), client:CLIENT_ID, baseVer:pickBaseVer(body)}, body))})
+    .then(function(r){
+      if(r.status===401){ authExpired(); throw new Error('unauthorized'); }   // 재로그인 후 재시도가 살려 낸다
+      if(!r.ok) throw new Error('http '+r.status);
+      return r.json();
+    })
+    .then(function(j){
+      if(!j) throw new Error('empty');
+      delete domPending[key];
+      var merged=onPutResponse(j);
+      setSaveSt(merged?'변경 병합됨':(okMsg||'저장됨'), true);
+      return j;
+    })
+    .catch(function(){
+      domPending[key]={bodyFn:bodyFn, okMsg:okMsg, domains:doms};
+      setSaveSt();
+      return null;   // 호출부는 실패를 삼킨다 — 데이터는 대기 큐가 지킨다
+    });
+}
+var retryBusy=false;
+function retryPendingSaves(){
+  var keys=Object.keys(domPending);
+  if(retryBusy || !keys.length) return Promise.resolve(0);
+  retryBusy=true;
+  return Promise.all(keys.map(function(k){ var p=domPending[k]; return p?sendDomainPut(p.bodyFn, p.okMsg):null; }))
+    .then(function(){ retryBusy=false; return pendingCount(); }, function(){ retryBusy=false; return pendingCount(); });
+}
+try{
+  setInterval(retryPendingSaves, RETRY_MS);
+  window.addEventListener('online', retryPendingSaves);
+  window.addEventListener('beforeunload', function(e){        // 대기분이 있는 채로 창을 닫으면 경고
+    if(!pendingCount()) return; e.preventDefault(); e.returnValue=''; return '';
+  });
+}catch(e){}
+/* 저장 가드 바 — 상단에 상시 노출. (a) 아직 못 올린 편집, (b) 항목 수 상한 근접.
+ * 저장 상태(#syncst)는 상단바 작은 글씨라 실패를 놓치기 쉬웠다. 이건 사람이 조치할 수 있게 버튼을 준다. */
+var DOMAIN_LABEL={timetable:'일정표', roster:'홍보부 인원', protocol:'의전 일정', offtimes:'오프타임', shootlist:'촬영 리스트',
+  meals:'식사 메뉴', contacts:'협조 연락처', divisions:'분단 명단', mappos:'현장 위치', shoots:'촬영 요청',
+  events:'운영 일정', ttcats:'일정 종류', types:'콘텐츠 종류', marketing:'마케팅'};
+// 서버 saveDomain 의 cap 과 같은 값 — 넘으면 뒤쪽이 조용히 잘린다.
+var DOMAIN_CAPS={marketing:300, shootlist:500, types:60, events:300, timetable:400, roster:100, ttcats:60, contacts:300, divisions:60, protocol:200, shoots:200};
+function domLabel(d){ return DOMAIN_LABEL[d]||d; }
+/* ===== 길이 가드 (v0.9.233) =====
+ * 서버 clean* 는 저장할 때 필드를 slice 로 자르는데 입력 UI 에는 상한이 없었다. 그래서 긴 메모를 붙여넣으면
+ * 화면엔 다 보이다가 저장 뒤 다음 로드에서야 잘려 있었다. 같은 값을 클라에도 두고 **자를 때 알려 준다**. */
+var FIELD_MAX={
+  timetable:{title:200, place:120, memo:500, zone:30, cat:20},
+  roster:{name:60, role:80, duty:400, contact:80, channel:160},
+  protocol:{role:40, name:60, title:80, activity:300, place:120, memo:400},
+  contacts:{name:60, org:80, role:80, phone:40, email:120, memo:400},
+  divisions:{name:60, region:60, federations:400, leader:60, ops:60, safety:60, support:60},
+  shootlist:{title:200, place:120, point:400, owner:120, sched:40},
+  shoots:{zone:30, title:200, time:40, note:500},
+  events:{title:200, kind:20, owner:60, memo:1000},
+  meals:{b:400, l:400, d:400}
+};
+var __clipAt=0;
+function clipField(dom, field, val){
+  var max=(FIELD_MAX[dom]||{})[field];
+  val=(val==null?'':String(val));
+  if(!max || val.length<=max) return val;
+  var now=Date.now();
+  if(now-__clipAt>1500){ __clipAt=now; toast(domLabel(dom)+' — 이 칸은 '+max+'자까지 저장됩니다(넘는 부분은 잘립니다)'); }
+  return val.slice(0, max);
+}
+function domainsNearCap(){
+  return Object.keys(DOMAIN_CAPS).map(function(d){ var v=state[d]; return {dom:d, n:Array.isArray(v)?v.length:0, cap:DOMAIN_CAPS[d]}; })
+    .filter(function(x){ return x.n >= Math.floor(x.cap*0.9); });
+}
+function renderSaveGuard(){
+  var box=document.getElementById('save-guard'); if(!box) return;
+  var doms=unsavedDomains(), caps=domainsNearCap();
+  if(!doms.length && !caps.length){ box.style.display='none'; box.innerHTML=''; return; }
+  var html='';
+  if(doms.length) html+='<div class="sg-row sg-danger">'+icon('alert',15)+
+    '<span><b>저장되지 않은 변경 '+doms.length+'개 영역</b> — '+doms.map(domLabel).join(' · ')+
+    '. 자동으로 다시 시도하고 있습니다. <b>이 창을 닫으면 사라집니다.</b></span>'+
+    '<button class="btn xs solid" id="sg-retry">지금 다시 저장</button>'+
+    '<button class="btn xs ghost" id="sg-discard">서버 값으로 되돌리기</button></div>';
+  caps.forEach(function(c){ html+='<div class="sg-row sg-warn">'+icon('alert',15)+
+    '<span><b>'+domLabel(c.dom)+' '+c.n+'/'+c.cap+'건</b> — 저장 상한에 가까워졌습니다. 넘기면 뒤쪽 항목이 저장되지 않습니다.</span></div>'; });
+  box.innerHTML=html; box.style.display='';
+  var rt=document.getElementById('sg-retry'); if(rt) rt.onclick=function(){ setSt('저장 중…'); retryPendingSaves(); };
+  var dc=document.getElementById('sg-discard'); if(dc) dc.onclick=discardUnsaved;
+}
+// 서버 값으로 되돌리기 = 대기분을 버리고 새로 받는다. 로컬 백업도 그때 서버 값으로 갱신되므로 되돌릴 수 없다.
+function discardUnsaved(){
+  if(!confirm('저장되지 않은 변경을 버리고, 서버에 저장된 값으로 되돌릴까요?\n\n버린 내용은 복구할 수 없습니다.')) return;
+  domPending={};
+  try{ localStorage.removeItem(LS_UNSAVED); }catch(e){}   // 표식까지 지워야 다음 로드에서 되살아나지 않는다
+  try{ location.reload(); }catch(e){}
+}
 function debouncedPut(timerName, body, okMsg){
   saveLocal();
   var t=window[timerName]; if(t) clearTimeout(t);
@@ -696,18 +821,14 @@ function debouncedPut(timerName, body, okMsg){
   var fire=function(){
     if(window[timerName]){ clearTimeout(window[timerName]); window[timerName]=null; }
     clearFlush(timerName);
-    setSt('저장 중…');
-    return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-      body:JSON.stringify(Object.assign({author:authorVal(), client:CLIENT_ID, baseVer:pickBaseVer(body)}, body))})
-      .then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); })
-      .then(function(j){ if(!j){ setSt('저장 실패'); return; } var merged=onPutResponse(j); setSt(merged?'변경 병합됨':(okMsg||'저장됨'),true); })
-      .catch(function(){ setSt('저장 실패'); });
+    if(!pendingCount()) setSt('저장 중…');
+    return sendDomainPut(body, okMsg);
   };
   registerFlush(timerName, fire);
   window[timerName]=setTimeout(fire, 500);
 }
-function saveTimetable(){ debouncedPut('ttTimer', {timetable: state.timetable||[]}, '일정표 저장됨'); }
-function saveRoster(){ debouncedPut('rosterTimer', {roster: state.roster||[], teams: teamNames()}, 'R&R 저장됨'); }
+function saveTimetable(){ debouncedPut('ttTimer', DOMAIN_BODY.timetable, '일정표 저장됨'); }
+function saveRoster(){ debouncedPut('rosterTimer', DOMAIN_BODY.roster, 'R&R 저장됨'); }
 /* ===== 운영 일정 편집 모달 ===== */
 var evDraft=null;
 function openEvent(id){
@@ -1708,7 +1829,7 @@ function mealsData(){
   if(state.meals.crew){ Object.keys(state.meals.crew).forEach(function(d){ if(!state.meals.crew_n[d]) state.meals.crew_n[d]=state.meals.crew[d]; }); delete state.meals.crew; }   // 구버전 crew→crew_n 이관
   return state.meals;
 }
-function saveMeals(){ debouncedPut('mealTimer', {meals: mealsData()}, '식사 메뉴 저장됨'); }
+function saveMeals(){ debouncedPut('mealTimer', DOMAIN_BODY.meals, '식사 메뉴 저장됨'); }
 // 사용자 제공 메뉴표(대원 일반식·특별식 8/5~8/9 · 운영요원 8/3~8/9). 여러 품목은 줄바꿈으로 저장.
 function defaultMeals(){
   function C(){ return Array.prototype.slice.call(arguments).filter(Boolean).join('\n'); }
@@ -1755,7 +1876,9 @@ function renderMeals(){
     tr.innerHTML='<td class="mealdate">'+d.slice(5).replace('-','/')+' <span class="wd">('+wd+')</span></td>'+
       MEAL_COLS.map(function(c){ return '<td class="mk mealcell" contenteditable data-c="'+c[0]+'">'+esc(row[c[0]]||'')+'</td>'; }).join('');
     tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){
-      var data=mealsData(); if(!data[mealGroup][d]) data[mealGroup][d]={}; data[mealGroup][d][td.dataset.c]=(td.innerText||'').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'').trim(); saveMeals();
+      var data=mealsData(); if(!data[mealGroup][d]) data[mealGroup][d]={};
+      data[mealGroup][d][td.dataset.c]=clipField('meals', td.dataset.c, (td.innerText||'').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'').trim());
+      saveMeals();
     }); });
     tb.appendChild(tr);
   });
@@ -1763,7 +1886,7 @@ function renderMeals(){
 
 /* ===== 촬영 필요 행사·과정활동 리스트 (shootlist) — 콘텐츠 공간 ===== */
 function shootListData(){ if(!Array.isArray(state.shootlist)) state.shootlist=[]; return state.shootlist; }
-function saveShootList(){ debouncedPut('shootlistTimer', {shootlist: shootListData()}, '촬영 리스트 저장됨'); }
+function saveShootList(){ debouncedPut('shootlistTimer', DOMAIN_BODY.shootlist, '촬영 리스트 저장됨'); }
 // 촬영 필요 과정활동 목록(사용자 제공) — 진행예정일정 '상시'. 내용이 비어 있으면 시드 + 서버 저장.
 function defaultShootList(){
   function R(t,z,p){ return {title:t, place:z, point:p, owner:'', sched:'상시', doneDate:'', done:false}; }
@@ -1990,7 +2113,9 @@ function openShootDetail(m){
       '<div class="evfld"><label>촬영완료일</label><input id="sh-f-donedate" class="evinput" value="'+esc(m.doneDate||'')+'"></div>'+
     '</div>'+
     '<div class="evfld"><label class="nccheck"><input type="checkbox" id="sh-f-done"'+(m.done?' checked':'')+'><span><b>촬영 완료</b></span></label></div>';
-  function bind(id,f){ var el=document.getElementById(id); if(el) el.addEventListener('input',function(){ m[f]=this.value; saveShootList(); if(f==='title') document.getElementById('shoot-mtitle').textContent=this.value||'촬영 상세'; }); }
+  function bind(id,f){ var el=document.getElementById(id); if(!el) return;
+    var max=(FIELD_MAX.shootlist||{})[f]; if(max) el.setAttribute('maxlength', max);
+    el.addEventListener('input',function(){ m[f]=clipField('shootlist', f, this.value); saveShootList(); if(f==='title') document.getElementById('shoot-mtitle').textContent=this.value||'촬영 상세'; }); }
   bind('sh-f-title','title'); bind('sh-f-place','place'); bind('sh-f-point','point'); bind('sh-f-sched','sched'); bind('sh-f-donedate','doneDate');
   var asgBox=document.getElementById('sh-asg'); if(asgBox) asgBox.addEventListener('click',function(e){ var btn=e.target.closest('[data-sh-asg]'); if(!btn) return;
     var pid=btn.getAttribute('data-sh-asg');
@@ -2516,11 +2641,11 @@ function renderTTModal(){
     if(v==='cub1'){ ttDraft.track='cub'; ttDraft.batch=1; } else if(v==='cub2'){ ttDraft.track='cub'; ttDraft.batch=2; } else { ttDraft.track=''; ttDraft.batch=0; }
     trkSet.querySelectorAll('.trk').forEach(function(x){ x.classList.remove('on'); x.removeAttribute('style'); });
     btn.classList.add('on'); btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); });
-  b.querySelector('#tt-f-title').oninput=function(){ ttDraft.title=this.value; };
+  b.querySelector('#tt-f-title').oninput=function(){ ttDraft.title=clipField('timetable','title',this.value); };
   b.querySelector('#tt-f-nocover').onchange=function(){ ttDraft.noCover=this.checked; };
-  b.querySelector('#tt-f-place').oninput=function(){ ttDraft.place=this.value; };
+  b.querySelector('#tt-f-place').oninput=function(){ ttDraft.place=clipField('timetable','place',this.value); };
   var zsel=b.querySelector('#tt-f-zone'); if(zsel) zsel.onchange=function(){ ttDraft.zone=this.value; };
-  b.querySelector('#tt-f-memo').oninput=function(){ ttDraft.memo=this.value; };
+  b.querySelector('#tt-f-memo').oninput=function(){ ttDraft.memo=clipField('timetable','memo',this.value); };
   b.querySelectorAll('#tt-rundown .rd-in').forEach(function(inp){ inp.addEventListener('input',function(){ var i=+inp.dataset.i; if(ttDraft.rundown&&ttDraft.rundown[i]) ttDraft.rundown[i][inp.dataset.f]=inp.value; }); });
   b.querySelectorAll('#tt-rundown .rd-del').forEach(function(x){ x.onclick=function(){ var i=+x.dataset.i; if(ttDraft.rundown){ ttDraft.rundown.splice(i,1); renderTTModal(); } }; });
   var rdAdd=b.querySelector('#tt-rd-add'); if(rdAdd) rdAdd.onclick=function(){ if(!Array.isArray(ttDraft.rundown)) ttDraft.rundown=[]; ttDraft.rundown.push({time:'',title:'',note:''}); renderTTModal(); };
@@ -2589,7 +2714,68 @@ function deleteTTCur(){
 function addTT(){ openTT(null,'2026-08-05',9); }
 
 /* ===== 홍보부 인원 R&R + 배치(일정표 기반) 렌더 ===== */
+/* ===== 보드 백업 (v0.9.233) =====
+ * 그동안 exportJSON 은 콘텐츠 캘린더 슬롯+마케팅만 담았고, 실제 운영 데이터(일정표·의전·인원·오프타임·
+ * 촬영·식사·연락처·분단·지도 배치)는 **내보내기도 복원도 없었다**. 그래서 v0.9.229·v0.9.232 에서 확인된
+ * 소실이 전부 '복구 불가'였다. 14개 도메인을 파일 하나로 내려받고, 그 파일로 되돌릴 수 있게 한다. */
+var BACKUP_TAG='krjam-planning-board';
+function boardBackupData(){
+  var out={_meta:{app:BACKUP_TAG, version:(document.getElementById('app-version')||{}).textContent||'', exportedAt:new Date().toISOString(), by:authorVal()}};
+  DOMAIN_KEYS.forEach(function(k){ var v=state[k]; if(v!==undefined && v!==null) out[k]=v; });
+  out.teams=teamNames();
+  return out;
+}
+function exportBoardBackup(){
+  var data=boardBackupData(), txt=JSON.stringify(data,null,2);
+  var blob=new Blob([txt],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='krjam-planning-backup-'+todayISO()+'.json'; a.click();
+  setTimeout(function(){ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 4000);
+  var n=DOMAIN_KEYS.filter(function(k){ return data[k]!==undefined; }).length;
+  toast('백업 내려받음 — '+n+'개 영역');
+}
+// 복원 = 파일 내용으로 서버를 덮어쓴다. 되돌릴 수 없으므로 요약을 보여 주고 두 번 확인받는다.
+function importBoardBackup(file){
+  if(!file) return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    var data;
+    try{ data=JSON.parse(fr.result); }catch(e){ toast('백업 파일을 읽지 못했습니다(JSON 아님)'); return; }
+    if(!data||!data._meta||data._meta.app!==BACKUP_TAG){ toast('이 보드의 백업 파일이 아닙니다'); return; }
+    var doms=DOMAIN_KEYS.filter(function(k){ return data[k]!==undefined; });
+    if(!doms.length){ toast('백업에 복원할 데이터가 없습니다'); return; }
+    var summary=doms.map(function(k){ var v=data[k]; return '· '+domLabel(k)+' '+(Array.isArray(v)?(v.length+'건'):'설정'); }).join('\n');
+    if(!confirm('이 백업으로 보드를 복원합니다.\n\n만든 시각: '+(data._meta.exportedAt||'?')+'\n만든 사람: '+(data._meta.by||'?')+'\n\n'+summary+
+                '\n\n지금 보드의 값은 사라지고 백업 내용으로 바뀝니다. 계속할까요?')) return;
+    if(!confirm('되돌릴 수 없습니다. 정말 복원할까요?\n\n(먼저 지금 상태를 "백업 내려받기" 로 저장해 두는 것을 권합니다.)')) return;
+    doms.forEach(function(k){ state[k]=data[k]; });
+    if(data.teams&&typeof data.teams==='object') state.teams=Object.assign(defaultTeams(), data.teams);
+    saveLocal();
+    // 도메인별 저장 함수를 태워 재시도 큐·병합 판정을 그대로 쓴다(따로 PUT 하지 않는다)
+    var savers={timetable:saveTimetable, roster:saveRoster, protocol:saveProtocol, offtimes:saveOfftimes, shootlist:saveShootList,
+      meals:saveMeals, contacts:saveContacts, divisions:saveDivisions, mappos:saveMapPos, shoots:saveShoots,
+      events:saveEvents, ttcats:saveTtCats, types:saveTypes, marketing:saveMarketing};
+    doms.forEach(function(k){ var f=savers[k]; if(typeof f==='function') f(); });
+    renderAll();
+    toast('복원했습니다 — '+doms.length+'개 영역 저장 중');
+  };
+  fr.readAsText(file);
+}
+function wireBackupUI(){
+  var head=document.getElementById('backup-head'), box=document.getElementById('backup-box');
+  var staff=!!(Auth&&Auth.isStaff&&Auth.isStaff());
+  if(head) head.hidden=!staff;
+  if(box) box.hidden=!staff;
+  if(!staff) return;
+  var ex=document.getElementById('backup-export'); if(ex&&!ex._wired){ ex._wired=1; ex.onclick=exportBoardBackup; }
+  var im=document.getElementById('backup-import'), f=document.getElementById('backup-file');
+  if(im&&f&&!im._wired){ im._wired=1;
+    im.onclick=function(){ f.value=''; f.click(); };
+    f.onchange=function(){ importBoardBackup(f.files&&f.files[0]); };
+  }
+}
 function renderStaff(){
+  wireBackupUI();
   var rb=document.getElementById('roster-body');
   if(rb){ rb.innerHTML='';
     var people=rosterList();
@@ -2624,7 +2810,7 @@ function renderStaff(){
           '<td class="arr-cell">'+arriveCellHtml(m)+'</td>'+
           '<td>'+teamSel+'</td>'+
           '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
-        tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); }); });
+        tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=clipField('roster', td.dataset.f, td.textContent.trim()); saveRoster(); renderOfftimes(); renderDerivedPlacement(); }); });
         var arrCell=tr.querySelector('.arr-cell'); if(arrCell) wireArriveCell(arrCell, m);   // 입영 = 날짜+블록 칩(오프타임 톤). 변경 시 입영 전 담당 정리 + 그리드 앰버 갱신
         tr.querySelector('.team-sel').onchange=function(){ m.team=this.value; renderStaff(); saveRoster(); renderDerivedPlacement(); };
         tr.querySelector('.rm').onclick=function(){ state.roster=rosterList().filter(function(x){return x!==m;}); renderStaff(); saveRoster(); renderOfftimes(); renderDerivedPlacement(); };
@@ -2739,7 +2925,7 @@ function renderContacts(){
       '<td class="mk" contenteditable data-f="memo">'+esc(c.memo)+'</td>'+
       '<td class="conlinks">'+linkHtml+'</td>'+
       '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
-    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ c[td.dataset.f]=td.textContent.trim(); saveContacts(); }); });
+    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ c[td.dataset.f]=clipField('contacts', td.dataset.f, td.textContent.trim()); saveContacts(); }); });
     tr.querySelectorAll('.conlink[data-id]').forEach(function(el){ el.onclick=function(){ openTT(el.dataset.id); }; });
     tr.querySelector('.rm').onclick=function(){
       var sc=contactSchedules(c.id);
@@ -2811,11 +2997,11 @@ function zoneOptions(sel){
 function mapPosMap(){ if(!state.mappos) state.mappos={}; return state.mappos; }
 function mapZoneOf(pid){ var v=mapPosMap()[pid]; if(!v) return null; return typeof v==='string'?v:(v.zone||null); }   // 구버전(문자열)·신버전({zone,at}) 호환
 function mapAtOf(pid){ var v=mapPosMap()[pid]; return (v&&typeof v==='object')?v.at:null; }
-function saveMapPos(){ debouncedPut('mapTimer', {mappos: mapPosMap()}, '현장 위치 저장됨'); }
+function saveMapPos(){ debouncedPut('mapTimer', DOMAIN_BODY.mappos, '현장 위치 저장됨'); }
 function checkinAgo(at){ if(!at) return ''; var ms=Date.now()-new Date(at).getTime(); if(isNaN(ms)||ms<0) return ''; var m=Math.floor(ms/60000); if(m<1) return '방금'; if(m<60) return m+'분 전'; var h=Math.floor(m/60); if(h<24) return h+'시간 전'; return Math.floor(h/24)+'일 전'; }
 /* ===== 촬영 요청(shoots) ===== */
 function shootList(){ if(!state.shoots) state.shoots=[]; return state.shoots; }
-function saveShoots(){ debouncedPut('shootTimer', {shoots: shootList()}, '촬영 요청 저장됨'); }
+function saveShoots(){ debouncedPut('shootTimer', DOMAIN_BODY.shoots, '촬영 요청 저장됨'); }
 function addShoot(){ shootList().unshift({id:mkid(),zone:'',title:'',time:'',note:'',status:'open',assignees:[],by:(Auth.name||Auth.username||''),createdAt:new Date().toISOString()}); renderShootList(); renderSiteMapMarkers(); saveShoots(); }
 function smMinLabel(mi){ var h=Math.floor(mi/60), m=mi%60; return (h<10?'0':'')+h+':'+(m<10?'0':'')+m; }
 var smSel=null, smByZone={}, smPopZone=null, smGaps=[];
@@ -2992,7 +3178,7 @@ function renderSiteSelbar(){
 }
 
 /* ===== render orchestration ===== */
-function renderAll(){ renderHeader(); renderCalendar(); renderFilters(); renderBoard(); renderMarketing(); if(curViewMode==='dashboard') renderDashboard(); }
+function renderAll(){ renderHeader(); renderCalendar(); renderFilters(); renderBoard(); renderMarketing(); renderSaveGuard(); if(curViewMode==='dashboard') renderDashboard(); }
 function renderAfterEdit(k,s,now){
   // refresh overview (calendar + board); save the affected card to server
   renderCalendar(); renderBoard();
@@ -3029,7 +3215,7 @@ function divisionList(){
   state.divisions.forEach(function(e){ if(e && (e.federations==null||e.federations==='')){ if(!defs){ defs={}; defaultDivisions().forEach(function(d){defs[d.name]=d;}); } var dd=defs[e.name]; if(dd&&dd.federations) e.federations=dd.federations; } if(e&&e.federations==null) e.federations=''; });
   return state.divisions;
 }
-function saveDivisions(){ debouncedPut('divTimer', {divisions: state.divisions||[]}, '분단 명단 저장됨'); }
+function saveDivisions(){ debouncedPut('divTimer', DOMAIN_BODY.divisions, '분단 명단 저장됨'); }
 function addDivision(){ divisionList().push({id:mkid(),name:'',region:'',leader:'',ops:'',safety:'',support:''}); renderDivisions(); saveDivisions(); }
 var divSearchQ='', divSearchTimer=null;
 function divFeds(m){ return (m.federations||'').split(',').map(function(s){return s.trim();}).filter(Boolean); }
@@ -3051,7 +3237,7 @@ function renderDivisions(){
       '<td class="mk" contenteditable data-f="safety">'+esc(m.safety||'')+'</td>'+
       '<td class="mk" contenteditable data-f="support">'+esc(m.support||'')+'</td>'+
       '<td><button class="rm" title="삭제">'+icon('trash',14)+'</button></td>';
-    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveDivisions(); }); });
+    tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=clipField('divisions', td.dataset.f, td.textContent.trim()); saveDivisions(); }); });
     tr.querySelectorAll('.fedx').forEach(function(x){ x.onclick=function(){ setDivFeds(m, divFeds(m).filter(function(y){return y!==x.dataset.f;})); saveDivisions(); renderDivisions(); }; });
     var addIn=tr.querySelector('.fedadd'); if(addIn){ addIn.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(e.isComposing||e.keyCode===229) return; e.preventDefault(); var v=this.value.trim(); if(v){ var arr=divFeds(m); if(arr.indexOf(v)<0){ arr.push(v); setDivFeds(m,arr); saveDivisions(); } } this.value=''; renderDivisions(); } }); }
     tr.querySelector('.rm').onclick=function(){ state.divisions=divisionList().filter(function(x){return x!==m;}); renderDivisions(); saveDivisions(); };
@@ -3229,7 +3415,7 @@ function renderProtAssignModal(){
   wireProtAssignChips(document.getElementById('pra-chips'), praCur, function(){ renderProtAssignModal(); afterProtAssignChange(); });
 }
 function closeProtAssign(){ var s=document.getElementById('pra-scrim'); if(s) s.classList.remove('show'); praCur=null; }
-function saveProtocol(){ debouncedPut('protoTimer', {protocol: state.protocol||[]}, '의전 일정 저장됨'); }
+function saveProtocol(){ debouncedPut('protoTimer', DOMAIN_BODY.protocol, '의전 일정 저장됨'); }
 function addProtocol(){ protocolList().push({id:mkid(),role:'',name:'',title:'',date:'',time:'',activity:'',place:'',memo:''}); renderProtocol(); saveProtocol(); }
 function refreshProtocolViews(){ saveProtocol(); renderCalendar(); if(typeof renderTimetable==='function') renderTimetable(); }
 // 의전 장소 = 현장 지도 구역(ZONES) 라벨을 공유. 기존에 입력된 커스텀 장소는 상단에 보존.
@@ -3257,7 +3443,7 @@ function renderProtocol(){
     var da=(a.date||'')+(a.time||''), db=(b.date||'')+(b.time||''); return da<db?-1:da>db?1:0;
   });
   function evEditors(tr,m){
-    tr.querySelectorAll('td.mk:not(.pr-person)').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=td.textContent.trim(); saveProtocol(); if(td.dataset.f==='activity') refreshProtocolViews(); }); });
+    tr.querySelectorAll('td.mk:not(.pr-person)').forEach(function(td){ td.addEventListener('blur',function(){ m[td.dataset.f]=clipField('protocol', td.dataset.f, td.textContent.trim()); saveProtocol(); if(td.dataset.f==='activity') refreshProtocolViews(); }); });
     var dt=tr.querySelector('input.prin[data-f="date"]'); if(dt) dt.addEventListener('change',function(){ m.date=this.value; saveProtocol(); refreshProtocolViews(); });
     var pl=tr.querySelector('select.prplace'); if(pl) pl.addEventListener('change',function(){ m.place=this.value; saveProtocol(); refreshProtocolViews(); });
     var prtH=tr.querySelector('.prtime-h'), prtM=tr.querySelector('.prtime-m'), prtEH=tr.querySelector('.prtime-eh'), prtEM=tr.querySelector('.prtime-em');
@@ -4440,6 +4626,7 @@ function init(){
   wireAuthGate();
   if(Auth.authed()) loadNews();
   loadLocal();
+  restoreUnsaved();      // 지난 세션에서 서버로 못 올린 도메인 — 로컬 값을 지키고 다시 올린다(applyServer 가 덮지 않게 GET 전에)
   mergeSeedMeetings();   // 잼버리 기간 회의를 운영 일정에 보장
   // 정적 라인 아이콘 주입
   document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=icon(el.getAttribute('data-ic'), +(el.getAttribute('data-ic-size')||16)); });

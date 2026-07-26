@@ -33,10 +33,24 @@
 
   // 강제 새로고침 — 브라우저/엣지 캐시를 우회한다. Cache API·서비스워커 정리 후
   // 캐시버스트 파라미터(_cb)로 새 URL을 열어 HTML 을 반드시 새로 받는다(그 HTML 이 최신 ?v= 자산을 참조).
-  var reloading = false;
+  // 앱이 아직 서버에 못 올린 편집을 들고 있는지(저장 실패·재시도 대기). 있으면 새로고침하면 안 된다.
+  function unsavedCount() {
+    try { return (typeof window.hasUnsavedWork === "function") ? (window.hasUnsavedWork() || 0) : 0; } catch (e) { return 0; }
+  }
+  var reloading = false, held = false;
   function hardReload() {
     if (reloading) return; reloading = true;
     function go() {
+      /* 강제 새로고침이 저장 실패분을 삼키던 문제(v0.9.233): flush 후에도 대기분이 남아 있으면
+       * 새로고침을 미루고 계속 재시도한다 — 새로고침하면 서버 값이 로컬 백업까지 덮어써 복구가 불가능해진다. */
+      if (unsavedCount()) {
+        reloading = false;
+        var sub = document.getElementById("vw-sub");
+        if (sub) sub.textContent = "저장되지 않은 변경이 있어 새로고침을 미룹니다 · 저장되면 진행";
+        if (!held) { held = true; }
+        setTimeout(hardReload, 5000);   // 저장이 성공하면 그때 진행
+        return;
+      }
       var href = location.href.split("#")[0].replace(/([?&])_cb=\d+/g, "$1").replace(/[?&]+$/, "");
       var sep = href.indexOf("?") >= 0 ? "&" : "?";
       try { location.replace(href + sep + "_cb=" + Date.now()); }

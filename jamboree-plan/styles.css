@@ -227,6 +227,23 @@ h1{font-size:var(--fs-7);font-weight:800;margin:0 0 6px;letter-spacing:-.02em;li
   .bn:active{transform:scale(.96)}
   .wrap{padding-bottom:calc(var(--h-botnav) + 34px + env(safe-area-inset-bottom))}
 }
+/* ---- 저장 가드 바 (v0.9.233) — 못 올린 편집·상한 근접을 사람이 조치하게 ---- */
+.saveguard{display:flex;flex-direction:column;gap:8px;margin:12px 0 0}
+.sg-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 13px;border-radius:var(--r-2);
+        font-size:var(--fs-1);color:var(--ink-2);border:1px solid transparent}
+.sg-row span{flex:1;min-width:220px}
+.sg-row .ic{flex:0 0 auto}
+.sg-danger{background:var(--danger-bg,rgba(192,73,47,.10));border-color:rgba(192,73,47,.35)}
+.sg-danger .ic,.sg-danger b{color:var(--danger)}
+.sg-warn{background:var(--st-draft-bg);border-color:transparent}
+.sg-warn .ic,.sg-warn b{color:var(--st-draft)}
+.st.warn{color:var(--danger);font-weight:800}
+
+/* ---- 보드 백업 (v0.9.233) ---- */
+.backupbox{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-2);padding:14px 15px}
+.backupbox .note{margin:0 0 11px}
+.backup-acts{display:flex;gap:8px;flex-wrap:wrap}
+
 /* ---- sections ---- */
 section{margin-top:34px}
 .sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}

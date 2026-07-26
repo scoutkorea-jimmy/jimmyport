@@ -53,6 +53,15 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-26 (3) — 데이터 안정성 6종 (v0.9.233)
+대상: `/krjam-planning`. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.95.
+- **이상 없음 확인**: 서버 `clean*` vs 클라 필드 **8개 도메인 전수 대조 → 유실 필드 0건**(arrive 계열 재발 없음).
+- **저장 실패가 조용한 유실이던 문제**: 슬롯 저장에만 있던 재시도 큐를 14개 도메인에도 도입(`sendDomainPut`·`domPending`·15초/`online` 재시도). raw fetch 였던 marketing·types·events 도 통일.
+- **미저장 보호**: 대기 중 도메인은 `applyServer` 가 덮지 않음 + **localStorage 표식**(`jamboree-plan:unsaved`)으로 새로고침 후에도 `restoreUnsaved()` 가 로컬 값을 지키고 재전송. 저장 가드 바(다시 저장/되돌리기) · `beforeunload` 경고 · version-watch 강제 새로고침 보류.
+- **보드 백업 신설**(인원 화면, 홍보부·관리자 전용): 14개 도메인 JSON 내보내기/복원 — 그동안 운영 데이터엔 복구 수단이 아예 없었다.
+- **길이·개수 가드**: 서버 상한과 같은 `FIELD_MAX` 로 자를 때 알림, 항목 수 90% 도달 시 경고.
+- 상태: **회귀 클라 132/132 · nav 19/19 · jebo 29/29 · 서버 16/16 통과, 콘솔 0, 프로덕션 v0.9.233 배포.**
+
 ### 2026-07-26 (2) — 기능 오류 조사 → 6건 수정 (v0.9.232)
 대상: `/krjam-planning`. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.94.
 - 사용자 "검증이 필요한 것들을 찾아봐" → "검증하고 개선해". 6건 발견, **4건은 실제 Chrome 재현 후** 수정.

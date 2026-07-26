@@ -78,7 +78,9 @@ const SEED = () => {
     if (u.startsWith('/api/r2?action=abort')) { window.__r2.aborted++; return J({ ok: true }); }
     if (u.startsWith('/api/image') || u.startsWith('/api/file')) return J({ ok: true, url: '/api/file?id=x', name: 'f', ct: 'application/pdf' });
     if (u.startsWith('/api/jamboree-plan')) {
-      if (o && o.method === 'PUT') { window.__put.push(JSON.parse(o.body)); return J({ ok: true }); }
+      if (o && o.method === 'PUT') { window.__put.push(JSON.parse(o.body));
+        if (window.__failPut) return Promise.reject(new TypeError('Failed to fetch'));   // 저장 실패 재현용 스위치
+        return J({ ok: true }); }
       return J({ ok: true, versions: { timetable: 'V1', roster: 'V1', contacts: 'V1', divisions: 'V1', protocol: 'V1', ttcats: 'V1', events: 'V1', types: 'V1', marketing: 'V1', meals: 'V1', shootlist: 'V1', mappos: 'V1', offtimes: 'V1', shoots: 'V1' },
         types: [], marketing: [], contacts: [], divisions: [], mappos: {}, shoots: [], ttcats: [], offtimes: {},
         // ⚠️ versions 에 도메인이 있으면 = '이미 저장된 보드' → v0.9.232 부터 시드를 다시 주입하지 않는다.
@@ -812,6 +814,70 @@ const SEED = () => {
   // 가이드 ④(CLAUDE.md 최우선 규칙): 최소 13px · 버튼 ≥40px · 카드 중첩 금지 · 음수 자간 -3% 이내.
   // v0.9.205 는 "밀집 그리드가 깨진다"며 10.5~11px 에서 멈췄고, 그 후퇴를 잡아줄 테스트가 없어 그대로 남았다.
   // 눈으로 보면 놓치므로 렌더된 값으로 전 뷰를 훑는다. 실패 시 어느 요소인지까지 찍는다.
+  /* ===== 저장 신뢰성 (v0.9.233) =====
+   * 도메인 저장에는 실패 재시도가 없어, 네트워크가 한 번 흔들리면 '저장 실패' 한 줄만 남기고 편집이 사라졌다
+   * (새로고침 시 applyServer 가 서버 값으로 화면과 localStorage 백업까지 덮어씀). 그 경로를 전부 고정한다. */
+  console.log('\n[저장 신뢰성]');
+  const savefail = await page.evaluate(async () => {
+    window.__failPut = true;
+    rosterById('r1').name = '현장 취재팀장';
+    saveRoster();
+    await window.flushPendingSaves();
+    await new Promise((r) => setTimeout(r, 200));
+    return {
+      pending: pendingCount(),
+      unsaved: unsavedDomains(),
+      st: (document.getElementById('syncst') || {}).textContent || '',
+      marker: localStorage.getItem('jamboree-plan:unsaved') || '',
+      guard: (document.getElementById('save-guard') || {}).style ? document.getElementById('save-guard').style.display !== 'none' : false,
+      hasHook: typeof window.hasUnsavedWork === 'function' && window.hasUnsavedWork() > 0,
+    };
+  });
+  // flush 는 그때까지 밀려 있던 다른 도메인도 함께 발사하므로 대기 건수는 1건 이상이면 된다(roster 는 반드시 포함).
+  chk('저장 실패 → 대기 큐 등록 + 상태 표시', savefail.pending >= 1 && savefail.unsaved.indexOf('roster') >= 0 && /저장 대기 \d+건/.test(savefail.st),
+    savefail.pending + '건 [' + savefail.unsaved.join(',') + '] · ' + savefail.st);
+  chk('대기 도메인을 localStorage 에 표식(새로고침해도 살아남게)', /roster/.test(savefail.marker), savefail.marker);
+  chk('저장 가드 바 노출 + version-watch 훅 노출', savefail.guard === true && savefail.hasHook === true, '바=' + savefail.guard + ' · 훅=' + savefail.hasHook);
+  const noOverwrite = await page.evaluate(() => {
+    // 대기 중인 도메인은 서버 응답이 와도 덮이지 않아야 한다(예전엔 여기서 작업분이 사라졌다)
+    applyServer({ roster: [{ id: 'r1', name: '김기자', role: '취재', team: 't1' }], versions: { roster: 'V9' } });
+    return { name: rosterById('r1').name };
+  });
+  chk('대기 중인 도메인은 서버 값으로 덮이지 않음', noOverwrite.name === '현장 취재팀장', noOverwrite.name);
+  const recovered = await page.evaluate(async () => {
+    window.__failPut = false;
+    await retryPendingSaves();
+    await new Promise((r) => setTimeout(r, 150));
+    const last = window.__put.filter((p) => p.roster).slice(-1)[0];
+    return { pending: pendingCount(), marker: localStorage.getItem('jamboree-plan:unsaved'), sent: last && last.roster[0] && last.roster[0].name };
+  });
+  chk('재시도 성공 → 큐 비움 + 표식 제거 + 최신 값 전송', recovered.pending === 0 && !recovered.marker && recovered.sent === '현장 취재팀장',
+    '대기 ' + recovered.pending + ' · 표식=' + (recovered.marker || '없음') + ' · 보냄=' + recovered.sent);
+  const backup = await page.evaluate(() => {
+    const d = boardBackupData();
+    return { app: d._meta && d._meta.app, doms: DOMAIN_KEYS.filter((k) => d[k] !== undefined).length, hasTeams: !!d.teams };
+  });
+  chk('보드 백업에 운영 도메인 전체 포함', backup.app === 'krjam-planning-board' && backup.doms >= 10 && backup.hasTeams, backup.doms + '개 영역');
+  const clip = await page.evaluate(() => ({
+    memo: clipField('protocol', 'memo', 'x'.repeat(600)).length,     // 서버 cleanProtocol memo 400
+    ttmemo: clipField('timetable', 'memo', 'x'.repeat(900)).length,  // cleanTT memo 500
+    short: clipField('protocol', 'memo', '짧은 메모').length,
+    unknown: clipField('protocol', 'nosuch', 'x'.repeat(900)).length,
+  }));
+  chk('긴 텍스트는 서버 상한으로 자르고 알림', clip.memo === 400 && clip.ttmemo === 500 && clip.short === 5 && clip.unknown === 900,
+    '의전메모 ' + clip.memo + ' · 일정메모 ' + clip.ttmemo);
+  const capwarn = await page.evaluate(() => {
+    const keep = state.divisions;
+    state.divisions = Array.from({ length: 55 }, (_, i) => ({ id: 'd' + i, name: 'x' }));   // cap 60 → 90% 이상
+    const near = domainsNearCap().filter((c) => c.dom === 'divisions').length;
+    renderSaveGuard();
+    const shown = /분단 명단 55\/60/.test((document.getElementById('save-guard') || {}).textContent || '');
+    state.divisions = keep; renderSaveGuard();
+    const gone = /분단 명단/.test((document.getElementById('save-guard') || {}).textContent || '');
+    return { near, shown, gone };
+  });
+  chk('항목 수 상한 90% 도달 → 경고 배너', capwarn.near === 1 && capwarn.shown === true && capwarn.gone === false, '감지=' + capwarn.near + ' · 표시=' + capwarn.shown);
+
   console.log('\n[디자인 — 타이포·컨트롤]');
   const SWEEP = ['dashboard', 'calendar', 'list', 'timetable', 'staff', 'protocol', 'library', 'tips', 'meals', 'contacts', 'news', 'press'];
   const viol = { small: [], btn: [], track: [], nest: [] };
