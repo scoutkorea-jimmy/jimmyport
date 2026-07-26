@@ -23,11 +23,18 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
 // 요소 영역을 캡처해 **실제 픽셀**로 명암비를 잰다(가장 밝은 픽셀=바탕, 가장 어두운=글자).
 // 움직이는 배경·그라데이션 글자는 눈으로 못 잡으므로 이 방식이 유일하게 확실하다.
 async function contrastOf(page, sel) {
+  // ⚠️ clip 이 뷰포트를 조금이라도 벗어나면 page.screenshot 이 예외를 던진다.
+  //    (카드가 화면 아래로 걸치면 간헐적으로 터졌다 — v0.9.245 실제 사고)
+  //    보이는 곳으로 스크롤한 뒤, 뷰포트 안으로 잘라서 잰다.
   const box = await page.evaluate((s) => {
     const e = document.querySelector(s); if (!e) return null;
+    e.scrollIntoView({ block: 'center', inline: 'nearest' });
     const r = e.getBoundingClientRect();
-    if (r.width < 2 || r.height < 2) return null;
-    return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+    const x = Math.max(0, Math.floor(r.x)), y = Math.max(0, Math.floor(r.y));
+    const w = Math.min(Math.ceil(r.right), window.innerWidth) - x;
+    const h = Math.min(Math.ceil(r.bottom), window.innerHeight) - y;
+    if (w < 2 || h < 2) return null;
+    return { x, y, width: w, height: h };
   }, sel);
   if (!box) return null;
   const shot = await page.screenshot({ clip: box, encoding: 'base64' });

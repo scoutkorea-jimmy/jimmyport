@@ -334,6 +334,20 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
     const r = document.getElementById('btnNext').getBoundingClientRect();
     return r.height >= 40 && r.width >= 36;
   }));
+  // v0.9.245 실제 사고: 상단 브랜드 링크가 36px 였다(엠블럼 30 + 패딩 6).
+  // 개별 요소만 보지 말고 **보이는 조작 요소를 전수**로 재야 이런 게 걸린다.
+  chk('모바일 조작 요소 전부 40px 이상', await p3.evaluate(() => {
+    const bad = [];
+    document.querySelectorAll('a,button').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity <= 0.1) return;
+      if (r.height < 40) bad.push(Math.round(r.height) + 'px ' + (el.className || el.id || el.tagName));
+    });
+    window.__tapBad = bad;
+    return bad.length === 0;
+  }), await p3.evaluate(() => (window.__tapBad || []).slice(0, 3).join(' | ')));
   await p3.click('#btnToc'); await wait(320);
   chk('목차가 좌측 드로어로 열림', await p3.evaluate(() => {
     const t = document.getElementById('toc');

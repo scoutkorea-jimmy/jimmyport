@@ -66,8 +66,10 @@ button{ font-family:inherit; }
   padding:0 14px; background:var(--surface);
   border-bottom:1px solid var(--line);
 }
+/* min-height 필수 — 이건 '/' 로 가는 링크다. 모바일에서 엠블럼(30px)+패딩만으로는
+   36px 라 터치 타깃 하한(40px)을 깬다(라이브 실측에서 잡혔다). */
 .brand{
-  flex:1; min-width:0; display:flex; align-items:center; gap:11px;
+  flex:1; min-width:0; min-height:40px; display:flex; align-items:center; gap:11px;
   text-decoration:none; color:inherit; border-radius:var(--r-1); padding:3px 6px 3px 3px;
   transition:background var(--ease);
 }
