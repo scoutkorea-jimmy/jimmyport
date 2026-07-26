@@ -181,6 +181,22 @@ async function contrastOf(page, sel) {
   chk('모바일 카드 터치 타깃 충분', await m.evaluate(() =>
     [...document.querySelectorAll('.card')].every((a) => a.getBoundingClientRect().height >= 44)));
   chk('모바일은 불티를 줄임(6개)', await m.evaluate(() => document.querySelectorAll('.embers i').length) === 6);
+  // v0.9.246 실제 사고: 칩 11.5px · 푸터 12px/16px 높이. 개별 요소가 아니라 **전수 스윕**으로 잡는다.
+  const sweep = await m.evaluate(() => {
+    const small = [], tap = [];
+    document.querySelectorAll('*').forEach((el) => {
+      const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity <= 0.1) return;
+      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length);
+      if (own && parseFloat(cs.fontSize) < 13) small.push(parseFloat(cs.fontSize) + 'px ' + (el.className || el.tagName));
+      if ((el.tagName === 'BUTTON' || el.tagName === 'A') && r.height < 40)
+        tap.push(Math.round(r.height) + 'px ' + (el.className || el.tagName));
+    });
+    return { small: [...new Set(small)].slice(0, 4), tap: [...new Set(tap)].slice(0, 4) };
+  });
+  chk('본문·라벨 전부 13px 이상', sweep.small.length === 0, sweep.small.join(' | '));
+  chk('조작 요소 전부 40px 이상', sweep.tap.length === 0, sweep.tap.join(' | '));
   chk('모바일에선 기울기 미적용', await m.evaluate(() =>
     !document.querySelector('.card').style.getPropertyValue('--rx')));
 

@@ -199,13 +199,17 @@
 
     .name{font:700 17px 'Bricolage Grotesque';letter-spacing:-.01em}
     .desc{color:var(--muted);font-size:13.5px;line-height:1.5}
-    .tag{display:inline-block;margin-top:12px;font:600 11.5px 'Hanken Grotesk';color:#5B2EA6;
-      background:var(--brand-soft);border-radius:999px;padding:4px 11px;transition:background .26s,color .26s}
+    /* 폰트 13px 하한(ui-ux.md) — 11.5px 였다가 라이브 실측에서 걸렸다 */
+    .tag{display:inline-block;margin-top:12px;font:600 13px 'Hanken Grotesk';color:#5B2EA6;
+      background:var(--brand-soft);border-radius:999px;padding:5px 12px;transition:background .26s,color .26s}
     .card:hover .tag{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff}
 
     /* --faint 는 2.22 로 본문에 쓸 수 없는 값이었다(12px 링크라 4.5 필요) */
-    .foot{margin-top:32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:#565064;font-size:12px}
-    .foot a{color:#4d475c;text-decoration:none;font-weight:600;transition:color .2s}
+    /* 12px·16px 높이였다 — 폰트 13px 하한과 터치 타깃 40px 을 둘 다 맞춘다 */
+    .foot{margin-top:26px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#565064;font-size:13px}
+    .foot a{display:inline-flex;align-items:center;min-height:40px;padding:0 8px;border-radius:8px;
+      color:#4d475c;text-decoration:none;font-weight:600;transition:color .2s,background .2s}
+    .foot a:hover{background:rgba(255,255,255,.6)}
     .foot a:hover{color:var(--brand)}
 
     /* ══ 이동 중 로딩 표시 ═══════════════════════════════════ */
