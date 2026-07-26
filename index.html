@@ -114,14 +114,18 @@
 
     /* 글자 하나씩 떠오르는 타이틀 + 흐르는 그라데이션 */
     h1{font:700 28px 'Bricolage Grotesque';letter-spacing:-.02em;display:flex;flex-wrap:wrap}
+    /* ⚠️ 그라데이션 정지점은 **전부 어두운 값**이어야 한다.
+       밝은 보라(#8B5CF6)·파랑(#3D8FD1)을 넣었더니 흐름이 그 구간을 지날 때
+       제목 대비가 2.63:1 까지 떨어졌다(실측). 지금 값은 최저 5.3:1. */
     h1 b{font-weight:700;display:inline-block;opacity:0;animation:rise .5s var(--ease) forwards;
-      background:linear-gradient(100deg,var(--brand) 10%,var(--brand-2) 30%,var(--sky) 50%,var(--brand-2) 70%,var(--brand) 90%);
+      background:linear-gradient(100deg,#3D1D6E 8%,#5B2EA6 30%,#1F4A80 50%,#5B2EA6 70%,#3D1D6E 92%);
       background-size:280% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
       animation-name:rise,titleflow;animation-duration:.5s,7s;animation-iteration-count:1,infinite;
       animation-timing-function:var(--ease),linear;animation-fill-mode:forwards,none}
     @keyframes titleflow{to{background-position:280% 0}}
     h1 .sp{width:.32em}
-    .sub{color:var(--muted);font-size:14.5px;margin:9px 0 32px;line-height:1.5}
+    /* 배경이 움직이는 색면이라 --muted(4.14) 로는 모자란다 — 실측 기준으로 낮춰 잡은 값 */
+    .sub{color:#494256;font-size:14.5px;margin:9px 0 32px;line-height:1.5}
 
     .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:17px}
     @media(max-width:620px){.grid{grid-template-columns:1fr}body{padding-top:36px}}
@@ -202,8 +206,9 @@
       background:var(--brand-soft);border-radius:999px;padding:4px 11px;transition:background .26s,color .26s}
     .card:hover .tag{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff}
 
-    .foot{margin-top:32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:var(--faint);font-size:12px}
-    .foot a{color:var(--faint);text-decoration:none;font-weight:600;transition:color .2s}
+    /* --faint 는 2.22 로 본문에 쓸 수 없는 값이었다(12px 링크라 4.5 필요) */
+    .foot{margin-top:32px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;color:#565064;font-size:12px}
+    .foot a{color:#4d475c;text-decoration:none;font-weight:600;transition:color .2s}
     .foot a:hover{color:var(--brand)}
 
     /* ══ 이동 중 로딩 표시 ═══════════════════════════════════ */

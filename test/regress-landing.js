@@ -1,4 +1,4 @@
-/* / 랜딩 허브 회귀 (v0.9.240)
+/* / 랜딩 허브 회귀 (v0.9.241)
    확인 대상: 도구 카드가 전부 살아있는가 · 연출이 레이아웃/클릭을 망치지 않는가 ·
    이동 시 로딩 표시가 뜨는가 · 모션 줄이기에서 장식이 꺼지는가 · 콘솔 에러 0.
    실행: NODE_PATH=<scratch>/node_modules node test/regress-landing.js */
@@ -19,6 +19,30 @@ const server = http.createServer((req, res) => {
 const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d ? ' — ' + d : '')); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', 'https://bpmedia.net/'];
+
+// 요소 영역을 캡처해 **실제 픽셀**로 명암비를 잰다(가장 밝은 픽셀=바탕, 가장 어두운=글자).
+// 움직이는 배경·그라데이션 글자는 눈으로 못 잡으므로 이 방식이 유일하게 확실하다.
+async function contrastOf(page, sel) {
+  const box = await page.evaluate((s) => {
+    const e = document.querySelector(s); if (!e) return null;
+    const r = e.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return null;
+    return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+  }, sel);
+  if (!box) return null;
+  const shot = await page.screenshot({ clip: box, encoding: 'base64' });
+  return page.evaluate(async (b64) => {
+    const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    const L = (r, g, b) => { const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    let hi = -1, lo = 2;
+    for (let i = 0; i < d.length; i += 4) { const l = L(d[i], d[i + 1], d[i + 2]); if (l > hi) hi = l; if (l < lo) lo = l; }
+    return +((hi + 0.05) / (lo + 0.05)).toFixed(2);
+  }, shot);
+}
 
 (async () => {
   await new Promise((r) => server.listen(PORT, r));
@@ -99,23 +123,8 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
     getComputedStyle(document.querySelector('.card:hover')).zIndex === '3'));
   // 후광이 카드 뒤에서 배어 나와 본문 대비를 깎지 않는지 **실제 픽셀로** 잰다.
   // (backdrop-filter 의 saturate 때문에 한 번 4.45 까지 떨어졌던 지점)
-  const dbox = await p.evaluate(() => {
-    const d = document.querySelector('.card:hover .desc').getBoundingClientRect();
-    return { x: Math.round(d.x), y: Math.round(d.y), width: Math.round(d.width), height: Math.round(d.height) };
-  });
-  const shot = await p.screenshot({ clip: dbox, encoding: 'base64' });
-  const contrast = await p.evaluate(async (b64) => {
-    const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
-    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
-    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
-    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
-    const L = (r, g, b) => { const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
-      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
-    let hi = -1, lo = 2;
-    for (let i = 0; i < d.length; i += 4) { const l = L(d[i], d[i + 1], d[i + 2]); if (l > hi) hi = l; if (l < lo) lo = l; }
-    return +((hi + 0.05) / (lo + 0.05)).toFixed(2);
-  }, shot);
-  chk('호버 상태 본문 대비 4.5 이상', contrast >= 4.5, '측정 ' + contrast);
+  const hoverContrast = await contrastOf(p, '.card:hover .desc');
+  chk('호버 상태 본문 대비 4.5 이상', hoverContrast >= 4.5, '측정 ' + hoverContrast);
 
   await p.mouse.move(5, 5); await wait(220);
   chk('벗어나면 기울기 복귀', await p.evaluate(() =>
@@ -132,6 +141,24 @@ const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', '
   }));
   chk('누른 카드에 로딩 상태 표시', await p.evaluate(() =>
     document.querySelector('.card').classList.contains('loading')));
+
+  // ── 텍스트 가시성 ── 움직이는 배경 위에서도 읽혀야 한다
+  console.log('\n[텍스트 가시성 — 실제 픽셀 측정]');
+  await p.mouse.move(5, 5); await wait(300);
+  // 그라데이션이 흐르는 제목은 **주기 전체**에서 확인한다.
+  // (밝은 보라·파랑을 정지점에 넣었더니 특정 구간에서 2.63:1 까지 떨어졌다 — v0.9.241 실제 사고)
+  let worstTitle = 99;
+  for (let i = 0; i < 5; i++) {
+    const c = await contrastOf(p, 'h1');
+    if (c !== null && c < worstTitle) worstTitle = c;
+    await wait(1500);
+  }
+  chk('제목 대비 4.5 이상 (흐름 전 구간)', worstTitle >= 4.5, '최저 ' + worstTitle);
+  for (const [label, sel, min] of [['부제', '.sub', 4.5], ['카드 제목', '.card .name', 4.5],
+                                   ['카드 본문', '.card .desc', 4.5], ['푸터 링크', '.foot a', 3.5]]) {
+    const c = await contrastOf(p, sel);
+    chk(label + ' 대비 ' + min + ' 이상', c !== null && c >= min, '측정 ' + c);
+  }
 
   console.log('\n[모바일 390x844]');
   const m = await b.newPage();
