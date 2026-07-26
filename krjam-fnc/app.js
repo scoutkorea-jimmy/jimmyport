@@ -125,6 +125,11 @@
   /* ── 페이지 넘김 ─────────────────────────────────────────── */
   function goTo(n, animate) {
     n = Math.max(1, Math.min(TOTAL, n | 0));
+    if (scrollMode) {                       // 이어보기: 해당 쪽으로 스크롤
+      if (n !== page) { page = n; render(); }
+      scrollToPage(n, !!animate);
+      return;
+    }
     if (n === page || turning) return;
     if (!animate || reduceMotion) { page = n; resetZoom(false); render(); return; }
     turn(n);
@@ -185,6 +190,84 @@
     im.src = src;
     if (im.complete) go(); else window.setTimeout(go, 400);
   }
+
+  /* ── 이어보기(세로 스크롤) — 터치 기기 전용 ───────────────
+     모바일에서는 한 장씩 넘기는 것보다 문서처럼 죽 내려 읽는 편이 빠르다.
+     31쪽을 세로로 쌓고, 화면 한가운데에 걸린 쪽을 '현재 쪽'으로 잡아
+     하단 표시·스크러버·목차 강조·해시를 그대로 연동한다.
+     확대는 커스텀 로직 대신 브라우저 기본 핀치줌에 맡긴다. */
+  var feed = $('feed'), btnMode = $('btnMode');
+  var isTouch = window.matchMedia('(pointer: coarse)').matches
+    || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+  var MODE_KEY = 'krjam-fnc:mode';
+  var scrollMode = false, feedBuilt = false, feedRaf = 0;
+
+  function buildFeed() {
+    if (feedBuilt) return;
+    var frag = document.createDocumentFragment();
+    for (var i = 1; i <= TOTAL; i++) {
+      var d = document.createElement('div');
+      d.className = 'fpage';
+      d.dataset.p = i;
+      d.innerHTML =
+        '<img src="' + pageURL(i) + '" alt="' + i + '쪽 — ' + esc(title(i)) + '"' +
+        ' loading="lazy" width="1920" height="1080" draggable="false">' +
+        '<div class="fcap"><span class="n">' + i + '</span>' + esc(title(i)) + '</div>';
+      frag.appendChild(d);
+    }
+    feed.appendChild(frag);
+    feedBuilt = true;
+  }
+
+  // 스크롤 → '현재 쪽' 판정.
+  // 화면 중앙 기준으로 하면 목차에서 20쪽을 눌렀을 때(20쪽이 화면 맨 위) 곧바로
+  // 21·22쪽이 현재 쪽으로 잡힌다. 문서 뷰어처럼 **위쪽에 걸린 쪽**을 현재 쪽으로 본다.
+  function updateFromFeed() {
+    if (!scrollMode || !feedBuilt) return;
+    // 기준선은 화면 비율이 아니라 '상단에서 조금 아래'로 잡는다. 세로 화면에는
+    // 한 번에 3쪽 가까이 보이므로 비율(예: 35%)로 잡으면 맨 위 쪽을 건너뛴다.
+    var r = feed.getBoundingClientRect();
+    var anchor = r.top + Math.min(64, r.height * 0.25);
+    var els = feed.children, best = 0;
+    for (var i = 0; i < els.length; i++) {
+      if (els[i].getBoundingClientRect().bottom > anchor) { best = parseInt(els[i].dataset.p, 10); break; }
+    }
+    if (!best) best = TOTAL;
+    if (best !== page) { page = best; render(); }
+  }
+  feed.addEventListener('scroll', function () {
+    if (feedRaf) return;
+    feedRaf = requestAnimationFrame(function () { feedRaf = 0; updateFromFeed(); });
+  }, { passive: true });
+
+  // offsetTop 은 offsetParent 가 무엇이냐에 따라 기준이 달라진다(실제로 어긋났다).
+  // 스크롤 컨테이너 기준 좌표는 rect 차이로 구하는 편이 안전하다.
+  function feedTopOf(el) {
+    return feed.scrollTop + el.getBoundingClientRect().top - feed.getBoundingClientRect().top - 10;
+  }
+  function scrollToPage(n, smooth) {
+    if (!feedBuilt) return;
+    var el = feed.querySelector('.fpage[data-p="' + n + '"]');
+    if (!el) return;
+    var top = Math.max(0, feedTopOf(el));
+    if (feed.scrollTo) feed.scrollTo({ top: top, behavior: smooth ? 'smooth' : 'auto' });
+    else feed.scrollTop = top;
+  }
+
+  function setMode(scroll, remember) {
+    scrollMode = !!scroll && isTouch;
+    if (scrollMode) buildFeed();
+    document.body.classList.toggle('scrollmode', scrollMode);
+    feed.hidden = !scrollMode;
+    stage.hidden = scrollMode;
+    btnMode.setAttribute('aria-pressed', scrollMode ? 'true' : 'false');
+    btnMode.title = scrollMode ? '한 장씩 넘겨보기' : '죽 이어보기';
+    btnMode.setAttribute('aria-label', btnMode.title);
+    if (scrollMode) { resetZoom(false); setRot(false); scrollToPage(page, false); }
+    else { render(); }
+    if (remember !== false) { try { localStorage.setItem(MODE_KEY, scrollMode ? 'scroll' : 'flip'); } catch (e) {} }
+  }
+  btnMode.addEventListener('click', function () { setMode(!scrollMode); });
 
   /* ── 가로 보기(세로 화면 전용) ───────────────────────────
      좁은 세로 화면에서 16:9 슬라이드는 화면 폭의 56%밖에 못 쓴다.
@@ -505,6 +588,12 @@
   initToc();
   page = fromHash() || 1;
   render();
+
+  // 터치 기기는 기본이 '이어보기'(사용자가 한 장씩 보기를 고른 적이 있으면 그것을 따른다)
+  if (isTouch) document.body.classList.add('touchdev');
+  var savedMode = null;
+  try { savedMode = localStorage.getItem(MODE_KEY); } catch (e) {}
+  setMode(isTouch && savedMode !== 'flip', false);
 
   function hideBoot() {
     if (!boot || boot.classList.contains('gone')) return;

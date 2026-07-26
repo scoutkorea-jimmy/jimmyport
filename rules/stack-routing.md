@@ -43,6 +43,15 @@ KMS.md / FEATURES.md / README.md / DESIGN.md   내부 문서(웹 비공개 — _
   - **랜딩 미노출 서비스**: `/krjam-fnc` 는 실명 업무배정표가 포함돼 있어 사용자 지시로 루트 랜딩 카드에 넣지 않는다(noindex + URL 공유 전용).
 - **공개 누수 차단**: `functions/_middleware.js` 가 `*.md`·`wrangler.toml`·`package*.json`·`.gitignore`·`CNAME`·`.claude/*` 를 404(`.assetsignore` 는 `wrangler pages deploy` 가 무시함). 내부 문서·설정은 웹에서 안 보임. GitHub 저장소는 공개(사용자: 무방).
 
+### 8.1 시크릿 점검 결과 · 사용자 결정 (2026-07-26)
+전수 점검(워킹트리 + **git 히스토리 전체**) 결과 **실제 API 키·토큰·개인키는 0건**. `TOTP_SECRET`·`ADMIN_TOKEN` 은 Cloudflare 시크릿에만 있고 코드/문서에 값이 박힌 적 없다. `.claude/settings.local.json` 은 권한 허용목록뿐. `wrangler.toml` 의 KV id·R2 버킷명은 자격증명이 아니라 단독으로는 사용 불가.
+
+⚠️ **알려진·수용된 노출 — 임의로 바꾸지 말 것**
+- `functions/api/jamboree.js` · `functions/api/krjam-dcount.js` 의 `env.CC_PASS || "scout1922"` **하드코딩 폴백**. Cloudflare 에 `CC_PASS` 가 **미설정**이라 폴백이 실사용 중이고, 값은 공개 저장소·문서에 그대로 적혀 있다.
+- 실측(2026-07-26, GET 상태코드만): `X-CC-Pass: scout1922` 로 `/api/krjam-dcount?admin=1`(신청자 명단 + IP) · `/api/jamboree?list=1` **둘 다 200**. 무인증은 401.
+- **사용자 결정: 교체하지 않고 현행 유지 + 저장소도 공개 유지**(AskUserQuestion 확인). 따라서 **에이전트가 임의로 `CC_PASS` 를 설정하거나 폴백을 제거하지 말 것** — 그 순간 팀원들의 카드뉴스 서버백업·디데이 관리자 로그인이 끊긴다.
+- 나중에 정리한다면 순서는 **① `CC_PASS` 시크릿 설정 → ② 코드의 `|| "scout1922"` 제거(미설정 시 차단) → ③ 팀에 새 비번 공지**. 히스토리에 남은 값은 되돌릴 수 없으므로 교체(rotation)만이 유효한 조치다.
+
 ---
 
 ## 18. 도메인 이전 + 공개 누수 차단 + 라우팅 개편 (scoutingapp.net)

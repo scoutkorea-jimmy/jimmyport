@@ -1,4 +1,4 @@
-/* /krjam-fnc 플립북 회귀 (v0.9.236)
+/* /krjam-fnc 플립북 회귀 (v0.9.237)
    확인 대상: 31쪽 자산이 전부 살아있는가(IST 업무배정 3쪽이 전부 삭제됐는가) · 좌측 목차/넘김/딥링크/확대가
    동작하는가 · 모바일 드로어와 가로 보기가 동작하는가 · 콘솔 에러 0.
    실행: NODE_PATH=<scratch>/node_modules node test/regress-krjam-fnc.js   (puppeteer-core 필요) */
@@ -78,6 +78,10 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
     return !!im && im.naturalWidth > 0 && /jamboree\/assets\/logo\.png$/.test(im.src);
   }));
   chk('이전 버튼 비활성(1쪽)', await p.evaluate(() => document.getElementById('btnPrev').disabled));
+  chk('PC 는 이어보기 아님(피드 숨김·모드버튼 숨김)', await p.evaluate(() =>
+    document.getElementById('feed').hidden
+    && !document.body.classList.contains('scrollmode')
+    && getComputedStyle(document.getElementById('btnMode')).display === 'none'));
   // v0.9.234 실제 버그: [hidden] 이 .toc{display:flex} 에 밀려 숨긴 패널이 클릭을 가로챘다.
   chk('숨긴 오버레이가 클릭을 가로채지 않음', await p.evaluate(() => {
     const hit = (el) => {
@@ -226,8 +230,75 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   await p3.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   p3.on('pageerror', (e) => errors.push(e.message));
   p3.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await p3.goto(`${base}/krjam-fnc`, { waitUntil: 'networkidle2' }); await wait(450);
-  chk('모바일 페이지 렌더', await p3.evaluate(() => document.getElementById('leafTop').naturalWidth > 800));
+  await p3.goto(`${base}/krjam-fnc`, { waitUntil: 'networkidle2' }); await wait(700);
+
+  // ── 이어보기(세로 스크롤) — 터치 기본 모드 ──
+  console.log('  · 이어보기 모드');
+  chk('터치 기기 기본 = 이어보기', await p3.evaluate(() =>
+    document.body.classList.contains('scrollmode')
+    && !document.getElementById('feed').hidden
+    && document.getElementById('stage').hidden));
+  chk(`피드에 ${TOTAL}쪽이 세로로 쌓임`, await p3.evaluate((t) => {
+    const f = document.getElementById('feed');
+    const els = f.querySelectorAll('.fpage');
+    if (els.length !== t) return false;
+    const a = els[0].getBoundingClientRect(), b = els[1].getBoundingClientRect();
+    return b.top > a.bottom - 1 && f.scrollHeight > f.clientHeight * 3;   // 세로 배치 + 스크롤 가능
+  }, TOTAL));
+  chk('첫 쪽 이미지 로드', await p3.evaluate(() => {
+    const im = document.querySelector('.fpage[data-p="1"] img');
+    return !!im && im.naturalWidth > 800;
+  }));
+  chk('쪽마다 번호·제목 캡션', await p3.evaluate(() => {
+    const c = document.querySelector('.fpage[data-p="1"] .fcap');
+    return !!c && c.textContent.includes('1') && c.textContent.includes('표지');
+  }));
+  chk('모드 버튼 노출(터치)', await p3.evaluate(() =>
+    getComputedStyle(document.getElementById('btnMode')).display !== 'none'));
+  chk('이어보기 중엔 가로보기 숨김', await p3.evaluate(() =>
+    getComputedStyle(document.getElementById('btnRot')).display === 'none'));
+
+  // 스크롤 → 현재 쪽 갱신
+  await p3.evaluate(() => {
+    const f = document.getElementById('feed');
+    const el = document.querySelector('.fpage[data-p="7"]');
+    f.scrollTop = f.scrollTop + el.getBoundingClientRect().top - f.getBoundingClientRect().top - 10;
+  });
+  await wait(600);
+  chk('스크롤하면 현재 쪽이 따라옴', await p3.evaluate(() =>
+    document.getElementById('pgNum').textContent === '7'
+    && (document.getElementById('pgTitle').textContent || '').includes('배치도')));
+  chk('스크롤 시 해시도 갱신', await p3.evaluate(() => location.hash) === '#p7');
+
+  // 목차 → 해당 쪽으로 스크롤
+  await p3.click('#btnToc'); await wait(320);
+  await p3.evaluate(() => document.querySelector('.tocitem[data-p="20"]').click());
+  await wait(900);
+  chk('목차 선택 → 그 쪽으로 스크롤', await p3.evaluate(() => {
+    const f = document.getElementById('feed');
+    const el = document.querySelector('.fpage[data-p="20"]');
+    const delta = el.getBoundingClientRect().top - f.getBoundingClientRect().top;
+    return document.getElementById('pgNum').textContent === '20' && Math.abs(delta - 10) < 40;
+  }));
+  // 스크러버 → 스크롤
+  await p3.evaluate(() => {
+    const s = document.getElementById('scrub');
+    s.value = '3'; s.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await wait(500);
+  chk('스크러버로도 이동', await p3.evaluate(() => document.getElementById('pgNum').textContent) === '3');
+  chk('확대는 브라우저 기본에 맡김(피드 touch-action 미차단)', await p3.evaluate(() =>
+    getComputedStyle(document.getElementById('feed')).touchAction !== 'none'));
+
+  // ── 모드 전환 → 플립북 ──
+  console.log('  · 한 장씩(플립북) 모드');
+  await p3.click('#btnMode'); await wait(500);
+  chk('모드 전환 → 플립북', await p3.evaluate(() =>
+    !document.body.classList.contains('scrollmode')
+    && document.getElementById('feed').hidden
+    && !document.getElementById('stage').hidden));
+  chk('전환해도 보던 쪽 유지', await p3.evaluate(() => document.getElementById('pgNum').textContent) === '3');
+  chk('모드 저장', await p3.evaluate(() => localStorage.getItem('krjam-fnc:mode') === 'flip'));
   chk('모바일은 목차 기본 닫힘', await p3.evaluate(() => document.getElementById('toc').hidden));
   chk('모바일 book 이 화면 안에 들어감', await p3.evaluate(() => {
     const r = document.getElementById('book').getBoundingClientRect();
@@ -283,6 +354,9 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
   }));
   await p3.click('#btnRot'); await wait(420);
   chk('가로보기 해제', await p3.evaluate(() => !document.getElementById('stage').classList.contains('rot')));
+  await p3.click('#btnMode'); await wait(500);
+  chk('이어보기로 되돌아옴', await p3.evaluate(() =>
+    document.body.classList.contains('scrollmode') && !document.getElementById('feed').hidden));
 
   // ── 11. 자산 HTTP 상태 ──
   console.log('\n[자산 서빙]');
