@@ -90,15 +90,18 @@ const SEED = function () {
     const s = document.querySelector('.wrap>section:not([style*="none"])');
     return getComputedStyle(s).animationName === 'jpViewIn';
   }));
-  await p.evaluate(() => setView('calendar')); await wait(80);
-  const midT = await p.evaluate(() => {
+  await p.evaluate(() => setView('calendar')); await wait(70);
+  const mid = await p.evaluate(() => {
     const s = document.getElementById('calendar');
-    return getComputedStyle(s).transform;
+    return { op: +getComputedStyle(s).opacity, tf: getComputedStyle(s).transform };
   });
   await wait(500);
-  chk('전환 중에는 움직이고', midT !== 'none' && midT !== '', midT.slice(0, 22));
-  chk('끝나면 transform 이 남지 않음', await p.evaluate(() =>
-    getComputedStyle(document.getElementById('calendar')).transform === 'none'));
+  chk('전환 중에는 페이드가 걸리고', mid.op > 0 && mid.op < 1, 'opacity ' + mid.op.toFixed(2));
+  // ⚠️ 섹션 전환에 transform 을 쓰면 마지막 프레임의 5e-06px 잔여 이동이 rect 높이를
+  //    39.999999996 으로 만들어 "조작 요소 40px 이상" 검사를 흔든다(v0.9.244 실제 사고).
+  chk('전환 중에도 transform 을 쓰지 않음', mid.tf === 'none', mid.tf.slice(0, 24));
+  chk('끝나면 opacity 1', await p.evaluate(() =>
+    getComputedStyle(document.getElementById('calendar')).opacity === '1'));
   chk('전환 후 내용이 보임', await p.evaluate(() => {
     const s = document.getElementById('calendar');
     return getComputedStyle(s).opacity === '1' && s.getBoundingClientRect().height > 100;

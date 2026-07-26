@@ -1628,7 +1628,7 @@ tr.rowdim{opacity:.34}
    모달 열기·저장)에 붙어서, 지금 무슨 일이 일어났는지를 알려주는 역할만 한다.
    움직이는 값은 opacity·transform 뿐이라 레이아웃 계산이 없다.
    ─────────────────────────────────────────────────────────────────── */
-@keyframes jpViewIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes jpViewIn{from{opacity:0}to{opacity:1}}
 @keyframes jpFade{from{opacity:0}to{opacity:1}}
 @keyframes jpModalIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes jpToastIn{from{opacity:0;transform:translate(-50%,12px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
@@ -1636,9 +1636,13 @@ tr.rowdim{opacity:.34}
 @keyframes jpPop{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
 
 /* ── 화면 전환 ── setView 가 display 를 토글하면 애니메이션이 다시 시작된다(JS 불필요).
-   fill-mode 를 쓰지 않는다 — 끝난 뒤 transform 이 남으면 안에 있는 position:fixed
-   요소(#shoot-scrim 등)의 기준이 뒤틀린다. */
-.wrap>section{animation:jpViewIn .24s cubic-bezier(.32,.72,0,1)}
+   ⚠️ **transform 을 쓰지 않는다. 페이드만 한다.**
+   처음엔 7px 떠오르게 했는데, 애니메이션 마지막 프레임에 5e-06px 짜리 잔여 translate 가
+   남아 `getBoundingClientRect()` 가 40px 를 39.999999996 으로 돌려줬다. 실제로 작아진 게
+   아닌데도 "조작 요소 40px 이상" 회귀가 3회 중 2회 걸렸다(터치 타깃 하한이 정확히 40px 라
+   오차가 그대로 드러난다). 데이터 보드에서 기하 검사를 흔드는 장식은 값어치가 없다.
+   덤으로, transform 이 없으면 섹션 안 position:fixed(#shoot-scrim) 기준이 뒤틀릴 일도 없다. */
+.wrap>section{animation:jpViewIn .22s ease}
 
 /* ── 모달 ── 배경은 밝아지고, 창은 아주 살짝 떠오른다 */
 .scrim.show{animation:jpFade .16s ease}
@@ -1660,8 +1664,12 @@ tr.rowdim{opacity:.34}
 .btn{transition:background var(--ease),border-color var(--ease),color var(--ease),
   transform .12s cubic-bezier(.32,.72,0,1),box-shadow var(--ease)}
 .btn:hover{transform:translateY(-1px)}
-.btn:active{transform:translateY(0) scale(.97)}
+/* ⚠️ 눌림을 scale 로 주면 안 된다 — .btn.sm/.vtab 은 높이가 정확히 40px(터치 타깃 하한)이라
+   scale(.97) 이 그 순간 39px 로 만든다. 회귀의 "조작 요소 40px 이상"이 이걸 잡는다.
+   눌린 느낌은 1px 내려앉는 것으로 충분하고, 크기는 건드리지 않는다. */
+.btn:active{transform:translateY(1px)}
 .vtab{transition:background var(--ease),color var(--ease),transform .12s cubic-bezier(.32,.72,0,1)}
+.vtab:active{transform:translateY(1px)}
 .chip,.chchip,.ctchip{transition:background var(--ease),border-color var(--ease),color var(--ease),transform .12s ease}
 .chip:active,.chchip:active,.ctchip:active{transform:scale(.96)}
 

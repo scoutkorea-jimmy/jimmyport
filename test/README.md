@@ -40,6 +40,6 @@ v0.9.240 이펙트 강화 후 추가: 불티 개수(PC 24 / 모바일 14 / 모�
 ## krjam-planning 모션
 
 ```bash
-node test/regress-krjam-planning-motion.js   # 22 케이스
+node test/regress-krjam-planning-motion.js   # 23 케이스
 ```
 v0.9.243 에서 붙인 모션이 **운영을 방해하지 않는지**만 본다 — 상시 무한 애니메이션이 통신 진행 표시뿐인가(랜딩과 달리 배경 레이어를 두지 않기로 했다) · 화면 전환이 끝난 뒤 `transform` 이 남지 않는가(남으면 섹션 안 `position:fixed` 모달 기준이 뒤틀린다) · **통신 표시가 켜지고 반드시 꺼지는가**(카운터 음수 방지, 실제 저장 경로 포함) · 터치 타깃 유지 · 모션 줄이기에서 정지. `/api/*` 는 전부 목업이라 운영 KV 무접촉.
