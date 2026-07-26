@@ -4,3 +4,6 @@
 # Jamboree design-source bundle (~25MB) — never deploy. Live port lives in jamboree/*
 한국잼버리 카드뉴스 (포팅용).html
 한국잼버리 카드뉴스*.html
+
+# 회귀 진행 현황(로컬 전용) — 10초마다 자동 갱신, 커밋하지 않는다
+_regress-status.md

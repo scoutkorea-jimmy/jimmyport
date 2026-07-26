@@ -3,7 +3,7 @@
    규칙(rules/ui-ux.md): 글자 ≥13px · 조작 요소 ≥40px · 대비 4.5+ · 시간은 HH:MM(24h) · 카드 중첩 금지. */
 
 :root{
-  --ink:#1B1723; --ink-2:#463C57; --muted:#6C6478; --faint:#9A93A6;
+  --ink:#1B1723; --ink-2:#463C57; --muted:#6C6478; --faint:#6E677B;   /* faint 도 4.5+ 를 넘겨야 한다(실측 2.96 → 4.9) */
   --line:#E4E0EC; --line-2:#EFEDF4;
   --surface:#FFFFFF; --surface-2:#F7F5FB; --surface-3:#EFEBF6;
   --accent:#5B2EA6; --accent-ink:#4A2489; --accent-soft:#EDE5FA; --accent-soft-2:#F6F1FD;
@@ -77,7 +77,7 @@ a{color:var(--accent-ink)}
   backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
 }
 .menubtn{display:none}
-.topttl{margin:0; font-size:var(--fs-3); font-weight:800; letter-spacing:-.01em; white-space:nowrap}
+.topttl{margin:0; font-size:var(--fs-4); font-weight:800; letter-spacing:-.01em; white-space:nowrap}   /* 대타이틀 20~28px */
 .topsearch{
   position:relative; display:flex; align-items:center; gap:8px; flex:1; max-width:420px;
   margin-left:auto; padding:0 10px; border:1px solid var(--line); border-radius:var(--pill);
