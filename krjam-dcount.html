@@ -53,7 +53,7 @@
     img{ -webkit-user-drag:none; user-select:none; }
     .syncbar{ border-bottom:1px solid var(--line); padding:11px 0; display:flex; gap:12px; align-items:center; }
     .orgtag{ font-weight:700; color:var(--accent); font-size:13px; letter-spacing:-.01em; }
-    .syncbar .st{ font-size:12px; color:var(--muted); }
+    .syncbar .st{ font-size:13px; color:var(--muted); }
     #__boot{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font:14px/1.4 'Hanken Grotesk',sans-serif; }
 
     /* ── D-count 컴포넌트 ── */
@@ -71,27 +71,27 @@
     .dc-slot.dim{ opacity:.55; cursor:default; }
     .dc-slot.dim:hover{ border-color:var(--line); box-shadow:none; }
     .dc-slot .dn{ font:700 21px 'Bricolage Grotesque',sans-serif; color:var(--ink); letter-spacing:-.02em; }
-    .dc-slot .dt{ font-size:11px; color:var(--muted); margin:2px 0 7px; }
-    .dc-ss{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:var(--pill); color:#fff; }
+    .dc-slot .dt{ font-size:13px; color:var(--muted); margin:2px 0 7px; }
+    .dc-ss{ display:inline-block; font-size:13px; font-weight:700; padding:2px 9px; border-radius:var(--pill); color:#fff; }
     .dc-field{ margin-bottom:13px; }
-    .dc-field>label{ display:block; font-size:12px; font-weight:700; color:var(--ink-2); margin:0 0 5px; }
+    .dc-field>label{ display:block; font-size:13px; font-weight:700; color:var(--ink-2); margin:0 0 5px; }
     .dc-input{ width:100%; border:1px solid var(--line); border-radius:var(--r-1); padding:10px 12px; font:inherit; font-size:14px; background:var(--surface); color:var(--ink); }
     .dc-input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
     .dc-row{ display:block; }   /* 모바일 고정폭: 필드 세로 스택(오버플로우 방지) */
-    .dc-btn{ font:inherit; font-size:14px; font-weight:700; padding:11px 18px; border-radius:var(--r-1); border:1px solid var(--line); background:var(--surface); color:var(--ink-2); cursor:pointer; }
+    .dc-btn{ font:inherit; font-size:14px; font-weight:700; min-height:40px; display:inline-flex; align-items:center; justify-content:center; padding:9px 18px; border-radius:var(--r-1); border:1px solid var(--line); background:var(--surface); color:var(--ink-2); cursor:pointer; }
     .dc-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
     .dc-btn.primary:disabled{ opacity:.5; cursor:not-allowed; }
     .dc-btn.danger{ color:var(--danger); border-color:var(--line); }
     .dc-btn.ghost{ background:none; }
-    .dc-consent{ display:flex; gap:9px; align-items:flex-start; font-size:12.5px; line-height:1.5; color:var(--ink-2); padding:7px 0; cursor:pointer; }
+    .dc-consent{ display:flex; gap:9px; align-items:flex-start; font-size:13px; line-height:1.5; color:var(--ink-2); padding:7px 0; cursor:pointer; }
     .dc-consent input{ flex:none; margin-top:2px; width:16px; height:16px; accent-color:var(--accent); }
     .dc-consent>span{ flex:1; min-width:0; }
     .dc-swatches{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
     .dc-sw{ width:24px; height:24px; border-radius:6px; border:1px solid rgba(0,0,0,.15); cursor:pointer; padding:0; }
     .dc-scrim{ position:fixed; inset:0; background:rgba(20,28,22,.55); display:flex; align-items:flex-start; justify-content:center; padding:30px 16px; overflow:auto; z-index:200; }
     .dc-modal{ background:var(--surface); border-radius:var(--r-3); box-shadow:var(--sh-3); width:min(480px,100%); padding:22px; }
-    .dc-tag{ display:inline-block; font-size:11.5px; font-weight:700; padding:3px 11px; border-radius:var(--pill); color:#fff; }
-    .dc-note{ font-size:12.5px; color:var(--muted); line-height:1.55; }
+    .dc-tag{ display:inline-block; font-size:13px; font-weight:700; padding:3px 11px; border-radius:var(--pill); color:#fff; }
+    .dc-note{ font-size:13px; color:var(--muted); line-height:1.55; }
     .dc-err{ color:var(--danger); font-size:13px; font-weight:600; min-height:18px; margin-top:8px; }
     .dc-ok{ color:var(--accent); font-size:13px; font-weight:600; }
     .dc-mono{ font-family:ui-monospace,Menlo,monospace; font-size:20px; font-weight:700; letter-spacing:.04em; color:var(--accent-ink); background:var(--accent-soft); border-radius:var(--r-1); padding:8px 14px; display:inline-block; }
@@ -100,16 +100,16 @@
     .dc-months{ display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:22px; }
     .dc-mtitle{ font:700 15px 'Bricolage Grotesque',sans-serif; margin:0 0 10px; color:var(--ink); letter-spacing:-.01em; }
     .dc-dow{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:5px; }
-    .dc-dow span{ text-align:center; font-size:11px; font-weight:700; color:var(--muted); }
+    .dc-dow span{ text-align:center; font-size:13px; font-weight:700; color:var(--muted); }
     .dc-dow span.sun{ color:var(--danger); }
     .dc-days{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
     .dc-days{ gap:4px; }
     .dc-day{ min-height:48px; border:1px solid transparent; border-radius:8px; padding:2px; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-    .dc-day .dnum{ position:absolute; top:3px; left:5px; font-size:9px; color:var(--faint); }
+    .dc-day .dnum{ position:absolute; top:3px; left:5px; font-size:13px; color:var(--faint); }
     .dc-day.slot{ border-color:var(--line); background:var(--surface-2); }
     .dc-day.slot .dd{ font:700 13px 'Bricolage Grotesque',sans-serif; color:var(--ink); line-height:1; margin-top:6px; }
     .dc-day .sdot{ width:6px; height:6px; border-radius:50%; margin-top:5px; flex:none; }
-    .dc-toggle{ font:700 9.5px 'Hanken Grotesk',sans-serif; border:none; background:none; cursor:pointer; padding:2px 3px; margin-top:3px; }
+    .dc-toggle{ font:700 13px 'Hanken Grotesk',sans-serif; border:none; background:none; cursor:pointer; padding:2px 3px; margin-top:3px; }
     .dc-day.slot.open{ cursor:pointer; }
     .dc-day.slot.open:hover{ border-color:var(--accent); box-shadow:var(--sh-1); }
     .dc-day.slot.dimmed{ opacity:.5; }
@@ -118,7 +118,7 @@
     .dc-day.approved .dnum{ color:rgba(255,255,255,.7); }
     .dc-day.approved .dd{ color:#fff; }
     .dc-day.approved:hover{ box-shadow:var(--sh-2); filter:brightness(1.04); }
-    .dc-appname{ font:700 10px 'Hanken Grotesk',sans-serif; color:#fff; margin-top:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 2px; }
+    .dc-appname{ font:700 13px 'Hanken Grotesk',sans-serif; color:#fff; margin-top:3px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 2px; }
 
     /* 관리자 */
     .dc-stats{ display:flex; gap:8px; flex-wrap:wrap; }
@@ -127,17 +127,17 @@
     button.dc-stat:hover{ border-color:var(--accent); }
     .dc-stat.on{ border-color:var(--accent); background:var(--accent-soft); }
     .dc-stat b{ display:block; font:700 19px 'Bricolage Grotesque',sans-serif; color:var(--ink); }
-    .dc-stat span{ font-size:11px; color:var(--muted); }
+    .dc-stat span{ font-size:13px; color:var(--muted); }
     .dc-sec{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-3); box-shadow:var(--sh-1); margin-bottom:14px; overflow:hidden; }
     .dc-sec>summary{ list-style:none; cursor:pointer; padding:14px 18px; font-weight:700; font-size:14px; color:var(--ink); display:flex; align-items:center; gap:8px; }
     .dc-sec>summary::-webkit-details-marker{ display:none; }
-    .dc-sec>summary::before{ content:'▸'; color:var(--accent); font-size:12px; transition:var(--ease); }
+    .dc-sec>summary::before{ content:'▸'; color:var(--accent); font-size:13px; transition:var(--ease); }
     .dc-sec[open]>summary::before{ transform:rotate(90deg); }
     .dc-sec .dc-secbody{ padding:0 18px 18px; }
     .dc-slider{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-    .dc-slider label{ flex:0 0 130px; font-size:12.5px; font-weight:600; color:var(--ink-2); }
+    .dc-slider label{ flex:0 0 130px; font-size:13px; font-weight:600; color:var(--ink-2); }
     .dc-slider input[type=range]{ flex:1; accent-color:var(--accent); }
-    .dc-slider .val{ flex:0 0 52px; text-align:right; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .dc-slider .val{ flex:0 0 52px; text-align:right; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
     .dc-app{ border:1px solid var(--line); border-radius:var(--r-2); padding:14px; margin-bottom:10px; }
     .dc-app.todo{ border-color:var(--st-draft); background:var(--st-draft-bg); }
     .dc-applist{ display:grid; gap:10px; }
@@ -146,7 +146,7 @@
     .dc-grp{ margin-bottom:16px; }
     .dc-grp:last-child{ margin-bottom:0; }
     .dc-grp-h{ font:700 13px 'Bricolage Grotesque',sans-serif; color:var(--ink); margin:0 0 8px; display:flex; align-items:baseline; gap:8px; }
-    .dc-grp-d{ font:400 11.5px 'Hanken Grotesk',sans-serif; color:var(--muted); }
+    .dc-grp-d{ font:400 13px 'Hanken Grotesk',sans-serif; color:var(--muted); }
     .dc-grp-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
     .dc-slot2{ border:1px solid var(--line); border-radius:9px; padding:8px 3px; text-align:center; background:var(--surface-2); }
     .dc-slot2.open{ cursor:pointer; background:var(--st-ready); border-color:var(--st-ready); box-shadow:0 1px 3px rgba(47,143,107,.22); }
@@ -156,20 +156,25 @@
     .dc-slot2.open .dc-ss2{ background:rgba(255,255,255,.24)!important; color:#fff; }
     .dc-slot2.dim{ opacity:.5; }
     .d2-dn{ font:700 14px 'Bricolage Grotesque',sans-serif; color:var(--ink); line-height:1; }
-    .d2-dt{ font-size:10px; color:var(--muted); margin:3px 0 5px; }
-    .dc-ss2{ display:inline-block; font-size:8.5px; font-weight:700; padding:1px 5px; border-radius:var(--pill); color:#fff; }
+    .d2-dt{ font-size:13px; color:var(--muted); margin:3px 0 5px; }
+    .dc-ss2{ display:inline-block; font-size:13px; font-weight:700; padding:1px 5px; border-radius:var(--pill); color:#fff; }
 
     /* 사진 업로드(승인 후) */
     .dc-photos{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     .dc-photo{ position:relative; aspect-ratio:1/1; border-radius:var(--r-1); overflow:hidden; border:1px solid var(--line); background:var(--surface-2); }
     .dc-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
     .dc-photo .rm{ position:absolute; top:4px; right:4px; width:22px; height:22px; border:none; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; cursor:pointer; font-size:13px; line-height:1; }
-    .dc-photo-add{ display:flex; align-items:center; justify-content:center; aspect-ratio:1/1; border:1.5px dashed var(--line); border-radius:var(--r-1); color:var(--muted); cursor:pointer; font-size:12px; text-align:center; background:var(--surface-2); }
+    .dc-photo-add{ display:flex; align-items:center; justify-content:center; aspect-ratio:1/1; border:1.5px dashed var(--line); border-radius:var(--r-1); color:var(--muted); cursor:pointer; font-size:13px; text-align:center; background:var(--surface-2); }
     .dc-logbox{ max-height:240px; overflow:auto; border:1px solid var(--line); border-radius:var(--r-1); background:var(--surface-2); }
-    .dc-logrow{ display:flex; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line-2); font-size:11.5px; color:var(--ink-2); }
+    .dc-logrow{ display:flex; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line-2); font-size:13px; color:var(--ink-2); }
     .dc-logrow:last-child{ border-bottom:none; }
     .dc-logrow .t{ color:var(--faint); flex:none; font-variant-numeric:tabular-nums; }
-  </style>
+  
+    /* ── 접근성 하한 (v0.9.248) ── 조작 요소 40px(ui-ux.md).
+       인라인 style 의 height 보다 min-height 가 이긴다.
+       카드 미리보기 안의 요소는 그래픽이므로 제외한다. */
+    button:not([data-card] button){ min-height:40px; }
+</style>
 
   <!-- 콘솔 정리: Babel in-browser advisory 경고만 필터 -->
   <script>

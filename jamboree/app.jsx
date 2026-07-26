@@ -52,8 +52,8 @@ const FONT_HI = { aggravo: { l: '어그로(SB)', v: "'Aggravo'" }, pretendard: {
 const INK_SWATCHES = ['#2b2630', '#4D006E', '#333333', '#622599'];
 
 const inputStyle = { width: '100%', boxSizing: 'border-box', border: '1px solid '+UI.line, borderRadius: 8, padding: '9px 11px', fontSize: 13.5, fontFamily: 'inherit', color: UI.ink, background: UI.surface };
-const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 600, color: UI.muted, marginBottom: 4 };
-const secLabel = { fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: UI.muted, margin: '4px 0 8px' };
+const fieldLabel = { display: 'block', fontSize: 13, fontWeight: 600, color: UI.muted, marginBottom: 4 };
+const secLabel = { fontSize: 13, fontWeight: 700, letterSpacing: '.02em', color: UI.muted, margin: '4px 0 8px' };
 
 /* ── 로컬 저장소: 명명된 카드뉴스를 브라우저(localStorage)에 저장. 기본 로컬, 서버 미사용 ──
    인덱스(jamboree:projects) = [{id,name,author,updatedAt}], 항목(jamboree:project:<id>) = {state}.
@@ -107,7 +107,7 @@ function Swatches({ value, onPick, colors = SWATCHES, clearable, custom = true }
       )}
       {clearable && (
         <button type="button" onClick={() => onPick('')}
-          style={{ height: 26, padding: '0 10px', borderRadius: 6, border: '1px solid '+UI.line, background: '#fff', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', color: UI.muted, fontFamily: 'inherit' }}>기본</button>
+          style={{ height: 26, padding: '0 10px', borderRadius: 6, border: '1px solid '+UI.line, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: UI.muted, fontFamily: 'inherit' }}>기본</button>
       )}
     </div>
   );
@@ -122,7 +122,7 @@ function Seg({ value, options, onPick }) {
           flex: 1, padding: '7px 4px', borderRadius: 8, border: '1px solid',
           borderColor: value === k ? UI.accent : UI.line,
           background: value === k ? UI.accent : '#fff', color: value === k ? '#fff' : UI.muted,
-          fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
         }}>{l}</button>
       ))}
     </div>
@@ -201,26 +201,26 @@ function PhotoRow({ slot, label, png }) {
         {cur ? <img src={cur} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 16, color: UI.faint }}>◳</span>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: UI.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: UI.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
         <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
-          <button type="button" onClick={() => inputRef.current && inputRef.current.click()} style={{ border: 'none', background: 'none', padding: 0, color: UI.accent, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{cur ? '변경' : '업로드'}</button>
-          {cur && <button type="button" onClick={() => store.setImage(slot, null)} style={{ border: 'none', background: 'none', padding: 0, color: UI.danger, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>}
+          <button type="button" onClick={() => inputRef.current && inputRef.current.click()} style={{ border: 'none', background: 'none', padding: 0, color: UI.accent, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{cur ? '변경' : '업로드'}</button>
+          {cur && <button type="button" onClick={() => store.setImage(slot, null)} style={{ border: 'none', background: 'none', padding: 0, color: UI.danger, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>}
         </div>
       </div>
       <input ref={inputRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
     </div>
     <div style={{ marginTop: 5 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '2px 0' }}>영역(틀) 가장자리 확장</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: UI.muted, margin: '2px 0' }}>영역(틀) 가장자리 확장</div>
       <Slider label="위로" value={ax.et || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'et', v)} />
       <Slider label="아래로" value={ax.eb || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'eb', v)} />
       <Slider label="왼쪽" value={ax.el || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'el', v)} />
       <Slider label="오른쪽" value={ax.er || 0} min={-200} max={700} step={10} unit="px" onChange={(v) => store.setProp('imgxf-' + slot, 'er', v)} />
-      <div style={{ fontSize: 11, fontWeight: 700, color: UI.muted, margin: '6px 0 2px' }}>사진(틀 안) 확대·크롭 위치</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: UI.muted, margin: '6px 0 2px' }}>사진(틀 안) 확대·크롭 위치</div>
       <div style={{ opacity: cur ? 1 : .5 }}>
         <Slider label="사진 확대(줌)" value={ax.sc != null ? ax.sc : 1} min={1} max={5} step={0.05} unit="×" onChange={(v) => store.setProp('imgxf-' + slot, 'sc', v)} />
         <Slider label="크롭 좌우" value={ax.px != null ? ax.px : 50} min={0} max={100} step={1} unit="%" onChange={(v) => store.setProp('imgxf-' + slot, 'px', v)} />
         <Slider label="크롭 상하" value={ax.py != null ? ax.py : 50} min={0} max={100} step={1} unit="%" onChange={(v) => store.setProp('imgxf-' + slot, 'py', v)} />
-        {!cur && <div style={{ fontSize: 11, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·크롭이 적용돼요.</div>}
+        {!cur && <div style={{ fontSize: 13, color: UI.muted, marginTop: 2 }}>사진을 올리면 확대·크롭이 적용돼요.</div>}
       </div>
     </div>
     </div>
@@ -243,7 +243,7 @@ function EmblemPresetRow({ slot }) {
         );
       })}
       <button type="button" onClick={() => store.setImage(slot, null)} title="기본 엠블럼"
-        style={{ height: 46, padding: '0 12px', borderRadius: 8, border: cur ? '1px solid '+UI.line : '2px solid '+UI.accent, background: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: cur ? UI.muted : UI.accent, fontFamily: 'inherit' }}>기본</button>
+        style={{ height: 46, padding: '0 12px', borderRadius: 8, border: cur ? '1px solid '+UI.line : '2px solid '+UI.accent, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: cur ? UI.muted : UI.accent, fontFamily: 'inherit' }}>기본</button>
     </div>
   );
 }
@@ -268,21 +268,21 @@ function FieldInput({ field }) {
           <input type="color" value={colOv || '#000000'} onChange={(e) => store.setProp('txtcol', field.ekey, e.target.value)} title="글자색"
             style={{ width: 20, height: 16, padding: 0, border: '1px solid ' + UI.line, borderRadius: 3, background: 'none', cursor: 'pointer' }} />
           {colOv && <button type="button" onClick={() => store.setProp('txtcol', field.ekey, '')} title="기본색"
-            style={{ fontSize: 11, color: UI.muted, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>✕</button>}
+            style={{ fontSize: 13, color: UI.muted, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>✕</button>}
           <button type="button" onClick={() => store.setProp('txtsh', field.ekey, shOv === '1' ? '' : '1')} title="사진 위 그림자"
-            style={{ fontSize: 10, color: shOv === '1' ? '#fff' : UI.muted, background: shOv === '1' ? UI.accent : 'none', border: '1px solid ' + (shOv === '1' ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>그림자</button>
+            style={{ fontSize: 13, color: shOv === '1' ? '#fff' : UI.muted, background: shOv === '1' ? UI.accent : 'none', border: '1px solid ' + (shOv === '1' ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>그림자</button>
           <button type="button" onClick={() => setXfOpen((o) => !o)} title="영역(글상자) 가장자리 확장"
-            style={{ fontSize: 10, color: (xfOpen || xfActive) ? '#fff' : UI.muted, background: (xfOpen || xfActive) ? UI.accent : 'none', border: '1px solid ' + ((xfOpen || xfActive) ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>↔ 영역</button>
+            style={{ fontSize: 13, color: (xfOpen || xfActive) ? '#fff' : UI.muted, background: (xfOpen || xfActive) ? UI.accent : 'none', border: '1px solid ' + ((xfOpen || xfActive) ? UI.accent : UI.line), borderRadius: 5, cursor: 'pointer', padding: '1px 6px' }}>↔ 영역</button>
         </span>
         {long ? <textarea rows={2} {...common} /> : <input {...common} />}
       </label>
-      {long && <span style={{ fontSize: 10.5, color: '#a9a2b3', display: 'block', marginTop: 2 }}>줄바꿈(Enter) 가능</span>}
+      {long && <span style={{ fontSize: 13, color: '#a9a2b3', display: 'block', marginTop: 2 }}>줄바꿈(Enter) 가능</span>}
       {xfOpen && (
         <div style={{ marginTop: 6, padding: '7px 9px', background: UI.surface2, border: '1px solid ' + UI.line, borderRadius: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: UI.muted }}>영역(글상자) 가장자리 확장</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: UI.muted }}>영역(글상자) 가장자리 확장</span>
             {xfActive && <button type="button" onClick={() => ['et', 'eb', 'el', 'er'].forEach((k) => setXf(k, ''))}
-              style={{ fontSize: 11, color: UI.muted, border: '1px solid ' + UI.line, background: '#fff', borderRadius: 6, cursor: 'pointer', padding: '1px 8px', fontFamily: 'inherit' }}>초기화</button>}
+              style={{ fontSize: 13, color: UI.muted, border: '1px solid ' + UI.line, background: '#fff', borderRadius: 6, cursor: 'pointer', padding: '1px 8px', fontFamily: 'inherit' }}>초기화</button>}
           </div>
           <Slider label="위로" value={+xf.et || 0} min={-200} max={600} step={10} unit="px" onChange={(val) => setXf('et', val)} />
           <Slider label="아래로" value={+xf.eb || 0} min={-200} max={600} step={10} unit="px" onChange={(val) => setXf('eb', val)} />
@@ -300,8 +300,8 @@ function Section({ title, children, open = false, accent }) {
   return (
     <div style={{ borderTop: '1px solid ' + UI.line }}>
       <button type="button" onClick={() => setO((v) => !v)} style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', padding: '11px 0 9px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent ? UI.accent : UI.ink }}>{title}</span>
-        <span style={{ fontSize: 12, color: UI.muted, lineHeight: 1, transform: o ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }}>▾</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: accent ? UI.accent : UI.ink }}>{title}</span>
+        <span style={{ fontSize: 13, color: UI.muted, lineHeight: 1, transform: o ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }}>▾</span>
       </button>
       {o && <div style={{ paddingBottom: 10 }}>{children}</div>}
     </div>
@@ -313,7 +313,7 @@ function Toolbar({ onPng, onStitch, onZip, onList, onNew, status, busy, zipCount
   const ghost = { background: 'rgba(255,255,255,.12)', color: '#fff', borderColor: 'rgba(255,255,255,.22)' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.8)', minWidth: 92, textAlign: 'right' }}>{status}</span>
+      <span style={{ fontSize: 13, color: 'rgba(255,255,255,.8)', minWidth: 92, textAlign: 'right' }}>{status}</span>
       <button disabled={busy} onClick={onNew} style={btn(ghost)}>+ 새로 만들기</button>
       <button disabled={busy} onClick={onList} style={btn(ghost)}>저장 · 불러오기</button>
       <button disabled={busy} onClick={onZip} style={btn(ghost)}>ZIP ({zipCount})</button>
@@ -783,7 +783,7 @@ function App() {
           <img src={store.getImage('logo-white') || store.getImage('logo') || 'jamboree/assets/logo-white.png'} width={32} height={32} alt="" style={{ display: 'block', objectFit: 'contain' }} />
           <div>
             <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-.01em' }}>한국잼버리 카드뉴스 제작기</div>
-            <div style={{ fontSize: 11, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
+            <div style={{ fontSize: 13, opacity: .6 }}>제16회 한국잼버리 · 2026 강원</div>
           </div>
         </div>
         <Toolbar onPng={onPng} onStitch={onStitch} onZip={onZip} onList={openList} onNew={newProject} status={status} busy={busy} zipCount={deck.length} />
@@ -946,18 +946,18 @@ function App() {
           <div style={{ ...secLabel, marginTop: 18, marginBottom: 2, color: UI.accent, borderTop: '2px solid '+UI.line, paddingTop: 14 }}>⚙ 세트 공통 · 모든 카드에 적용</div>
 
           <Section title="브랜드 정보 (행사명·날짜·장소)">
-            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>표지 푸터·하단 띠 등 <b>모든 카드에 한 번에</b> 반영됩니다.</p>
+            <p style={{ fontSize: 13, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>표지 푸터·하단 띠 등 <b>모든 카드에 한 번에</b> 반영됩니다.</p>
             {BRAND_FIELDS.map((f) => (
               <label key={f.k} style={{ display: 'block', marginBottom: 10 }}>
                 <span style={fieldLabel}>{f.label}</span>
                 <input value={brand[f.k] || ''} placeholder={f.ph} onChange={(e) => setBrand((b) => ({ ...b, [f.k]: e.target.value }))} style={inputStyle} />
               </label>
             ))}
-            <button onClick={() => setBrand(DEFAULT_BRAND)} style={{ marginTop: 2, border: '1px solid '+UI.line, background: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: UI.muted }}>기본값으로</button>
+            <button onClick={() => setBrand(DEFAULT_BRAND)} style={{ marginTop: 2, border: '1px solid '+UI.line, background: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: UI.muted }}>기본값으로</button>
           </Section>
 
           <Section title="카테고리 칩 (배경·글씨·내용)">
-            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 8px', lineHeight: 1.5 }}>모든 카드 칩에 적용. 비우면 카드별 기본값.</p>
+            <p style={{ fontSize: 13, color: UI.muted, margin: '0 0 8px', lineHeight: 1.5 }}>모든 카드 칩에 적용. 비우면 카드별 기본값.</p>
             <span style={fieldLabel}>칩 내용 (공통)</span>
             <input value={tweaks.chipText || ''} placeholder="비우면 카드별" onChange={(e) => setTweak('chipText', e.target.value)} style={inputStyle} />
             <span style={{ ...fieldLabel, marginTop: 10 }}>칩 배경색</span>
@@ -989,7 +989,7 @@ function App() {
 
           <Section title="자동 푸터 (페이지·제목)">
             <Seg value={footerOn ? 'on' : 'off'} options={[['on', '켜기'], ['off', '끄기']]} onPick={(v) => setTweak('footer', v === 'on' ? 1 : 0)} />
-            <p style={{ fontSize: 12, color: UI.muted, margin: '8px 0 0', lineHeight: 1.5 }}>본문·소식 카드 하단에 <b>표지색 띠</b>로 행사명 + 페이지번호를 표시합니다. 표지·D-피드는 제외.</p>
+            <p style={{ fontSize: 13, color: UI.muted, margin: '8px 0 0', lineHeight: 1.5 }}>본문·소식 카드 하단에 <b>표지색 띠</b>로 행사명 + 페이지번호를 표시합니다. 표지·D-피드는 제외.</p>
           </Section>
 
           <Section title="D-day 여백·크기 조정">
@@ -1001,7 +1001,7 @@ function App() {
           </Section>
 
           <Section title="엠블럼 (로고)">
-            <p style={{ fontSize: 12, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>저장된 엠블럼에서 고르거나 직접 업로드. 선택한 엠블럼은 <b>D-피드 워터마크</b>에도 반영됩니다.</p>
+            <p style={{ fontSize: 13, color: UI.muted, margin: '0 0 10px', lineHeight: 1.5 }}>저장된 엠블럼에서 고르거나 직접 업로드. 선택한 엠블럼은 <b>D-피드 워터마크</b>에도 반영됩니다.</p>
             <span style={fieldLabel}>컬러 엠블럼 — 밝은 배경용</span>
             <EmblemPresetRow slot="logo" />
             <PhotoRow slot="logo" label="직접 업로드 (PNG 권장)" png />
@@ -1018,11 +1018,11 @@ function App() {
       {/* 하단: 카드뉴스 구성 (가로 슬라이드 — 담기/순서/삭제) */}
       <div style={{ flex: '0 0 auto', background: UI.surface, borderTop: '1px solid '+UI.line, boxShadow: '0 -4px 16px rgba(22,32,26,.05)', padding: '10px 14px', display: 'flex', alignItems: 'stretch', gap: 12, minHeight: 86 }}>
         <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, width: 150 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.02em', color: UI.muted }}>카드뉴스 구성 · {deck.length}장</div>
-          <button onClick={deckAdd} style={{ border: '1.5px dashed ' + UI.accent, background: UI.soft, color: UI.accent, borderRadius: 999, padding: '8px 10px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ 현재 카드 담기</button>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.02em', color: UI.muted }}>카드뉴스 구성 · {deck.length}장</div>
+          <button onClick={deckAdd} style={{ border: '1.5px dashed ' + UI.accent, background: UI.soft, color: UI.accent, borderRadius: 999, padding: '8px 10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ 현재 카드 담기</button>
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-          {deck.length === 0 && <div style={{ color: UI.faint, fontSize: 12.5, alignSelf: 'center' }}>표지 → 본문 → 엔딩 순서로 카드를 담아 한 편을 구성하세요. 상단 ZIP / 한 편 PNG로 내보냅니다.</div>}
+          {deck.length === 0 && <div style={{ color: UI.faint, fontSize: 13, alignSelf: 'center' }}>표지 → 본문 → 엔딩 순서로 카드를 담아 한 편을 구성하세요. 상단 ZIP / 한 편 PNG로 내보냅니다.</div>}
           {deck.map((it, i) => {
             const r = deckResolve(it);
             const active = card && it.f === familyKey && it.id === card.id && (it.k || '') === instKey;
@@ -1040,13 +1040,13 @@ function App() {
                         </window.GContentCtx.Provider>
                       </window.DDayTweakCtx.Provider>
                     </div>
-                  ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, color: UI.danger }}>삭제된 카드</div>}
-                  <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: 'rgba(27,33,29,.82)', borderRadius: 999, padding: '1px 7px' }}>{i + 1}</span>
-                  <button onClick={(e) => { e.stopPropagation(); deckRemove(i); }} title="빼기" style={{ position: 'absolute', top: 3, right: 3, border: 'none', background: UI.danger, color: '#fff', borderRadius: 999, width: 18, height: 18, fontSize: 11, lineHeight: '18px', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>✕</button>
+                  ) : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 13, color: UI.danger }}>삭제된 카드</div>}
+                  <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 13, fontWeight: 800, color: '#fff', background: 'rgba(27,33,29,.82)', borderRadius: 999, padding: '1px 7px' }}>{i + 1}</span>
+                  <button onClick={(e) => { e.stopPropagation(); deckRemove(i); }} title="빼기" style={{ position: 'absolute', top: 3, right: 3, border: 'none', background: UI.danger, color: '#fff', borderRadius: 999, width: 18, height: 18, fontSize: 13, lineHeight: '18px', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>✕</button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <button onClick={() => deckMove(i, -1)} disabled={i === 0} style={{ ...tinyBtn, opacity: i === 0 ? .3 : 1 }} title="앞으로">◀</button>
-                  <span style={{ fontSize: 9.5, color: UI.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'center' }}>{r ? famOf(it.f).label : '—'}</span>
+                  <span style={{ fontSize: 13, color: UI.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'center' }}>{r ? famOf(it.f).label : '—'}</span>
                   <button onClick={() => deckMove(i, 1)} disabled={i === deck.length - 1} style={{ ...tinyBtn, opacity: i === deck.length - 1 ? .3 : 1 }} title="뒤로">▶</button>
                 </div>
               </div>
@@ -1068,25 +1068,25 @@ function App() {
               <div style={{ padding: '14px 20px', borderBottom: '1px solid '+UI.line }}>
                 <div style={{ ...fieldLabel }}>작성자 이름 (선택)</div>
                 <input value={author} placeholder="예: 홍길동 / 강원연맹" onChange={(e) => setAuthor(e.target.value)} style={inputStyle} />
-                <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>저장은 <b>이 브라우저(로컬)</b>에 보관됩니다. 한 번 저장한 뒤의 변경은 그 카드뉴스에 <b>자동 저장</b>돼요. (기기 간 동기화는 안 됨 — 공유하려면 아래 서버 백업)</p>
+                <p style={{ fontSize: 13, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>저장은 <b>이 브라우저(로컬)</b>에 보관됩니다. 한 번 저장한 뒤의 변경은 그 카드뉴스에 <b>자동 저장</b>돼요. (기기 간 동기화는 안 됨 — 공유하려면 아래 서버 백업)</p>
               </div>
 
               {/* 저장 액션 */}
               <div style={{ padding: '14px 20px', borderBottom: '1px solid '+UI.line }}>
-                <div style={{ fontSize: 12.5, color: UI.muted, marginBottom: 8 }}>현재 편집 중: <b>{currentName ? currentName : '새 카드뉴스 (미저장)'}</b></div>
+                <div style={{ fontSize: 13, color: UI.muted, marginBottom: 8 }}>현재 편집 중: <b>{currentName ? currentName : '새 카드뉴스 (미저장)'}</b></div>
                 <button disabled={busy} onClick={saveWorking} style={{ width: '100%', border: 'none', background: UI.accent, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>{currentId ? '저장 (덮어쓰기)' : '저장'}</button>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input value={saveName} placeholder="다른 이름으로 저장 (새 사본)" onChange={(e) => setSaveName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
                   <button disabled={busy} onClick={saveAsNew} style={{ flex: '0 0 auto', border: '1.5px solid ' + UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>새 사본</button>
                 </div>
-                {listMsg && <div style={{ fontSize: 12.5, color: /실패|오류|부족|없/.test(listMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 10 }}>{listMsg}</div>}
+                {listMsg && <div style={{ fontSize: 13, color: /실패|오류|부족|없/.test(listMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 10 }}>{listMsg}</div>}
               </div>
 
               {/* 목록 */}
               <div style={{ padding: '12px 16px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px' }}>
                   <span style={fieldLabel}>저장된 카드뉴스 (이 브라우저)</span>
-                  <button disabled={busy} onClick={newProject} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.muted, borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ 새로 만들기</button>
+                  <button disabled={busy} onClick={newProject} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.muted, borderRadius: 8, padding: '5px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ 새로 만들기</button>
                 </div>
                 {savedItems === null && <div style={{ padding: 20, textAlign: 'center', color: UI.faint, fontSize: 13 }}>불러오는 중…</div>}
                 {savedItems && savedItems.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: UI.faint, fontSize: 13 }}>저장된 카드뉴스가 없습니다.<br />이름 입력 후 "저장"으로 만들어 보세요.</div>}
@@ -1094,7 +1094,7 @@ function App() {
                   <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 10px', borderRadius: 10, background: it.id === currentId ? UI.soft : UI.surface2, border: it.id === currentId ? '1px solid ' + UI.accent : '1px solid '+UI.line, marginBottom: 6 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
-                      <div style={{ fontSize: 11.5, color: UI.faint, marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
+                      <div style={{ fontSize: 13, color: UI.faint, marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
                     </div>
                     <button disabled={busy} onClick={() => loadItem(it)} style={{ border: 'none', background: UI.accent, color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
                     <button disabled={busy} onClick={() => deleteItem(it)} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.danger, borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
@@ -1112,28 +1112,28 @@ function App() {
                         onKeyDown={(e) => { if (e.key === 'Enter') unlockServer(); }} style={{ ...inputStyle, flex: 1 }} />
                       <button onClick={unlockServer} style={{ flex: '0 0 auto', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '0 16px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>열기</button>
                     </div>
-                    <p style={{ fontSize: 11.5, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. <b>비밀번호</b>를 입력하면 서버에 저장하고, 같은 비밀번호로 <b>다른 기기·다른 곳에서도</b> 불러올 수 있어요. (사진도 서버에 함께 저장됩니다.)</p>
+                    <p style={{ fontSize: 13, color: UI.muted, margin: '6px 0 0', lineHeight: 1.5 }}>기본 저장은 이 브라우저(로컬)입니다. <b>비밀번호</b>를 입력하면 서버에 저장하고, 같은 비밀번호로 <b>다른 기기·다른 곳에서도</b> 불러올 수 있어요. (사진도 서버에 함께 저장됩니다.)</p>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontSize: 12.5, color: UI.muted, marginBottom: 8 }}>현재 서버 항목: <b>{serverCurrentName ? serverCurrentName : '없음 (새로 저장)'}</b></div>
+                    <div style={{ fontSize: 13, color: UI.muted, marginBottom: 8 }}>현재 서버 항목: <b>{serverCurrentName ? serverCurrentName : '없음 (새로 저장)'}</b></div>
                     <button onClick={() => serverSave(false)} style={{ width: '100%', border: 'none', background: UI.accentInk, color: '#fff', borderRadius: 9, padding: '11px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: serverCurrentId ? 8 : 10 }}>{serverCurrentId ? '서버에 저장 (덮어쓰기)' : '현재 카드뉴스를 서버에 저장'}</button>
                     {serverCurrentId && <button onClick={() => serverSave(true)} style={{ width: '100%', border: '1.5px solid '+UI.accent, background: UI.soft, color: UI.accent, borderRadius: 9, padding: '9px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10 }}>새 사본으로 저장</button>}
                     {serverItems === null && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 13 }}>불러오는 중…</div>}
-                    {serverItems && serverItems.length === 0 && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 12.5 }}>서버에 저장된 카드뉴스가 없습니다.</div>}
+                    {serverItems && serverItems.length === 0 && <div style={{ padding: 12, textAlign: 'center', color: UI.faint, fontSize: 13 }}>서버에 저장된 카드뉴스가 없습니다.</div>}
                     {serverItems && serverItems.map((it) => (
                       <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10, background: it.id === serverCurrentId ? UI.soft : '#fff', border: it.id === serverCurrentId ? '1px solid '+UI.accent : '1px solid '+UI.line, marginBottom: 6 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2b2630', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}{it.id === serverCurrentId ? ' · 현재' : ''}</div>
-                          <div style={{ fontSize: 11, color: UI.faint, marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
+                          <div style={{ fontSize: 13, color: UI.faint, marginTop: 2 }}>{(it.author || '익명') + ' · ' + (it.updatedAt || '').slice(0, 16).replace('T', ' ')}</div>
                         </div>
-                        <button onClick={() => serverLoad(it)} style={{ border: 'none', background: UI.accent, color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
-                        <button onClick={() => serverDelete(it)} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.danger, borderRadius: 8, padding: '7px 10px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
+                        <button onClick={() => serverLoad(it)} style={{ border: 'none', background: UI.accent, color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>불러오기</button>
+                        <button onClick={() => serverDelete(it)} style={{ border: '1px solid '+UI.line, background: '#fff', color: UI.danger, borderRadius: 8, padding: '7px 10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>삭제</button>
                       </div>
                     ))}
                   </div>
                 )}
-                {serverMsg && <div style={{ fontSize: 12.5, color: /실패|오류|올바르|만료|입력하세요|너무/.test(serverMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 8 }}>{serverMsg}</div>}
+                {serverMsg && <div style={{ fontSize: 13, color: /실패|오류|올바르|만료|입력하세요|너무/.test(serverMsg) ? UI.danger : UI.accent, fontWeight: 600, marginTop: 8 }}>{serverMsg}</div>}
               </div>
             </div>
           </div>
@@ -1145,7 +1145,7 @@ function App() {
           <div style={{ background: '#fff', borderRadius: 16, padding: '26px 40px', boxShadow: '0 14px 44px rgba(0,0,0,.32)', textAlign: 'center', minWidth: 230 }}>
             <div style={{ width: 38, height: 38, margin: '0 auto 14px', border: '4px solid '+UI.line, borderTopColor: UI.accent, borderRadius: '50%', animation: 'cc-spin .8s linear infinite' }} />
             <div style={{ fontSize: 16, fontWeight: 800, color: UI.ink }}>{status || '처리 중…'}</div>
-            <div style={{ fontSize: 12.5, color: UI.muted, marginTop: 5 }}>잠시만 기다려 주세요 · 창을 닫지 마세요</div>
+            <div style={{ fontSize: 13, color: UI.muted, marginTop: 5 }}>잠시만 기다려 주세요 · 창을 닫지 마세요</div>
           </div>
         </div>
       )}
@@ -1156,7 +1156,7 @@ function App() {
 const pillHint = {
   position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
   background: 'rgba(43,38,48,.86)', color: '#fff', borderRadius: 999, padding: '7px 16px',
-  fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none',
+  fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', pointerEvents: 'none',
 };
 const cardErr = {
   position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',

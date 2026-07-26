@@ -65,3 +65,15 @@ input,select,textarea,button{font-family:'Hanken Grotesk',sans-serif}
   #col-splitter{display:none!important}
   .sf-admin-map{display:block!important;width:100%!important;min-width:0!important;height:300px!important;flex:none!important;border-top:1px solid #ece6db}
 }
+
+/* ── 접근성 하한 (v0.9.248) ── rules/ui-ux.md: 조작 요소 ≥40px · 글자 ≥13px.
+   /tour 와 /tour/admin 이 이 파일을 공유한다.
+   ⚠️ 지도 위 핀 글자(.leaflet-marker-icon)와 출처 표기(.leaflet-control-attribution)는
+      '본문·라벨'이 아니라 지도 그래픽이라 예외다 — 13px 로 키우면 핀이 지도를 덮고,
+      출처 표기는 OSM 라이선스상 지울 수도 없다. 회귀(test/regress-a11y-sweep.js)에도
+      같은 예외가 사유와 함께 적혀 있다. */
+button{ min-height:40px; }
+.leaflet-touch .leaflet-bar a,
+.leaflet-control-zoom a{ width:40px; height:40px; line-height:40px; }
+/* 푸터의 텍스트 링크도 탭 대상이다(블록으로 놓여 있다) */
+.sf-foot a, .foot a{ display:inline-flex; align-items:center; min-height:40px; }

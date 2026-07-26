@@ -1691,3 +1691,8 @@ html.net-busy .netbar{opacity:1;animation:jpNet 1.1s ease-in-out infinite}
   .btn:hover{transform:none}
   html.net-busy .netbar{animation:none;background:var(--accent);background-size:100% 100%}
 }
+
+/* ── 접근성 하한 (v0.9.248) ──
+   로그인 게이트의 '관리자 인증코드로 입장' 은 텍스트버튼이라 23px 였다.
+   조작 요소는 40px 이 하한이다(ui-ux.md) — 게이트도 예외가 아니다. */
+#auth-admin-link{ min-height:40px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center; }

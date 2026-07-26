@@ -170,7 +170,7 @@
     sl.forEach((s) => { const gi = Math.floor((40 - s.dNumber) / 5); (groups[gi] = groups[gi] || []).push(s); });   // 5일 단위
     return (
       <div className="dc-card">
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14, fontSize: 12, color: 'var(--muted)' }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14, fontSize: 13, color: 'var(--muted)' }}>
           {['신청가능', '검토중', '확정', '닫힘'].map((s) => <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><i style={{ width: 9, height: 9, borderRadius: '50%', background: SS_COLOR[s] }} />{SS_LABEL(s)}</span>)}
         </div>
         {groups.map((g, gi) => {
@@ -211,7 +211,7 @@
             <div className="dc-swatches">
               {SWATCHES.map((c) => <button key={c} type="button" className="dc-sw" style={{ background: c, outline: form.bgColor === c ? '2px solid var(--accent)' : 'none' }} onClick={() => set('bgColor', c)} title={c} />)}
               <input type="color" value={form.bgColor || '#622599'} onChange={(e) => set('bgColor', e.target.value)} style={{ width: 30, height: 28, padding: 0, border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }} />
-              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => set('bgColor', '')}>{L('기본', 'Default')}</button>
+              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 13 }} onClick={() => set('bgColor', '')}>{L('기본', 'Default')}</button>
             </div>
           </div>
           <div className="dc-field">
@@ -219,7 +219,7 @@
             <div className="dc-swatches">
               {['#ffffff', P.midnight, P.purple, P.orange, P.leaf].map((c) => <button key={c} type="button" className="dc-sw" style={{ background: c, outline: form.inkColor === c ? '2px solid var(--accent)' : 'none' }} onClick={() => set('inkColor', c)} title={c} />)}
               <input type="color" value={form.inkColor || '#ffffff'} onChange={(e) => set('inkColor', e.target.value)} style={{ width: 30, height: 28, padding: 0, border: '1px solid var(--line)', borderRadius: 6, cursor: 'pointer' }} />
-              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => set('inkColor', '')}>{L('기본', 'Default')}</button>
+              <button type="button" className="dc-btn ghost" style={{ padding: '5px 10px', fontSize: 13 }} onClick={() => set('inkColor', '')}>{L('기본', 'Default')}</button>
             </div>
           </div>
         </div>
@@ -280,7 +280,7 @@
               <div style={{ borderTop: '1px solid var(--line)', margin: '4px 0 14px' }} />
               <Customizer form={form} set={set} />
               <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0 6px' }} />
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', margin: '8px 0 4px' }}>{L('동의 (전 항목 필수)', 'Consent (all items required)')}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', margin: '8px 0 4px' }}>{L('동의 (전 항목 필수)', 'Consent (all items required)')}</div>
               {CONSENTS.map((c) => (
                 <label key={c.k} className="dc-consent">
                   <input type="checkbox" checked={!!consents[c.k]} onChange={(e) => setConsents((p) => Object.assign({}, p, { [c.k]: e.target.checked }))} />
@@ -303,9 +303,9 @@
         <div className="dc-modal" style={{ width: 'min(440px,100%)', textAlign: 'center' }} onMouseDown={(e) => e.stopPropagation()}>
           <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--accent)', marginBottom: 6 }}>{L('신청 완료 ✓', 'Application complete ✓')}</div>
           <p className="dc-note">{L('D-' + result.dNumber + ' (' + result.targetDate + ') 선점 완료! 조회·사진 업로드 시 아래 정보를 사용하세요.', 'D-' + result.dNumber + ' (' + result.targetDate + ') reserved! Use the details below to check your application and upload photos.')}</p>
-          <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{L('신청자 이름', 'Applicant name')}</div><div className="dc-mono">{result.applicationNo}</div></div>
-          <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{L('비밀번호 (휴대전화 끝 4자리)', 'Password (last 4 digits of mobile)')}</div><div className="dc-mono">{result.password}</div></div>
-          <div style={{ background: 'var(--accent-soft)', borderRadius: 'var(--r-2)', padding: '11px 13px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55, textAlign: 'left', margin: '0 0 14px' }}>
+          <div style={{ margin: '16px 0 6px' }}><div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{L('신청자 이름', 'Applicant name')}</div><div className="dc-mono">{result.applicationNo}</div></div>
+          <div style={{ margin: '12px 0 14px' }}><div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{L('비밀번호 (휴대전화 끝 4자리)', 'Password (last 4 digits of mobile)')}</div><div className="dc-mono">{result.password}</div></div>
+          <div style={{ background: 'var(--accent-soft)', borderRadius: 'var(--r-2)', padding: '11px 13px', fontSize: 13, color: 'var(--accent-ink)', lineHeight: 1.55, textAlign: 'left', margin: '0 0 14px' }}>
             {L('홍보부에서 ', 'The Media team ')}<b>{L('매일 오후 12시·오후 6시경에 일괄 검토·승인', 'reviews and approves in batches around 12:00 and 18:00 KST daily')}</b>{L('합니다. 신청 시점에 따라 다음 승인 시간에 처리돼요. 급하면 ', '. Your application is handled at the next approval window. If urgent, contact the ', )}<b>{L('한국스카우트연맹 ', 'Korea Scout Association ')}<a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b>{L(' 으로 연락주세요.', '.')}
           </div>
           <button className="dc-btn primary" onClick={onClose} style={{ minWidth: 120 }}>{L('확인', 'OK')}</button>
@@ -336,7 +336,7 @@
     return (
       <div style={{ marginTop: 16, border: '2px solid var(--accent)', borderRadius: 'var(--r-2)', background: 'var(--accent-soft)', padding: 14 }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--accent-ink)', marginBottom: 4 }}>{L('📷 D-day 카운트 사진 업로드하기', '📷 Upload your D-day countdown photos')}</div>
-        <div style={{ fontSize: 12, color: 'var(--accent-ink)', opacity: .85, marginBottom: 10 }}>{L('A4로 출력한 카드와 함께 촬영한 사진을 올려주세요. (최대 3장 · 각 5MB)', 'Upload photos taken with your A4-printed card. (Up to 3 · 5MB each)')}</div>
+        <div style={{ fontSize: 13, color: 'var(--accent-ink)', opacity: .85, marginBottom: 10 }}>{L('A4로 출력한 카드와 함께 촬영한 사진을 올려주세요. (최대 3장 · 각 5MB)', 'Upload photos taken with your A4-printed card. (Up to 3 · 5MB each)')}</div>
         <div className="dc-photos">
           {photos.map((u, i) => (<div key={i} className="dc-photo"><img src={u} alt="" /><button className="rm" disabled={busy} onClick={() => save(photos.filter((_, k) => k !== i))}>×</button></div>))}
           {photos.length < 3 && <label className="dc-photo-add">{busy ? L('업로드 중…', 'Uploading…') : L('＋ 사진 추가', '＋ Add photo')}<input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onFiles} /></label>}
@@ -500,18 +500,18 @@
                 </div>
               ))}
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>우측 상단 엠블럼</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>우측 상단 엠블럼</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {EMBLEMS.map(([v, l]) => (
                     <button key={v || 'auto'} type="button" onClick={() => set('logo', v)} style={{ border: d.logo === v ? '2px solid var(--accent)' : '1px solid var(--line)', borderRadius: 8, padding: 6, background: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 58 }}>
-                      {v ? <img src={v} alt="" style={{ width: 32, height: 32, objectFit: 'contain', background: v.indexOf('white') >= 0 ? '#3b4a3f' : '#fff', borderRadius: 4 }} /> : <span style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--muted)' }}>자동</span>}
-                      <span style={{ fontSize: 10, color: 'var(--muted)' }}>{l}</span>
+                      {v ? <img src={v} alt="" style={{ width: 32, height: 32, objectFit: 'contain', background: v.indexOf('white') >= 0 ? '#3b4a3f' : '#fff', borderRadius: 4 }} /> : <span style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--muted)' }}>자동</span>}
+                      <span style={{ fontSize: 13, color: 'var(--muted)' }}>{l}</span>
                     </button>
                   ))}
                 </div>
               </div>
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>상단 안내 문구 (신청 페이지)</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', marginBottom: 6 }}>상단 안내 문구 (신청 페이지)</div>
                 <textarea className="dc-input" rows={2} value={d.notice || ''} maxLength={300} onChange={(e) => set('notice', e.target.value)} placeholder={DEFAULT_NOTICE} style={{ resize: 'vertical', lineHeight: 1.5 }} />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -658,7 +658,7 @@
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
             <b style={{ fontSize: 14 }}>대시보드</b>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: idleLeft < 60 ? '#fff' : 'var(--accent-ink)', background: idleLeft < 60 ? 'var(--danger)' : 'var(--accent-soft)', borderRadius: 'var(--pill)', padding: '4px 11px', fontVariantNumeric: 'tabular-nums' }} title="10분 유휴 시 자동 로그아웃">⏱ {Math.floor(idleLeft / 60)}:{pad2(idleLeft % 60)}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: idleLeft < 60 ? '#fff' : 'var(--accent-ink)', background: idleLeft < 60 ? 'var(--danger)' : 'var(--accent-soft)', borderRadius: 'var(--pill)', padding: '4px 11px', fontVariantNumeric: 'tabular-nums' }} title="10분 유휴 시 자동 로그아웃">⏱ {Math.floor(idleLeft / 60)}:{pad2(idleLeft % 60)}</span>
             <button className="dc-btn ghost" disabled={busy} onClick={load}>새로고침</button>
             <button className="dc-btn ghost" onClick={() => { setAdmin(null); setAuthed(false); }}>로그아웃</button>
           </div>
@@ -675,7 +675,7 @@
           <div className="dc-secbody">
             {approvedCount ? (
               <>
-                <p className="dc-note" style={{ margin: '0 0 12px', fontSize: 11.5 }}>승인 확정된 신청을 <b>날짜(D-day) 캘린더</b>로 봅니다. 초록 칸 = 확정된 날짜(신청자 이름 표시). 칸을 클릭하면 아래 목록이 <b>승인</b>만 보이도록 걸러집니다.</p>
+                <p className="dc-note" style={{ margin: '0 0 12px', fontSize: 13 }}>승인 확정된 신청을 <b>날짜(D-day) 캘린더</b>로 봅니다. 초록 칸 = 확정된 날짜(신청자 이름 표시). 칸을 클릭하면 아래 목록이 <b>승인</b>만 보이도록 걸러집니다.</p>
                 <div className="dc-months">{monthsOf(slots).map((ym) => <MonthGrid key={ym} ym={ym} byDate={byDate} appByDate={approvedByDate} mode="approved" today={today} onPick={() => setFilter('승인')} />)}</div>
               </>
             ) : <p className="dc-note" style={{ margin: 0 }}>아직 승인 완료된 신청이 없습니다.</p>}
@@ -692,13 +692,13 @@
         <details className="dc-sec">
           <summary>신청·승인·반려 기록 ({((data && data.dclog) || []).length})</summary>
           <div className="dc-secbody">
-            <p className="dc-note" style={{ margin: '0 0 8px', fontSize: 11.5 }}>신청·승인·반려·철회 전 기록입니다. 지금은 테스트 중이라 초기화할 수 있어요(라이브 후엔 보존). 초기화해도 ‘초기화했다’는 기록은 남아요.</p>
+            <p className="dc-note" style={{ margin: '0 0 8px', fontSize: 13 }}>신청·승인·반려·철회 전 기록입니다. 지금은 테스트 중이라 초기화할 수 있어요(라이브 후엔 보존). 초기화해도 ‘초기화했다’는 기록은 남아요.</p>
             <button className="dc-btn danger" style={{ marginBottom: 10 }} disabled={busy} onClick={() => { if (window.confirm('기록을 초기화할까요?\n(초기화했다는 기록은 반드시 남습니다.)')) patch({ action: 'clearlog' }); }}>기록 초기화</button>
             <div className="dc-logbox">
               {((data && data.dclog) || []).map((l, i) => (
                 <div key={i} className="dc-logrow"><span className="t">{(l.ts || '').slice(5, 16).replace('T', ' ')}</span><span><b style={{ color: ST_COLOR[l.action] || 'var(--ink-2)' }}>{l.action}</b>{l.name ? (' · ' + l.name) : ''}{l.dNumber ? (' · D-' + l.dNumber) : ''}{l.by ? (' · 승인자 ' + l.by) : ''}{l.reason ? (' — ' + l.reason) : ''}{(l.count != null && !l.name) ? (' (' + l.count + ')') : ''}</span><span style={{ marginLeft: 'auto', color: 'var(--faint)' }}>{l.ip || ''}</span></div>
               ))}
-              {!((data && data.dclog) || []).length && <div style={{ padding: 12, color: 'var(--muted)', fontSize: 12 }}>기록 없음</div>}
+              {!((data && data.dclog) || []).length && <div style={{ padding: 12, color: 'var(--muted)', fontSize: 13 }}>기록 없음</div>}
             </div>
           </div>
         </details>
@@ -706,7 +706,7 @@
         <div className="dc-card">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
             {FILTERS.map(([k, l]) => (
-              <button key={k} className="dc-btn ghost" style={{ padding: '6px 12px', fontSize: 12.5, background: filter === k ? 'var(--accent-soft)' : 'none', color: filter === k ? 'var(--accent-ink)' : 'var(--muted)', borderColor: filter === k ? 'var(--accent)' : 'var(--line)' }} onClick={() => setFilter(k)}>{l}{k === '대기' && todoCount ? ' ' + todoCount : ''}</button>
+              <button key={k} className="dc-btn ghost" style={{ padding: '6px 12px', fontSize: 13, background: filter === k ? 'var(--accent-soft)' : 'none', color: filter === k ? 'var(--accent-ink)' : 'var(--muted)', borderColor: filter === k ? 'var(--accent)' : 'var(--line)' }} onClick={() => setFilter(k)}>{l}{k === '대기' && todoCount ? ' ' + todoCount : ''}</button>
             ))}
           </div>
           {msg && <div className="dc-err">{msg}</div>}
@@ -718,22 +718,22 @@
                   <span className="dc-tag" style={{ background: 'var(--accent)' }}>D-{a.dNumber}</span>
                   <span style={{ fontSize: 13, color: 'var(--muted)' }}>{a.targetDate}</span><StTag s={a.status} />
                   <span style={{ flex: 1 }} />
-                  <span style={{ fontSize: 12, color: 'var(--faint)' }}>{(a.createdAt || '').slice(0, 16).replace('T', ' ')}</span>
+                  <span style={{ fontSize: 13, color: 'var(--faint)' }}>{(a.createdAt || '').slice(0, 16).replace('T', ' ')}</span>
                 </div>
                 <div style={{ display: 'grid', gap: 12, alignItems: 'start' }}>
                   <ScaledCard dNumber={a.dNumber} isDay={false} teaser={a.teaser} bgColor={a.bgColor} inkColor={a.inkColor} sceneIdx={a.sceneIdx} />
                   <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--ink-2)' }}>
                     <div><b>{a.name || '—'}</b>{a.org ? ' · ' + a.org : ''}</div>
                     <div style={{ color: 'var(--muted)' }}>{a.contact || '—'}</div>
-                    <div style={{ color: 'var(--faint)', fontSize: 12 }}>IP {a.ip || '—'}</div>
+                    <div style={{ color: 'var(--faint)', fontSize: 13 }}>IP {a.ip || '—'}</div>
                     {a.status === '승인' && a.approvedBy && <div style={{ color: 'var(--st-ready)', fontWeight: 600, marginTop: 2 }}>승인자: {a.approvedBy}</div>}
                     {a.photos && a.photos.length > 0 && <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>{a.photos.map((u, i) => <a key={i} href={u} target="_blank" rel="noopener"><img src={u} alt="" style={{ width: 46, height: 46, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)' }} /></a>)}</div>}
                     {a.rejectReason && <div style={{ color: 'var(--danger)', marginTop: 4 }}>사유: {a.rejectReason}</div>}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                      <button className="dc-btn primary" style={{ padding: '7px 12px', fontSize: 12.5 }} disabled={busy || a.status === '승인'} onClick={() => act(a, 'approve')}>승인</button>
-                      <button className="dc-btn" style={{ padding: '7px 12px', fontSize: 12.5 }} disabled={busy} onClick={() => act(a, 'changes')}>수정요청</button>
-                      <button className="dc-btn danger" style={{ padding: '7px 12px', fontSize: 12.5 }} disabled={busy} onClick={() => act(a, 'reject')}>반려</button>
-                      {a.status === '승인' && <button className="dc-btn" style={{ padding: '7px 12px', fontSize: 12.5 }} onClick={() => exportA4(cardProps(a), fileFor(a))}>A4 출력</button>}
+                      <button className="dc-btn primary" style={{ padding: '7px 12px', fontSize: 13 }} disabled={busy || a.status === '승인'} onClick={() => act(a, 'approve')}>승인</button>
+                      <button className="dc-btn" style={{ padding: '7px 12px', fontSize: 13 }} disabled={busy} onClick={() => act(a, 'changes')}>수정요청</button>
+                      <button className="dc-btn danger" style={{ padding: '7px 12px', fontSize: 13 }} disabled={busy} onClick={() => act(a, 'reject')}>반려</button>
+                      {a.status === '승인' && <button className="dc-btn" style={{ padding: '7px 12px', fontSize: 13 }} onClick={() => exportA4(cardProps(a), fileFor(a))}>A4 출력</button>}
                     </div>
                   </div>
                 </div>
@@ -777,30 +777,30 @@
     useEffect(() => { const onH = () => setViewState(viewFromHash()); window.addEventListener('hashchange', onH); return () => window.removeEventListener('hashchange', onH); }, []);
 
     const tabs = [['cal', L('디데이 달력', 'D-day calendar')], ['lookup', L('신청 조회', 'Check application')], ['photo', L('사진 올리기', 'Upload photos')]];
-    const langBtn = (v, label) => <button onClick={() => setLang(v)} style={{ border: 'none', background: lang === v ? 'var(--accent)' : 'transparent', color: lang === v ? '#fff' : 'var(--muted)', font: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer', borderRadius: 'var(--pill)', padding: '5px 13px', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{label}</button>;
+    const langBtn = (v, label) => <button onClick={() => setLang(v)} style={{ border: 'none', background: lang === v ? 'var(--accent)' : 'transparent', color: lang === v ? '#fff' : 'var(--muted)', font: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer', borderRadius: 'var(--pill)', padding: '5px 13px', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{label}</button>;
     return (
       <window.DCMasterCtx.Provider value={master}>
         <div className="dc-wrap">
           <div className="syncbar">
             <span className="orgtag">{L('제16회 한국잼버리 · 디데이 프로젝트', '16th Korea National Jamboree · D-day Project')}</span><span style={{ flex: 1 }} />
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: 2, background: 'var(--surface)', marginRight: 12 }} aria-label="Language">{langBtn('ko', '한국어')}{langBtn('en', 'EN')}</div>
-            <button onClick={() => setView('admin')} style={{ border: 'none', background: 'none', color: 'var(--faint)', font: 'inherit', fontSize: 11.5, cursor: 'pointer', textDecoration: 'underline' }}>{L('관리자', 'Admin')}</button>
+            <button onClick={() => setView('admin')} style={{ border: 'none', background: 'none', color: 'var(--faint)', font: 'inherit', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}>{L('관리자', 'Admin')}</button>
           </div>
           <header style={{ display: 'flex', gap: 18, alignItems: 'center', padding: '22px 0 16px' }}>
             <img src="/jamboree/assets/logo.png" width="68" height="68" alt="emblem" style={{ flex: '0 0 auto', width: 68, height: 68, borderRadius: '50%', background: '#fff', padding: 4, border: '1px solid var(--line-2)', boxShadow: 'var(--sh-1)', boxSizing: 'border-box' }} />
             <div>
-              <p style={{ fontSize: 11.5, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>{L('제16회 한국잼버리 기획조정본부 홍보부', '16th Korea National Jamboree · Media Team')}</p>
+              <p style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700, margin: '0 0 4px' }}>{L('제16회 한국잼버리 기획조정본부 홍보부', '16th Korea National Jamboree · Media Team')}</p>
               <h1 style={{ font: "700 23px/1.1 'Bricolage Grotesque','Hanken Grotesk',sans-serif", letterSpacing: '-.02em', margin: 0 }}>{L('디데이 프로젝트', 'D-day Project')}</h1>
               <p className="dc-note" style={{ marginTop: 6 }}>{L('스카우트 가족이 ', 'The whole Scout family ')}<b>{L('함께 준비하는 잼버리', 'preparing the Jamboree together')}</b>{L(' — 날짜를 골라 디데이 카드를 신청하고, 홍보부를 통해 신청이 정상 확인되면 ', ' — pick a date to apply for a D-day card, and once the Media team confirms it, ')}<b>{L('A4로 출력해 사진을 촬영', 'print it on A4 and take a photo')}</b>{L('한 뒤 그 사진을 올려주세요!', ', then upload that photo!')}</p>
             </div>
           </header>
-          <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', fontSize: 11.5, color: 'var(--muted)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, margin: '0 0 12px', fontSize: 13, color: 'var(--muted)', flexWrap: 'wrap' }}>
             {L(['① 날짜 신청', '② 홍보부 확인(승인)', '③ A4 출력·사진 촬영', '④ 사진 올리기'], ['① Apply for a date', '② Media team approval', '③ Print A4 & photograph', '④ Upload photos']).map((s, i) => <span key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--pill)', padding: '4px 10px' }}>{s}</span>)}
           </div>
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8, whiteSpace: 'pre-wrap' }}>
+          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 8, whiteSpace: 'pre-wrap' }}>
             🛡 {(master && master.notice) || L(DEFAULT_NOTICE, 'Cards with profanity, commercial promotion or political content — anything against the spirit of the Jamboree — may be rejected. Approvals run in batches around 12:00 and 18:00 KST daily.')}
           </div>
-          <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 12.5, color: 'var(--accent-ink)', lineHeight: 1.55 }}>
+          <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', borderRadius: 'var(--r-2)', padding: '10px 14px', fontSize: 13, color: 'var(--accent-ink)', lineHeight: 1.55 }}>
             {L('⚡ 더 빠른 확정을 원하면 ', '⚡ For faster confirmation, contact the ')}<b>{L('한국스카우트연맹 ', 'Korea Scout Association ')}<a href="tel:0263352000" style={{ color: 'var(--accent-ink)', fontWeight: 700 }}>02-6335-2000</a></b>{L(' 으로 문의주세요. 빠르게 도와드릴게요.', '. We are happy to help.')}
           </div>
           <div className="dc-nav">{tabs.map(([k, l]) => <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>)}</div>

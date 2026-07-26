@@ -41,14 +41,14 @@
     var rows = ev.map(function (e, i) {
       var range = fmtEvRange(e);
       var sep = i ? "border-top:1px solid #f1ece4;" : "";
-      var inits = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span title="' + m.label + '" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:5px;background:' + m.color + ';color:#fff;font:700 9px \'Hanken Grotesk\';vertical-align:middle;margin:-2px 4px 0 0;">' + esc(m.label.charAt(0)) + '</span>'; }).join("");
+      var inits = (e.scopes || []).map(function (sk) { var m = EV_SCOPE[sk]; return '<span title="' + m.label + '" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:5px;background:' + m.color + ';color:#fff;font:700 13px \'Hanken Grotesk\';vertical-align:middle;margin:-2px 4px 0 0;">' + esc(m.label.charAt(0)) + '</span>'; }).join("");
       return '<div style="padding:7px 0;' + sep + '">' +
-        (range ? '<div style="font:700 10.5px \'Hanken Grotesk\';color:#9a93a6;letter-spacing:.01em;margin-bottom:1px;">' + esc(range) + '</div>' : "") +
-        '<div style="font:600 12.5px \'Hanken Grotesk\';color:#3a3447;line-height:1.35;">' + inits + esc(e.name) + '</div>' +
+        (range ? '<div style="font:700 13px \'Hanken Grotesk\';color:#9a93a6;letter-spacing:.01em;margin-bottom:1px;">' + esc(range) + '</div>' : "") +
+        '<div style="font:600 13px \'Hanken Grotesk\';color:#3a3447;line-height:1.35;">' + inits + esc(e.name) + '</div>' +
         '</div>';
     }).join("");
     return '<details class="sf-events" data-stop="1" open style="margin-bottom:10px;">' +
-      '<summary style="cursor:pointer;display:flex;align-items:center;gap:6px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:#9a93a6;padding:2px 0;outline:none;">' +
+      '<summary style="cursor:pointer;display:flex;align-items:center;gap:6px;font:700 13px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:#9a93a6;padding:2px 0;outline:none;">' +
       '<svg class="ev-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="m9 18 6-6-6-6"></path></svg>' +
       'Events held here <span style="color:#c2bcce;font-weight:600;">' + ev.length + '</span>' +
       '</summary>' +
@@ -174,47 +174,47 @@
   }
   function clusterHtml(count, color, code) {
     var sz = count >= 50 ? 56 : count >= 10 ? 50 : 44;
-    var sub = code ? '<div style="font:700 9px \'Hanken Grotesk\';letter-spacing:.06em;line-height:1;opacity:.92;margin-top:1px;">' + esc(code) + '</div>' : '';
+    var sub = code ? '<div style="font:700 13px \'Hanken Grotesk\';letter-spacing:.06em;line-height:1;opacity:.92;margin-top:1px;">' + esc(code) + '</div>' : '';
     return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 6px 16px rgba(30,18,55,.4);color:#fff;animation:sfpop .25s ease;cursor:pointer;">' +
       '<div style="font:800 ' + (count >= 100 ? 15 : 17) + 'px \'Bricolage Grotesque\';line-height:1;">' + count + '</div>' + sub + '</div>';
   }
   function popupHtml(u) {
     var r = REGION[u.region] || { color: "#6336B5" };
     var listc = (u.sections.length ? u.sections : u.tags) || [];
-    var chips = listc.map(function (c) { return '<span style="display:inline-block;font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;margin:0 5px 5px 0;">' + esc(c) + '</span>'; }).join("");
-    var dist = u._dist != null ? '<span style="font:700 11.5px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;">' + u._dist.toFixed(1) + ' km</span>' : "";
+    var chips = listc.map(function (c) { return '<span style="display:inline-block;font:600 13px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;margin:0 5px 5px 0;">' + esc(c) + '</span>'; }).join("");
+    var dist = u._dist != null ? '<span style="font:700 13px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 8px;border-radius:8px;">' + u._dist.toFixed(1) + ' km</span>' : "";
     var citems = contactItems(u);
     var contact = citems.length
-      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;font:600 12px \'Hanken Grotesk\';color:#fff;background:#6336B5;text-decoration:none;padding:7px 12px;border-radius:9px;">' + esc(it.label) + '</a>'; }).join("") + '</div>'
-      : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;font:600 13px \'Hanken Grotesk\';color:#fff;background:#6336B5;text-decoration:none;padding:7px 12px;border-radius:9px;">' + esc(it.label) + '</a>'; }).join("") + '</div>'
+      : '<span style="font-size:13px;color:#a39bb0;">Contact the national scout org</span>';
     var loc = u.city ? esc(u.city) + ", " + esc(u.country) : esc(u.country || "");
-    var addr = u.address ? '<div class="sf-copy" data-copy="' + escAttr(u.address) + '" title="Click to copy the full address" style="display:flex;align-items:flex-start;gap:7px;cursor:pointer;font-size:12px;color:#5b5366;background:#f6f3fa;border:1px solid #efeae1;border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.4;">' +
+    var addr = u.address ? '<div class="sf-copy" data-copy="' + escAttr(u.address) + '" title="Click to copy the full address" style="display:flex;align-items:flex-start;gap:7px;cursor:pointer;font-size:13px;color:#5b5366;background:#f6f3fa;border:1px solid #efeae1;border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.4;">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>' +
       '<span style="flex:1;min-width:0;">' + esc(u.address) + '</span>' +
-      '<span class="copy-hint" style="flex:none;font:700 10px \'Hanken Grotesk\';color:#6336B5;white-space:nowrap;">Copy</span></div>' : "";
+      '<span class="copy-hint" style="flex:none;font:700 13px \'Hanken Grotesk\';color:#6336B5;white-space:nowrap;">Copy</span></div>' : "";
     var pdesc = "";
     if (u.desc) {
       var plong = u.desc.length > 90, popen = !!state.descExpanded[u.id];
       var pclamp = (plong && !popen) ? "display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;" : "";
-      pdesc = '<div style="font-size:12.5px;color:#42394f;line-height:1.5;margin-bottom:' + (plong ? "3px" : "10px") + ';' + pclamp + '">' + esc(u.desc) + '</div>' +
-        (plong ? '<button data-popmore="' + escAttr(u.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:10px;">' + (popen ? "Show less" : "Show more") + '</button>' : "");
+      pdesc = '<div style="font-size:13px;color:#42394f;line-height:1.5;margin-bottom:' + (plong ? "3px" : "10px") + ';' + pclamp + '">' + esc(u.desc) + '</div>' +
+        (plong ? '<button data-popmore="' + escAttr(u.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 13px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:10px;">' + (popen ? "Show less" : "Show more") + '</button>' : "");
     }
     return '<div style="font-family:\'Hanken Grotesk\';max-width:250px;">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">' +
-      '<span style="display:inline-flex;align-items:center;gap:5px;font:700 10px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(kindShort(u.kind)) + '</span>' + dist + '</div>' +
+      '<span style="display:inline-flex;align-items:center;gap:5px;font:700 13px \'Hanken Grotesk\';text-transform:uppercase;letter-spacing:.05em;color:' + r.color + ';"><span style="width:7px;height:7px;border-radius:50%;background:' + r.color + ';"></span>' + esc(u.region) + ' · ' + esc(kindShort(u.kind)) + '</span>' + dist + '</div>' +
       '<div style="font:700 16px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;line-height:1.15;margin-bottom:' + (u.subtitle ? "1px" : "3px") + ';">' + esc(u.name) + '</div>' +
-      (u.subtitle ? '<div style="font:500 12px \'Hanken Grotesk\';color:#9a93a6;line-height:1.25;margin-bottom:7px;">' + esc(u.subtitle) + '</div>' : '') +
-      (loc ? '<div style="font-size:12px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' : '') +
+      (u.subtitle ? '<div style="font:500 13px \'Hanken Grotesk\';color:#9a93a6;line-height:1.25;margin-bottom:7px;">' + esc(u.subtitle) + '</div>' : '') +
+      (loc ? '<div style="font-size:13px;color:#8a8496;margin-bottom:9px;">' + loc + '</div>' : '') +
       addr +
       pdesc +
       '<div style="margin-bottom:2px;">' + chips + '</div>' +
       (eventsHtml(u) ? '<div style="margin-top:9px;">' + eventsHtml(u) + '</div>' : "") +
-      '<div style="font-size:11px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact +
+      '<div style="font-size:13px;color:#9a93a6;margin:8px 0 11px;padding-top:9px;border-top:1px solid #f0ebe2;">' + esc(u.nso) + '</div>' + contact +
       '<div style="display:flex;gap:7px;margin-top:11px;">' +
-      '<button data-popcomments="' + escAttr(u.id) + '" style="flex:1;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 12px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<button data-popcomments="' + escAttr(u.id) + '" style="flex:1;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 13px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' +
       'Comments (' + commentsFor(u.id).length + ')</button>' +
-      '<button data-suggestedit="' + escAttr(u.id) + '" title="Suggest a correction to this place" style="flex:none;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 12px \'Hanken Grotesk\';padding:9px 11px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<button data-suggestedit="' + escAttr(u.id) + '" title="Suggest a correction to this place" style="flex:none;border:1px solid #e7e1d8;background:#fff;color:#5b5366;font:600 13px \'Hanken Grotesk\';padding:9px 11px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6336B5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>' +
       'Suggest an edit</button></div></div>';
   }
@@ -285,7 +285,7 @@
       var sel = u.id === state.selectedId;
       var icon = L.divIcon({ className: "", html: pinHtml(i + 1, u, sel), iconSize: [40, 46], iconAnchor: [20, 44], popupAnchor: [0, -42] });
       var m = L.marker([u.lat, u.lng], { icon: icon, zIndexOffset: sel ? 1000 : 0 }).addTo(layer);
-      var labelHtml = '<div style="font:700 12px \'Hanken Grotesk\';color:#1E1730;line-height:1.15;">' + esc(u.name) + '</div>' + (u.subtitle ? '<div style="font:500 10.5px \'Hanken Grotesk\';color:#9a93a6;line-height:1.15;margin-top:1px;">' + esc(u.subtitle) + '</div>' : "");
+      var labelHtml = '<div style="font:700 13px \'Hanken Grotesk\';color:#1E1730;line-height:1.15;">' + esc(u.name) + '</div>' + (u.subtitle ? '<div style="font:500 13px \'Hanken Grotesk\';color:#9a93a6;line-height:1.15;margin-top:1px;">' + esc(u.subtitle) + '</div>' : "");
       m.bindTooltip(labelHtml, { permanent: true, direction: "top", offset: [0, -46], className: "sf-label", opacity: 1 });
       m.bindPopup(popupHtml(u), { closeButton: true, maxWidth: 280, minWidth: 248, autoPanPadding: [60, 60] });
       m.on("click", function (e) { if (e && e.originalEvent) L.DomEvent.stopPropagation(e); select(u.id, false); });
@@ -337,7 +337,7 @@
   }
 
   // ── panel rendering ────────────────────────────────────────────────
-  function chipStyle(active) { return "display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';border:1px solid;cursor:pointer;white-space:nowrap;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
+  function chipStyle(active) { return "display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;font:600 13px 'Hanken Grotesk';border:1px solid;cursor:pointer;white-space:nowrap;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
 
   function renderChips() {
     var kinds = [{ key: "All", label: "All", dot: "#b8b2a6" }, { key: "unit", label: "Units", dot: "#6336B5" }, { key: "office", label: "Offices", dot: "#3A57B0" }, { key: "heritage", label: "Heritage", dot: "#C2872E" }, { key: "camp", label: "Camp Sites", dot: "#3E8E4F" }, { key: "regevent", label: "Regional Event", dot: "#1F9CA6" }, { key: "globevent", label: "Global Event", dot: "#B5408F" }];
@@ -371,29 +371,29 @@
     var total = list.reduce(function (s, c) { return s + c.count; }, 0);
     function opt(value, label, dot, count, active) {
       var dotEl = dot ? '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';flex:none;"></span>' : '<span style="width:8px;flex:none;"></span>';
-      return '<button data-pick-country="' + escAttr(value) + '" style="display:flex;align-items:center;gap:8px;width:100%;border:none;background:' + (active ? "#f3eefb" : "transparent") + ';cursor:pointer;text-align:left;padding:7px 9px;border-radius:9px;font:600 12.5px \'Hanken Grotesk\';color:' + (active ? "#5B2EA6" : "#3a3346") + ';">' +
+      return '<button data-pick-country="' + escAttr(value) + '" style="display:flex;align-items:center;gap:8px;width:100%;border:none;background:' + (active ? "#f3eefb" : "transparent") + ';cursor:pointer;text-align:left;padding:7px 9px;border-radius:9px;font:600 13px \'Hanken Grotesk\';color:' + (active ? "#5B2EA6" : "#3a3346") + ';">' +
         dotEl + '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(label) + '</span>' +
-        '<span style="flex:none;font:700 10px \'Hanken Grotesk\';color:#9a93a6;background:#f1ece4;border-radius:999px;padding:1px 7px;">' + count + '</span></button>';
+        '<span style="flex:none;font:700 13px \'Hanken Grotesk\';color:#9a93a6;background:#f1ece4;border-radius:999px;padding:1px 7px;">' + count + '</span></button>';
     }
     var html = opt("All", "All countries", "", total, state.country === "All");
     html += matches.map(function (c) { return opt(c.name, c.name, (REGION[c.region] || { color: "#6336B5" }).color, c.count, state.country === c.name); }).join("");
-    if (!matches.length) html += '<div style="padding:14px 9px;text-align:center;font-size:12px;color:#a39bb0;">No countries match “' + esc(state.countryQuery) + '”.</div>';
+    if (!matches.length) html += '<div style="padding:14px 9px;text-align:center;font-size:13px;color:#a39bb0;">No countries match “' + esc(state.countryQuery) + '”.</div>';
     return html;
   }
   function renderCountryFilter() {
     var host = $("country-filter"); if (!host) return;
     var active = state.country !== "All";
     var label = active ? state.country : "All countries";
-    var trig = "display:flex;align-items:center;gap:8px;width:100%;border:1px solid;cursor:pointer;padding:9px 11px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';transition:all .15s;" + (active ? "background:#f3eefb;color:#5B2EA6;border-color:#d8c8f0;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;");
+    var trig = "display:flex;align-items:center;gap:8px;width:100%;border:1px solid;cursor:pointer;padding:9px 11px;border-radius:11px;font:600 13px 'Hanken Grotesk';transition:all .15s;" + (active ? "background:#f3eefb;color:#5B2EA6;border-color:#d8c8f0;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;");
     var globe = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"></path></svg>';
-    var clear = active ? '<span data-clear-country="1" title="Clear country" style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#6336B5;color:#fff;font:700 11px \'Hanken Grotesk\';line-height:1;">×</span>' : '';
+    var clear = active ? '<span data-clear-country="1" title="Clear country" style="flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#6336B5;color:#fff;font:700 13px \'Hanken Grotesk\';line-height:1;">×</span>' : '';
     var trigger = '<button id="country-trigger" style="' + trig + '">' + globe +
       '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">' + esc(label) + '</span>' + clear +
       '<span style="flex:none;color:#9a93a6;display:inline-flex;">' + chevDown() + '</span></button>';
     var dropdown = "";
     if (state.countryOpen) {
       dropdown = '<div id="country-dropdown" style="position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:50;background:#fff;border:1px solid #ece6db;border-radius:13px;box-shadow:0 16px 40px rgba(30,18,55,.2);padding:9px;">' +
-        '<input id="country-search" placeholder="Search a country…" autocomplete="off" value="' + escAttr(state.countryQuery || "") + '" style="width:100%;border:1px solid #e7e1d8;border-radius:10px;padding:9px 11px;font:500 12.5px \'Hanken Grotesk\';color:#1E1730;outline:none;background:#fbfaf7;" />' +
+        '<input id="country-search" placeholder="Search a country…" autocomplete="off" value="' + escAttr(state.countryQuery || "") + '" style="width:100%;border:1px solid #e7e1d8;border-radius:10px;padding:9px 11px;font:500 13px \'Hanken Grotesk\';color:#1E1730;outline:none;background:#fbfaf7;" />' +
         '<div id="country-options" class="sf-scroll" style="max-height:244px;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:1px;">' + countryOptionsHtml() + '</div></div>';
     }
     host.innerHTML = trigger + dropdown;
@@ -414,17 +414,17 @@
     var sel = u.id === state.selectedId;
     var rc = REGION[u.region] || { color: "#6336B5" };
     var cs = commentsFor(u.id).length;
-    var dist = u._dist != null ? '<span style="flex:none;font:700 11px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
-    var badge = "width:28px;height:28px;" + shapeCss(u.kind) + "flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 12px 'Hanken Grotesk';";  // shape = place type
-    var kindChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none;";
-    var regionChip = "display:inline-flex;align-items:center;font:700 9px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
-    var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 10px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
+    var dist = u._dist != null ? '<span style="flex:none;font:700 13px \'Hanken Grotesk\';color:#6336B5;background:#f3eefb;padding:3px 7px;border-radius:7px;white-space:nowrap;">' + u._dist.toFixed(1) + ' km</span>' : "";
+    var badge = "width:28px;height:28px;" + shapeCss(u.kind) + "flex:none;display:flex;align-items:center;justify-content:center;background:" + rc.color + ";color:#fff;font:700 13px 'Hanken Grotesk';";  // shape = place type
+    var kindChip = "display:inline-flex;align-items:center;font:700 13px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;color:#6b6577;background:#f1ece4;padding:2px 6px;border-radius:5px;white-space:nowrap;flex:none;";
+    var regionChip = "display:inline-flex;align-items:center;font:700 13px 'Hanken Grotesk';letter-spacing:.03em;color:" + rc.color + ";background:" + rc.color + "14;padding:2px 6px;border-radius:5px;";
+    var csBtn = '<button data-comments="' + escAttr(u.id) + '" title="Comments" style="display:inline-flex;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;font:600 13px \'Hanken Grotesk\';color:#9a93a6;padding:1px 5px 1px 3px;border-radius:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>';
     // compact header (shared by collapsed + selected)
     var header = '<div style="display:flex;align-items:center;gap:10px;">' +
       '<div style="' + badge + '">' + rank + '</div>' +
       '<div style="flex:1;min-width:0;">' +
       '<div style="font:700 13.5px \'Bricolage Grotesque\';letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name) + '</div>' +
-      (u.subtitle ? '<div style="font:500 11px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
+      (u.subtitle ? '<div style="font:500 13px \'Hanken Grotesk\';color:#9a93a6;line-height:1.2;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.subtitle) + '</div>' : "") +
       '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="' + kindChip + '">' + esc(kindShort(u.kind)) + '</span><span style="' + regionChip + '">' + esc(u.region) + '</span>' + (!sel ? csBtn : "") + '</div>' +
       '</div>' + dist + '</div>';
 
@@ -434,44 +434,44 @@
 
     // selected → expanded details
     var place = [u.country || u.address, u.nso].filter(Boolean).join(" · ");
-    var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 11px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
+    var chips = (u.sections.length ? u.sections : u.tags).slice(0, 6).map(function (c) { return '<span style="font:600 13px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;padding:3px 9px;border-radius:999px;">' + esc(c) + '</span>'; }).join("");
     var citems = contactItems(u);
     var contact = citems.length
-      ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 12px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;">' + esc(it.label) + '</a>'; }).join('<span style="color:#d6cfe0;">·</span>') + '</div>'
-      : '<span style="font-size:11.5px;color:#a39bb0;">Contact the national scout org</span>';
+      ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;">' + citems.map(function (it) { return '<a href="' + escAttr(it.href) + '" target="_blank" rel="noopener" data-stop="1" style="font:600 13px \'Hanken Grotesk\';color:#6336B5;text-decoration:none;">' + esc(it.label) + '</a>'; }).join('<span style="color:#d6cfe0;">·</span>') + '</div>'
+      : '<span style="font-size:13px;color:#a39bb0;">Contact the national scout org</span>';
     var descBlock = (function () {
       if (!u.desc) return "";
       var long = u.desc.length > 90, open = !!state.descExpanded[u.id];
       var clamp = (long && !open) ? "display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;" : "";
-      var body = '<div style="font-size:12.5px;color:#4a4458;line-height:1.45;margin-bottom:' + (long ? "4px" : "9px") + ';' + clamp + '">' + esc(u.desc) + '</div>';
-      var toggle = long ? '<button data-more="' + escAttr(u.id) + '" data-stop="1" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:9px;">' + (open ? "Show less" : "Show more") + '</button>' : "";
+      var body = '<div style="font-size:13px;color:#4a4458;line-height:1.45;margin-bottom:' + (long ? "4px" : "9px") + ';' + clamp + '">' + esc(u.desc) + '</div>';
+      var toggle = long ? '<button data-more="' + escAttr(u.id) + '" data-stop="1" style="border:none;background:transparent;color:#6336B5;font:600 13px \'Hanken Grotesk\';cursor:pointer;padding:0;margin-bottom:9px;">' + (open ? "Show less" : "Show more") + '</button>' : "";
       return body + toggle;
     })();
     return '<div data-open="' + escAttr(u.id) + '" style="border:1px solid #6336B5;box-shadow:0 0 0 3px #6336B51f;border-radius:14px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;">' +
       header +
       '<div style="margin-top:11px;padding-top:11px;border-top:1px solid #f3eee5;">' +
-      (place ? '<div style="font-size:12px;color:#8a8496;margin-bottom:7px;line-height:1.35;">' + esc(place) + '</div>' : "") +
+      (place ? '<div style="font-size:13px;color:#8a8496;margin-bottom:7px;line-height:1.35;">' + esc(place) + '</div>' : "") +
       descBlock +
       (chips ? '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">' + chips + '</div>' : "") +
       eventsHtml(u) +
       '<div style="display:flex;align-items:center;gap:12px;">' + contact +
       '<div style="flex:1;"></div>' +
-      '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 12px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
+      '<button data-comments="' + escAttr(u.id) + '" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 13px \'Hanken Grotesk\';color:#6b6577;padding:0;">' +
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"></path></svg>' + cs + '</button>' +
       '</div>' +
-      '<button data-suggestedit="' + escAttr(u.id) + '" data-stop="1" style="margin-top:10px;width:100%;border:1px dashed #d8cfe6;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';padding:8px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<button data-suggestedit="' + escAttr(u.id) + '" data-stop="1" style="margin-top:10px;width:100%;border:1px dashed #d8cfe6;background:transparent;color:#6336B5;font:600 13px \'Hanken Grotesk\';padding:8px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>' +
       'Suggest an edit / correction</button>' +
       '</div></div>';
   }
 
   function groupChevron(collapsed, size) { size = size || 14; return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="#9a93a6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(' + (collapsed ? 0 : 90) + 'deg);transition:transform .15s;"><path d="m9 18 6-6-6-6"></path></svg>'; }
-  function countBadge(n) { return '<span style="flex:none;font:700 10px \'Hanken Grotesk\';color:#9a93a6;background:#f1ece4;border-radius:999px;padding:1px 8px;">' + n + '</span>'; }
+  function countBadge(n) { return '<span style="flex:none;font:700 13px \'Hanken Grotesk\';color:#9a93a6;background:#f1ece4;border-radius:999px;padding:1px 8px;">' + n + '</span>'; }
 
   function renderList() {
     var f = sorted();
     if (!f.length) {
-      $("unit-list").innerHTML = '<div style="text-align:center;padding:46px 20px;color:#9a93a6;"><div style="font:600 14px \'Hanken Grotesk\';margin-bottom:4px;color:#6b6577;">No places found</div><div style="font-size:12.5px;">Try a different search or reset the filters.</div></div>';
+      $("unit-list").innerHTML = '<div style="text-align:center;padding:46px 20px;color:#9a93a6;"><div style="font:600 14px \'Hanken Grotesk\';margin-bottom:4px;color:#6b6577;">No places found</div><div style="font-size:13px;">Try a different search or reset the filters.</div></div>';
       return;
     }
     var rankOf = {};
@@ -506,7 +506,7 @@
       var rHeader = '<button data-group="' + escAttr(rId) + '" style="display:flex;align-items:center;gap:8px;width:100%;border:none;background:transparent;cursor:pointer;text-align:left;padding:8px 4px 6px;">' +
         groupChevron(rCol, 15) +
         '<span style="width:10px;height:10px;border-radius:50%;background:' + rcolor + ';flex:none;"></span>' +
-        '<span style="flex:1;min-width:0;font:800 12.5px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(rfull) + ' <span style="font:700 10px \'Hanken Grotesk\';color:' + rcolor + ';">' + rk + '</span></span>' +
+        '<span style="flex:1;min-width:0;font:800 13px \'Bricolage Grotesque\';color:#1E1730;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(rfull) + ' <span style="font:700 13px \'Hanken Grotesk\';color:' + rcolor + ';">' + rk + '</span></span>' +
         countBadge(rg.count) + '</button>';
       if (rCol) return '<div style="margin-bottom:4px;border-bottom:1px solid #f3eee5;">' + rHeader + '</div>';
 
@@ -518,7 +518,7 @@
         var cId = "c:" + rk + "|" + ck, cCol = (cId in state.collapsedGroups) ? !!state.collapsedGroups[cId] : dfltCol;
         var cHeader = '<button data-group="' + escAttr(cId) + '" style="display:flex;align-items:center;gap:7px;width:100%;border:none;background:transparent;cursor:pointer;text-align:left;padding:5px 4px;">' +
           groupChevron(cCol, 13) +
-          '<span style="flex:1;min-width:0;font:700 11.5px \'Hanken Grotesk\';color:#5b5366;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(ck) + '</span>' +
+          '<span style="flex:1;min-width:0;font:700 13px \'Hanken Grotesk\';color:#5b5366;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(ck) + '</span>' +
           countBadge(cg.units.length) + '</button>';
         var units = cCol ? "" : '<div style="margin-left:7px;">' + cg.units.map(function (u) { return unitRowHtml(u, rankOf[u.id]); }).join("") + '</div>';
         return '<div style="margin-bottom:2px;">' + cHeader + units + '</div>';
@@ -530,14 +530,14 @@
   function renderSort() {
     var el = $("sort-row"); if (!el) return;
     var groupIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>';
-    var groupBtn = '<button data-toggle="grouped" title="Group by Region › Country › place" style="display:inline-flex;align-items:center;gap:5px;border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (state.grouped ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + groupIcon + 'Grouped</button>';
+    var groupBtn = '<button data-toggle="grouped" title="Group by Region › Country › place" style="display:inline-flex;align-items:center;gap:5px;border:1px solid;padding:4px 10px;border-radius:999px;font:600 13px \'Hanken Grotesk\';cursor:pointer;' + (state.grouped ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + groupIcon + 'Grouped</button>';
     var expandAll = '<button data-allgroups="expand" title="Expand all groups" style="display:inline-flex;align-items:center;border:1px solid #e7e1d8;background:#fff;color:#5b5366;padding:4px 7px;border-radius:999px;cursor:pointer;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 13 5 5 5-5"></path><path d="m7 6 5 5 5-5"></path></svg></button>';
     var collapseAll = '<button data-allgroups="collapse" title="Collapse all groups" style="display:inline-flex;align-items:center;border:1px solid #e7e1d8;background:#fff;color:#5b5366;padding:4px 7px;border-radius:999px;cursor:pointer;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 11-5-5-5 5"></path><path d="m17 18-5-5-5 5"></path></svg></button>';
     var allBtns = state.grouped ? collapseAll + expandAll : "";
     var opts = state.grouped ? [["distance", "Distance"], ["name", "Name"]] : [["distance", "Distance"], ["name", "Name"], ["region", "Region"]];
-    var sort = '<span style="font:700 10px \'Hanken Grotesk\';color:#9a93a6;text-transform:uppercase;letter-spacing:.06em;margin:0 1px 0 4px;">Sort</span>' + opts.map(function (o) {
+    var sort = '<span style="font:700 13px \'Hanken Grotesk\';color:#9a93a6;text-transform:uppercase;letter-spacing:.06em;margin:0 1px 0 4px;">Sort</span>' + opts.map(function (o) {
       var active = (state.sort || "distance") === o[0];
-      return '<button data-sort="' + o[0] + '" style="border:1px solid;padding:4px 10px;border-radius:999px;font:600 11px \'Hanken Grotesk\';cursor:pointer;' + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + o[1] + '</button>';
+      return '<button data-sort="' + o[0] + '" style="border:1px solid;padding:4px 10px;border-radius:999px;font:600 13px \'Hanken Grotesk\';cursor:pointer;' + (active ? "background:#1E1730;color:#fff;border-color:#1E1730;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;") + '">' + o[1] + '</button>';
     }).join("");
     el.innerHTML = groupBtn + allBtns + sort;
   }
@@ -553,7 +553,7 @@
   function renderLegend() {
     $("legend-rows").innerHTML = Object.keys(REGION).map(function (code) {
       var r = REGION[code];
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:11px;height:11px;border-radius:50%;background:' + r.color + ';flex:none;"></span><span style="font:700 11.5px \'Hanken Grotesk\';color:#1E1730;width:30px;">' + code + '</span><span style="font-size:11.5px;color:#8a8496;">' + r.full + '</span></div>';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:11px;height:11px;border-radius:50%;background:' + r.color + ';flex:none;"></span><span style="font:700 13px \'Hanken Grotesk\';color:#1E1730;width:30px;">' + code + '</span><span style="font-size:13px;color:#8a8496;">' + r.full + '</span></div>';
     }).join("");
   }
 
@@ -605,20 +605,20 @@
       var rowStyle = "padding:11px 0;border-bottom:1px solid #f0ebe2;margin-left:" + (c.depth * 20) + "px;" + (c.depth ? "border-left:2px solid #efe7f7;padding-left:11px;" : "");
       if (c.deleted) {
         return '<div style="' + rowStyle + '">' +
-          '<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#a39bb0;">' +
+          '<div style="display:flex;align-items:center;gap:7px;font-size:13px;color:#a39bb0;">' +
           '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>' +
           '<span style="font-style:italic;">Comment removed by an admin' + (c.deletedReason ? ' — ' + esc(c.deletedReason) : '') + '</span></div></div>';
       }
       return '<div style="' + rowStyle + '">' +
         '<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">' +
-        '<span style="font:700 12.5px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name) + '</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">' + esc(c.ipMasked || "") + '</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">·</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">' + fmtTs(c.ts) + (c.edited ? " · edited" : "") + '</span></div>' +
+        '<span style="font:700 13px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name) + '</span>' +
+        '<span style="font-size:13px;color:#b3adbd;">' + esc(c.ipMasked || "") + '</span>' +
+        '<span style="font-size:13px;color:#b3adbd;">·</span>' +
+        '<span style="font-size:13px;color:#b3adbd;">' + fmtTs(c.ts) + (c.edited ? " · edited" : "") + '</span></div>' +
         '<div style="font-size:13px;color:#3a3346;line-height:1.5;margin-bottom:5px;white-space:pre-wrap;">' + esc(c.body) + '</div>' +
-        '<button data-reply="' + escAttr(c.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 11.5px \'Hanken Grotesk\';cursor:pointer;padding:0;">Reply</button></div>';
+        '<button data-reply="' + escAttr(c.id) + '" style="border:none;background:transparent;color:#6336B5;font:600 13px \'Hanken Grotesk\';cursor:pointer;padding:0;">Reply</button></div>';
     }).join("");
-    if (!thread.length) html = '<div style="text-align:center;padding:36px 16px;color:#a39bb0;font-size:12.5px;">No comments yet. Be the first to share your experience.</div>';
+    if (!thread.length) html = '<div style="text-align:center;padding:36px 16px;color:#a39bb0;font-size:13px;">No comments yet. Be the first to share your experience.</div>';
     $("thread").innerHTML = html;
   }
   function updateReplyBanner() {
@@ -665,8 +665,8 @@
   var COUNTRY = (function () { var m = {}; NSOS.forEach(function (n) { m[n.country] = { nso: n.nso, region: regionCode(n.region), lang: n.lang }; }); return m; })();
   var COUNTRIES = Object.keys(COUNTRY).sort();
   var rep = { kind: "unit", sections: [], country: "", nso: "", region: "APR", lang: "", lat: null, lng: null, address: "" };
-  function rSeg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
-  function rChip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
+  function rSeg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 13px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
+  function rChip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 13px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
   function renderRKind() { $("r-kind-seg").innerHTML = ["unit", "office", "heritage", "camp", "regevent", "globevent"].map(function (k) { return '<button data-rkind="' + k + '" style="' + rSeg(rep.kind === k) + '">' + KIND[k] + '</button>'; }).join(""); $("r-sections-wrap").style.display = rep.kind === "unit" ? "block" : "none"; }
   function renderRSections() { $("r-sections").innerHTML = ALL_SECTIONS.map(function (s) { return '<button data-rsec="' + s + '" style="' + rChip(rep.sections.indexOf(s) !== -1) + '">' + s + '</button>'; }).join(""); }
   function renderRCountry() { $("r-country").innerHTML = '<option value="">Select a country…</option>' + COUNTRIES.map(function (c) { return '<option value="' + escAttr(c) + '"' + (c === rep.country ? " selected" : "") + ">" + esc(c) + "</option>"; }).join(""); }
@@ -769,8 +769,8 @@
       var lat = e.latlng.lat, lng = e.latlng.lng;
       var html = '<div style="font-family:\'Hanken Grotesk\';text-align:center;min-width:178px;padding:2px 2px 0;">' +
         '<div style="font:700 13px \'Bricolage Grotesque\';color:#1E1730;margin-bottom:3px;">Search from this point?</div>' +
-        '<div style="font-size:11px;color:#9a93a6;margin-bottom:10px;">Sort places by distance from<br>' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div>' +
-        '<button data-searchhere="' + lat.toFixed(6) + ',' + lng.toFixed(6) + '" style="width:100%;border:none;background:#6336B5;color:#fff;font:600 12.5px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;">Search from here</button></div>';
+        '<div style="font-size:13px;color:#9a93a6;margin-bottom:10px;">Sort places by distance from<br>' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div>' +
+        '<button data-searchhere="' + lat.toFixed(6) + ',' + lng.toFixed(6) + '" style="width:100%;border:none;background:#6336B5;color:#fff;font:600 13px \'Hanken Grotesk\';padding:9px;border-radius:10px;cursor:pointer;">Search from here</button></div>';
       L.popup({ closeButton: true, autoPanPadding: [40, 40], className: "sf-ask" }).setLatLng(e.latlng).setContent(html).openOn(map);
     });
     map.on("zoomend", renderMarkers);

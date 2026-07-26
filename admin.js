@@ -112,7 +112,7 @@
   // ── map ────────────────────────────────────────────────────────────
   function markerHtml(color, kind) {
     var shape = kind === "office" ? "7px" : "50%";
-    var badge = kind === "heritage" ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:#C2872E;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 8px sans-serif;">★</span>' : "";
+    var badge = kind === "heritage" ? '<span style="position:absolute;top:-4px;right:-4px;width:13px;height:13px;background:#C2872E;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font:700 13px sans-serif;">★</span>' : "";
     return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;"><div style="position:relative;width:30px;height:30px;border-radius:' + shape + ';background:' + color + ';border:2.5px solid #fff;box-shadow:0 4px 11px rgba(30,18,55,.4);">' + badge + '</div><div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fff;margin-top:-1px;"></div></div>';
   }
   function syncMarker(recenter) {
@@ -178,7 +178,7 @@
   }
 
   // ── rail ───────────────────────────────────────────────────────────
-  function filt(active) { return "flex:1;border:none;padding:6px 4px;border-radius:8px;font:600 11.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;" : "background:#f1ece4;color:#8a8496;"); }
+  function filt(active) { return "flex:1;border:none;padding:6px 4px;border-radius:8px;font:600 13px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#1E1730;color:#fff;" : "background:#f1ece4;color:#8a8496;"); }
   function renderFilters() {
     $("rail-filters").innerHTML = ["All", "unit", "office", "heritage", "camp", "regevent", "globevent"].map(function (k) {
       var short = { camp: "Camp", regevent: "Reg. Event", globevent: "Global Event" };
@@ -199,23 +199,23 @@
       var isSel = u.id === state.selectedId;
       var rc = REGION[u.region] || { color: "#9a93a6" };
       var rowStyle = "display:flex;gap:10px;padding:11px 11px;border-radius:12px;cursor:pointer;margin-bottom:3px;transition:background .12s;align-items:flex-start;" + (isSel ? "background:#f1ecf9;" : "background:transparent;");
-      var statusStyle = "flex:none;font:700 9.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:6px;margin-top:2px;" + (u.status === "draft" ? "background:#fbf0dd;color:#b5832e;" : "background:#e6f3ec;color:#2e8b57;");
+      var statusStyle = "flex:none;font:700 13px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:6px;margin-top:2px;" + (u.status === "draft" ? "background:#fbf0dd;color:#b5832e;" : "background:#e6f3ec;color:#2e8b57;");
       return '<div data-select="' + escAttr(u.id) + '" style="' + rowStyle + '">' +
         '<span style="width:10px;height:10px;border-radius:' + (u.kind === "office" ? "3px" : "50%") + ';background:' + rc.color + ';flex:none;margin-top:4px;"></span>' +
         '<div style="flex:1;min-width:0;"><div style="font:700 13px \'Hanken Grotesk\';line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(u.name || "Untitled") + '</div>' +
-        '<div style="font-size:11px;color:#8a8496;margin-top:2px;">' + esc(KIND[u.kind] + " · " + u.region + (u.country ? " · " + u.country : "")) + '</div></div>' +
+        '<div style="font-size:13px;color:#8a8496;margin-top:2px;">' + esc(KIND[u.kind] + " · " + u.region + (u.country ? " · " + u.country : "")) + '</div></div>' +
         '<span style="' + statusStyle + '">' + (u.status === "draft" ? "Draft" : "Live") + '</span></div>';
     }).join("");
     $("rail-count").textContent = list.length;
   }
 
   // ── form ───────────────────────────────────────────────────────────
-  function seg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
-  function chip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 12.5px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
+  function seg(active) { return "flex:1;border:1px solid;padding:9px 8px;border-radius:11px;font:600 13px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#6b6577;border-color:#e7e1d8;"); }
+  function chip(active) { return "border:1px solid;padding:7px 12px;border-radius:999px;font:600 13px 'Hanken Grotesk';cursor:pointer;transition:all .15s;" + (active ? "background:#6336B5;color:#fff;border-color:#6336B5;" : "background:#fff;color:#5b5366;border-color:#e7e1d8;"); }
   var CARD = "background:#fff;border:1px solid #ece6db;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(30,18,55,.04);";
-  var SEC = "font:700 10.5px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin-bottom:14px;";
-  var LBL = "display:block;font:600 12px 'Hanken Grotesk';color:#6b6577;margin:14px 0 7px;";
-  var BTN_SOFT = "border:none;background:#f1ecf9;color:#5B2EA6;font:600 12.5px 'Hanken Grotesk';padding:9px 14px;border-radius:11px;cursor:pointer;white-space:nowrap;";
+  var SEC = "font:700 13px 'Hanken Grotesk';text-transform:uppercase;letter-spacing:.07em;color:#9a93a6;margin-bottom:14px;";
+  var LBL = "display:block;font:600 13px 'Hanken Grotesk';color:#6b6577;margin:14px 0 7px;";
+  var BTN_SOFT = "border:none;background:#f1ecf9;color:#5B2EA6;font:600 13px 'Hanken Grotesk';padding:9px 14px;border-radius:11px;cursor:pointer;white-space:nowrap;";
 
   // Collapsible form card. Header click toggles state.collapsed[key]; all cards start open.
   function card(key, title, body) {
@@ -227,12 +227,12 @@
       '<div data-body="' + key + '"' + (col ? ' style="display:none;"' : '') + '>' + body + '</div></div>';
   }
   function evRows(s) {
-    if (!s.events.length) return '<div style="font-size:12px;color:#a39bb0;margin-bottom:8px;">No events recorded yet.</div>';
+    if (!s.events.length) return '<div style="font-size:13px;color:#a39bb0;margin-bottom:8px;">No events recorded yet.</div>';
     var grip = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
     return s.events.map(function (e, i) {
       var chips = EV_ORDER.map(function (sk) {
         var m = EV_SCOPE[sk], on = e.scopes.indexOf(sk) >= 0;
-        return '<button data-act="evscope" data-idx="' + i + '" data-val="' + sk + '" title="' + m.label + ' — click to toggle" style="flex:none;border:1px solid ' + (on ? m.color : "#e0dae6") + ';background:' + (on ? m.color : "#fff") + ';color:' + (on ? "#fff" : "#a99fb5") + ';font:700 10px \'Hanken Grotesk\';letter-spacing:.03em;padding:8px 7px;border-radius:8px;cursor:pointer;">' + m.label.slice(0, 3).toUpperCase() + '</button>';
+        return '<button data-act="evscope" data-idx="' + i + '" data-val="' + sk + '" title="' + m.label + ' — click to toggle" style="flex:none;border:1px solid ' + (on ? m.color : "#e0dae6") + ';background:' + (on ? m.color : "#fff") + ';color:' + (on ? "#fff" : "#a99fb5") + ';font:700 13px \'Hanken Grotesk\';letter-spacing:.03em;padding:8px 7px;border-radius:8px;cursor:pointer;">' + m.label.slice(0, 3).toUpperCase() + '</button>';
       }).join("");
       return '<div class="evrow" data-idx="' + i + '" style="display:flex;align-items:center;gap:9px;border:1px solid #f0ebe2;border-radius:11px;padding:9px;margin-bottom:8px;">' +
         '<span class="evgrip" draggable="true" data-idx="' + i + '" title="Drag to reorder" style="flex:none;cursor:grab;color:#c2bcce;display:flex;align-items:center;">' + grip + '</span>' +
@@ -241,7 +241,7 @@
         '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="name" value="' + escAttr(e.name) + '" placeholder="Event name" style="width:100%;" />' +
         '<div style="display:flex;align-items:center;gap:6px;">' +
         '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="start" type="date" value="' + escAttr(e.start) + '" title="Start date" style="flex:1;min-width:0;" />' +
-        '<span style="flex:none;color:#b3adbd;font:600 12px \'Hanken Grotesk\';">~</span>' +
+        '<span style="flex:none;color:#b3adbd;font:600 13px \'Hanken Grotesk\';">~</span>' +
         '<input class="f-ev sf-fld" data-idx="' + i + '" data-field="end" type="date" value="' + escAttr(e.end) + '" title="End date (optional)" style="flex:1;min-width:0;" />' +
         '</div></div>' +
         '<button data-act="evdel" data-idx="' + i + '" title="Remove" style="flex:none;border:none;background:#f6eeee;color:#b4524e;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;">&times;</button>' +
@@ -261,20 +261,20 @@
     var kindSeg = ["unit", "office", "heritage", "camp", "regevent", "globevent"].map(function (k) { return '<button data-act="kind" data-val="' + k + '" style="' + seg(s.kind === k) + '">' + KIND[k] + '</button>'; }).join("");
     var regionOpts = Object.keys(REGION).map(function (code) { return '<option value="' + code + '"' + (code === s.region ? " selected" : "") + ">" + code + " · " + esc(REGION[code].full) + "</option>"; }).join("");
     var sectionChips = ALL_SECTIONS.map(function (x) { return '<button data-act="sec" data-val="' + x + '" style="' + chip(s.sections.indexOf(x) !== -1) + '">' + x + '</button>'; }).join("");
-    var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:5px;background:#f3eefb;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';padding:5px 7px 5px 10px;border-radius:999px;">' + '<button data-act="tagedit" data-val="' + escAttr(t) + '" title="Click to edit this category" style="border:none;background:transparent;color:#5B2EA6;font:600 12px \'Hanken Grotesk\';cursor:pointer;padding:0;">' + esc(t) + '</button>' + '<button data-act="tagdel" data-val="' + escAttr(t) + '" title="Remove" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;">×</button></span>'; }).join("");
+    var tagChips = s.tags.map(function (t) { return '<span style="display:inline-flex;align-items:center;gap:5px;background:#f3eefb;color:#5B2EA6;font:600 13px \'Hanken Grotesk\';padding:5px 7px 5px 10px;border-radius:999px;">' + '<button data-act="tagedit" data-val="' + escAttr(t) + '" title="Click to edit this category" style="border:none;background:transparent;color:#5B2EA6;font:600 13px \'Hanken Grotesk\';cursor:pointer;padding:0;">' + esc(t) + '</button>' + '<button data-act="tagdel" data-val="' + escAttr(t) + '" title="Remove" style="border:none;background:#e4d8f5;width:17px;height:17px;border-radius:50%;cursor:pointer;color:#5B2EA6;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;">×</button></span>'; }).join("");
     var statusSeg = [["published", "Live"], ["draft", "Draft"]].map(function (p) { return '<button data-act="status" data-val="' + p[0] + '" style="' + seg(s.status === p[0]) + '">' + p[1] + '</button>'; }).join("");
 
     $("form").innerHTML = '<div style="max-width:620px;margin:0 auto;padding:24px 28px 60px;">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px;">' +
-      '<div><div style="font:700 21px \'Bricolage Grotesque\';letter-spacing:-.015em;line-height:1.1;">' + esc(s.name || "Untitled") + '</div><div style="font-size:12.5px;color:#8a8496;margin-top:4px;">' + esc(subline) + '</div></div>' +
+      '<div><div style="font:700 21px \'Bricolage Grotesque\';letter-spacing:-.015em;line-height:1.1;">' + esc(s.name || "Untitled") + '</div><div style="font-size:13px;color:#8a8496;margin-top:4px;">' + esc(subline) + '</div></div>' +
       '<div style="display:flex;gap:8px;flex:none;">' +
-      '<button data-act="save" style="border:none;background:#6336B5;color:#fff;font:600 12px \'Hanken Grotesk\';padding:8px 16px;border-radius:10px;cursor:pointer;">Save</button>' +
-      '<button data-act="del" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 12px \'Hanken Grotesk\';padding:8px 12px;border-radius:10px;cursor:pointer;">Delete</button>' +
+      '<button data-act="save" style="border:none;background:#6336B5;color:#fff;font:600 13px \'Hanken Grotesk\';padding:8px 16px;border-radius:10px;cursor:pointer;">Save</button>' +
+      '<button data-act="del" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 13px \'Hanken Grotesk\';padding:8px 12px;border-radius:10px;cursor:pointer;">Delete</button>' +
       '</div></div>' +
 
       card("basics", "Basics",
-        '<label style="' + LBL + 'display:flex;align-items:center;gap:6px;">Name <button data-act="namehelp" title="Naming rule" style="border:none;background:#ece6db;color:#6b6577;width:16px;height:16px;border-radius:50%;cursor:pointer;font:700 10px \'Hanken Grotesk\';line-height:1;padding:0;flex:none;">?</button></label>' +
-        (state.nameHelp ? '<div style="margin-bottom:8px;background:#f6f3fa;border:1px solid #ece6db;border-radius:10px;padding:9px 11px;font:500 12px \'Hanken Grotesk\';color:#6b6577;line-height:1.5;">이름 규칙(내부용): 가장 최근에 이 장소에서 열린 행사명을 장소 이름으로 사용합니다. 이름은 자유롭게 바꿔도 됩니다.</div>' : "") +
+        '<label style="' + LBL + 'display:flex;align-items:center;gap:6px;">Name <button data-act="namehelp" title="Naming rule" style="border:none;background:#ece6db;color:#6b6577;width:16px;height:16px;border-radius:50%;cursor:pointer;font:700 13px \'Hanken Grotesk\';line-height:1;padding:0;flex:none;">?</button></label>' +
+        (state.nameHelp ? '<div style="margin-bottom:8px;background:#f6f3fa;border:1px solid #ece6db;border-radius:10px;padding:9px 11px;font:500 13px \'Hanken Grotesk\';color:#6b6577;line-height:1.5;">이름 규칙(내부용): 가장 최근에 이 장소에서 열린 행사명을 장소 이름으로 사용합니다. 이름은 자유롭게 바꿔도 됩니다.</div>' : "") +
         '<input id="f-name" value="' + escAttr(s.name) + '" class="sf-fld" placeholder="e.g. Yeoksam Scout Unit" />' +
         '<label style="' + LBL + '">Subtitle <span style="color:#b3adbd;font-weight:500;">(shown smaller / grey on the map)</span></label><input id="f-subtitle" value="' + escAttr(s.subtitle) + '" class="sf-fld" placeholder="e.g. Gangnam · since 1971" />' +
         '<label style="' + LBL + '">Place type</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' + kindSeg + '</div>' +
@@ -295,18 +295,18 @@
         '<label style="' + LBL + '">Short introduction</label><textarea id="f-desc" class="sf-fld" style="resize:vertical;min-height:74px;line-height:1.5;" placeholder="A sentence or two about this place and its activities.">' + esc(s.desc) + '</textarea>' +
         (isUnit
           ? '<label style="' + LBL + '">Sections (recruiting)</label><div style="display:flex;flex-wrap:wrap;gap:6px;">' + sectionChips + '</div>'
-          : '<label style="' + LBL + '">Categories <span style="color:#b3adbd;font-weight:500;">— click a chip to rename it</span></label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + (tagChips || '<span style="font-size:12px;color:#a39bb0;">No categories yet.</span>') + '</div>' +
+          : '<label style="' + LBL + '">Categories <span style="color:#b3adbd;font-weight:500;">— click a chip to rename it</span></label><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;">' + (tagChips || '<span style="font-size:13px;color:#a39bb0;">No categories yet.</span>') + '</div>' +
             '<div id="f-tag-combo" style="position:relative;margin-top:9px;">' +
             '<div style="display:flex;gap:7px;"><input id="f-tagdraft" value="' + escAttr(state.tagDraft) + '" class="sf-fld" autocomplete="off" placeholder="Search existing categories or type a new one, then Enter" style="flex:1;" /><button data-act="tagadd" style="' + BTN_SOFT + '">Add</button></div>' +
             '<div id="f-tag-menu" style="display:none;position:absolute;left:0;right:62px;top:calc(100% + 4px);z-index:50;background:#fff;border:1px solid #e7e1d8;border-radius:11px;box-shadow:0 12px 30px rgba(30,18,55,.18);max-height:200px;overflow-y:auto;"></div>' +
             '</div>'
         )) +
 
-      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— scope · name · start ~ end</span>',
+      card("events", 'Events held here <span style="color:#b3adbd;font-weight:500;font-size:13px;">— scope · name · start ~ end</span>',
         evRows(s) + '<div style="display:flex;gap:7px;margin-top:4px;flex-wrap:wrap;"><button data-act="evadd" style="' + BTN_SOFT + '">+ Add event</button>' +
         (s.events.length > 1 ? '<button data-act="evsort" style="' + BTN_SOFT + '">Sort by date ' + (state.evSortDir === "asc" ? "↑" : "↓") + '</button>' : "") + '</div>') +
 
-      card("contact", 'Contact <span style="color:#b3adbd;font-weight:500;font-size:11.5px;">— all optional, leave blank if none</span>',
+      card("contact", 'Contact <span style="color:#b3adbd;font-weight:500;font-size:13px;">— all optional, leave blank if none</span>',
         '<label style="' + LBL + '">Instagram</label><input id="f-instagram" value="' + escAttr(s.instagram) + '" class="sf-fld" placeholder="https://instagram.com/… or @handle" />' +
         '<label style="' + LBL + '">Phone</label><input id="f-phone" value="' + escAttr(s.phone) + '" class="sf-fld" placeholder="e.g. +82 2 1234 5678" />' +
         '<label style="' + LBL + '">Email</label><input id="f-email" value="' + escAttr(s.email) + '" class="sf-fld" placeholder="e.g. info@example.org" />' +
@@ -320,9 +320,9 @@
         '<div style="flex:1;min-width:0;"><label style="' + LBL + '">Longitude</label><input id="f-lng" value="' + escAttr(s.lng) + '" class="sf-fld" inputmode="decimal" /></div>' +
         '<button data-act="showcoord" title="Apply coordinates and show on the map" style="' + BTN_SOFT + 'padding:11px 16px;flex:none;">Show on map</button>' +
         '</div>' +
-        '<div style="margin-top:10px;font-size:11.5px;color:#9a93a6;">Type coordinates and press “Show on map”, drag the pin, or click the map.</div>') +
+        '<div style="margin-top:10px;font-size:13px;color:#9a93a6;">Type coordinates and press “Show on map”, drag the pin, or click the map.</div>') +
 
-      card("comments", 'Comments' + (commentsForUnit(s.id).length ? ' <span style="background:#f1ece4;color:#6b6577;font:700 10px \'Hanken Grotesk\';padding:1px 7px;border-radius:999px;vertical-align:middle;">' + commentsForUnit(s.id).length + '</span>' : ''), commentsCardBody(s)) +
+      card("comments", 'Comments' + (commentsForUnit(s.id).length ? ' <span style="background:#f1ece4;color:#6b6577;font:700 13px \'Hanken Grotesk\';padding:1px 7px;border-radius:999px;vertical-align:middle;">' + commentsForUnit(s.id).length + '</span>' : ''), commentsCardBody(s)) +
       '</div>';
     updateCap();
   }
@@ -331,30 +331,30 @@
   function commentsForUnit(id) { return comments.filter(function (c) { return c.unitId === id; }); }
   function commentsCardBody(s) {
     var list = commentsForUnit(s.id);
-    if (!list.length) return '<div style="font-size:12.5px;color:#a39bb0;">No comments on this place yet.</div>';
+    if (!list.length) return '<div style="font-size:13px;color:#a39bb0;">No comments on this place yet.</div>';
     return list.map(function (c) {
       var head = '<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;">' +
-        '<span style="font:700 12.5px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name || "Anonymous") + '</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">' + esc(c.ip || c.ipMasked || "") + '</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">· ' + fmtTs(c.ts) + (c.edited ? " · edited" : "") + '</span>' +
-        (c.parentId ? '<span style="font-size:10px;color:#b3adbd;background:#f5f2ec;border-radius:6px;padding:1px 6px;">reply</span>' : '') + '</div>';
+        '<span style="font:700 13px \'Hanken Grotesk\';color:#1E1730;">' + esc(c.name || "Anonymous") + '</span>' +
+        '<span style="font-size:13px;color:#b3adbd;">' + esc(c.ip || c.ipMasked || "") + '</span>' +
+        '<span style="font-size:13px;color:#b3adbd;">· ' + fmtTs(c.ts) + (c.edited ? " · edited" : "") + '</span>' +
+        (c.parentId ? '<span style="font-size:13px;color:#b3adbd;background:#f5f2ec;border-radius:6px;padding:1px 6px;">reply</span>' : '') + '</div>';
       if (state.editingComment === c.id) {
         return '<div style="border:1px solid #d8cfe6;border-radius:11px;padding:11px;margin-bottom:9px;background:#faf8fd;">' + head +
           '<textarea id="cedit-' + escAttr(c.id) + '" class="sf-fld" style="min-height:64px;resize:vertical;line-height:1.5;">' + esc(c.body) + '</textarea>' +
           '<div style="display:flex;gap:7px;margin-top:8px;justify-content:flex-end;">' +
-          '<button data-act="ceditcancel" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 12px \'Hanken Grotesk\';padding:7px 13px;border-radius:9px;cursor:pointer;">Cancel</button>' +
-          '<button data-act="ceditsave" data-val="' + escAttr(c.id) + '" style="border:none;background:#6336B5;color:#fff;font:600 12px \'Hanken Grotesk\';padding:7px 14px;border-radius:9px;cursor:pointer;">Save</button></div></div>';
+          '<button data-act="ceditcancel" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 13px \'Hanken Grotesk\';padding:7px 13px;border-radius:9px;cursor:pointer;">Cancel</button>' +
+          '<button data-act="ceditsave" data-val="' + escAttr(c.id) + '" style="border:none;background:#6336B5;color:#fff;font:600 13px \'Hanken Grotesk\';padding:7px 14px;border-radius:9px;cursor:pointer;">Save</button></div></div>';
       }
       if (c.deleted) {
         return '<div style="border:1px solid #f0ebe2;border-radius:11px;padding:11px;margin-bottom:9px;background:#faf8f4;">' + head +
-          '<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#a39bb0;font-style:italic;">🗑 삭제되었습니다' + (c.deletedReason ? ' — ' + esc(c.deletedReason) : '') + '</div>' +
-          '<div style="margin-top:8px;"><button data-act="crestore" data-val="' + escAttr(c.id) + '" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 11.5px \'Hanken Grotesk\';padding:6px 11px;border-radius:9px;cursor:pointer;">Restore</button></div></div>';
+          '<div style="display:flex;align-items:center;gap:7px;font-size:13px;color:#a39bb0;font-style:italic;">🗑 삭제되었습니다' + (c.deletedReason ? ' — ' + esc(c.deletedReason) : '') + '</div>' +
+          '<div style="margin-top:8px;"><button data-act="crestore" data-val="' + escAttr(c.id) + '" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 13px \'Hanken Grotesk\';padding:6px 11px;border-radius:9px;cursor:pointer;">Restore</button></div></div>';
       }
       return '<div style="border:1px solid #efeae1;border-radius:11px;padding:11px;margin-bottom:9px;">' + head +
         '<div style="font-size:13px;color:#3a3346;line-height:1.5;white-space:pre-wrap;margin-bottom:8px;">' + esc(c.body) + '</div>' +
         '<div style="display:flex;gap:7px;justify-content:flex-end;">' +
-        '<button data-act="cedit" data-val="' + escAttr(c.id) + '" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 11.5px \'Hanken Grotesk\';padding:6px 12px;border-radius:9px;cursor:pointer;">Edit</button>' +
-        '<button data-act="cdelete" data-val="' + escAttr(c.id) + '" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 11.5px \'Hanken Grotesk\';padding:6px 12px;border-radius:9px;cursor:pointer;">Delete</button></div></div>';
+        '<button data-act="cedit" data-val="' + escAttr(c.id) + '" style="border:1px solid #e7e1d8;background:#fff;color:#6b6577;font:600 13px \'Hanken Grotesk\';padding:6px 12px;border-radius:9px;cursor:pointer;">Edit</button>' +
+        '<button data-act="cdelete" data-val="' + escAttr(c.id) + '" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 13px \'Hanken Grotesk\';padding:6px 12px;border-radius:9px;cursor:pointer;">Delete</button></div></div>';
     }).join("");
   }
   function fetchComments() {
@@ -429,8 +429,8 @@
     var q = (state.countryQuery || "").trim().toLowerCase();
     var list = COUNTRIES.filter(function (c) { return !q || c.toLowerCase().indexOf(q) !== -1; });
     menu.innerHTML = list.length
-      ? list.slice(0, 80).map(function (c) { return '<div data-act="countrypick" data-val="' + escAttr(c) + '" style="padding:9px 12px;cursor:pointer;font:500 13px \'Hanken Grotesk\';color:#1E1730;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f4f0e9;"><span style="font-size:11px;color:#9a93a6;flex:none;min-width:36px;">' + esc(DIAL[c] || "") + '</span><span style="flex:1;">' + esc(c) + '</span></div>'; }).join("")
-      : '<div style="padding:10px 12px;font-size:12.5px;color:#a39bb0;">No matching country</div>';
+      ? list.slice(0, 80).map(function (c) { return '<div data-act="countrypick" data-val="' + escAttr(c) + '" style="padding:9px 12px;cursor:pointer;font:500 13px \'Hanken Grotesk\';color:#1E1730;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f4f0e9;"><span style="font-size:13px;color:#9a93a6;flex:none;min-width:36px;">' + esc(DIAL[c] || "") + '</span><span style="flex:1;">' + esc(c) + '</span></div>'; }).join("")
+      : '<div style="padding:10px 12px;font-size:13px;color:#a39bb0;">No matching country</div>';
     menu.style.display = state.countryOpen ? "block" : "none";
   }
   function renderTagMenu() {
@@ -438,7 +438,7 @@
     var q = (state.tagDraft || "").trim().toLowerCase();
     var avail = allTags().filter(function (t) { return s.tags.indexOf(t) === -1 && (!q || t.toLowerCase().indexOf(q) !== -1); });
     if (!avail.length || !state.tagOpen) { menu.style.display = "none"; return; }
-    menu.innerHTML = avail.slice(0, 40).map(function (t) { return '<div data-act="tagpick" data-val="' + escAttr(t) + '" style="padding:8px 12px;cursor:pointer;font:500 12.5px \'Hanken Grotesk\';color:#1E1730;border-bottom:1px solid #f4f0e9;">' + esc(t) + '</div>'; }).join("");
+    menu.innerHTML = avail.slice(0, 40).map(function (t) { return '<div data-act="tagpick" data-val="' + escAttr(t) + '" style="padding:8px 12px;cursor:pointer;font:500 13px \'Hanken Grotesk\';color:#1E1730;border-bottom:1px solid #f4f0e9;">' + esc(t) + '</div>'; }).join("");
     menu.style.display = "block";
   }
   function doCopy() { try { navigator.clipboard.writeText(JSON.stringify({ units: units }, null, 2)); toast("JSON copied to clipboard"); } catch (e) { toast("Copy failed"); } }
@@ -471,7 +471,7 @@
       var code = regionCode(u.region), rc = REGION[code] || { color: "#9a93a6" };
       var locLine = u.address ? ("📍 " + esc(u.address) + (u.lat ? " (" + (+u.lat).toFixed(3) + ", " + (+u.lng).toFixed(3) + ")" : "")) : (u.lat ? ("📍 " + (+u.lat).toFixed(3) + ", " + (+u.lng).toFixed(3)) : "");
       var corr = p.correction && p.correction.forId
-        ? '<div style="display:inline-flex;align-items:center;gap:5px;font:700 10.5px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;border:1px solid #e4d9f5;border-radius:999px;padding:3px 9px;margin-bottom:8px;">✎ Correction to: ' + esc(p.correction.forName || u.name || "an existing place") + '</div>'
+        ? '<div style="display:inline-flex;align-items:center;gap:5px;font:700 13px \'Hanken Grotesk\';color:#5B2EA6;background:#f3eefb;border:1px solid #e4d9f5;border-radius:999px;padding:3px 9px;margin-bottom:8px;">✎ Correction to: ' + esc(p.correction.forName || u.name || "an existing place") + '</div>'
         : "";
       return '<div style="border:1px solid ' + (corr ? "#dccff0" : "#ece6db") + ';border-radius:14px;padding:16px;margin-bottom:12px;">' +
         corr +
@@ -479,9 +479,9 @@
         '<span style="width:11px;height:11px;border-radius:' + (u.kind === "office" ? "3px" : "50%") + ';background:' + rc.color + ';flex:none;margin-top:5px;"></span>' +
         '<div style="flex:1;min-width:0;">' +
         '<div style="font:700 15px \'Bricolage Grotesque\';">' + esc(u.name || "Untitled") + '</div>' +
-        '<div style="font-size:12px;color:#8a8496;margin-top:3px;">' + esc((KIND[u.kind] || "") + " · " + code + (u.country ? " · " + u.country : "")) + '</div>' +
-        (u.desc ? '<div style="font-size:12.5px;color:#4a4458;margin-top:8px;line-height:1.5;">' + esc(u.desc) + '</div>' : "") +
-        (locLine ? '<div style="font-size:11.5px;color:#9a93a6;margin-top:6px;">' + locLine + '</div>' : "") +
+        '<div style="font-size:13px;color:#8a8496;margin-top:3px;">' + esc((KIND[u.kind] || "") + " · " + code + (u.country ? " · " + u.country : "")) + '</div>' +
+        (u.desc ? '<div style="font-size:13px;color:#4a4458;margin-top:8px;line-height:1.5;">' + esc(u.desc) + '</div>' : "") +
+        (locLine ? '<div style="font-size:13px;color:#9a93a6;margin-top:6px;">' + locLine + '</div>' : "") +
         (function () {
           var p = [];
           if (u.instagram) p.push('<a href="' + escAttr(u.instagram) + '" target="_blank" rel="noopener" style="color:#6336B5;">Instagram</a>');
@@ -489,15 +489,15 @@
           if (u.phone) p.push(esc(u.phone));
           if (u.email) p.push('<a href="mailto:' + escAttr(u.email) + '" style="color:#6336B5;">' + esc(u.email) + '</a>');
           if (!p.length && u.url && u.contact !== "none") p.push('<a href="' + escAttr(u.url) + '" target="_blank" rel="noopener" style="color:#6336B5;">' + esc(u.url) + '</a>');
-          return p.length ? '<div style="font-size:11.5px;margin-top:6px;">' + p.join(" · ") + '</div>' : "";
+          return p.length ? '<div style="font-size:13px;margin-top:6px;">' + p.join(" · ") + '</div>' : "";
         })() +
         '</div></div>' +
         '<div style="margin-top:12px;padding-top:11px;border-top:1px solid #f0ebe2;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-        '<span style="font-size:11.5px;color:#8a8496;"><strong style="color:#1E1730;">' + esc(rep.name || "—") + '</strong> · ' + esc(rep.affiliation || "—") + '</span>' +
-        '<span style="font-size:10.5px;color:#b3adbd;">' + esc(p.ip || "") + ' · ' + fmtTs(p.ts) + '</span>' +
+        '<span style="font-size:13px;color:#8a8496;"><strong style="color:#1E1730;">' + esc(rep.name || "—") + '</strong> · ' + esc(rep.affiliation || "—") + '</span>' +
+        '<span style="font-size:13px;color:#b3adbd;">' + esc(p.ip || "") + ' · ' + fmtTs(p.ts) + '</span>' +
         '<div style="flex:1;"></div>' +
-        '<button data-reject="' + escAttr(p.id) + '" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 12px \'Hanken Grotesk\';padding:7px 13px;border-radius:9px;cursor:pointer;">Reject</button>' +
-        '<button data-approve="' + escAttr(p.id) + '" style="border:none;background:#248737;color:#fff;font:600 12px \'Hanken Grotesk\';padding:7px 15px;border-radius:9px;cursor:pointer;">Approve</button>' +
+        '<button data-reject="' + escAttr(p.id) + '" style="border:1px solid #ecd9d9;background:#fff;color:#b4524e;font:600 13px \'Hanken Grotesk\';padding:7px 13px;border-radius:9px;cursor:pointer;">Reject</button>' +
+        '<button data-approve="' + escAttr(p.id) + '" style="border:none;background:#248737;color:#fff;font:600 13px \'Hanken Grotesk\';padding:7px 15px;border-radius:9px;cursor:pointer;">Approve</button>' +
         '</div></div>';
     }).join("");
   }

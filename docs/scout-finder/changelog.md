@@ -156,3 +156,26 @@
 - **검색형 국가 필터**(`app.js`): region-chips 아래 `#country-filter`(index.html) — 트리거 버튼(🌐 + 현재 선택 + ×클리어 + chevron) 클릭 시 드롭다운(검색 인풋 + 스크롤 옵션). 옵션=현재 kind+region로 스코프된 국가 목록(`availableCountries`, `countryOf(u)=country||nso||"—"`), 각 옵션에 지역색 점 + 카운트. 검색 인풋 타이핑은 `#country-options`만 재렌더(포커스 유지). 선택 시 `pickCountry`(지도 `flyToBounds`로 해당 국가 핀에 포커스). `state.country`로 `sorted()` 필터. region 변경 시 country 리셋. **delegation+재렌더+바깥클릭 레이스**: 필터 내부 클릭은 `e.stopPropagation()`로 바깥-닫기 핸들러 차단(재렌더로 detach된 target이 outside로 오인돼 즉시 닫히던 버그 방지).
 - **그룹 트리**(`renderList` 재작성, 행 빌더 `unitRowHtml(u,rank)` 추출): `state.grouped` 기본 ON → Region(색점·풀네임·코드·카운트, collapse) › 국가(들여쓰기·카운트, collapse) › 지역단위(place) 행. anchor+거리정렬이면 그룹을 최단거리순, 아니면 Region 선언순+국가 알파벳순. 헤더 클릭=`collapsedGroups` 토글. `select()`가 선택 단위의 region/country 그룹 자동 펼침. Sort 행에 **Grouped 토글** 추가(끄면 기존 평면 목록, Region 정렬은 grouped 시 숨김).
 - 검증: 로컬 http + 헤드리스 Chrome(CDP, 샘플 7곳 APR/EUR·5국): 그룹 트리(r:APR/r:EUR·c:5)·country 검색('ger'→Germany,'kor'→Korea)·선택→해당국만(kr1/kr2)·×클리어→복원·Grouped 토글·Region collapse(EUR만 3)·**콘솔 에러 0** + 스크린샷(드롭다운·트리 그린톤 정상).
+
+### 19.12 v0.9.248 — 전 화면 접근성 하한 일괄 정리 (139건)
+
+사용자: "픽셀단위로 확인해서 139건 모두 해결해". 회귀가 붙어 있던 3개 화면(랜딩·플립북·planning)만 깨끗했고, **나머지 6개 화면은 아무도 보고 있지 않았다.**
+
+**먼저 하네스부터** — `test/regress-a11y-sweep.js` 신설(8개 화면 × 2해상도 = 32검사). 고치고 재는 게 아니라, **재면서 고치도록** 순서를 뒤집었다.
+
+| 화면 | 조치 |
+|---|---|
+| `/tour` | `tour/index.html`·`app.js`·`admin.js`·`styles.css` 의 13px 미만 폰트 전부 상향 · Leaflet 줌 30→40px(`.leaflet-touch .leaflet-bar a` 특이도로 덮음) · 푸터 링크 40px |
+| `/krjam-cardnews` | **UI(`jamboree/app.jsx`)만** 13px 하한 — `cover/dday/news/base.jsx`(카드 렌더러)는 **손대지 않았다**. 사용자가 만드는 그래픽이라 글자를 키우면 결과물이 망가진다. 버튼 40px |
+| `/krjam-dcount` | `krjam-dcount/app.jsx` 인라인 `fontSize` 하한 · `.dc-btn` 40px · 버튼 전역 40px |
+| `/krjam-jebo` | 폰트 하한 · 언어 세그먼트 32→40px |
+| `/privacy` | badge 10px 등 전부 13px · '지도로 돌아가기' 링크 40px |
+| `/krjam-planning` 게이트 | '관리자 인증코드로 입장' 23→40px |
+
+**규칙 충돌 1건을 둘 다 지키는 쪽으로 해결**: 제보 페이지는 "헤더 ≤64px"(폼이 첫 화면에 들어와야 한다) 회귀가 있는데, 언어 버튼을 40px 로 키우자 67px 이 됐다. 어느 규칙도 완화하지 않고 **헤더 여백을 10→7px** 로 줄여 61px 로 맞췄다(폼 첫 입력 y=337).
+
+**예외는 사유와 함께 코드·회귀 양쪽에 적었다**: 지도 핀 글자(`.leaflet-marker-icon`)와 출처 표기(`.leaflet-control-attribution`)는 '본문·라벨'이 아니라 지도 그래픽이다 — 13px 로 키우면 핀이 지도를 덮고, 출처는 OSM 라이선스상 지울 수도 없다.
+
+**측정 기준도 바로잡았다**: 처음엔 모든 `<a>` 를 조작 요소로 셌더니 문장 속 이메일·출처 링크까지 40px 대상이 됐다. `display:inline` 인 링크는 제외한다 — 문단을 깨뜨리는 건 규칙의 의도가 아니다.
+
+**검증**: 스윕 32/32 · 전체 스위트 **3회 연속 실패 0건**(383건 ×3) · 5개 화면 스크린샷 육안 확인(가로 넘침 0, 카드 아트워크 무변경).

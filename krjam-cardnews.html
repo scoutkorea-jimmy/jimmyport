@@ -51,7 +51,12 @@
       .cc-stage { order: 2; flex: 0 0 auto !important; min-height: 48vh; padding: 16px !important; }
       .cc-aside-r { order: 3; border-top: 1px solid #e7e1d8 !important; padding: 14px !important; }
     }
-  </style>
+  
+    /* ── 접근성 하한 (v0.9.248) ── 조작 요소 40px(ui-ux.md).
+       인라인 style 의 height 보다 min-height 가 이긴다.
+       카드 미리보기 안의 요소는 그래픽이므로 제외한다. */
+    button:not([data-card] button){ min-height:40px; }
+</style>
 
   <!-- 콘솔 정리: Babel in-browser 변환기 advisory 경고만 필터(개발용 도구라 인브라우저 컴파일 사용) -->
   <script>
