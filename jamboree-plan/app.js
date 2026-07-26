@@ -442,7 +442,9 @@ function defaultMarketing(){
 }
 
 /* ===== sync (per-card save) ===== */
-function setSt(msg,ok){var e=document.getElementById('syncst'); if(e){ e.classList.toggle('ok',!!ok); e.innerHTML = ok?('<b>'+msg+'</b>'):msg; }}
+function setSt(msg,ok){var e=document.getElementById('syncst'); if(e){ e.classList.toggle('ok',!!ok); e.innerHTML = ok?('<b>'+msg+'</b>'):msg;
+  // 저장이 끝난 순간에만 한 번 튄다 — 눈이 그 자리로 가서 "반영됐다"를 알아챈다
+  if(ok){ e.classList.remove('saved-pop'); void e.offsetWidth; e.classList.add('saved-pop'); } }}
 // 과거 #author 입력칸(v0.9.27 제거)을 읽던 잔재 — 로그인 도입(v0.9.103) 후에도 연결이 안 돼 모든 저장이 '익명'으로 기록되던 버그
 function authorVal(){ return (Auth && (Auth.name||Auth.username)) || '익명'; }
 function fmtTime(s){ try{var d=new Date(s);return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return '';} }
@@ -719,8 +721,16 @@ function setSaveSt(msg, ok){
   persistUnsaved();
   renderSaveGuard();
 }
+/* ── 통신 진행 표시 (v0.9.243) ──
+   저장·불러오기가 도는 동안 상단에 얇은 띠를 띄운다. 데이터 흐름은 건드리지 않는다 —
+   카운터를 세고 클래스만 토글할 뿐이라, 실패해도 표시가 남지 않게 양쪽 끝에서 내린다. */
+var netCount=0;
+function netBusy(d){ netCount=Math.max(0,netCount+d);
+  document.documentElement.classList.toggle('net-busy', netCount>0); }
+
 function sendDomainPut(bodyFn, okMsg){
   var body=resolveBody(bodyFn), doms=bodyDomains(body), key=doms.join('+')||'misc';
+  netBusy(1);
   return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
     body:JSON.stringify(Object.assign({author:authorVal(), client:CLIENT_ID, baseVer:pickBaseVer(body)}, body))})
     .then(function(r){
@@ -739,7 +749,8 @@ function sendDomainPut(bodyFn, okMsg){
       domPending[key]={bodyFn:bodyFn, okMsg:okMsg, domains:doms};
       setSaveSt();
       return null;   // 호출부는 실패를 삼킨다 — 데이터는 대기 큐가 지킨다
-    });
+    })
+    .then(function(v){ netBusy(-1); return v; });   // 성공/실패 모두 여기를 지난다(위 catch 가 이미 삼켰다)
 }
 var retryBusy=false;
 function retryPendingSaves(){
@@ -4617,10 +4628,12 @@ function setView(v){
 
 // 공유 보드 로드 — 서버 GET 이 이제 로그인(회원 세션)을 요구하므로 로그인 후에만 부른다
 function loadBoard(){
+  netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
     applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
-  }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); });
+  }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
+    .then(function(){ netBusy(-1); });
 }
 function init(){
   wireAuthGate();

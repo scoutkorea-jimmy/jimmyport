@@ -1620,3 +1620,66 @@ tr.rowdim{opacity:.34}
 /* (v0.9.183 의 "다크 관제 하드코딩 라이트 색 보정" 블록은 v0.9.214 라이트 전환과 함께 제거했다.
     그 블록은 라이트 전제로 박힌 색을 어두운 지면에 맞춰 덮는 것이 목적이었으므로, 지면이 다시 밝아진 지금은
     존재 이유가 없다 — 남겨두면 밝은 화면에 어두운 칩이 박힌다.) */
+
+/* ═══════════════════════════════════════════════════════════════════
+   모션 (v0.9.243) — "조용한 업무 보드"의 결을 유지한 채 동작에만 붙인다.
+   이 화면은 데이터가 빽빽하고 하루 종일 들여다보는 도구다. 그래서 랜딩과 달리
+   **상시 움직이는 배경 레이어는 두지 않는다**. 모션은 전부 사용자의 동작(화면 전환·
+   모달 열기·저장)에 붙어서, 지금 무슨 일이 일어났는지를 알려주는 역할만 한다.
+   움직이는 값은 opacity·transform 뿐이라 레이아웃 계산이 없다.
+   ─────────────────────────────────────────────────────────────────── */
+@keyframes jpViewIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes jpFade{from{opacity:0}to{opacity:1}}
+@keyframes jpModalIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes jpToastIn{from{opacity:0;transform:translate(-50%,12px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes jpNet{0%{background-position:-45% 0}100%{background-position:145% 0}}
+@keyframes jpPop{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
+
+/* ── 화면 전환 ── setView 가 display 를 토글하면 애니메이션이 다시 시작된다(JS 불필요).
+   fill-mode 를 쓰지 않는다 — 끝난 뒤 transform 이 남으면 안에 있는 position:fixed
+   요소(#shoot-scrim 등)의 기준이 뒤틀린다. */
+.wrap>section{animation:jpViewIn .24s cubic-bezier(.32,.72,0,1)}
+
+/* ── 모달 ── 배경은 밝아지고, 창은 아주 살짝 떠오른다 */
+.scrim.show{animation:jpFade .16s ease}
+.scrim.show>*{animation:jpModalIn .26s cubic-bezier(.32,.72,0,1)}
+
+/* ── 토스트 ── 기본 transform 이 translateX(-50%) 라 키프레임도 그 값을 지켜야 한다 */
+.toast.show{animation:jpToastIn .28s cubic-bezier(.32,.72,0,1)}
+
+/* ── 좌측 메뉴 ── 지금 보고 있는 화면을 형태(막대)로도 알린다.
+   색만으로 알리지 않는다 — tokens.css 의 규칙 ③ */
+.side-item{position:relative}
+.side-item::after{content:"";position:absolute;left:3px;top:9px;bottom:9px;width:3px;border-radius:2px;
+  background:var(--accent);transform:scaleY(0);transform-origin:center;
+  transition:transform .24s cubic-bezier(.32,.72,0,1)}
+.side-item.on::after{transform:scaleY(1)}
+.side-item{transition:background var(--ease),color var(--ease)}
+
+/* ── 조작 요소 ── 눌리는 느낌만 또렷하게. 들뜨는 건 1px 이면 충분하다 */
+.btn{transition:background var(--ease),border-color var(--ease),color var(--ease),
+  transform .12s cubic-bezier(.32,.72,0,1),box-shadow var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.97)}
+.vtab{transition:background var(--ease),color var(--ease),transform .12s cubic-bezier(.32,.72,0,1)}
+.chip,.chchip,.ctchip{transition:background var(--ease),border-color var(--ease),color var(--ease),transform .12s ease}
+.chip:active,.chchip:active,.ctchip:active{transform:scale(.96)}
+
+/* ── 저장·불러오기 진행 표시 ── 통신이 도는 동안만 상단에 얇은 띠.
+   저장 상태 문구(setSaveSt)는 결과를 말하고, 이 띠는 "지금 도는 중"을 말한다. */
+.netbar{position:fixed;left:0;top:0;right:0;height:2px;z-index:95;pointer-events:none;
+  opacity:0;transition:opacity .2s ease;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  background-size:45% 100%;background-repeat:no-repeat}
+html.net-busy .netbar{opacity:1;animation:jpNet 1.1s ease-in-out infinite}
+
+/* ── 저장 완료 순간 ── 상태 문구가 한 번 튄다(눈이 그 자리로 간다) */
+.st.saved-pop,.savest.saved-pop{animation:jpPop .42s cubic-bezier(.32,.72,0,1)}
+
+/* ── 모션 줄이기 ── 장식은 끄고, 상태를 알리는 것은 색으로만 남긴다 */
+@media (prefers-reduced-motion:reduce){
+  .wrap>section,.scrim.show,.scrim.show>*,.toast.show,.st.saved-pop,.savest.saved-pop{animation:none !important}
+  .side-item::after{transition:none}
+  .btn:hover{transform:none}
+  html.net-busy .netbar{animation:none;background:var(--accent);background-size:100% 100%}
+}

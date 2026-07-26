@@ -13,7 +13,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - nav: `test/regress-krjam-planning-nav.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`
+  - nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -52,6 +52,15 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-26 (9) — 텍스트 가시성 사고 → 랜딩 진정 → planning 모션 (v0.9.241~243)
+대상: `/` 랜딩 + `/krjam-planning`. 상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) §19.7~19.8, [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.96.
+- 🔴 **v0.9.241 가시성 사고(내가 낸 회귀)**: 랜딩 제목 그라데이션에 밝은 정지점(`#8B5CF6`·`#3D8FD1`)을 넣어 흐름이 그 구간을 지날 때 **대비 2.63:1**. 부제 4.14 · 푸터 2.22 도 함께 미달이었다. → 정지점을 전부 어두운 값으로(최저 5.78), 부제·푸터 색 강화.
+  - **교훈: 배경이 움직이거나 글자가 그라데이션이면 눈으로 못 잡는다.** 랜딩 회귀에 `contrastOf(page,selector)`(캡처 → 페이지 내 canvas 디코드 → 최명/최암 픽셀 명암비)를 두고 **애니메이션은 주기 전체를 샘플링**해 최저값으로 판정한다.
+- **v0.9.242 진정**(사용자: "너무 정신이 없는데"): 동시에 움직이는 것의 수와 배경 농도를 낮춤(오로라 .62→.34 · 색덩어리 .62→.38 · 매듭선 .3→.11 · 불티 24→10 · 제목 흐름 정지). 호버 상호작용은 그대로 — 부를 때만 나오므로.
+- **v0.9.243 planning 모션**: 랜딩과 **의도적으로 다른 원칙** — 상시 움직이는 배경 없음, 모션은 동작(전환·모달·저장)에만. 표현 계층만 손댔고 저장/병합 로직은 무변경. 통신 진행 표시(`netBusy` 카운터 + `html.net-busy`)를 `sendDomainPut`·`loadBoard` 끝에 **값을 흘려보내는 `.then` 하나**로 붙였다.
+  - ⚠️ 섹션 전환에 `animation-fill-mode` 금지 — `transform` 이 남으면 섹션 안 `position:fixed`(`#shoot-scrim`) 기준이 뒤틀린다.
+- 상태: **planning-motion(신규) 22/22 · planning 132/132 · nav 19/19 · server 16/16 · jebo 29/29 · 랜딩 34/34 · fnc 89/89**, 콘솔 0, VERSION 0.9.243.
 
 ### 2026-07-26 (8) — 랜딩·플립북 연출 + 로딩 표시 · 캐시 근본 수정 (v0.9.238~239)
 대상: `/` 랜딩 + `/krjam-fnc`. 상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) §19.5.
