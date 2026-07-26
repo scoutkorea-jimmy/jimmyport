@@ -174,6 +174,32 @@ const SEED = function () {
   chk('터치 타깃 40px 유지(모션이 크기를 건드리지 않음)', await p.evaluate(() =>
     [...document.querySelectorAll('.side-item')].every((e) => e.getBoundingClientRect().height >= 36)));
 
+  // ── 모바일 접근성 스윕 ── 기존 회귀는 PC 1440 에서만 쟀다(v0.9.247 에 발견한 공백)
+  console.log('\n[모바일 390 — 폰트·터치 타깃]');
+  const mb = await b.newPage();
+  await mb.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  mb.on('pageerror', (e) => errors.push(e.message));
+  mb.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await mb.evaluateOnNewDocument(SEED);
+  await mb.goto(`${base}/krjam-planning`, { waitUntil: 'networkidle2' });
+  await wait(700);
+  const mSweep = await mb.evaluate(() => {
+    const small = [], tap = [];
+    const MINI = ['ttg-del', 'ttg-cov', 'fedx', 'smpop-x', 'news-slot-x', 'press-attx', 'cadd'];
+    document.querySelectorAll('*').forEach((el) => {
+      const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity <= 0.1) return;
+      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length);
+      if (own && parseFloat(cs.fontSize) < 13) small.push(parseFloat(cs.fontSize) + 'px ' + (el.className || el.tagName));
+      if ((el.tagName === 'BUTTON' || el.classList.contains('btn')) && !MINI.some((m) => el.classList.contains(m))
+        && r.height < 40) tap.push(Math.round(r.height) + 'px ' + (el.className || el.tagName));
+    });
+    return { small: [...new Set(small)].slice(0, 4), tap: [...new Set(tap)].slice(0, 4) };
+  });
+  chk('모바일 본문·라벨 13px 이상', mSweep.small.length === 0, mSweep.small.join(' | '));
+  chk('모바일 조작 요소 40px 이상', mSweep.tap.length === 0, mSweep.tap.join(' | '));
+
   // ── 모션 줄이기 ──
   console.log('\n[모션 줄이기]');
   const rm = await b.newPage(); await rm.setViewport({ width: 1440, height: 1000 });

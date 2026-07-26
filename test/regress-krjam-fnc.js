@@ -94,6 +94,23 @@ const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~
     return !!e && !e.closest('.stagebg');
   }));
   chk('이전 버튼 비활성(1쪽)', await p.evaluate(() => document.getElementById('btnPrev').disabled));
+  // v0.9.247 실제 사고: PC 에서만 보이는 목차(챕터 머리글 12.5px · 번호 12.5px)와 <sup> 9.36px 가
+  // 모바일 스윕에 안 걸렸다. **화면 크기마다** 전수로 재야 한다.
+  const pcSweep = await p.evaluate(() => {
+    const small = [], tap = [];
+    document.querySelectorAll('*').forEach((el) => {
+      const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity <= 0.1) return;
+      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length);
+      if (own && parseFloat(cs.fontSize) < 13) small.push(parseFloat(cs.fontSize) + 'px ' + (el.className || el.tagName));
+      if ((el.tagName === 'BUTTON' || el.tagName === 'A') && r.height < 40)
+        tap.push(Math.round(r.height) + 'px ' + (el.className || el.tagName));
+    });
+    return { small: [...new Set(small)].slice(0, 4), tap: [...new Set(tap)].slice(0, 4) };
+  });
+  chk('PC 본문·라벨 전부 13px 이상', pcSweep.small.length === 0, pcSweep.small.join(' | '));
+  chk('PC 조작 요소 전부 40px 이상', pcSweep.tap.length === 0, pcSweep.tap.join(' | '));
   chk('PC 는 이어보기 아님(피드 숨김·모드버튼 숨김)', await p.evaluate(() =>
     document.getElementById('feed').hidden
     && !document.body.classList.contains('scrollmode')

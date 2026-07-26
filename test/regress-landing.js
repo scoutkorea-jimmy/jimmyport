@@ -100,6 +100,22 @@ async function contrastOf(page, sel) {
     getComputedStyle(document.querySelector('.bg')).pointerEvents === 'none'
     && getComputedStyle(document.querySelector('.weave')).pointerEvents === 'none'));
   chk('가로 스크롤 없음', await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  {
+    const pcSweep = await p.evaluate(() => {
+      const small = [], tap = [];
+      document.querySelectorAll('*').forEach((el) => {
+        const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity <= 0.1) return;
+        const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim().length);
+        if (own && parseFloat(cs.fontSize) < 13) small.push(parseFloat(cs.fontSize) + 'px ' + (el.className || el.tagName));
+        if ((el.tagName === 'BUTTON' || el.tagName === 'A') && r.height < 40) tap.push(Math.round(r.height) + 'px ' + (el.className || el.tagName));
+      });
+      return { small: [...new Set(small)].slice(0, 4), tap: [...new Set(tap)].slice(0, 4) };
+    });
+    chk('PC 본문·라벨 전부 13px 이상', pcSweep.small.length === 0, pcSweep.small.join(' | '));
+    chk('PC 조작 요소 전부 40px 이상', pcSweep.tap.length === 0, pcSweep.tap.join(' | '));
+  }
   chk('로딩바 초기 숨김', await p.evaluate(() => {
     const n = document.getElementById('np');
     return !!n && !n.classList.contains('on');
