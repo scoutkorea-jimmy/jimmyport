@@ -46,19 +46,17 @@ export async function onRequest(context) {
   // flipbook cheap. (Observed live: they keep Pages' default max-age=14400
   // regardless of what is set here, so do not expect `no-cache` on them.)
   if (!path.startsWith("/api/")) {
+    // 정적 자산 응답의 헤더는 불변(immutable)이라 set() 이 조용히 무시된다 —
+    // 그래서 .js/.css 만 Pages 기본값(max-age=14400)이 그대로 나갔다(실측).
+    // 항상 새 Response 로 감싸서 확실히 덮어쓴다.
     const cc = "no-cache";
-    // Static-asset responses can carry immutable headers; fall back to rebuilding.
     try {
-      res.headers.set("Cache-Control", cc);
-      return res;
+      const r = new Response(res.body, res);
+      r.headers.set("Cache-Control", cc);
+      return r;
     } catch {
-      try {
-        const r = new Response(res.body, res);
-        r.headers.set("Cache-Control", cc);
-        return r;
-      } catch {
-        return res;
-      }
+      try { res.headers.set("Cache-Control", cc); } catch {}
+      return res;
     }
   }
   return res;
