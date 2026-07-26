@@ -22,7 +22,7 @@ krjam-planning.html  잼버리 SNS 운영 캘린더(vanilla) — 모듈은 jambo
 krjam-dcount.html    D-Count 자리(라우팅만 확보, 내용은 사용자가 작성)          [/krjam-dcount]
 krjam-fnc.html       급식편의본부 OT 플립북(vanilla) — 모듈은 krjam-fnc/       [/krjam-fnc]
 jamboree/ , jamboree-plan/   각 앱의 모듈·자산 폴더 (이름 유지)
-krjam-fnc/           app.js·styles.css + pages/(33쪽 webp)·thumbs/·assets/(내려받기 PDF·OG)
+krjam-fnc/           app.js·styles.css + pages/(31쪽 webp)·thumbs/·assets/(내려받기 PDF·OG)
 functions/_middleware.js     내부파일(*.md·wrangler.toml·CNAME·package*.json·.claude 등) 404 차단
 functions/api/*      백엔드 (units/submissions/comments/jamboree/jamboree-plan/jp-members/jp-news/login/image/file/log + _lib)
 _redirects           구 경로(/jamboree·/jamboree-plan·/admin) → 신 경로 301

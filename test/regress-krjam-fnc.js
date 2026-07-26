@@ -1,5 +1,5 @@
-/* /krjam-fnc 플립북 회귀 (v0.9.235)
-   확인 대상: 33쪽 자산이 전부 살아있는가(구 31쪽은 삭제됐는가) · 좌측 목차/넘김/딥링크/확대가
+/* /krjam-fnc 플립북 회귀 (v0.9.236)
+   확인 대상: 31쪽 자산이 전부 살아있는가(IST 업무배정 3쪽이 전부 삭제됐는가) · 좌측 목차/넘김/딥링크/확대가
    동작하는가 · 모바일 드로어와 가로 보기가 동작하는가 · 콘솔 에러 0.
    실행: NODE_PATH=<scratch>/node_modules node test/regress-krjam-fnc.js   (puppeteer-core 필요) */
 const puppeteer = require('puppeteer-core');
@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
 
 const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d ? ' — ' + d : '')); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const TOTAL = 33;                       // 구 31쪽(IST 업무배정 8/3·8/4·8/5) 삭제 후
+const TOTAL = 31;                       // IST 업무배정 3쪽(8/3~8/5 · 8/6~8/7 · 8/8~8/9) 전량 삭제 후
 
 (async () => {
   await new Promise((r) => server.listen(PORT, r));
@@ -41,8 +41,9 @@ const TOTAL = 33;                       // 구 31쪽(IST 업무배정 8/3·8/4·
   }
   chk(`페이지 이미지 ${TOTAL}종 존재`, missPage.length === 0, missPage.join(','));
   chk(`썸네일 ${TOTAL}종 존재`, missThumb.length === 0, missThumb.join(','));
-  chk('34번째 파일 없음(삭제 반영)', !fs.existsSync(path.join(ROOT, 'krjam-fnc/pages/p34.webp'))
-    && !fs.existsSync(path.join(ROOT, 'krjam-fnc/thumbs/t34.webp')));
+  chk('삭제된 32~34번째 파일 없음', [32, 33, 34].every((n) =>
+    !fs.existsSync(path.join(ROOT, `krjam-fnc/pages/p${n}.webp`))
+    && !fs.existsSync(path.join(ROOT, `krjam-fnc/thumbs/t${n}.webp`))));
   chk('PDF 원본 존재', fs.existsSync(path.join(ROOT, 'krjam-fnc/assets/KNJ16-FnC-Orientation.pdf')));
   chk('OG 이미지 존재', fs.existsSync(path.join(ROOT, 'krjam-fnc/assets/og-fnc.png')));
   // 내려받기 PDF 도 33쪽이어야 한다(포퍼가 없으면 건너뜀)
@@ -103,7 +104,7 @@ const TOTAL = 33;                       // 구 31쪽(IST 업무배정 8/3·8/4·
     return m.hidden || getComputedStyle(m).display === 'none';
   }));
   chk(`목차 항목 ${TOTAL}개`, await p.evaluate(() => document.querySelectorAll('.tocitem').length) === TOTAL);
-  chk('챕터 머리글 9개', await p.evaluate(() => document.querySelectorAll('.tocsec-h').length) === 9);
+  chk('챕터 머리글 8개', await p.evaluate(() => document.querySelectorAll('.tocsec-h').length) === 8);
   chk('첫 챕터명 = 행사 · 본부 개요', await p.evaluate(() =>
     document.querySelector('.tocsec-h').textContent.trim()) === '행사 · 본부 개요');
   chk('썸네일 16:9 유지', await p.evaluate(() => {
@@ -150,7 +151,7 @@ const TOTAL = 33;                       // 구 31쪽(IST 업무배정 8/3·8/4·
   chk('다음 버튼 비활성(마지막)', await p.evaluate(() => document.getElementById('btnNext').disabled));
   chk('마지막쪽 이미지 로드', await p.evaluate(() => {
     const im = document.getElementById('leafTop');
-    return /p33\.webp/.test(im.src) && im.naturalWidth > 800;
+    return /p31\.webp/.test(im.src) && im.naturalWidth > 800;
   }));
   await p.keyboard.press('Home'); await wait(700);
   chk('Home → 1쪽', await p.evaluate(() => document.getElementById('pgNum').textContent) === '1');
@@ -168,12 +169,15 @@ const TOTAL = 33;                       // 구 31쪽(IST 업무배정 8/3·8/4·
   chk('스크러버 15쪽 이동', await p.evaluate(() => document.getElementById('pgNum').textContent) === '15');
   chk('15쪽 제목 = 식권 종류', await p.evaluate(() => (document.getElementById('pgTitle').textContent || '').includes('식권')));
   await setScrub(31);
-  chk('31쪽은 이제 8/6·8/7 배정표', await p.evaluate(() => {
-    const t = document.getElementById('pgTitle').textContent || '';
-    return t.includes('8/6') && t.includes('8/7') && !t.includes('8/3');
+  chk('마지막 31쪽 = 맺음말', await p.evaluate(() => (document.getElementById('pgTitle').textContent || '').includes('맺음말')));
+  chk('30쪽 = 주요 업무추진 일정', await p.evaluate(() => {
+    const e = document.querySelector('.tocitem[data-p="30"] .t');
+    return !!e && e.textContent.includes('업무추진 일정');
   }));
-  chk('어느 쪽 제목에도 8/3·8/4·8/5 배정표 없음', await p.evaluate(() =>
-    ![...document.querySelectorAll('.tocitem .t')].some((e) => /8\/3 · 8\/4/.test(e.textContent))));
+  chk('목차에 IST 업무배정 항목이 하나도 없음', await p.evaluate(() =>
+    ![...document.querySelectorAll('.tocitem .t')].some((e) => /업무배정/.test(e.textContent))));
+  chk('마지막 챕터명에도 IST 배정 없음', await p.evaluate(() =>
+    ![...document.querySelectorAll('.tocsec-h')].some((e) => /IST 배정/.test(e.textContent))));
   await setScrub(1);
 
   // ── 6. 목차 클릭 이동 ──
@@ -213,8 +217,8 @@ const TOTAL = 33;                       // 구 31쪽(IST 업무배정 8/3·8/4·
   p2b.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await p2b.goto(`${base}/krjam-fnc#p99`, { waitUntil: 'networkidle2' }); await wait(300);
   chk('범위 밖 해시(#p99) → 1쪽', await p2b.evaluate(() => document.getElementById('pgNum').textContent) === '1');
-  await p2b.goto(`${base}/krjam-fnc#p34`, { waitUntil: 'networkidle2' }); await wait(300);
-  chk('삭제로 사라진 #p34 → 1쪽', await p2b.evaluate(() => document.getElementById('pgNum').textContent) === '1');
+  await p2b.goto(`${base}/krjam-fnc#p32`, { waitUntil: 'networkidle2' }); await wait(300);
+  chk('삭제로 사라진 #p32 → 1쪽', await p2b.evaluate(() => document.getElementById('pgNum').textContent) === '1');
 
   // ── 9. 모바일 ──
   console.log('\n[모바일 390x844]');
