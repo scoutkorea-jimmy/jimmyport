@@ -1826,7 +1826,7 @@ html.net-busy .netbar{opacity:1;animation:jpNet 1.1s ease-in-out infinite}
 /* ── 우선순위 별점 (v0.9.252) ── 반개 단위. 별 하나가 버튼 하나이고 왼쪽 절반을 누르면 .5.
    별을 10개로 쪼개면 손가락으로 못 누른다 → 버튼은 40px 높이를 유지하고 안쪽만 반으로 나눈다. */
 .stars{ display:inline-flex; align-items:center; gap:0; }
-.stars .star{ position:relative; width:26px; height:40px; padding:0; border:none; background:none; cursor:pointer;
+.stars .star{ position:relative; width:23px; height:40px; padding:0; border:none; background:none; cursor:pointer;
   font-size:19px; line-height:40px; color:transparent; }
 .stars .star[disabled]{ cursor:default; }
 .stars .star .s-bg,.stars .star .s-fg{ position:absolute; inset:0; display:block; text-align:center; }
@@ -1858,3 +1858,27 @@ html.net-busy .netbar{opacity:1;animation:jpNet 1.1s ease-in-out infinite}
 .news-tag.dept{ background:var(--info-bg, var(--surface-3)); color:var(--info, var(--ink-2)); }
 .nv-depts{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0 2px; }
 .nv-depts .nv-lb{ font-size:var(--fs-1); font-weight:700; color:var(--muted); }
+
+/* ── 기사 목록 거르기 · 정렬 (v0.9.254) ── */
+.newsfilter{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:10px; }
+/* ⚠️ .ti 는 width:100% 라 그대로 두면 고르개가 한 줄씩 차지한다 — 여기서만 auto 로 되돌린다 */
+.newsfilter .nf{ width:auto; flex:0 0 auto; min-width:124px; max-width:190px;
+  min-height:40px; padding:0 10px; border:1px solid var(--line); border-radius:var(--r-1);
+  background:var(--surface); font-size:var(--fs-1); font-weight:600; color:var(--ink); }
+.newsfilter .nfq{ flex:1 1 200px; max-width:none; }
+/* 열이 많아졌다 — 제목이 눌리면 목록을 못 읽는다. 제목에 폭을 먼저 주고 나머지를 줄인다. */
+/* ⚠️ 좁은 화면에서는 이 최소폭을 주면 표가 화면을 넘는다(48px 넘침 실측) → 넓은 화면에서만 준다 */
+@media(min-width:641px){ .newstbl th.nr-title,.newstbl td.nr-title{ min-width:200px; max-width:340px; } }
+/* 제목 칸이 옆으로 늘어나면 표가 화면을 넘는다 — 부제목·태그는 제목 아래로 내린다(모바일과 같은 규칙) */
+.newstbl .nr-titlebtn{ flex-wrap:wrap; max-width:100%; }
+.newstbl .nr-sub,.newstbl .nr-tags{ flex-basis:100%; }
+@media(min-width:641px){ .newstbl th.nr-dept,.newstbl td.nr-dept{ min-width:128px; max-width:200px; } }
+.news-tag.dept.sm{ white-space:nowrap; }
+@media(min-width:641px){ .newstbl td.nr-author{ min-width:112px; } }
+.newstbl td.nr-pri .starnum{ min-width:18px; }
+.newstbl th.srt{ cursor:pointer; user-select:none; white-space:nowrap; }
+.newstbl th.srt:hover{ color:var(--accent-ink); }
+.newstbl th.srt.on{ color:var(--accent-ink); }
+.newstbl td.nr-dept{ white-space:normal; }
+.news-tag.dept.sm{ min-height:22px; padding:0 7px; font-size:var(--fs-1); }
+@media(max-width:640px){ .newstbl th.nr-dept,.newstbl td.nr-dept{ display:none } }

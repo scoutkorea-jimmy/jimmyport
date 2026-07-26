@@ -73,9 +73,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   console.log('\n[화면 · 이동]');
   const views = await p.evaluate(() => window.__fncBoard.VIEWS.map((v) => v.id));
-  chk('화면 10개 정의', views.length === 10 && views[0] === 'home', views.join(','));
-  chk('좌측 내비 10개 · 모바일 탭 5개', await p.evaluate(() =>
-    document.querySelectorAll('#sidenav .navitem').length === 10 && document.querySelectorAll('#tabbar .tabbtn').length === 5));
+  chk('화면 11개 정의', views.length === 11 && views[0] === 'home', views.join(','));
+  chk('좌측 내비 11개 · 모바일 탭 5개', await p.evaluate(() =>
+    document.querySelectorAll('#sidenav .navitem').length === 11 && document.querySelectorAll('#tabbar .tabbtn').length === 5));
   const empties = [];
   for (const v of views) {
     await p.evaluate((x) => window.__fncBoard.setView(x), v);
@@ -88,7 +88,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     }, v);
     if (!ok) empties.push(v);
   }
-  chk('10개 화면 모두 내용이 채워진다', empties.length === 0, empties.join(' | '));
+  chk('11개 화면 모두 내용이 채워진다', empties.length === 0, empties.join(' | '));
   chk('해시로 화면이 유지된다', await p.evaluate(async () => {
     location.hash = '#inout'; await new Promise((r) => setTimeout(r, 300));
     return document.getElementById('view-title').textContent === '입영 · 퇴영';
@@ -214,20 +214,35 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     return rows.length === 3 && rows.map((r) => r.querySelector('.chip').textContent).join(',') === want.join(',');
   }));
   await p.evaluate(() => window.__fncBoard.setView('ist')); await wait(400);
-  chk('체크리스트 4묶음 · 진행률 0%', await p.evaluate(() =>
-    document.querySelectorAll('#ckbox .card').length === 4 && document.getElementById('ck-pct').textContent === '0%'));
-  chk('체크하면 진행률이 오르고 기기에 저장된다', await p.evaluate(async () => {
-    document.querySelector('[data-ck]').click(); await new Promise((r) => setTimeout(r, 200));
-    const pct = document.getElementById('ck-pct').textContent;
-    const saved = JSON.parse(localStorage.getItem('krjam-fnc:check') || '{}');
-    return pct !== '0%' && Object.keys(saved).length === 1;
+  chk('체크박스는 두지 않는다(읽는 화면)', await p.evaluate(() =>
+    !document.querySelector('[data-ck]') && !document.querySelector('input[type=checkbox]')));
+  chk('지급품·숙박에 원문 도표가 함께 놓인다', await p.evaluate(() =>
+    document.querySelectorAll('.fig').length >= 3));
+
+  console.log('\n[원문 도표]');
+  await p.evaluate(() => window.__fncBoard.setView('gallery')); await wait(500);
+  chk('도표 모음 20종 이상', await p.evaluate(() => document.querySelectorAll('.figgrid .fig').length >= 20));
+  chk('썸네일로 먼저 보여 준다', await p.evaluate(() =>
+    /\/krjam-fnc\/thumbs\/t\d\d\.webp$/.test(document.querySelector('.figbtn img').getAttribute('src'))));
+  chk('도표를 누르면 원본 쪽이 크게 열린다', await p.evaluate(async () => {
+    document.querySelector('[data-fig="5"]').click(); await new Promise((r) => setTimeout(r, 300));
+    const lb = document.getElementById('lightbox');
+    const img = lb.querySelector('.lb-img img');
+    return !lb.hidden && /\/krjam-fnc\/pages\/p05\.webp$/.test(img.getAttribute('src')) && /조직도/.test(lb.textContent);
   }));
-  chk('새로 열어도 체크가 남아 있다', await (async () => {
-    const p2 = await b.newPage(); await p2.setViewport({ width: 1440, height: 1000 });
-    await p2.goto(base + '/krjam-fnc#ist', { waitUntil: 'networkidle2' }); await wait(700);
-    const on = await p2.evaluate(() => document.querySelectorAll('.ck.on').length);
-    await p2.close(); return on === 1;
-  })());
+  chk('다음 쪽 · 닫기가 동작한다', await p.evaluate(async () => {
+    document.getElementById('lb-next').click(); await new Promise((r) => setTimeout(r, 250));
+    const moved = /\/krjam-fnc\/pages\/p07\.webp$/.test(document.querySelector('#lightbox .lb-img img').getAttribute('src'));
+    document.getElementById('lb-x').click(); await new Promise((r) => setTimeout(r, 200));
+    return moved && document.getElementById('lightbox').hidden;
+  }));
+  chk('원본 원문으로도 나갈 수 있다', await p.evaluate(async () => {
+    document.querySelector('[data-fig="7"]').click(); await new Promise((r) => setTimeout(r, 250));
+    const a = document.querySelector('#lightbox a[href^="/krjam-fnc-book#p"]');
+    const ok = !!a && a.getAttribute('href') === '/krjam-fnc-book#p7';
+    document.getElementById('lb-x').click();
+    return ok;
+  }));
 
   console.log('\n[검색]');
   chk('검색이 화면을 가로질러 찾는다', await p.evaluate(async () => {
@@ -263,7 +278,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p3.goto(base + '/krjam-fnc#menu', { waitUntil: 'networkidle2' });
   await wait(900);
   chk('메뉴 API 가 죽어도 화면은 살아 있다', await p3.evaluate(() =>
-    document.querySelectorAll('.navitem').length === 10 && /불러오지 못했습니다|다시 불러오기/.test(document.body.textContent)));
+    document.querySelectorAll('.navitem').length === 11 && /불러오지 못했습니다|다시 불러오기/.test(document.body.textContent)));
   chk('그때도 콘솔 에러 0', err3.length === 0, err3.slice(0, 2).join(' | '));
   await p3.close();
   mealFail = false;

@@ -174,7 +174,7 @@ async function boardPage(b, base, role) {
   chk('행 3개 + 선택 체크박스', await p.evaluate(() =>
     document.querySelectorAll('#news-list tbody tr').length === 3 && document.querySelectorAll('[data-news-ck]').length === 3 && !!document.getElementById('news-ckall')));
   chk('단계 칩 3종', await p.evaluate(() =>
-    [...document.querySelectorAll('#news-list td.nr-pub .pst')].map((e) => e.textContent).join('|')) === '퍼블리싱 완료|초안|최종검수 완료');
+    [...document.querySelectorAll('#news-list td.nr-pub .pst')].map((e) => e.textContent).sort().join('|')) === '초안|최종검수 완료|퍼블리싱 완료');
   chk('본문을 목록에 끼워 넣지 않음', await p.evaluate(() =>
     !document.querySelector('.news-detailrow') && !document.querySelector('[data-news-expand]')));
   chk('목록에 부제목·태그 표기', await p.evaluate(() => {
@@ -213,7 +213,9 @@ async function boardPage(b, base, role) {
   }));
   chk('영문 검토 칩 + 눌러서 상태 순환', await p.evaluate(async () => {
     newsItems[0].en = 'need'; renderNews(); window.__flag = [];
-    const chip = document.querySelector('#news-list tbody tr td.nr-en .enchip');
+    // 정렬 기준에 따라 첫 행이 달라진다 — 대상 기사(n1)의 행을 직접 찾는다
+    const row = [...document.querySelectorAll('#news-list tbody tr')].find((r) => /개영식 현장/.test(r.textContent));
+    const chip = row.querySelector('td.nr-en .enchip');
     const label = chip.textContent;
     chip.click(); await new Promise((x) => setTimeout(x, 300));
     return label === '영문 필요' && window.__flag.join(',') === 'n1:en=done';
@@ -222,6 +224,70 @@ async function boardPage(b, base, role) {
     newsItems[0].en = 'need'; renderNews();
     return /영문 필요/.test(document.getElementById('news-bar').textContent);
   }));
+
+  console.log('\n[목록 — 정렬 · 거르기]');
+  /* 기본은 우선순위 높은 순 — 오늘 뭘 먼저 챙길지가 맨 위에 있어야 한다(사용자 지정). */
+  chk('기본 정렬 = 우선순위 높은 순', await p.evaluate(() => {
+    newsItems[0].priority = 1; newsItems[1].priority = 5; newsItems[2].priority = 3;
+    renderNews();
+    return [...document.querySelectorAll('#news-list tbody tr td.nr-no')].map((e) => e.textContent).join(',');
+  }) === '2,3,1');
+  chk('같은 우선순위면 최신이 위', await p.evaluate(() => {
+    newsItems.forEach((a) => { a.priority = 0; }); renderNews();
+    return [...document.querySelectorAll('#news-list tbody tr td.nr-no')].map((e) => e.textContent).join(',');
+  }) === '3,2,1');
+  chk('머리글을 누르면 그 열로 정렬 · 다시 누르면 반대로', await p.evaluate(async () => {
+    document.querySelector('[data-news-sort="no"]').click();
+    const asc = [...document.querySelectorAll('#news-list tbody tr td.nr-no')].map((e) => e.textContent).join(',');
+    document.querySelector('[data-news-sort="no"]').click();
+    const desc = [...document.querySelectorAll('#news-list tbody tr td.nr-no')].map((e) => e.textContent).join(',');
+    return asc === '1,2,3' && desc === '3,2,1';
+  }));
+  chk('단계로 거르기', await p.evaluate(() => {
+    const sel = document.querySelector('[data-nf="stage"]');
+    sel.value = 'draft'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return document.querySelectorAll('#news-list tbody tr').length === 1;
+  }));
+  chk('담당자로 거르기', await p.evaluate(() => {
+    document.querySelector('[data-news-nfclear]').click();
+    const sel = document.querySelector('[data-nf="person"]');
+    sel.value = '박취재'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+    const rows = document.querySelectorAll('#news-list tbody tr');
+    return rows.length === 1 && /박취재/.test(rows[0].textContent);
+  }));
+  chk('협조부서로 거르기', await p.evaluate(() => {
+    document.querySelector('[data-news-nfclear]').click();
+    const sel = document.querySelector('[data-nf="dept"]');
+    sel.value = '운영본부'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return document.querySelectorAll('#news-list tbody tr').length === 1;
+  }));
+  chk('검색어로 거르기 · 없으면 안내', await p.evaluate(async () => {
+    document.querySelector('[data-news-nfclear]').click();
+    const q = document.querySelector('[data-nf="q"]');
+    q.value = '없는말'; q.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 150));
+    const empty = /조건에 맞는 기사가 없습니다/.test(document.getElementById('news-list').textContent);
+    document.querySelector('[data-news-nfclear]').click();
+    return empty && document.querySelectorAll('#news-list tbody tr').length === 3;
+  }));
+  chk('거르는 중에는 보이는 건수를 알린다', await p.evaluate(() => {
+    const sel = document.querySelector('[data-nf="stage"]');
+    sel.value = 'draft'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+    const bar = /보이는/.test(document.getElementById('news-bar').textContent);
+    document.querySelector('[data-news-nfclear]').click();
+    return bar;
+  }));
+  chk('목록에 협조부서와 취재 담당자가 보인다', await p.evaluate(() => {
+    const row = [...document.querySelectorAll('#news-list tbody tr')].find((r) => /개영식 현장/.test(r.textContent));
+    return /기획조정본부/.test(row.querySelector('td.nr-dept').textContent)
+      && /취재 박취재/.test(row.querySelector('td.nr-author').textContent);
+  }));
+
+  await p.evaluate(() => {   // 뒤 검사들이 기본 순서를 전제하므로 픽스처 상태로 되돌린다
+    newsItems[0].priority = 3.5; newsItems[1].priority = 0; newsItems[2].priority = 0;
+    newsSort = { key: 'pri', dir: 'desc' }; newsFilter = { stage: '', en: '', person: '', dept: '', q: '' };
+    renderNews();
+  });
 
   console.log('\n[작성 모달 — 입력 순서]');
   await p.evaluate(() => openNewsEditor(null)); await wait(500);

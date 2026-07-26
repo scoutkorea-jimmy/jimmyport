@@ -169,21 +169,6 @@ a{color:var(--accent-ink)}
 .flow .st.key{border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink)}
 .flow .ar{color:var(--faint); font-weight:800}
 
-/* 체크리스트 */
-.ck{display:flex; align-items:flex-start; gap:10px; width:100%; min-height:40px; padding:8px 10px;
-  border:1px solid var(--line); border-radius:var(--r-1); background:var(--surface); margin-bottom:6px;
-  text-align:left; font:inherit; font-size:var(--fs-2); cursor:pointer}
-.ck:hover{border-color:var(--accent)}
-.ck .bx{flex:0 0 auto; width:20px; height:20px; margin-top:2px; border:2px solid var(--line); border-radius:5px;
-  display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:900; line-height:1}
-.ck.on{background:var(--accent-soft-2); border-color:var(--accent)}
-.ck.on .bx{background:var(--accent); border-color:var(--accent)}
-.ck.on .tx{color:var(--muted); text-decoration:line-through}
-.ckbar{display:flex; align-items:center; gap:10px; margin:2px 0 12px}
-.ckbar .track{flex:1; height:8px; border-radius:var(--pill); background:var(--surface-3); overflow:hidden}
-.ckbar .fill{height:100%; background:var(--accent); border-radius:var(--pill); transition:width .25s ease}
-.ckbar .pct{font-size:var(--fs-1); font-weight:800; color:var(--accent-ink); font-variant-numeric:tabular-nums}
-
 /* 표 */
 .tbl{width:100%; border-collapse:collapse; font-size:var(--fs-1)}
 .tbl th,.tbl td{padding:9px 10px; border-bottom:1px solid var(--line-2); text-align:left; vertical-align:top}
@@ -268,4 +253,72 @@ a{color:var(--accent-ink)}
   .wrap{margin-left:0}
   .view{display:block!important}
   .card{break-inside:avoid; box-shadow:none}
+}
+
+/* ── 표지 밴드 ── 화면을 열자마자 "여기가 어디인지"가 보이게 */
+.cover{
+  display:flex; align-items:center; gap:14px; margin-bottom:18px; padding:18px 20px;
+  border-radius:var(--r-3); color:#fff; box-shadow:var(--sh-2);
+  background:
+    radial-gradient(120% 160% at 8% 0%, rgba(255,255,255,.22), transparent 55%),
+    linear-gradient(120deg, #3D1D6E 0%, #5B2EA6 45%, #1F4A80 100%);
+}
+.cover .cov-logo{flex:0 0 auto; filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}
+.cover .cov-tx b{display:block; font-size:var(--fs-4); font-weight:800; letter-spacing:-.01em}
+.cover .cov-tx em{display:block; font-style:normal; font-size:var(--fs-1); opacity:.92; margin-top:2px}
+
+/* ── 섹션 제목에 색 막대 ── 어디서 끊기는지 눈으로 잡힌다 */
+.sec-h{position:relative; padding-left:13px}
+.sec-h::before{
+  content:''; position:absolute; left:0; top:.22em; bottom:.22em; width:5px; border-radius:3px;
+  background:linear-gradient(#5B2EA6,#1F4A80);
+}
+
+/* ── 원문 도표 ── */
+.figrow{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px}
+.figgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px}
+.fig{margin:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-2); overflow:hidden; box-shadow:var(--sh-1)}
+.figbtn{
+  position:relative; display:block; width:100%; padding:0; border:none; background:var(--surface-3); cursor:zoom-in;
+  aspect-ratio:16/9; overflow:hidden;
+}
+.figbtn img{display:block; width:100%; height:100%; object-fit:cover; object-position:top center; transition:transform .25s ease}
+.figbtn:hover img{transform:scale(1.03)}
+.figzoom{
+  position:absolute; right:8px; bottom:8px; padding:4px 9px; border-radius:var(--pill);
+  background:rgba(27,23,35,.72); color:#fff; font-size:var(--fs-1); font-weight:700; opacity:0; transition:opacity .18s ease;
+}
+.figbtn:hover .figzoom,.figbtn:focus-visible .figzoom{opacity:1}
+.fig figcaption{padding:9px 12px; font-size:var(--fs-1); font-weight:700; color:var(--ink-2); border-top:1px solid var(--line-2)}
+.split{display:grid; grid-template-columns:1.25fr .75fr; gap:12px; align-items:start}
+
+/* ── 도표 크게 보기 ── */
+.lightbox{position:fixed; inset:0; z-index:70; background:rgba(20,16,28,.86); display:flex; padding:18px; overflow:auto}
+.lb-in{margin:auto; width:min(1180px,100%); background:var(--surface); border-radius:var(--r-2); overflow:hidden; box-shadow:var(--sh-3)}
+.lb-h{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 14px; border-bottom:1px solid var(--line); background:var(--surface-2)}
+.lb-h b{font-size:var(--fs-2)}
+.lb-h .spacer{flex:1}
+.lb-img{background:#F3F1F7; padding:10px; text-align:center}
+.lb-img img{max-width:100%; height:auto; border-radius:var(--r-1); box-shadow:var(--sh-1)}
+.lb-f{display:flex; gap:8px; justify-content:center; padding:10px; border-top:1px solid var(--line)}
+
+/* ── 강조 상자 ── */
+.callout{display:flex; gap:10px; align-items:flex-start; padding:13px 15px; border-radius:var(--r-2);
+  border:1px solid var(--line); background:var(--surface); font-size:var(--fs-2); margin-bottom:12px}
+.callout b{flex:0 0 auto; padding:2px 9px; border-radius:var(--pill); font-size:var(--fs-1); font-weight:800}
+.callout.danger{border-color:#F0C9C6; background:var(--danger-bg)}
+.callout.danger b{background:var(--danger); color:#fff}
+.warnbox{margin-top:12px; padding:12px 14px; border-radius:var(--r-1); background:var(--warn-bg); border:1px solid #EFDDB4}
+.warnbox>b{display:block; margin-bottom:6px; color:var(--warn)}
+.big{font-size:var(--fs-5); font-weight:800; letter-spacing:-.02em; color:var(--accent-ink); margin:0 0 2px}
+
+/* 체크 목록 — 조작이 아니라 읽는 목록이다(체크박스 없음) */
+.ticks{list-style:none; margin:0; padding:0}
+.ticks li{position:relative; padding-left:20px; margin:5px 0}
+.ticks li::before{content:'·'; position:absolute; left:6px; top:-1px; color:var(--accent); font-weight:900}
+
+@media(max-width:1024px){
+  .split{grid-template-columns:1fr}
+  .figrow,.figgrid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  .cover{padding:14px 15px}
 }

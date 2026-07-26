@@ -3717,9 +3717,78 @@ var newsBodyEditor=null;
 var NEWS_ST=[['draft','초안','var(--st-planned-bg)','var(--st-planned)'],
              ['reviewed','최종검수 완료','var(--st-draft-bg)','var(--st-draft)'],
              ['published','퍼블리싱 완료','var(--st-ready-bg)','var(--st-ready)']];
+function fmtNewsShort(iso){
+  try{ var d=new Date(iso); return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  catch(e){ return fmtNewsTime(iso); }
+}
 function newsStDef(v){ for(var i=0;i<NEWS_ST.length;i++) if(NEWS_ST[i][0]===v) return NEWS_ST[i]; return NEWS_ST[0]; }
 function newsStChip(v){ var d=newsStDef(v); return '<span class="pst" style="background:'+d[2]+';color:'+d[3]+'">'+esc(d[1])+'</span>'; }
 var newsSel={}, newsView=null;
+/* 목록 정렬·거르기 (v0.9.254)
+   기본은 **우선순위 높은 순** — 오늘 뭘 먼저 챙길지가 목록 맨 위에 있어야 한다.
+   같은 우선순위면 최신 글이 위로. 머리글을 누르면 그 열 기준으로 바뀐다. */
+var newsSort={key:'pri', dir:'desc'};
+var newsFilter={stage:'', en:'', person:'', dept:'', q:''};
+function newsFilterOn(){ return !!(newsFilter.stage||newsFilter.en||newsFilter.person||newsFilter.dept||newsFilter.q); }
+function newsPeopleAll(){
+  var seen={}, out=[];
+  (newsItems||[]).forEach(function(a){ [a.reporter,a.photographer].forEach(function(n){ n=(n||'').trim(); if(n&&!seen[n]){ seen[n]=1; out.push(n); } }); });
+  return out.sort();
+}
+function newsDeptsAll(){
+  var seen={}, out=[];
+  (newsItems||[]).forEach(function(a){ (a.depts||[]).forEach(function(d){ d=(d||'').trim(); if(d&&!seen[d]){ seen[d]=1; out.push(d); } }); });
+  return out.sort();
+}
+function newsMatch(a){
+  var f=newsFilter;
+  if(f.stage && newsStDef(a.stage)[0]!==f.stage) return false;
+  if(f.en && (a.en||'')!==f.en) return false;
+  if(f.person && (a.reporter||'')!==f.person && (a.photographer||'')!==f.person) return false;
+  if(f.dept && (a.depts||[]).indexOf(f.dept)<0) return false;
+  if(f.q){
+    var q=f.q.toLowerCase();
+    var hay=[a.title,a.subtitle,a.authorName,a.reporter,a.photographer,(a.tags||[]).join(' '),(a.depts||[]).join(' ')].join(' ').toLowerCase();
+    if(hay.indexOf(q)<0) return false;
+  }
+  return true;
+}
+function newsSorted(list, order){
+  var k=newsSort.key, dir=newsSort.dir==='asc'?1:-1;
+  var val=function(a){
+    if(k==='pri') return +(a.priority||0);
+    if(k==='no') return order[a.id]||0;
+    if(k==='title') return (a.title||'');
+    if(k==='author') return (a.authorName||a.author||'');
+    if(k==='date') return String(a.createdAt||'');
+    if(k==='stage') return ['draft','reviewed','published'].indexOf(newsStDef(a.stage)[0]);
+    return 0;
+  };
+  return list.slice().sort(function(x,y){
+    var vx=val(x), vy=val(y), c;
+    if(typeof vx==='string') c=vx.localeCompare(vy); else c=(vx-vy);
+    if(c) return c*dir;
+    return String(y.createdAt||'').localeCompare(String(x.createdAt||''));   // 같으면 최신이 위
+  });
+}
+function newsSortArrow(k){ return newsSort.key===k ? (newsSort.dir==='asc'?' ▲':' ▼') : ''; }
+function newsTh(k, label, cls){
+  return '<th class="'+(cls||'')+' srt'+(newsSort.key===k?' on':'')+'" data-news-sort="'+k+'" title="눌러서 정렬">'+esc(label)+newsSortArrow(k)+'</th>';
+}
+function renderNewsFilter(){
+  var sel=function(id, cur, opts, ph){
+    return '<select class="ti nf" data-nf="'+id+'"><option value="">'+esc(ph)+'</option>'+
+      opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(cur===o[0]?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select>';
+  };
+  return '<div class="newsfilter">'+
+    sel('stage', newsFilter.stage, NEWS_ST.map(function(d){ return [d[0],d[1]]; }), '단계 전체')+
+    sel('en', newsFilter.en, NEWS_EN.filter(function(d){ return d[0]; }).map(function(d){ return [d[0],d[1]]; }), '영문 전체')+
+    sel('person', newsFilter.person, newsPeopleAll().map(function(n){ return [n,n]; }), '담당자 전체')+
+    sel('dept', newsFilter.dept, newsDeptsAll().map(function(n){ return [n,n]; }), '협조부서 전체')+
+    '<input class="ti nf nfq" data-nf="q" type="search" placeholder="제목 · 태그 · 담당자 찾기" value="'+esc(newsFilter.q)+'">'+
+    (newsFilterOn()?'<button type="button" class="btn xs ghost" data-news-nfclear="1">필터 해제</button>':'')+
+    '</div>';
+}
 /* 사진 담당자 (v0.9.251) — 홍보부 인원에서 고르거나 직접 입력한다.
    ⚠️ 인원 id 가 아니라 **이름**을 저장한다. 명단에서 빠져도 "누가 찍기로 했는지"는 남아야 한다. */
 function newsPhotoOptions(){
@@ -3866,15 +3935,18 @@ function renderNews(){
       var cnt={}; NEWS_ST.forEach(function(d){ cnt[d[0]]=0; });
       newsItems.forEach(function(a){ cnt[newsStDef(a.stage)[0]]++; });
       var enNeed=newsItems.filter(function(a){ return (a.en||'')==='need'; }).length;
+      var vis=newsItems.filter(newsMatch).length;
       bar.innerHTML='<span class="press-stat">전체 <b>'+newsItems.length+'</b></span>'+
+        (newsFilterOn()?('<span class="press-stat en">보이는 <b>'+vis+'</b></span>'):'')+
         NEWS_ST.map(function(d){ return '<span class="press-stat">'+esc(d[1])+' <b>'+cnt[d[0]]+'</b></span>'; }).join('')+
         (enNeed?('<span class="press-stat en">영문 필요 <b>'+enNeed+'</b></span>'):'');
     }
   }
   if(!newsItems.length){ box.innerHTML='<div class="news-empty">아직 올라온 기사가 없습니다. <b>기사 작성</b>으로 첫 기사를 올려보세요.</div>'; return; }
   var order={}; newsItems.slice().sort(function(a,b){ return String(a.createdAt||'').localeCompare(String(b.createdAt||'')); }).forEach(function(a,i){ order[a.id]=i+1; });
-  var allOn = newsItems.length>0 && sel.length===newsItems.length;
-  var rows=newsItems.map(function(a){
+  var shown=newsSorted(newsItems.filter(newsMatch), order);
+  var allOn = shown.length>0 && shown.every(function(a){ return !!newsSel[a.id]; });
+  var rows=shown.map(function(a){
     var cn=!!a.cardnewsDone, imgn=(a.images||[]).length, rvn=(a.comments||[]).length||0, on=!!newsSel[a.id];
     var canFlag=canFlagNews(a);
     var cnBtn='<button type="button" class="flagtog cn'+(cn?' on':'')+'" data-news-flag="'+esc(a.id)+'~cardnewsDone"'+(canFlag?'':' disabled')+'>'+(cn?icon('check',12)+' 가공됨':'미가공')+'</button>';
@@ -3890,16 +3962,25 @@ function renderNews(){
       '<td class="nr-author">'+esc(a.authorName||a.author||'홍보부원')+
         (a.reporter?('<span class="nr-photog">'+icon('user',11)+' 취재 '+esc(a.reporter)+'</span>'):'')+
         (a.photographer?('<span class="nr-photog">'+icon('image',11)+' 사진 '+esc(a.photographer)+'</span>'):'')+'</td>'+
-      '<td class="nr-date">'+esc(fmtNewsTime(a.createdAt))+'</td>'+
+      '<td class="nr-dept">'+((a.depts||[]).length
+        ? (a.depts||[]).slice(0,2).map(function(d){ return '<span class="news-tag dept sm">'+esc(d)+'</span>'; }).join('')
+          + ((a.depts||[]).length>2?('<span class="muted">+'+((a.depts||[]).length-2)+'</span>'):'')
+        : '<span class="muted">—</span>')+'</td>'+
+      '<td class="nr-date">'+esc(fmtNewsShort(a.createdAt))+'</td>'+
       '<td class="nr-pri">'+newsStars(a, canFlagNews(a))+'</td>'+
       '<td class="nr-pub">'+newsStChip(newsStDef(a.stage)[0])+'</td>'+
       '<td class="nr-en">'+newsEnChip(a, canFlag)+'</td>'+
       '<td class="nr-cn">'+cnBtn+'</td>'+
     '</tr>';
   }).join('');
-  box.innerHTML='<div class="tblscroll"><table class="newstbl presstbl"><thead><tr>'+
+  var head='<tr>'+
     '<th class="nr-ck"><input type="checkbox" class="pck" id="news-ckall"'+(allOn?' checked':'')+' aria-label="전체 선택"></th>'+
-    '<th class="nr-no">번호</th><th class="nr-title">제목</th><th class="nr-author">작성자</th><th class="nr-date">작성일</th><th class="nr-pri">우선순위</th><th class="nr-pub">단계</th><th class="nr-en">영문</th><th class="nr-cn">카드뉴스</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    newsTh('no','번호','nr-no')+newsTh('title','제목','nr-title')+newsTh('author','작성자 · 담당','nr-author')+
+    '<th class="nr-dept">협조부서</th>'+newsTh('date','작성일','nr-date')+newsTh('pri','우선순위','nr-pri')+
+    newsTh('stage','단계','nr-pub')+'<th class="nr-en">영문</th><th class="nr-cn">카드뉴스</th></tr>';
+  var none = shown.length===0 ? '<div class="news-empty">조건에 맞는 기사가 없습니다. <button type="button" class="btn xs ghost" data-news-nfclear="1">필터 해제</button></div>' : '';
+  box.innerHTML=renderNewsFilter()+none+
+    '<div class="tblscroll"><table class="newstbl presstbl"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
 }
 /* ── 기사 읽기 모달 ── 목록에 본문을 끼워 넣지 않는다(보도자료와 같은 방식) */
 function openNewsView(id){
@@ -5199,15 +5280,27 @@ function init(){
       var r=st.getBoundingClientRect(), half=(e.clientX-r.left) < r.width/2;
       setNewsPriority(sp[0], (+sp[1]) - (half?0.5:0)); return; }
     var nck=e.target.closest('[data-news-ck]'); if(nck){ newsSel[nck.getAttribute('data-news-ck')]=nck.checked; renderNews(); return; }
-    if(e.target && e.target.id==='news-ckall'){ var non=e.target.checked; newsSel={}; if(non) newsItems.forEach(function(a){ newsSel[a.id]=true; }); renderNews(); return; }
+    if(e.target && e.target.id==='news-ckall'){ var non=e.target.checked; newsSel={};
+      if(non) newsItems.filter(newsMatch).forEach(function(a){ newsSel[a.id]=true; });   // 걸러 놓은 것만 고른다
+      renderNews(); return; }
     var nbs=e.target.closest('[data-news-bulk-st]'); if(nbs){ newsBulkStage(nbs.getAttribute('data-news-bulk-st')); return; }
     var nbd=e.target.closest('[data-news-bulk-del]'); if(nbd){ newsBulkDelete(); return; }
     var nsn=e.target.closest('[data-news-selnone]'); if(nsn){ newsSel={}; renderNews(); return; }
+    var nst=e.target.closest('[data-news-sort]'); if(nst){ var k=nst.getAttribute('data-news-sort');
+      if(newsSort.key===k) newsSort.dir=(newsSort.dir==='asc'?'desc':'asc');
+      else newsSort={key:k, dir:(k==='pri'||k==='date')?'desc':'asc'};
+      renderNews(); return; }
+    var nfc=e.target.closest('[data-news-nfclear]'); if(nfc){ newsFilter={stage:'',en:'',person:'',dept:'',q:''}; renderNews(); return; }
     var fg=e.target.closest('[data-news-flag]'); if(fg){ var fp=fg.getAttribute('data-news-flag').split('~'); toggleNewsFlag(fp[0],fp[1]); return; }
     var as=e.target.closest('[data-ac-send]'); if(as){ addNewsComment(as.getAttribute('data-ac-send')); return; }
     var ad=e.target.closest('[data-ac-del]'); if(ad){ var pr=ad.getAttribute('data-ac-del').split('~'); deleteNewsComment(pr[0],pr[1]); return; }
   }
   var nwl=document.getElementById('news-list'); if(nwl) nwl.addEventListener('click', newsDelegate);
+  if(nwl) nwl.addEventListener('change',function(e){ var f=e.target.closest('[data-nf]'); if(!f) return;
+    newsFilter[f.getAttribute('data-nf')]=f.value; renderNews(); });
+  if(nwl) nwl.addEventListener('input',function(e){ var f=e.target.closest('[data-nf="q"]'); if(!f) return;
+    newsFilter.q=f.value; var at=document.activeElement===f; renderNews();
+    if(at){ var n=document.querySelector('[data-nf="q"]'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } } });
   var nwb=document.getElementById('news-bar'); if(nwb) nwb.addEventListener('click', newsDelegate);
   var nbtn=document.getElementById('noti-btn'); if(nbtn) nbtn.onclick=function(e){ e.stopPropagation(); toggleNoti(); if(notiOpen) loadNoti(); };
   // 탭을 다시 볼 때 · 5분마다 알림함을 확인한다(가벼운 GET 하나)

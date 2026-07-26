@@ -12,7 +12,6 @@
   'use strict';
 
   var VER = '0.9.253';
-  var LS_CK = 'krjam-fnc:check';
   var BOOK = '/krjam-fnc-book';
 
   /* ── 원본 자료 (PDF 31쪽에서 옮김) ───────────────────────────── */
@@ -48,15 +47,6 @@
   var SUPPLY_TIMES = [
     { name: '조식·중식 식자재', from: '06:00', to: '07:00' },
     { name: '석식 식자재', from: '16:00', to: '17:00' },
-  ];
-
-  var CHECKS = [
-    { g: '사전 준비', items: ['Safe from Harm 온라인 교육 이수', '소속 본부 · 담당 업무 확인', '개인 준비물 · 복장 준비',
-                             '개인 텐트 · 침낭 · 세면도구 준비', '랜턴 · 보조배터리 준비 (숙영지에 전기 없음)'] },
-    { g: '입영일 (8/3)', items: ['8/3 14:00 입영', '이동방법 최종 확인 (개별 / 단체버스 13:00)', 'Safe from Harm 이수 확인',
-                                 '본부별 지급품 수령 (JHQ-FnC)'] },
-    { g: '근무 중', items: ['08:30~22:00 기본 근무', 'ID 착용 및 연락 가능 상태 유지', '위험상황 즉시 보고', '식권 지참 (미지참 시 식당 입장 불가)'] },
-    { g: '퇴영일 (8/9)', items: ['8/8~9 뒷정리 참여', '대여물품 반납 확인', '담당 구역 정리 · 개인 짐 확인', '퇴영 안내에 따라 이동'] },
   ];
 
   var SCHEDULE = [
@@ -100,18 +90,80 @@
   /* ── 화면 정의 ─────────────────────────────────────────────── */
   // short: 모바일 하단 탭 라벨. 긴 이름은 두 줄로 접혀 탭이 흔들린다.
   var VIEWS = [
-    { id: 'home',    ic: '◎', label: '대시보드',  short: '홈',     grp: '' },
-    { id: 'org',     ic: '▣', label: '본부 · 조직', short: '조직',   grp: '본부' },
-    { id: 'food',    ic: '🍽', label: '급식 운영',  short: '급식',   grp: '본부' },
-    { id: 'menu',    ic: '☰', label: '식사 메뉴',  short: '메뉴',   grp: '본부' },
-    { id: 'fac',     ic: '☕', label: '편의시설',   short: '편의',   grp: '본부' },
-    { id: 'inout',   ic: '⇄', label: '입영 · 퇴영', short: '입퇴영', grp: '운영요원' },
-    { id: 'ist',     ic: '✓', label: '운영요원 안내', short: '요원',   grp: '운영요원' },
-    { id: 'duty',    ic: '👤', label: '담당 배정',   short: '담당',   grp: '운영요원' },
-    { id: 'sched',   ic: '▤', label: '업무 일정',   short: '일정',   grp: '운영요원' },
-    { id: 'book',    ic: '📖', label: '자료 원문',   short: '원문',   grp: '자료' },
+    { id: 'home',    ic: '◎', label: '대시보드',   short: '홈',     grp: '' },
+    { id: 'food',    ic: '🍽', label: '급식 운영',   short: '급식',   grp: '현장에서 바로' },
+    { id: 'menu',    ic: '☰', label: '식사 메뉴',   short: '메뉴',   grp: '현장에서 바로' },
+    { id: 'fac',     ic: '☕', label: '편의시설',    short: '편의',   grp: '현장에서 바로' },
+    { id: 'duty',    ic: '👤', label: '담당 배정',   short: '담당',   grp: '운영' },
+    { id: 'org',     ic: '▣', label: '본부 · 조직',  short: '조직',   grp: '운영' },
+    { id: 'sched',   ic: '▤', label: '업무 일정',    short: '일정',   grp: '운영' },
+    { id: 'inout',   ic: '⇄', label: '입영 · 퇴영',  short: '입퇴영', grp: '준비' },
+    { id: 'ist',     ic: '✓', label: '운영요원 안내', short: '요원',   grp: '준비' },
+    { id: 'gallery', ic: '🖼', label: '도표 모음',    short: '도표',   grp: '자료' },
+    { id: 'book',    ic: '📖', label: '자료 원문',    short: '원문',   grp: '자료' },
   ];
   var TABS = ['home', 'food', 'menu', 'duty', 'ist'];
+
+  /* ── 원문 도표 ──────────────────────────────────────────────
+     조직도·배치도·흐름도·식권·일정표는 글로 옮기면 오히려 못 읽는다. 원문 그림을 그 자리에 놓고
+     누르면 크게 본다(썸네일 → 원본 순으로 불러 화면이 먼저 뜬다). */
+  var FIGS = {
+    '2':  '식순',
+    '4':  '잼버리 일정표 (참가자 하루 흐름)',
+    '5':  '급식편의본부 조직도',
+    '7':  '배치도 — 잼버리 식당(D동 1층) · JHQ-F&C',
+    '9':  '참가자 식자재 보급 — 대상 · 운영시간 · 원칙',
+    '10': '신선도 유지 체계 (Cold-Chain)',
+    '11': '식자재 박스 위기상황 대처',
+    '12': '운영요원 · 컵스카우트 참관단 식사 (2개소 15식)',
+    '13': '식사 제공 안내 · 간편식 참고 사진',
+    '14': '식당 운영 (1·2·3식당)',
+    '15': '잼버리식당 이용 식권 4종',
+    '19': '편의시설 운영 — 북카페 · CU · 커피차',
+    '20': '소모임 장소 (미니 라운지)',
+    '21': '안전보호 교육 (Safe from Harm)',
+    '22': '입영 안내 — 이동방법 · 도착 후 확인',
+    '23': '잼버리장 도착 절차 (단체버스 · 개인이동)',
+    '24': '입영 안내도 — GATE 5',
+    '25': '본부 · 운영요원 숙영지 위치',
+    '26': '퇴영 안내',
+    '27': '운영요원 지급품',
+    '28': '숙박 — 잼버리텐트',
+    '30': '급식편의본부 주요 업무추진 일정',
+  };
+  function pageURL(n) { return '/krjam-fnc/pages/p' + (n < 10 ? '0' : '') + n + '.webp'; }
+  function thumbURL(n) { return '/krjam-fnc/thumbs/t' + (n < 10 ? '0' : '') + n + '.webp'; }
+  function fig(n, cap) {
+    cap = cap || FIGS[String(n)] || (n + '쪽');
+    return '<figure class="fig"><button type="button" class="figbtn" data-fig="' + n + '" aria-label="' + esc(cap) + ' 크게 보기">' +
+      '<img src="' + thumbURL(n) + '" alt="' + esc(cap) + '" loading="lazy" decoding="async">' +
+      '<span class="figzoom">크게 보기</span></button>' +
+      '<figcaption>' + esc(cap) + ' <span class="muted">· 원문 ' + n + '쪽</span></figcaption></figure>';
+  }
+  function figs(list) { return '<div class="figrow">' + list.map(function (n) { return fig(n); }).join('') + '</div>'; }
+
+  var lbPage = null;
+  function openLb(n) {
+    lbPage = n;
+    var el = $('lightbox');
+    el.hidden = false;
+    el.innerHTML = '<div class="lb-in" role="dialog" aria-modal="true" aria-label="' + esc(FIGS[String(n)] || (n + '쪽')) + '">' +
+      '<div class="lb-h"><b>' + esc(FIGS[String(n)] || (n + '쪽')) + '</b><span class="muted">원문 ' + n + '쪽</span>' +
+      '<span class="spacer"></span>' +
+      '<a class="btn sm ghost" href="' + BOOK + '#p' + n + '" target="_blank" rel="noopener">원문에서 열기</a>' +
+      '<button class="btn sm" id="lb-x">닫기</button></div>' +
+      '<div class="lb-img"><img src="' + pageURL(n) + '" alt="' + esc(FIGS[String(n)] || '') + '"></div>' +
+      '<div class="lb-f"><button class="btn sm ghost" id="lb-prev">← 이전 쪽</button>' +
+      '<button class="btn sm ghost" id="lb-next">다음 쪽 →</button></div></div>';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLb() { const el = $('lightbox'); el.hidden = true; el.innerHTML = ''; lbPage = null; document.body.style.overflow = ''; }
+  function stepLb(d) {
+    var keys = Object.keys(FIGS).map(Number).sort(function (a, b) { return a - b; });
+    var i = keys.indexOf(lbPage);
+    if (i < 0) return;
+    openLb(keys[(i + d + keys.length) % keys.length]);
+  }
 
   /* ── 유틸 ──────────────────────────────────────────────────── */
   var $ = function (id) { return document.getElementById(id); };
@@ -136,6 +188,11 @@
   /* ── 섹션 렌더러 ───────────────────────────────────────────── */
   function viewHome() {
     return '' +
+      '<div class="cover">' +
+        '<img class="cov-logo" src="/jamboree/assets/logo.png" alt="" width="56" height="56">' +
+        '<div class="cov-tx"><b>급식편의본부 운영 안내</b>' +
+          '<em>The 16th KNJ Food Service &amp; Convenience Division · 운영요원(IST)</em></div>' +
+      '</div>' +
       '<div class="hero" id="hero"></div>' +
       '<section class="sec">' +
         '<h2 class="sec-h">지금 식사 운영' + srcLink(12) + '</h2>' +
@@ -156,6 +213,11 @@
           '<div class="card"><h3>숙박</h3><p>2인 1텐트. <span class="hi">숙영지에 전기 시설이 없습니다</span> — 개인 랜턴·보조배터리는 필수입니다. 개인 텐트 지참을 권장합니다.</p>' +
             '<button class="btn sm" data-go="ist">운영요원 안내 보기</button></div>' +
         '</div>' +
+      '</section>' +
+      '<section class="sec">' +
+        '<h2 class="sec-h">자주 찾는 도표</h2>' +
+        figs([5, 7, 15, 30]) +
+        '<p><button class="btn sm" data-go="gallery">도표 전체 보기</button></p>' +
       '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">행사 개요' + srcLink(3) + '</h2>' +
@@ -185,6 +247,7 @@
           '<div class="head">본부장 ' + esc(ORG.head) + '</div>' +
           '<div class="row">' + rows + '</div>' +
         '</div></div>' +
+        figs([5]) +
       '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">본부 운영 개요' + srcLink(6) + '</h2>' +
@@ -283,6 +346,9 @@
         '<div class="tblwrap"><table class="tbl"><tbody>' + tickets + '</tbody></table></div>' +
       '</section>' +
       '<section class="sec">' +
+        '<h2 class="sec-h">원문 도표</h2>' + figs([9, 12, 14, 15]) +
+      '</section>' +
+      '<section class="sec">' +
         '<h2 class="sec-h">신선도 유지 · 위기 대처' + srcLink(10) + '</h2>' +
         '<div class="grid g2">' +
           '<div class="card"><h3>신선도 유지 체계 (Cold-Chain)</h3><ul>' +
@@ -295,6 +361,7 @@
             '<tr><td>식중독 발생 시</td><td>편의시설운영부 공유 및 상황실 신고 (관계기관 협조 요청 등)</td></tr>' +
             '</tbody></table></div></div>' +
         '</div>' +
+        figs([10, 11]) +
       '</section>';
   }
 
@@ -341,6 +408,7 @@
           '<dt>운영시간</dt><dd><b>18:00 ~ 19:30</b> / <b>19:30 ~ 21:00</b> <span class="muted">(각 1시간 30분)</span></dd>' +
           '<dt>이용 원칙</dt><dd>사전 예약 및 신청을 받아 운영 · 사용 후 정리·정돈 필수</dd>' +
         '</dl></div>' +
+        figs([19, 20]) +
       '</section>';
   }
 
@@ -370,6 +438,7 @@
       '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">잼버리장 도착 절차' + srcLink(23) + '</h2>' +
+        figs([23]) +
         '<div class="card"><h3>단체버스</h3>' + flow(bus) + '</div>' +
         '<div class="card" style="margin-top:12px"><h3>개인 이동</h3>' + flow(own) + '</div>' +
         '<div class="card" style="margin-top:12px"><p>입영 절차의 핵심은 <span class="hi">이수 확인 → 소속 본부 확인 → 지급품 수령</span> 입니다.</p>' +
@@ -378,8 +447,7 @@
       '<section class="sec">' +
         '<h2 class="sec-h">배치도' + srcLink(7) + '</h2>' +
         '<div class="card"><p>잼버리 식당 <b>D동 1층</b> · 급식편의본부 <b>JHQ-F&amp;C</b>(약 40m × 45m) — IST라운지(북카페) · 커피차 · 편의점</p>' +
-          '<a class="btn sm" href="' + BOOK + '#p7" target="_blank" rel="noopener">배치도 원문 보기</a> ' +
-          '<a class="btn sm" href="' + BOOK + '#p25" target="_blank" rel="noopener">숙영지 위치 보기</a></div>' +
+        '</div>' + figs([7, 24, 25]) +
       '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">퇴영 안내' + srcLink(26) + '</h2>' +
@@ -392,44 +460,63 @@
         '</div>' +
         '<div class="card" style="margin-top:12px"><p>공용물품 반납 및 인원 확인 후 퇴영합니다. 반드시 소속 본부 안내에 따라 이동해 주세요.</p>' +
           '<p class="muted">퇴영 일정이 8일 오후 또는 9일 아침이신 경우 편의운영부에 꼭 알려 주시기 바랍니다.</p></div>' +
+        figs([22, 26]) +
       '</section>';
   }
 
   function viewIst() {
     return '' +
       '<section class="sec">' +
-        '<h2 class="sec-h">운영요원 체크리스트' + srcLink(29) + '</h2>' +
-        '<p class="lead">체크한 내용은 이 기기에 저장됩니다. 현장에서는 <b>본부별 최종 공지와 당일 전달사항을 우선</b> 적용합니다.</p>' +
-        '<div class="ckbar"><div class="track"><i class="fill" id="ck-fill"></i></div><span class="pct" id="ck-pct">0%</span>' +
-          '<button class="btn sm ghost" id="ck-reset">초기화</button></div>' +
-        '<div class="grid g4" id="ckbox"></div>' +
-      '</section>' +
-      '<section class="sec">' +
         '<h2 class="sec-h">지급품' + srcLink(27) + '</h2>' +
-        '<div class="card"><ul>' +
-          '<li>항건(네커치프)</li><li>티셔츠</li><li>공식 패치 / 운영요원 패치 2종</li><li>ID 팔찌</li>' +
-          '<li>기념품: 삼성 JBL 포터블 BT 스피커 1개 <span class="muted">(색상 랜덤)</span></li></ul></div>' +
+        '<div class="split">' +
+          '<div class="card"><ul class="ticks">' +
+            '<li>항건(네커치프)</li><li>티셔츠</li><li>공식 패치 / 운영요원 패치 2종</li><li>ID 팔찌</li>' +
+            '<li>기념품 — 삼성 JBL 포터블 BT 스피커 1개 <span class="muted">(색상 랜덤)</span></li></ul></div>' +
+          fig(27) +
+        '</div>' +
       '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">숙박 — 잼버리텐트' + srcLink(28) + '</h2>' +
-        '<div class="grid g2">' +
-          '<div class="card"><h3>배정</h3><ul>' +
+        '<div class="split">' +
+          '<div class="card"><h3>배정</h3><ul class="ticks">' +
             '<li>숙박은 텐트 · <b>2인 1텐트</b> 배정</li><li>세부 배정은 현장 및 소속 본부 안내에 따름</li>' +
-            '<li>개인 침낭 · 세면도구 · 상비용품 등은 본인이 준비</li></ul></div>' +
-          '<div class="card"><h3>꼭 챙길 것</h3><ul>' +
-            '<li><span class="hi">숙영지에 전기 시설이 없습니다</span> — 개인 랜턴 및 보조배터리 필수 지참</li>' +
-            '<li>개인 텐트 지참 권장 — 지급 텐트는 WSJ 에서 사용한 텐트라 상태가 좋지 않습니다 <span class="muted">(텐트가 없는 운영요원만 지급 · 깔개는 지급)</span></li>' +
-            '<li>생활 기준: 텐트 내 귀중품 보관 주의 · 지정된 숙영구역 이탈 금지</li></ul></div>' +
+            '<li>개인 침낭 · 세면도구 · 상비용품 등은 본인이 준비</li><li>깔개는 지급</li></ul>' +
+            '<div class="warnbox"><b>꼭 챙기세요</b>' +
+              '<ul class="ticks"><li><b>숙영지에 전기 시설이 없습니다</b> — 개인 랜턴 · 보조배터리 필수</li>' +
+              '<li>개인 텐트 지참 권장 — 지급 텐트는 WSJ 에서 쓴 것이라 상태가 좋지 않습니다</li>' +
+              '<li>텐트 내 귀중품 보관 주의 · 지정된 숙영구역 이탈 금지</li></ul></div></div>' +
+          fig(28) +
         '</div>' +
       '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">안전보호 교육 (Safe from Harm)' + srcLink(21) + '</h2>' +
-        '<div class="card"><p><span class="chip danger">필수</span> 모든 운영요원은 <b>Safe from Harm 온라인 사전교육 및 현장 안전보호교육</b>을 이수해야 합니다.</p></div>' +
-        '<div class="grid g3" style="margin-top:12px">' +
-          '<div class="card"><h3>기본 운영방향</h3><ul><li>잼버리에 참가하는 모든 성인(지원요원 포함)은 사전 교육 필수</li><li>신고 프로세스 운영을 통한 신속·정확한 대응 체계 확립</li></ul></div>' +
-          '<div class="card"><h3>온라인 사전교육</h3><ul><li>오픈일시: 2026년 7월 14일</li><li>교육링크: 문자메시지 발송 완료</li><li>대상: 운영요원 · 대지도자 · 지원요원 · 용역요원 · 일일방문객</li></ul></div>' +
-          '<div class="card"><h3>신고 프로세스</h3><ul><li>온라인 신고: 전용 QR 및 링크</li><li>전화 신고: 핫라인 번호 안내 예정</li><li>방문 신고: Safe from Harm 오피스 직접 방문</li></ul></div>' +
+        '<div class="callout danger"><b>필수</b> 모든 운영요원은 <b>Safe from Harm 온라인 사전교육 및 현장 안전보호교육</b>을 이수해야 합니다. ' +
+          '이수 여부가 확인되지 않으면 현장 등록과 배치가 지연됩니다.</div>' +
+        '<div class="grid g3">' +
+          '<div class="card"><h3>기본 운영방향</h3><ul class="ticks"><li>잼버리에 참가하는 모든 성인(지원요원 포함)은 사전 교육 필수</li><li>신고 프로세스로 신속·정확한 대응 체계 확립</li></ul></div>' +
+          '<div class="card"><h3>온라인 사전교육</h3><ul class="ticks"><li>오픈일시 2026년 7월 14일</li><li>교육링크 문자메시지 발송 완료</li><li>대상 운영요원 · 대지도자 · 지원요원 · 용역요원 · 일일방문객</li></ul></div>' +
+          '<div class="card"><h3>신고 프로세스</h3><ul class="ticks"><li>온라인 — 전용 QR 및 링크</li><li>전화 — 핫라인 번호 안내 예정</li><li>방문 — Safe from Harm 오피스</li></ul></div>' +
         '</div>' +
+        figs([21]) +
+      '</section>' +
+      '<section class="sec">' +
+        '<h2 class="sec-h">근무 기준</h2>' +
+        '<div class="grid g3">' +
+          '<div class="card"><h3>근무 시간</h3><p class="big">08:30 ~ 22:00</p><p class="muted">기본 근무 · 현장 상황에 따라 조정</p></div>' +
+          '<div class="card"><h3>항상</h3><p>ID 착용 · 연락 가능 상태 유지</p><p class="muted">위험상황은 즉시 보고합니다.</p></div>' +
+          '<div class="card"><h3>현장 우선</h3><p>본부별 <b>최종 공지와 당일 전달사항</b>을 우선 적용합니다.</p></div>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function viewGallery() {
+    var keys = Object.keys(FIGS).map(Number).sort(function (a, b) { return a - b; });
+    return '' +
+      '<section class="sec">' +
+        '<h2 class="sec-h">도표 모음' +
+          '<a class="src" href="' + BOOK + '" target="_blank" rel="noopener">31쪽 전체 원문 →</a></h2>' +
+        '<p class="lead">자료의 조직도 · 배치도 · 흐름도 · 식권 · 일정표를 한자리에 모았습니다. 누르면 크게 볼 수 있습니다.</p>' +
+        '<div class="figgrid">' + keys.map(function (n) { return fig(n); }).join('') + '</div>' +
       '</section>';
   }
 
@@ -467,7 +554,8 @@
       '</section>';
   }
   var RENDER = { home: viewHome, org: viewOrg, food: viewFood, menu: viewMenu, fac: viewFac,
-                 inout: viewInout, ist: viewIst, duty: viewDuty, sched: viewSched, book: viewBook };
+                 inout: viewInout, ist: viewIst, duty: viewDuty, sched: viewSched,
+                 gallery: viewGallery, book: viewBook };
 
   /* ── 살아 있는 부분 ────────────────────────────────────────── */
   function renderHero() {
@@ -558,24 +646,6 @@
       return '<div class="day' + (d.d === key ? ' today' : '') + '"><div class="dh">' + esc(d.label) + (d.d === key ? ' · 오늘' : '') + '</div>' +
         '<ul>' + d.items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>';
     }).join('');
-  }
-
-  /* 체크리스트 — 기기별 보관(localStorage). 서버에 올릴 개인정보가 아니다. */
-  function ckState() { try { return JSON.parse(localStorage.getItem(LS_CK) || '{}') || {}; } catch (e) { return {}; } }
-  function ckSave(s) { try { localStorage.setItem(LS_CK, JSON.stringify(s)); } catch (e) {} }
-  function renderChecks() {
-    var box = $('ckbox'); if (!box) return;
-    var st = ckState(), total = 0, done = 0;
-    box.innerHTML = CHECKS.map(function (g) {
-      return '<div class="card"><h3>' + esc(g.g) + '</h3>' + g.items.map(function (t) {
-        var id = g.g + '::' + t, on = !!st[id]; total++; if (on) done++;
-        return '<button type="button" class="ck' + (on ? ' on' : '') + '" data-ck="' + esc(id) + '" aria-pressed="' + on + '">' +
-          '<span class="bx">' + (on ? '✓' : '') + '</span><span class="tx">' + esc(t) + '</span></button>';
-      }).join('') + '</div>';
-    }).join('');
-    var pct = total ? Math.round(done / total * 100) : 0;
-    if ($('ck-fill')) $('ck-fill').style.width = pct + '%';
-    if ($('ck-pct')) $('ck-pct').textContent = pct + '%';
   }
 
   /* 식사 메뉴 — 홍보부 보드와 같은 자료(/api/jp-meals) */
@@ -741,7 +811,6 @@
     });
     if (id === 'home') { renderHero(); renderMealNow(); renderToday(); }
     if (id === 'food') renderMealTable();
-    if (id === 'ist') renderChecks();
     if (id === 'sched') renderDays();
     if (id === 'menu') { renderMenu(); if (!menuData) loadMenu().then(renderMenu); }
     if (id === 'duty') { renderDuty(); if (!duties) loadDuty().then(renderDuty); }
@@ -779,18 +848,17 @@
     document.addEventListener('click', function (e) {
       var nav = e.target.closest('[data-nav]'); if (nav) { setView(nav.getAttribute('data-nav')); return; }
       var go = e.target.closest('[data-go]'); if (go) { setView(go.getAttribute('data-go')); $('search').value = ''; runSearch(''); $('search-x').hidden = true; return; }
-      var ck = e.target.closest('[data-ck]');
-      if (ck) { var st = ckState(), k = ck.getAttribute('data-ck'); st[k] = !st[k]; ckSave(st); renderChecks(); return; }
       var mg = e.target.closest('[data-mg]'); if (mg) { menuGroup = mg.getAttribute('data-mg'); renderMenu(); return; }
       if (e.target.closest('#menu-retry')) { loadMenu().then(renderMenu); return; }
       if (e.target.closest('#duty-retry')) { loadDuty().then(renderDuty); return; }
       if (e.target.closest('#duty-edit')) { dutyEdit = true; renderDuty(); return; }
       if (e.target.closest('#duty-cancel')) { dutyEdit = false; renderDuty(); return; }
       if (e.target.closest('#duty-save')) { saveDuty(); return; }
-      if (e.target.closest('#ck-reset')) {
-        if (confirm('체크한 내용을 모두 지울까요?')) { ckSave({}); renderChecks(); toast('체크리스트를 초기화했습니다'); }
-        return;
-      }
+      var f = e.target.closest('[data-fig]'); if (f) { openLb(+f.getAttribute('data-fig')); return; }
+      if (e.target.closest('#lb-x')) { closeLb(); return; }
+      if (e.target.closest('#lb-prev')) { stepLb(-1); return; }
+      if (e.target.closest('#lb-next')) { stepLb(1); return; }
+      if (e.target.id === 'lightbox') { closeLb(); return; }
       if (e.target.closest('#btn-menu')) { $('side').classList.contains('open') ? closeSide() : openSide(); return; }
       if (e.target.closest('#sidemask')) { closeSide(); return; }
       if (e.target.closest('#search-x')) { $('search').value = ''; runSearch(''); $('search-x').hidden = true; $('search').focus(); return; }
@@ -801,6 +869,8 @@
     });
     window.addEventListener('hashchange', function () { setView((location.hash || '').replace('#', ''), false); });
     document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lbPage !== null) { closeLb(); return; }
+      if (lbPage !== null && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { stepLb(e.key === 'ArrowLeft' ? -1 : 1); return; }
       if (e.key === 'Escape') { closeSide(); if ($('search').value) { $('search').value = ''; runSearch(''); $('search-x').hidden = true; } }
       if (e.key === '/' && document.activeElement !== $('search')) { e.preventDefault(); $('search').focus(); }
     });
