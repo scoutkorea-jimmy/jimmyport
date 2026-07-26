@@ -29,15 +29,31 @@ export async function onRequest(context) {
   // Because this middleware wraps every request, the `_headers` no-cache rule is
   // bypassed for static assets (they fall back to Pages' default max-age=14400),
   // so new deploys can take hours to reach browsers. Force-revalidate every
-  // static asset / HTML here (ETag → 304 when unchanged). API routes (/api/*)
-  // keep their own cache headers untouched.
+  // static asset / HTML here. API routes (/api/*) keep their own cache headers.
+  //
+  // HTML/JS/CSS get `no-store`, not `no-cache`. A deploy replaces files one by
+  // one, so for a few seconds the edge can answer a request with the PREVIOUS
+  // build — and with a storable response it keeps that stale copy under the new
+  // `?v=` URL for the full max-age. That is exactly how a page ends up running
+  // new HTML against old CSS (v0.9.235 → visibly broken layout, see
+  // rules/handoff.md). Images/PDFs are versioned by filename, so plain
+  // revalidation is enough for them.
   if (!path.startsWith("/api/")) {
+    const cc = /\.(html|js|css)$/i.test(path) || !/\.[a-z0-9]+$/i.test(path)
+      ? "no-store"
+      : "no-cache";
+    // Static-asset responses can carry immutable headers; fall back to rebuilding.
     try {
-      const r = new Response(res.body, res);
-      r.headers.set("Cache-Control", "no-cache");
-      return r;
-    } catch {
+      res.headers.set("Cache-Control", cc);
       return res;
+    } catch {
+      try {
+        const r = new Response(res.body, res);
+        r.headers.set("Cache-Control", cc);
+        return r;
+      } catch {
+        return res;
+      }
     }
   }
   return res;
