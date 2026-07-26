@@ -20,6 +20,7 @@
 - [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) — 홍보부 통합 관리 (`/krjam-planning`)
 - [../docs/krjam-dcount/changelog.md](../docs/krjam-dcount/changelog.md) — 디데이 프로젝트 (`/krjam-dcount`)
 - [../docs/krjam-jebo/changelog.md](../docs/krjam-jebo/changelog.md) — 공개 소식 제보 (`/krjam-jebo`)
+- [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) — 급식편의본부 OT 플립북 (`/krjam-fnc`)
 
 ## 기타 내부 문서 (웹 비공개 — `_middleware` 차단)
 `KMS.md`(데이터·사양 통합) · `FEATURES.md`(전 기능) · `README.md` · `DESIGN.md`(scout-finder 디자인 토큰).

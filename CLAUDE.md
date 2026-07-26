@@ -16,7 +16,7 @@
 확인 층위 · 상세 절차 → **[rules/target-check.md](rules/target-check.md)**
 
 - **repo 단위**: `jimmyport`(이 repo · scoutingapp.net) · `gilwell-media`(별도 repo) · `jimmyport` 포트폴리오(예정)
-- **서비스 단위**(이 repo): `/`·`/tour` · `/krjam-cardnews` · `/krjam-planning` · `/krjam-dcount` · `/krjam-jebo`
+- **서비스 단위**(이 repo): `/`·`/tour` · `/krjam-cardnews` · `/krjam-planning` · `/krjam-dcount` · `/krjam-jebo` · `/krjam-fnc`
 
 대상 확정 후 **해당 `docs/<service>/` 문서를 먼저 읽고** 착수한다.
 
@@ -50,6 +50,7 @@
 | `/krjam-planning` | 홍보부 통합 관리 플랫폼 | `jamboree-plan/` | [changelog](docs/krjam-planning/changelog.md) |
 | `/krjam-dcount` | 디데이 프로젝트 (React 격리) | `krjam-dcount/` | [changelog](docs/krjam-dcount/changelog.md) |
 | `/krjam-jebo` | 공개 소식 제보 | `krjam-jebo.html` | [changelog](docs/krjam-jebo/changelog.md) |
+| `/krjam-fnc` | 급식편의본부 OT 플립북 | `krjam-fnc/` | [changelog](docs/krjam-fnc/changelog.md) |
 
 - 백엔드(Cloudflare Pages Functions): `functions/api/*`, 저장소 KV `SCOUT_KV` + R2 `SCOUT_R2`.
 - 데이터·사양 통합: `KMS.md` · 전 기능: `FEATURES.md` · 규칙/문서 전체 색인: [rules/00-index.md](rules/00-index.md).

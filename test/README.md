@@ -1,4 +1,4 @@
-# 회귀 테스트 (krjam-planning · krjam-jebo)
+# 회귀 테스트 (krjam-planning · krjam-jebo · krjam-fnc)
 
 구조 변경 전후의 동작 동일성을 확인한다. **리팩터링 전에 baseline 을 찍고, 각 단계마다 다시 돌려 diff 가 없어야 한다.**
 
@@ -20,3 +20,11 @@ node test/regress-krjam-planning.js
 node test/regress-krjam-jebo.js
 ```
 제보 페이지 전면 재작성(v0.9.173) 후 동작 동일성을 지킨다 — POST 바디 계약 · 검증 순서 · ko/en(오류 문구 재번역) · 희망 시각 zero-pad · 사진 파이프라인 · 모바일/데스크톱 레이아웃(터치 타깃·CTA 위치·넘침).
+
+## krjam-fnc (급식편의본부 OT 플립북)
+
+```bash
+node test/regress-krjam-fnc.js      # 48 케이스
+```
+정적 자산만 쓰므로 **API 목업이 필요 없다**(서버·KV 무접촉). 커버: 34쪽 이미지·썸네일·PDF·OG 존재 및 200 · 넘김(버튼/키보드/해시/이미지 실제 교체) · 스크러버 · 목차(썸네일 16:9·활성·이동·Esc) · 확대 · 딥링크(`#p12`·범위 밖) · 모바일(레이아웃·터치타깃·하단시트·가로 보기 전환/배율/확대잠금) · 콘솔 에러 0.
+세 케이스는 실제로 잡은 버그를 고정한 것이다 — **숨긴 오버레이의 클릭 가로채기**(`[hidden]` vs `.toc{display:flex}`) · **썸네일 16:9**(img `height` 속성이 `aspect-ratio` 를 무력화) · **가로 보기 배율**(`.book{flex:none}` 없으면 눌림).

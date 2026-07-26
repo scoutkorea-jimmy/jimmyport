@@ -20,7 +20,9 @@ data.js              SCOUT_UNITS + SCOUT_NSOS(176) + SCOUT_REGION_COLORS (← �
 krjam-cardnews.html  잼버리 카드뉴스 제작기(React) — 모듈은 jamboree/           [/krjam-cardnews] (구 /jamboree)
 krjam-planning.html  잼버리 SNS 운영 캘린더(vanilla) — 모듈은 jamboree-plan/     [/krjam-planning]  (구 /jamboree-plan)
 krjam-dcount.html    D-Count 자리(라우팅만 확보, 내용은 사용자가 작성)          [/krjam-dcount]
+krjam-fnc.html       급식편의본부 OT 플립북(vanilla) — 모듈은 krjam-fnc/       [/krjam-fnc]
 jamboree/ , jamboree-plan/   각 앱의 모듈·자산 폴더 (이름 유지)
+krjam-fnc/           app.js·styles.css + pages/(34쪽 webp)·thumbs/·assets/(원본 PDF·OG)
 functions/_middleware.js     내부파일(*.md·wrangler.toml·CNAME·package*.json·.claude 등) 404 차단
 functions/api/*      백엔드 (units/submissions/comments/jamboree/jamboree-plan/jp-members/jp-news/login/image/file/log + _lib)
 _redirects           구 경로(/jamboree·/jamboree-plan·/admin) → 신 경로 301
@@ -36,7 +38,9 @@ KMS.md / FEATURES.md / README.md / DESIGN.md   내부 문서(웹 비공개 — _
   `wrangler pages deploy . --project-name jimmyport --branch main`. 별도 지시 없어도 진행.
 - 로컬 dev server 띄우지 말 것. 의미 있는 변경마다 `VERSION` bump.
 - 배포 대상 Cloudflare Pages 프로젝트 `jimmyport`. **도메인: `scoutingapp.net`(주력) + `jimmypark.net`(둘 다 Active, 동일 콘텐츠).** 둘 다 같은 프로젝트 커스텀 도메인. (사용자: jimmypark.net 노출돼도 무방 → 제거 안 함.)
-- **라우팅(v0.9.107)**: `/`=랜딩 · `/tour`(+`/tour/admin`) · `/krjam-cardnews` · `/krjam-planning` · `/krjam-dcount`. 구 경로(`/jamboree`·`/jamboree-plan`·`/admin`)는 `_redirects` 301. `/tour` 는 디렉터리라 308→`/tour/`(정상).
+- **라우팅(v0.9.107)**: `/`=랜딩 · `/tour`(+`/tour/admin`) · `/krjam-cardnews` · `/krjam-planning` · `/krjam-dcount` · `/krjam-jebo`(+`/jebo`) · `/krjam-fnc`(v0.9.234). 구 경로(`/jamboree`·`/jamboree-plan`·`/admin`)는 `_redirects` 301. `/tour` 는 디렉터리라 308→`/tour/`(정상).
+  - `krjam-*.html` 과 **같은 이름의 모듈 폴더가 공존**해도 Pages 는 확장자 없는 경로에 .html 을 먼저 매칭한다(`/krjam-dcount` 200 로 확인된 기존 패턴 — `/krjam-fnc` 도 동일).
+  - **랜딩 미노출 서비스**: `/krjam-fnc` 는 실명 업무배정표가 포함돼 있어 사용자 지시로 루트 랜딩 카드에 넣지 않는다(noindex + URL 공유 전용).
 - **공개 누수 차단**: `functions/_middleware.js` 가 `*.md`·`wrangler.toml`·`package*.json`·`.gitignore`·`CNAME`·`.claude/*` 를 404(`.assetsignore` 는 `wrangler pages deploy` 가 무시함). 내부 문서·설정은 웹에서 안 보임. GitHub 저장소는 공개(사용자: 무방).
 
 ---

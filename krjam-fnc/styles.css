@@ -1,0 +1,301 @@
+/* ─────────────────────────────────────────────────────────────
+   /krjam-fnc — 제16회 한국잼버리 급식편의본부 오리엔테이션 플립북
+   Vanilla CSS. 라이트 톤(rules/ui-ux.md): 카드 중첩 없음, 폰트 ≥13px,
+   버튼 ≥40px, 정보는 여백+계층으로.
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --bg:#F4F2F7;
+  --stage:#E9E5F1;
+  --surface:#FFFFFF;
+  --ink:#221B2B;
+  --ink-2:#463D55;
+  --muted:#6B6577;
+  --faint:#9A93A6;
+  --line:#E3DCEE;
+  --line-2:#EFEAF6;
+  --accent:#5B2EA6;
+  --accent-soft:#F1ECF9;
+  --r-1:10px; --r-2:14px; --pill:999px;
+  --sh-1:0 1px 2px rgba(45,25,80,.05), 0 2px 6px rgba(45,25,80,.05);
+  --sh-page:0 10px 34px rgba(40,20,75,.16), 0 2px 8px rgba(40,20,75,.10);
+  --ease:.16s cubic-bezier(.4,0,.2,1);
+  --topbar-h:58px;
+  --bottombar-h:56px;
+}
+
+*{ box-sizing:border-box; }
+/* hidden 속성이 항상 이긴다. (.toc·.zoombadge 처럼 display 를 지정한 규칙은
+   클래스 선택자 우선순위가 UA 의 [hidden]{display:none} 을 이겨서, 이 줄이 없으면
+   숨겨야 할 패널이 화면을 계속 덮고 클릭을 가로챈다.) */
+[hidden]{ display:none !important; }
+html,body{ margin:0; padding:0; height:100%; }
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Pretendard Variable',Pretendard,'Apple SD Gothic Neo',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+}
+img{ -webkit-user-drag:none; user-select:none; }
+button{ font-family:inherit; }
+
+.shell{
+  height:100dvh; display:flex; flex-direction:column;
+  padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ── 상단 바 ─────────────────────────────────────────────── */
+.topbar{
+  flex:none; height:var(--topbar-h);
+  display:flex; align-items:center; gap:12px;
+  padding:0 14px; background:var(--surface);
+  border-bottom:1px solid var(--line);
+}
+.home{
+  flex:none; width:40px; height:40px; border-radius:var(--r-1);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--accent); background:var(--accent-soft); text-decoration:none;
+  transition:background var(--ease);
+}
+.home:hover{ background:#E6DCF7; }
+.titles{ min-width:0; flex:1; }
+.titles h1{
+  margin:0; font-size:15.5px; font-weight:700; letter-spacing:-.02em; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.25;
+}
+.titles p{
+  margin:1px 0 0; font-size:13px; color:var(--muted); line-height:1.3;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.titles sup{ font-size:.72em; }
+.tools{ flex:none; display:flex; align-items:center; gap:8px; }
+.tbtn{
+  height:40px; min-width:40px; padding:0 12px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2); border-radius:var(--r-1);
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  font-size:13.5px; font-weight:600; cursor:pointer; text-decoration:none;
+  transition:background var(--ease), border-color var(--ease), color var(--ease);
+}
+.tbtn:hover{ background:var(--accent-soft); border-color:#D6C7EE; color:var(--accent); }
+.tbtn:active{ transform:translateY(1px); }
+.tbtn[aria-expanded="true"],
+.tbtn[aria-pressed="true"]{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* ── 뷰어 ────────────────────────────────────────────────── */
+.stage{
+  flex:1; min-height:0; position:relative;
+  background:var(--stage);
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+  container-type:size;
+  overflow:hidden;
+  touch-action:none;
+}
+.book{
+  position:relative;
+  /* flex:none 필수 — 기본 flex-shrink 가 1이면 회전 보기에서 지정 폭이
+     스테이지 폭까지 눌려버려(회전 전 기준으로 축소) 확대 효과가 사라진다. */
+  flex:none;
+  width:min(100cqw - 36px, (100cqh - 36px) * 16 / 9);
+  aspect-ratio:16/9;
+  perspective:2800px;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+/* 세로 화면 '가로 보기' — 16:9 슬라이드를 90도 돌려 화면을 꽉 채운다(약 2배 크게). */
+.stage.rot .book{                      /* 회전 시엔 여백을 최소화해 최대한 크게 */
+  width:min(100cqh - 6px, (100cqw - 6px) * 16 / 9);
+  transform:rotate(90deg);
+}
+/* 가로 보기 버튼은 좁은 세로 화면에서만 의미가 있다. */
+.rotonly{ display:none; }
+@media (max-width:700px) and (orientation:portrait){ .rotonly{ display:inline-flex; } }
+.leaf{
+  position:absolute; inset:0; width:100%; height:100%;
+  border-radius:3px; background:#fff;
+}
+img.leaf{ object-fit:contain; box-shadow:var(--sh-page); }
+.under{ z-index:1; }
+.under[hidden]{ display:none; }
+.zoomwrap{
+  position:absolute; inset:0; z-index:2;
+  transform-origin:0 0;
+  will-change:transform;
+}
+.zoomwrap.settling{ transition:transform .22s cubic-bezier(.4,0,.2,1); }
+.top{ cursor:zoom-in; }
+.zoomed .top{ cursor:grab; }
+.zoomed .top:active{ cursor:grabbing; }
+
+/* 넘어가는 장.  90도를 지나면 backface-visibility 로 사라지므로
+   뒷면이 좌우 반전된 채 보이는 문제가 없다(아래 장은 이미 다 드러난 상태). */
+.flip{
+  z-index:3; transform-origin:left center;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  box-shadow:var(--sh-page);
+}
+.flip[hidden]{ display:none; }
+.flipface{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; border-radius:3px; }
+.flipshade{
+  position:absolute; inset:0; opacity:0; border-radius:3px;
+  background:linear-gradient(to right, rgba(30,14,58,.30) 0%, rgba(30,14,58,.09) 34%, rgba(255,255,255,0) 72%);
+}
+.flip.anim{ transition:transform .48s cubic-bezier(.36,.05,.28,1); }
+.flip.anim .flipshade{ transition:opacity .48s linear; }
+
+/* 넘기는 동안엔 페이지를 잡지 못하게 */
+.turning .stage{ cursor:default; }
+
+/* 좌우 넘김 버튼 */
+.nav{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:46px; height:64px; border:1px solid var(--line);
+  background:rgba(255,255,255,.92); color:var(--ink-2);
+  border-radius:var(--r-2); cursor:pointer; z-index:6;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--sh-1);
+  transition:background var(--ease), color var(--ease), opacity var(--ease);
+}
+.nav:hover{ background:#fff; color:var(--accent); }
+.nav.prev{ left:10px; }
+.nav.next{ right:10px; }
+.nav[disabled]{ opacity:.34; cursor:default; pointer-events:none; }
+
+/* 확대 배지 */
+.zoombadge{
+  position:absolute; right:12px; bottom:12px; z-index:6;
+  display:flex; align-items:center; gap:8px;
+  height:40px; padding:0 6px 0 13px; border-radius:var(--pill);
+  background:rgba(255,255,255,.94); border:1px solid var(--line);
+  box-shadow:var(--sh-1); font-size:13px; font-weight:600; color:var(--ink-2);
+}
+.zoombadge button{
+  height:30px; padding:0 11px; border:0; border-radius:var(--pill);
+  background:var(--accent-soft); color:var(--accent);
+  font-size:13px; font-weight:600; cursor:pointer;
+}
+.zoombadge button:hover{ background:#E6DCF7; }
+
+/* ── 하단 바 ─────────────────────────────────────────────── */
+.bottombar{
+  flex:none; height:var(--bottombar-h);
+  display:flex; align-items:center; gap:16px; padding:0 16px;
+  background:var(--surface); border-top:1px solid var(--line);
+}
+.pagenow{ flex:none; display:flex; align-items:baseline; gap:5px; font-size:14px; color:var(--muted); }
+.pagenow strong{ font-size:17px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; }
+.pagenow .slash{ color:var(--faint); }
+.pgtitle{
+  margin-left:8px; font-style:normal; font-size:13.5px; font-weight:600; color:var(--ink-2);
+  max-width:34vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.scrub{
+  flex:1; min-width:0; height:40px; -webkit-appearance:none; appearance:none;
+  background:transparent; cursor:pointer;
+}
+.scrub::-webkit-slider-runnable-track{ height:5px; border-radius:3px; background:var(--line); }
+.scrub::-moz-range-track{ height:5px; border-radius:3px; background:var(--line); }
+.scrub::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:17px; height:17px; margin-top:-6px;
+  border-radius:50%; background:var(--accent); border:3px solid #fff; box-shadow:var(--sh-1);
+}
+.scrub::-moz-range-thumb{
+  width:17px; height:17px; border-radius:50%; background:var(--accent);
+  border:3px solid #fff; box-shadow:var(--sh-1);
+}
+.scrub:focus-visible{ outline:2px solid var(--accent); outline-offset:4px; border-radius:6px; }
+.hint{ flex:none; font-size:13px; color:var(--faint); }
+
+/* ── 목차 ────────────────────────────────────────────────── */
+.tocmask{ position:fixed; inset:0; background:rgba(28,16,50,.34); z-index:20; }
+.toc{
+  position:fixed; z-index:21; background:var(--surface);
+  display:flex; flex-direction:column;
+  top:0; right:0; bottom:0; width:min(420px,88vw);
+  border-left:1px solid var(--line); box-shadow:-14px 0 44px rgba(40,20,75,.18);
+  animation:slideIn .2s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideIn{ from{ transform:translateX(28px); opacity:.4 } to{ transform:none; opacity:1 } }
+.tochead{
+  flex:none; height:56px; display:flex; align-items:center; gap:10px;
+  padding:0 12px 0 18px; border-bottom:1px solid var(--line);
+}
+.tochead h2{ margin:0; flex:1; font-size:15.5px; font-weight:700; letter-spacing:-.01em; }
+.tochead span{ margin-left:8px; font-size:13px; font-weight:500; color:var(--muted); }
+.tclose{
+  width:40px; height:40px; border:0; background:transparent; color:var(--muted);
+  border-radius:var(--r-1); cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.tclose:hover{ background:var(--accent-soft); color:var(--accent); }
+.tocgrid{
+  flex:1; overflow-y:auto; overscroll-behavior:contain;
+  padding:14px 16px 22px; display:grid; grid-template-columns:repeat(2,1fr); gap:14px 12px;
+}
+.tocitem{
+  display:block; border:0; padding:0; background:transparent; text-align:left; cursor:pointer;
+}
+/* height:auto 가 없으면 img 의 height="180" 속성이 그대로 살아서(width 는 CSS 로 지정돼
+   양쪽이 확정 → aspect-ratio 무시) 썸네일이 세로로 늘어나고 좌우가 잘린다. */
+.tocitem img{
+  display:block; width:100%; height:auto; aspect-ratio:16/9; object-fit:cover; background:#fff;
+  border:1px solid var(--line); border-radius:var(--r-1);
+  transition:border-color var(--ease), box-shadow var(--ease), transform var(--ease);
+}
+.tocitem:hover img{ border-color:#C9B4EA; box-shadow:var(--sh-1); transform:translateY(-1px); }
+.tocitem .cap{
+  display:flex; gap:6px; align-items:baseline; margin-top:7px;
+  font-size:13px; line-height:1.35; color:var(--ink-2);
+}
+.tocitem .n{ flex:none; font-weight:700; color:var(--faint); font-variant-numeric:tabular-nums; }
+.tocitem.on img{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+.tocitem.on .cap{ color:var(--accent); font-weight:600; }
+.tocitem.on .n{ color:var(--accent); }
+
+/* ── 부팅 ────────────────────────────────────────────────── */
+.boot{
+  position:fixed; inset:0; z-index:40; background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:14px;
+  transition:opacity .25s ease;
+}
+.boot.gone{ opacity:0; pointer-events:none; }
+
+/* ── 반응형 ──────────────────────────────────────────────── */
+@media (max-width:860px){
+  .titles p{ display:none; }
+  .hint{ display:none; }
+}
+@media (max-width:620px){
+  :root{ --topbar-h:54px; --bottombar-h:52px; }
+  .topbar{ padding:0 10px; gap:9px; }
+  .titles h1{ font-size:14px; }
+  .tbtn{ padding:0 10px; }
+  .tlabel{ display:none; }
+  .stage{ padding:10px; }
+  .book{ width:min(100cqw - 20px, (100cqh - 20px) * 16 / 9); }
+  .nav{ width:38px; height:54px; }
+  .nav.prev{ left:4px; }
+  .nav.next{ right:4px; }
+  .pgtitle{ display:none; }
+  .bottombar{ gap:12px; padding:0 12px; }
+  /* 목차는 하단 시트 */
+  .toc{
+    top:auto; left:0; right:0; bottom:0; width:auto; max-height:76dvh;
+    border-left:0; border-top:1px solid var(--line);
+    border-radius:18px 18px 0 0; box-shadow:0 -14px 44px rgba(40,20,75,.20);
+    animation:sheetUp .22s cubic-bezier(.4,0,.2,1);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  @keyframes sheetUp{ from{ transform:translateY(26px); opacity:.5 } to{ transform:none; opacity:1 } }
+  .tocgrid{ grid-template-columns:repeat(2,1fr); }
+}
+
+/* 넓은 화면에서 목차 3열 */
+@media (min-width:1200px){
+  .toc{ width:520px; }
+  .tocgrid{ grid-template-columns:repeat(3,1fr); }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .flip.anim{ transition:opacity .28s linear; }
+  .toc{ animation:none; }
+  .zoomwrap.settling{ transition:none; }
+}

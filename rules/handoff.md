@@ -13,7 +13,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - nav: `test/regress-krjam-planning-nav.js`, jebo: `test/regress-krjam-jebo.js`
+  - nav: `test/regress-krjam-planning-nav.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -52,6 +52,17 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-26 (4) — 신규 서비스 `/krjam-fnc` 급식편의본부 OT 플립북 (v0.9.234)
+대상: **신규** `/krjam-fnc`. 상세: [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) §19.1.
+- 사용자 제공 PDF(급식편의본부 오리엔테이션 34쪽)를 **플립북 서브페이지**로. 확정(AskUserQuestion): 경로 `/krjam-fnc` · **PDF 원본 이미지 그대로** · **루트 랜딩 미노출**(실명 업무배정표 포함, URL 공유 전용) · 목차·확대/전체화면·PDF 내려받기·딥링크 전부.
+- 자산: `pdftoppm -r 144` → `cwebp -q 84` = `krjam-fnc/pages/p01..34.webp`(4.3MB) + 썸네일 320×180(316KB) + 원본 PDF + OG 1200×630. **원본 PDF 는 `~/Downloads` 가 아니라 리포 안(`krjam-fnc/assets/`)이 진본**.
+- 뷰어(`krjam-fnc/app.js`, 의존성 0): 3D 책장 넘김(`rotateY` 0→-95°, backface-visibility 로 뒷면 반전 회피) · 키보드/스와이프/휠/스크러버 · 썸네일 목차 · 확대(더블탭·핀치·휠) · **세로 화면 '가로 보기'(1.85배)** · `#p12` 딥링크.
+- ⚠️ **재사용할 교훈 3가지**(다른 페이지에도 그대로 적용됨):
+  1. `[hidden]` 은 `display` 를 지정한 **클래스 규칙에 진다** → 전역 `[hidden]{display:none!important}` 없으면 숨긴 패널이 화면을 덮고 **클릭을 조용히 가로챈다**(원인 못 찾으면 "버튼이 안 눌린다"로 보인다).
+  2. `img` 의 `width`/`height` 속성 + CSS `width` 만 지정 = 양쪽 확정 → **`aspect-ratio` 무시**. `height:auto` 필요.
+  3. flex 아이템의 기본 `flex-shrink:1` 은 `transform:rotate` 전 기준으로 폭을 눌러버린다 → `flex:none`.
+- 상태: **신규 회귀 `test/regress-krjam-fnc.js` 48/48 통과**(실제 Chrome, 정적 서버, 서버·KV 무접촉), 콘솔 0, VERSION 0.9.234.
 
 ### 2026-07-26 (3) — 데이터 안정성 6종 (v0.9.233)
 대상: `/krjam-planning`. 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.95.

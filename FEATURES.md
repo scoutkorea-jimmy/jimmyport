@@ -17,6 +17,8 @@
 | `/krjam-cardnews` | 한국잼버리 **카드뉴스 제작기** | React(격리) | 비공개(홈 링크 없음) | 서버 백업만 **TOTP** 세션 |
 | `/krjam-planning` | 미디어부(홍보부) **SNS 운영 보드** | Vanilla | 비공개(noindex) | 대원 개별 ID/PW + 관리자 TOTP |
 | `/krjam-dcount` | 한국잼버리 **D-Count**(준비 중·자리만) | Vanilla | 비공개(noindex) | — |
+| `/krjam-jebo` | 한국잼버리 **공개 소식 제보** | Vanilla | 공개(ko/en) | — |
+| `/krjam-fnc` | **급식편의본부 OT 플립북**(34쪽) | Vanilla | 비공개(noindex·**랜딩 미노출**) | — |
 | `/api/*` | 백엔드(Pages Functions) | JS modules | — | 공개 GET / 관리 TOTP 세션 |
 
 > 구 경로 `/`·`/admin`·`/jamboree`·`/jamboree-plan` 은 `_redirects`로 신 경로 301. 내부 파일(*.md·wrangler.toml·CNAME·.claude 등)은 `functions/_middleware.js`가 404.
@@ -158,6 +160,21 @@
 - 단일 공유 보드(작성자 이름 기반, 토큰 없음). **로컬 즉시저장 + 서버 자동저장**(per-card, 디바운스). 저장 실패 시 재시도 큐 + 이탈 경고.
 - 마케팅 캘린더(연간 시드 표). 보관 고지(잼버리 종료 후 3개월 ~2026-11-09).
 - 모든 시간 **24시간제**.
+
+---
+
+## 4-B. /krjam-fnc — 급식편의본부 OT 플립북 (`krjam-fnc.html` + `krjam-fnc/`)
+
+**제16회 한국잼버리 급식편의본부** (The 16th KNJ Food Service & Convenience Division) 운영요원(IST) 오리엔테이션 자료 34쪽을 넘겨 보는 정적 뷰어. **백엔드/저장 없음** — 정적 자산만 사용한다.
+
+- **자료**: 원본 PDF(16:9 34쪽)를 1920×1080 WebP(`pages/`) + 320×180 썸네일(`thumbs/`)로 사전 렌더. 원본 PDF·OG 이미지는 `assets/`.
+- **넘김**: 3D 책장 넘김(480ms) · 좌우 버튼 · 키보드(← → PageUp/Down Space Home End) · 스와이프 · 휠 · 하단 스크러버.
+- **목차**: 썸네일 34개 + 쪽 제목. PC 우측 패널 / 모바일 하단 시트(`T` 토글, `Esc` 닫기).
+- **확대**: 더블클릭·더블탭(240%) · 핀치 · `Ctrl/⌘+휠` · `+ - 0`, 드래그 팬.
+- **가로 보기**: 좁은 세로 화면 전용 토글 — 슬라이드를 90° 돌려 약 1.85배 크게. 기기를 가로로 돌리면 자동 해제.
+- **기타**: 전체화면(`F`) · PDF 원본 내려받기 · 쪽 딥링크 `#p12`(공유용).
+- **공개 범위**: `noindex` + **루트 랜딩 카드 미노출** — 자료에 운영요원 실명 업무배정표가 포함되어 URL 공유로만 접근한다.
+- 회귀: `node test/regress-krjam-fnc.js` (48 케이스).
 
 ---
 
