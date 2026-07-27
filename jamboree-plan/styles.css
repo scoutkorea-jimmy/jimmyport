@@ -772,6 +772,7 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
 .ttg-ev.cub .cubtag{display:inline-block;font-size:var(--fs-1);font-weight:800;line-height:1.5;padding:0 5px;border-radius:var(--pill);background:rgba(255,255,255,.28);color:#fff;vertical-align:1px;margin-right:2px}
 .ttg-grouplab.gl-pr{color:#7A5310}   /* 흰 라벨 배경 위 글자 — 밝은 금(#C89A3E)은 2.58 이었다 */
 .ttg-grouplab.gl-cub{color:#2E6FAE}   /* 같은 이유(#7FA8D8 = 2.47) */
+.ttg-grouplab.gl-media{color:#5E2E80}   /* 홍보부 트랙 라벨 — 흰 배경 위 대비 확보(진보라) */
 .ttctrl{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--pill);overflow:hidden;background:var(--surface);flex:0 0 auto}
 .seg button{font:inherit;font-size:var(--fs-1);font-weight:600;padding:0 17px;min-height:var(--h-ctl);border:none;background:none;color:var(--muted);cursor:pointer;transition:var(--ease)}

@@ -270,10 +270,12 @@ var CUB_BATCH_COLOR={1:'#3F6FA8', 2:'#A85B3F'};   // 1기·2기 트랙 색(범�
 var CUB_BATCH_LABEL={1:'1기', 2:'2기'};
 function cubColor(b){ return darkenToContrast(CUB_BATCH_COLOR[(b===2||b==='2')?2:1]); }   // 흰 글씨 대비 보정
 // 일정표 트랙 필터 — 잼버리 일정 · 의전 일정 · 컵 1기 · 컵 2기 (전체기간·일간 공통 적용)
-var TT_TRACKS=[['jam','잼버리 일정'],['pr','의전 일정'],['cub1','컵 1기'],['cub2','컵 2기']];
-var ttFilter={jam:true,pr:true,cub1:true,cub2:true};
+var MEDIA_COLOR='#7A3FA0';   // 홍보부 트랙 색(잼버리 초록·의전 금·컵 청/적갈과 구분)
+function mediaColor(){ return darkenToContrast(MEDIA_COLOR); }   // 흰 글씨 대비 보정
+var TT_TRACKS=[['jam','잼버리 일정'],['pr','의전 일정'],['media','홍보부'],['cub1','컵 1기'],['cub2','컵 2기']];
+var ttFilter={jam:true,pr:true,media:true,cub1:true,cub2:true};
 try{ var _tf=JSON.parse(localStorage.getItem('jamboree-plan:tt-filter')||'null'); if(_tf) TT_TRACKS.forEach(function(t){ ttFilter[t[0]]=(_tf[t[0]]!==false); }); }catch(e){}
-function ttTrackOfItem(t){ return t.track==='cub' ? ((t.batch===2||t.batch==='2')?'cub2':'cub1') : 'jam'; }
+function ttTrackOfItem(t){ return t.track==='media' ? 'media' : t.track==='cub' ? ((t.batch===2||t.batch==='2')?'cub2':'cub1') : 'jam'; }
 function ttTrackOn(k){ return ttFilter[k]!==false; }
 function saveTtFilter(){ try{ localStorage.setItem('jamboree-plan:tt-filter', JSON.stringify(ttFilter)); }catch(e){} }
 function cubObserverSeeds(){
@@ -395,6 +397,36 @@ function migrateCubReporterKSY(){
   try{ localStorage.setItem('jamboree-plan:cub-reporter-ksy','1'); }catch(e){}   // 지정 완료(1회) — 이후 개별 편집 존중
   if(changed){ saveTimetable(); console.info('[일괄지정] 컵 참관단 일정 취재 담당 = 김승연'); }
   return changed?1:0;
+}
+/* 홍보부 트랙(2026-07-27) — 일정표에 홍보부 전용 칼럼. 매일 반복되는 사진 셀렉 3회 + SNS 포스팅(브리핑) 3회.
+ * '오전/오후/저녁 브리핑'은 페이스북 SNS 포스팅(잼버리의 재미를 보여주는 콘텐츠)을 의미(사용자). 안정 id: media-MMDD-HHMM. */
+var MEDIA_DAYS=['2026-08-05','2026-08-06','2026-08-07','2026-08-08','2026-08-09'];   // 개영~폐영(참가자 활동 기간)
+function mediaTrackSeeds(){
+  function it(day,s,e,title,memo){ return {id:'media-'+day.slice(5).replace('-','')+'-'+s.replace(':',''),
+    track:'media', day:day, start:s, end:e, title:title, place:'', cat:'홍보활동', assignees:[], contacts:[], rundown:[], memo:memo||'', noCover:false}; }
+  var POST='페이스북 SNS 포스팅 — 잼버리의 재미를 보여주는 콘텐츠';
+  var out=[];
+  MEDIA_DAYS.forEach(function(d){
+    out.push(
+      it(d,'11:30','12:30','1차 사진 셀렉'),
+      it(d,'12:30','13:00','오전 브리핑 · SNS 포스팅', POST),
+      it(d,'16:30','17:30','2차 사진 셀렉'),
+      it(d,'17:30','18:00','오후 브리핑 · SNS 포스팅', POST),
+      it(d,'22:00','22:30','3차 사진 셀렉'),
+      it(d,'22:30','23:00','저녁 브리핑 · SNS 포스팅', POST)
+    );
+  });
+  return out;
+}
+/* 시드 주입 — 신규 트랙이라 새 보드·기존 저장 보드 모두 대상. localStorage 로 브라우저당 1회(개별 삭제분 되살림 방지).
+ * id 기준이라 멱등(이미 있으면 안 넣음). */
+function mergeMediaTrack(){
+  try{ if(localStorage.getItem('jamboree-plan:media-track')) return 0; }catch(e){}
+  var have={}; ttList().forEach(function(t){ have[t.id]=1; });
+  var added=0; mediaTrackSeeds().forEach(function(s){ if(!have[s.id]){ ttList().push(s); added++; } });
+  try{ localStorage.setItem('jamboree-plan:media-track','1'); }catch(e){}
+  if(added){ saveTimetable(); console.info('[홍보부 트랙] 일정 '+added+'건 주입'); }
+  return added;
 }
 
 /* ===== 홍보부 인원 R&R + 배치표 ===== */
@@ -2227,7 +2259,7 @@ function renderTTFilter(){
   box.innerHTML='<span class="ttf-lab">보기</span>'+
     '<button type="button" class="ttfchip all'+(allOn?' on':'')+'" data-ttf="__all">전체</button>'+
     TT_TRACKS.map(function(t){ var on=ttTrackOn(t[0]);
-      var sw=t[0]==='pr'?'#C89A3E':t[0]==='cub1'?cubColor(1):t[0]==='cub2'?cubColor(2):'#2F5D4A';
+      var sw=t[0]==='pr'?'#C89A3E':t[0]==='media'?mediaColor():t[0]==='cub1'?cubColor(1):t[0]==='cub2'?cubColor(2):'#2F5D4A';
       return '<button type="button" class="ttfchip'+(on?' on':'')+'" data-ttf="'+t[0]+'"><span class="sw" style="background:'+sw+'"></span>'+esc(t[1])+'</button>';
     }).join('');
 }
@@ -2293,7 +2325,7 @@ function ttProtocolBlockHtml(g, geo, dayView){
 function ttEventBlockHtml(t, geo, dayView){
   var who=ttAssignees(t).map(personLabel);
   var cons=ttContacts(t).map(function(c){ return contactLabel(c)+(c.phone?(' '+c.phone):''); });
-  var isCub=t.track==='cub', bg=isCub?cubColor(t.batch):ttCatColor(t.cat);
+  var isCub=t.track==='cub', isMedia=t.track==='media', bg=isMedia?mediaColor():isCub?cubColor(t.batch):ttCatColor(t.cat);
   var cubTag=isCub?('<span class="cubtag">'+esc(CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1])+'</span> '):'';
   return '<div class="ttg-ev'+(dayView?' big':'')+(t.noCover?' nocover':'')+(isCub?' cub':'')+'" data-id="'+esc(t.id)+'" title="'+esc((isCub?('컵 '+CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1]+' · '):'')+ttBlockTooltip(t,who,cons))+'" style="'+ttGeoStyle(geo)+';background:'+bg+'">'+
     '<div class="ttg-rz top" data-id="'+esc(t.id)+'" title="시작 시간 조절"></div>'+
@@ -2378,7 +2410,8 @@ function ttSplitUp(){
 
 function ttColumnHtml(d, dayView, hh){
   var items=ttList().filter(function(t){ return t.day===d[0] && t2h(t.start)!=null && ttTrackOn(ttTrackOfItem(t)); });
-  var jam=items.filter(function(t){ return t.track!=='cub'; });   // 잼버리 일정
+  var jam=items.filter(function(t){ return t.track!=='cub' && t.track!=='media'; });   // 잼버리 일정
+  var media=items.filter(function(t){ return t.track==='media'; });   // 홍보부(사진 셀렉·SNS 포스팅)
   var cub=items.filter(function(t){ return t.track==='cub'; });    // 컵 참관단(1·2기)
   // 의전 pseudo-이벤트 — 같은 활동+시각은 한 블록으로 묶고 참여자를 구분(대회장)+이름으로. (종료 미입력 시 +30분)
   var prs=[];
@@ -2394,9 +2427,10 @@ function ttColumnHtml(d, dayView, hh){
       return {id:'pr:'+g.ids[0], start:g.time, end:(g.endTime&&t2h(g.endTime)!=null)?g.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:g}; });
   }
   var body;
-  if(dayView && (prs.length || cub.length)){
+  if(dayView && (prs.length || cub.length || media.length)){
     var tracks=[{key:'jam', lab:'잼버리 일정', cls:'', items:jam}];
     if(prs.length) tracks.push({key:'pr', lab:'의전 일정', cls:'gl-pr', items:prs});
+    if(media.length) tracks.push({key:'media', lab:'홍보부', cls:'gl-media', items:media});
     if(cub.length) tracks.push({key:'cub', lab:'컵 참관단', cls:'gl-cub', items:cub});
     ttDayTracks=tracks.map(function(t){ return t.key; });   // 구분선 드래그가 어느 두 트랙을 조절할지 알아야 한다
     // 폭은 균등이 아니라 사용자가 끈 비중(ttColW)대로. 트랙이 1~3개로 달라지므로 고정 %가 아니라 가중치로 둔다.
@@ -2410,7 +2444,7 @@ function ttColumnHtml(d, dayView, hh){
         ttBlocksHtml(tk.items, {off:cur, span:span, hh:hh}, dayView);
     }).join('');
   } else {
-    body=ttBlocksHtml(jam.concat(prs, cub), {off:0, span:100, hh:hh}, dayView);
+    body=ttBlocksHtml(jam.concat(prs, media, cub), {off:0, span:100, hh:hh}, dayView);
   }
   return '<div class="ttg-col" data-day="'+d[0]+'">'+ttCellsHtml(d[0], hh)+body+'</div>';
 }
@@ -2479,6 +2513,7 @@ function renderTTLegend(){
   // 카테고리(잼버리 일정 종류) + 구분선 + 컵 참관단 트랙(1·2기, 별도 색)
   leg.innerHTML=ttCats().map(function(c){ return '<span class="li"><span class="sw" style="background:'+c[1]+'"></span>'+esc(c[0])+'</span>'; }).join('')+
     '<span class="li-sep"></span>'+
+    '<span class="li"><span class="sw" style="background:'+mediaColor()+'"></span>홍보부</span>'+
     '<span class="li"><span class="sw" style="background:'+cubColor(1)+'"></span>컵 1기</span>'+
     '<span class="li"><span class="sw" style="background:'+cubColor(2)+'"></span>컵 2기</span>';
 }
@@ -5236,7 +5271,7 @@ function setView(v){
 function loadBoard(){
   netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
     .then(function(){ netBusy(-1); });

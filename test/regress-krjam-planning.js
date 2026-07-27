@@ -284,6 +284,26 @@ const SEED = () => {
     return { ran, allHave, n: cubItems.length, again };
   });
   chk('컵 일정 취재 담당 = 김승연 일괄 지정(전체·1회)', rep.ran === 1 && rep.allHave === true && rep.n >= 34 && rep.again === 0, JSON.stringify(rep));
+  console.log('\n[홍보부 트랙]');
+  const media = await page.evaluate(() => {
+    const seeds = mediaTrackSeeds();
+    const labs = [...document.querySelectorAll('.ttg-col .ttg-grouplab')].map((x) => x.textContent);
+    const blocks = [...document.querySelectorAll('.ttg-ev[data-id]')].filter((x) => /^media-/.test(x.getAttribute('data-id'))).length;
+    return {
+      n: seeds.length, days: [...new Set(seeds.map((s) => s.day))].sort().join(','),
+      allMedia: seeds.every((s) => s.track === 'media'), id0: seeds[0].id,
+      titles: [...new Set(seeds.map((s) => s.title))],
+      inTracks: TT_TRACKS.some((t) => t[0] === 'media' && t[1] === '홍보부'),
+      hasLab: labs.includes('홍보부'), blocks,
+    };
+  });
+  chk('홍보부 트랙 시드 30건(5일×6)·track=media·id media-0805-1130',
+    media.n === 30 && media.allMedia && media.days === '2026-08-05,2026-08-06,2026-08-07,2026-08-08,2026-08-09' && media.id0 === 'media-0805-1130',
+    media.n + '건 · ' + media.days);
+  chk('홍보부 항목(사진 셀렉 3회·SNS 포스팅 3회)',
+    ['1차 사진 셀렉', '오전 브리핑 · SNS 포스팅', '2차 사진 셀렉', '오후 브리핑 · SNS 포스팅', '3차 사진 셀렉', '저녁 브리핑 · SNS 포스팅'].every((x) => media.titles.indexOf(x) >= 0),
+    media.titles.join('|'));
+  chk('홍보부 트랙 등록 + 일간뷰 열·블록 렌더', media.inTracks && media.hasLab && media.blocks >= 6, '등록=' + media.inTracks + ' 열=' + media.hasLab + ' 블록=' + media.blocks);
 
   console.log('\n[식사 메뉴]');
   await go('meals');

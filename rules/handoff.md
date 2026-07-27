@@ -90,6 +90,13 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (27) — 일정표 '홍보부' 트랙 신설 + 일일 사진셀렉·SNS포스팅 (v0.9.268)
+대상: `/krjam-planning` 일정표(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.108.
+- 신규 트랙 `media`(홍보부) — 컵 트랙과 동일 패턴(TT_TRACKS·ttTrackOfItem·필터·범례·일간뷰 열·색 `#7A3FA0`). 일간뷰 4열(잼버리·의전·홍보부·컵).
+- `mediaTrackSeeds()` 8/5~8/9 × 6건(사진 셀렉 3회 + 브리핑=SNS 포스팅 3회). `mergeMediaTrack()` localStorage 1회 주입(id 멱등). '브리핑'=페이스북 SNS 포스팅.
+- 검증: planning **145/145 ×3라운드** + 스크린샷(보라 6블록). 8/5~8/9 시드(사전일 필요시 MEDIA_DAYS 확장).
+- 배포: 여전히 타 작업 23개 WIP 있어 **내 파일만 격리 배포**(stash).
+
 ### 2026-07-27 (26) — 컵 일정 취재 담당 김승연 일괄 지정 (v0.9.267)
 대상: `/krjam-planning`(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.107.
 - 신규 `migrateCubReporterKSY()`: 명단의 '김승연' 인원 id를 모든 cub 항목 assignees 에 추가. **localStorage 로 브라우저당 1회**(개별 해제 존중), 명단에 없으면 no-op. '일괄' 지시라 입영/오프타임 가드 무시.
