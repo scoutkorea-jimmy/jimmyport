@@ -217,6 +217,30 @@
   function minutesOf(hhmm) { var p = String(hhmm).split(':'); return (+p[0]) * 60 + (+p[1]); }
   function nowMinutes(d) { return d.getHours() * 60 + d.getMinutes(); }
 
+  /* ── 상단바 날씨 (Open-Meteo · 강원 고성, 홍보부 보드와 같은 방식) ── */
+  var WX_LAT = 38.286, WX_LON = 128.520, wxData = null, wxAt = 0, wxLoading = false;
+  var WMO = { 0: ['☀️', '맑음'], 1: ['🌤️', '대체로 맑음'], 2: ['⛅', '구름 조금'], 3: ['☁️', '흐림'], 45: ['🌫️', '안개'], 48: ['🌫️', '안개'], 51: ['🌦️', '이슬비'], 53: ['🌦️', '이슬비'], 55: ['🌦️', '이슬비'], 61: ['🌧️', '비'], 63: ['🌧️', '비'], 65: ['🌧️', '강한 비'], 71: ['🌨️', '눈'], 73: ['🌨️', '눈'], 75: ['❄️', '강한 눈'], 80: ['🌦️', '소나기'], 81: ['🌦️', '소나기'], 82: ['⛈️', '강한 소나기'], 95: ['⛈️', '뇌우'], 96: ['⛈️', '뇌우'], 99: ['⛈️', '강한 뇌우'] };
+  function wxInfo(c) { return WMO[c] || ['🌡️', '—']; }
+  function loadWeather(force) {
+    if (!force && wxData && (Date.now() - wxAt < 1800000)) { renderWeather(); return; }
+    if (wxLoading) return; wxLoading = true; renderWeather();
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + WX_LAT + '&longitude=' + WX_LON +
+      '&timezone=Asia%2FSeoul&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=1';
+    fetch(url).then(function (r) { return r.json(); }).then(function (j) { wxData = j; wxAt = Date.now(); wxLoading = false; renderWeather(); })
+      .catch(function () { wxLoading = false; renderWeather(); });
+  }
+  function renderWeather() {
+    var el = $('fnc-wx'); if (!el) return;
+    if (!wxData) { el.innerHTML = wxLoading ? '<span class="wx-load">날씨…</span>' : ''; return; }
+    var cur = wxData.current || {}, d = wxData.daily || {}, ci = wxInfo(cur.weather_code);
+    var hi = (d.temperature_2m_max || [])[0], lo = (d.temperature_2m_min || [])[0], pop = (d.precipitation_probability_max || [])[0];
+    el.innerHTML = '<span class="wx-ic">' + ci[0] + '</span><b class="wx-t">' + (cur.temperature_2m != null ? Math.round(cur.temperature_2m) + '°' : '—') + '</b>' +
+      '<span class="wx-d">' + ci[1] + '</span>' +
+      (hi != null ? '<span class="wx-hl">↑' + Math.round(hi) + '° ↓' + Math.round(lo) + '°</span>' : '') +
+      (pop != null ? '<span class="wx-pop">💧' + pop + '%</span>' : '') +
+      '<span class="wx-loc">강원 고성</span>';
+  }
+
   /* ── 섹션 렌더러 ───────────────────────────────────────────── */
   function viewHome() {
     return '' +
@@ -1034,6 +1058,7 @@
     loadMenu().then(function () { if (cur === 'menu') renderMenu(); });
     loadDuty().then(function () { if (cur === 'duty') renderDuty(); });
     loadStaff().then(function () { if (cur === 'home') renderDutyNow(); if (cur === 'staff') renderStaffView(); });
+    loadWeather();
     try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift }; } catch (e) {}
   }
 

@@ -103,11 +103,21 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const base = `http://localhost:${PORT}`;
   const errors = [], failed = [];
 
+  // Open-Meteo(외부 날씨 API)는 결정적으로 가짜 응답을 준다 — 실제 네트워크 의존/콘솔 오류를 없앤다.
+  async function hookWx(pg) {
+    await pg.setRequestInterception(true);
+    pg.on('request', function (req) {
+      if (req.url().indexOf('open-meteo.com') >= 0) {
+        req.respond({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ current: { temperature_2m: 24, weather_code: 2 }, daily: { temperature_2m_max: [29], temperature_2m_min: [21], precipitation_probability_max: [30] } }) });
+      } else req.continue();
+    });
+  }
   const p = await b.newPage(); await p.setViewport({ width: 1440, height: 1000 });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   // 외부 CDN(Pretendard 웹폰트 등)은 우리 자원이 아니라 간헐적으로 실패할 수 있다 — 우리 보드 검증에서 제외한다.
   p.on('requestfailed', (r) => { const u = r.url(); if (!/^https?:\/\//.test(u) || /scoutingapp\.net|localhost/.test(u)) failed.push(u); });
+  await hookWx(p);
   await p.goto(base + '/krjam-fnc', { waitUntil: 'networkidle2' });
   await wait(700);
 
@@ -116,6 +126,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   chk('화면 12개 정의', views.length === 12 && views[0] === 'home', views.join(','));
   chk('좌측 내비 12개 · 모바일 탭 5개', await p.evaluate(() =>
     document.querySelectorAll('#sidenav .navitem').length === 12 && document.querySelectorAll('#tabbar .tabbtn').length === 5));
+  chk('상단바 날씨 표시(기온)', await p.evaluate(() => /\d+°/.test(document.getElementById('fnc-wx').textContent)), await p.evaluate(() => document.getElementById('fnc-wx').textContent.trim()));
   const empties = [];
   for (const v of views) {
     await p.evaluate((x) => window.__fncBoard.setView(x), v);
