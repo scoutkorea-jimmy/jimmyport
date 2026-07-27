@@ -1,15 +1,15 @@
 {
-  "version": "0.9.264",
-  "commit": "5459b18",
-  "commitSubject": "feat(v0.9.263): keep the last 20 verification runs with what was checked and what broke",
-  "commitAt": "2026-07-27T04:12:13+09:00",
-  "deployedAt": "2026-07-26T19:39:53.173Z",
+  "version": "0.9.275",
+  "commit": "780b4cd",
+  "commitSubject": "feat(v0.9.274): fnc text inline-edit (Phase 4) + duty chip-search + edit gated to admin login + 30min timeout",
+  "commitAt": "2026-07-27T17:54:17+09:00",
+  "deployedAt": "2026-07-27T12:30:04.662Z",
   "verification": {
-    "at": "2026-07-26T19:39:53.174Z",
+    "at": "2026-07-27T12:30:04.663Z",
     "rounds": [
       {
         "round": 1,
-        "checks": 642,
+        "checks": 673,
         "fails": 0,
         "failures": [],
         "items": [
@@ -23,6 +23,12 @@
             "name": "audit-krjam-planning",
             "pass": null,
             "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-mobile",
+            "pass": 1,
+            "total": 1,
             "fails": 0
           },
           {
@@ -45,8 +51,8 @@
           },
           {
             "name": "regress-krjam-fnc-board",
-            "pass": 53,
-            "total": 53,
+            "pass": 73,
+            "total": 73,
             "fails": 0
           },
           {
@@ -63,8 +69,8 @@
           },
           {
             "name": "regress-krjam-planning",
-            "pass": 137,
-            "total": 137,
+            "pass": 147,
+            "total": 147,
             "fails": 0
           },
           {
@@ -107,7 +113,7 @@
       },
       {
         "round": 2,
-        "checks": 642,
+        "checks": 673,
         "fails": 0,
         "failures": [],
         "items": [
@@ -121,6 +127,12 @@
             "name": "audit-krjam-planning",
             "pass": null,
             "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-mobile",
+            "pass": 1,
+            "total": 1,
             "fails": 0
           },
           {
@@ -143,8 +155,8 @@
           },
           {
             "name": "regress-krjam-fnc-board",
-            "pass": 53,
-            "total": 53,
+            "pass": 73,
+            "total": 73,
             "fails": 0
           },
           {
@@ -161,8 +173,8 @@
           },
           {
             "name": "regress-krjam-planning",
-            "pass": 137,
-            "total": 137,
+            "pass": 147,
+            "total": 147,
             "fails": 0
           },
           {
@@ -205,7 +217,7 @@
       },
       {
         "round": 3,
-        "checks": 642,
+        "checks": 673,
         "fails": 0,
         "failures": [],
         "items": [
@@ -219,6 +231,12 @@
             "name": "audit-krjam-planning",
             "pass": null,
             "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-mobile",
+            "pass": 1,
+            "total": 1,
             "fails": 0
           },
           {
@@ -241,8 +259,8 @@
           },
           {
             "name": "regress-krjam-fnc-board",
-            "pass": 53,
-            "total": 53,
+            "pass": 73,
+            "total": 73,
             "fails": 0
           },
           {
@@ -259,8 +277,8 @@
           },
           {
             "name": "regress-krjam-planning",
-            "pass": 137,
-            "total": 137,
+            "pass": 147,
+            "total": 147,
             "fails": 0
           },
           {
@@ -303,7 +321,7 @@
       }
     ],
     "green": true,
-    "checksPerRound": 642
+    "checksPerRound": 673
   },
   "services": [
     {

@@ -44,17 +44,18 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /* 실제로 그려진 픽셀에서 명도비를 잰다 — 색 값을 계산하는 게 아니라 화면을 본다.
    (배경이 그러데이션·반투명이면 계산값과 실제가 다르다.) */
 async function contrastOf(page, sel) {
-  const box = await page.evaluate((s) => {
-    const el = document.querySelector(s); if (!el) return null;
-    el.scrollIntoView({ block: 'center' });
-    const r = el.getBoundingClientRect();
-    return { x: Math.max(0, r.x), y: Math.max(0, r.y),
-      w: Math.min(r.width, window.innerWidth - Math.max(0, r.x)),
-      h: Math.min(r.height, window.innerHeight - Math.max(0, r.y)) };
-  }, sel);
-  if (!box || box.w < 2 || box.h < 2) return null;
-  await wait(60);
-  const shot = await page.screenshot({ clip: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.w), height: Math.round(box.h) }, encoding: 'base64' });
+  /* ⚠️ 좌표를 먼저 재고 나중에 캡처하면, 그 사이 이미지 로드로 화면이 밀려 **빈 자리**를 찍는다
+     (실측 5.4:1 인 링크가 1.3:1 로 나온 적이 있다 — 측정 결함이 규칙 위반으로 둔갑한다).
+     요소 핸들로 직접 찍으면 브라우저가 그 순간의 위치를 잡아 준다. */
+  const el = await page.$(sel);
+  if (!el) return null;
+  await el.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+  await wait(120);
+  const bb = await el.boundingBox();
+  if (!bb || bb.width < 2 || bb.height < 2) return null;
+  let shot;
+  try { shot = await el.screenshot({ encoding: 'base64' }); }
+  catch { return null; }
   return page.evaluate((b64) => new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
