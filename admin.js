@@ -42,6 +42,10 @@
 
   // ── state ──────────────────────────────────────────────────────────
   var units = [], comments = [], map, marker = null, saveTimer = null, savedTimer = null;
+  /* 불러오기가 끝나기 전에는 저장하지 않는다.
+     예전에는 불러오기가 실패하면 units = [] 로 두고 "All changes saved" 라고 적었다 —
+     그 상태에서 아무 편집이나 하면 빈 목록이 서버에 그대로 덮여 지도 전체가 사라진다. */
+  var unitsLoaded = false;
   var state = { selectedId: null, query: "", kindFilter: "All", tagDraft: "", addrQuery: "", collapsed: {}, countryOpen: false, countryQuery: "", tagOpen: false, editingComment: null, nameHelp: false, evSortDir: "desc" };
   // every distinct category/tag already used across places (for tag search/autocomplete)
   function allTags() { var set = {}; units.forEach(function (u) { (u.tags || []).forEach(function (t) { if (t) set[t] = 1; }); }); return Object.keys(set).sort(); }
@@ -83,30 +87,59 @@
   // ── server ─────────────────────────────────────────────────────────
   function touch() { setSaved(false); clearTimeout(saveTimer); saveTimer = setTimeout(save, 700); }
   function setSaved(ok) { $("saved-label").textContent = ok ? "All changes saved" : "Saving…"; }
-  function save(manual) {
+  function save(manual, confirmFlags) {
     clearTimeout(saveTimer);
     if (!Auth.valid()) { setSaved(false); $("saved-label").textContent = "Sign in to publish"; if (manual) toast("Sign in to save", "error"); Auth.requireReauth(); return; }
+    // 불러오기 전에는 절대 저장하지 않는다 — 빈 상태를 서버에 덮어쓰는 사고를 막는다
+    if (!unitsLoaded) { $("saved-label").textContent = "Not loaded — reload before saving"; if (manual) toast("Data is not loaded yet. Reload the page.", "error"); return; }
     if (manual) setSaved(false);
-    fetch("/api/units", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify({ units: units }) })
+    var payload = Object.assign({ units: units }, confirmFlags || {});
+    fetch("/api/units", { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, Auth.headers()), body: JSON.stringify(payload) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
       .then(function (res) {
-        if (res.ok) { setSaved(true); if (manual) toast("Saved — changes are live", "success"); }
-        else if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; if (manual) toast("Session expired — sign in again", "error"); Auth.requireReauth(); }
-        else { $("saved-label").textContent = "Save failed: " + (res.j.error || res.status); if (manual) toast("Save failed: " + (res.j.error || res.status), "error"); }
+        if (res.ok) { setSaved(true); if (manual) toast("Saved — changes are live", "success"); return; }
+        if (res.status === 401) { $("saved-label").textContent = "Session expired — sign in again"; if (manual) toast("Session expired — sign in again", "error"); Auth.requireReauth(); return; }
+        // 서버가 '지워질 뻔했다'고 막은 경우 — 사람에게 묻고, 정말 의도한 것이면 다시 보낸다
+        var g = res.j && res.j.error;
+        if (res.status === 409 && (g === "empty_guard" || g === "shrink_guard")) {
+          var msg = (res.j.message || "Large deletion detected.") + "\n\nSave anyway?";
+          $("saved-label").textContent = "Blocked — large deletion";
+          if (window.confirm(msg)) {
+            save(true, g === "empty_guard" ? { confirmEmpty: true } : { confirmShrink: true });
+          } else {
+            $("saved-label").textContent = "Not saved — deletion cancelled";
+            toast("Not saved. Reload to restore the server copy.", "error");
+          }
+          return;
+        }
+        $("saved-label").textContent = "Save failed: " + ((res.j && res.j.error) || res.status);
+        if (manual) toast("Save failed: " + ((res.j && res.j.error) || res.status), "error");
       })
       .catch(function () { $("saved-label").textContent = "Save failed (network)"; if (manual) toast("Save failed (network)", "error"); });
   }
   function saveNow() { save(true); }
+  function loadFailed() {
+    /* 서버 응답을 못 받았다. 여기서 data.js 씨앗 데이터로 채우고 저장을 열어 두면,
+       다음 편집 한 번에 그 씨앗이 운영 데이터를 덮는다(다른 보드에서 실제로 그랬다).
+       그래서 화면은 비워 두고 저장을 잠근다. */
+    units = []; unitsLoaded = false;
+    state.selectedId = null;
+    $("saved-label").textContent = "Could not load data — saving is disabled";
+    toast("Could not load places. Reload the page before editing.", "error");
+  }
   function loadUnits() {
     return fetch("/api/units", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        var arr = (j && Array.isArray(j.units)) ? j.units : (Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []);
+        if (!j) { loadFailed(); return; }   // 서버가 응답했지만 정상이 아니다 → 불러오기 실패로 본다
+        // units:null 은 "KV 가 비어 있음"(최초 구축) — 이때만 data.js 씨앗을 쓴다. 덮어쓸 데이터가 없다.
+        var arr = Array.isArray(j.units) ? j.units : (Array.isArray(window.SCOUT_UNITS) ? window.SCOUT_UNITS : []);
         units = arr.map(normUnit);
         state.selectedId = units[0] ? units[0].id : null;
+        unitsLoaded = true;
         setSaved(true);
       })
-      .catch(function () { units = []; setSaved(true); });
+      .catch(loadFailed);
   }
 
   // ── map ────────────────────────────────────────────────────────────
@@ -541,6 +574,12 @@
     }
     var mode = (document.querySelector('input[name="csv-mode"]:checked') || {}).value || "merge";
     if (mode === "replace") {
+      // 덮어쓰기는 기존 데이터를 전부 버린다 — 숫자를 보여 주고 한 번 묻는다(서버에도 안전장치가 있다)
+      if (units.length && !window.confirm(
+        "덮어쓰기: 현재 " + units.length + "곳이 모두 지워지고 CSV 의 " + made.length + "곳으로 바뀝니다.\n계속할까요?")) {
+        $("csv-report").textContent = "덮어쓰기를 취소했습니다. 기존 데이터는 그대로입니다.";
+        return;
+      }
       units = made;
     } else {
       var byName = {};

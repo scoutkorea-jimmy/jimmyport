@@ -259,6 +259,8 @@
       var orig = (el.textContent || '').trim(); if (!orig) return;
       if (!el.getAttribute('data-ek')) el.setAttribute('data-ek', 'c' + hashStr(cur + '|' + orig));
       var key = el.getAttribute('data-ek');
+      // 저장이 실패했을 때 돌아갈 원문(override 가 없던 문구는 이 값으로 되돌린다)
+      if (!el.getAttribute('data-orig')) el.setAttribute('data-orig', contentOv[key] != null ? contentOv[key] : orig);
       if (contentOv[key] != null) el.textContent = contentOv[key];
       if (admin) {
         el.setAttribute('contenteditable', 'true'); el.classList.add('tx-edit');
@@ -270,11 +272,21 @@
     var key = el.getAttribute('data-ek'); if (!key) return;
     var val = (el.textContent || '').trim();
     if (contentOv[key] === val || (contentOv[key] == null && !val)) return;   // 변경 없음
+    /* ⚠️ 화면을 먼저 바꾸되(빠른 반응), 저장이 실패하면 **반드시 되돌린다**.
+       안 그러면 화면에는 새 문구가, 서버에는 옛 문구가 남아 사용자가 저장된 줄 안다. */
+    var prevVal = contentOv[key], hadPrev = Object.prototype.hasOwnProperty.call(contentOv, key);
+    var revert = function () {
+      if (hadPrev) contentOv[key] = prevVal; else delete contentOv[key];
+      try { el.textContent = hadPrev ? prevVal : (el.getAttribute('data-orig') || el.textContent); } catch (e) {}
+    };
     contentOv[key] = val;
     fetch('/api/jp-fnc-content', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()), body: JSON.stringify({ key: key, value: val }) })
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && j.ok) { contentOv = j.overrides || contentOv; toast('문구 저장됨'); } else { toast('저장 실패 — 관리자 로그인을 확인하세요'); } })
-      .catch(function () { toast('저장 실패'); });
+      .then(function (j) {
+        if (j && j.ok) { contentOv = j.overrides || contentOv; toast('문구 저장됨'); }
+        else { revert(); toast('저장 실패 — 관리자 로그인을 확인하세요. 문구를 되돌렸습니다'); }
+      })
+      .catch(function () { revert(); toast('저장 실패 — 네트워크를 확인해 주세요. 문구를 되돌렸습니다'); });
   }
 
   /* ── 섹션 렌더러 ───────────────────────────────────────────── */
@@ -751,17 +763,45 @@
   var STAFF_DAYS = ['2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09'];
   var staffData = null;
   function staffHeader() { var f = fncSession(); return f ? { Authorization: 'Bearer ' + f.token } : {}; }   // 관리자면 전체번호 수신
+  var staffVer = '';        // 불러온 시점의 버전 — 저장할 때 그대로 보내 충돌을 잡는다
   function loadStaff() {
     return fetch('/api/jp-fnc-staff', { headers: staffHeader() }).then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && j.ok) staffData = { staff: j.staff || [], shifts: j.shifts || {} }; return j; })
+      .then(function (j) { if (j && j.ok) { staffData = { staff: j.staff || [], shifts: j.shifts || {} }; staffVer = j.updatedAt || ''; } return j; })
       .catch(function () { return null; });
   }
+  /* ⚠️ 인원·쉬프트는 통째로 저장된다. 불러오지 못한 상태에서 저장하면 남의 데이터를 지운다 →
+     불러오기 전에는 저장하지 않는다. 그 사이 다른 관리자가 저장했으면 서버가 409 로 막고
+     최신본을 돌려준다 — 화면을 최신으로 바꾸고 사용자에게 알린다(조용히 덮어쓰지 않는다). */
   function saveStaff() {
-    var body = { staff: (staffData.staff || []).map(function (s) { return { id: s.id, name: s.name, phone: s.phone != null ? s.phone : '' }; }), shifts: staffData.shifts || {} };
+    if (!staffData) { toast('명단을 아직 불러오지 못했습니다 — 새로고침 후 다시 시도해 주세요'); return Promise.resolve(); }
+    var body = {
+      staff: (staffData.staff || []).map(function (s) { return { id: s.id, name: s.name, phone: s.phone != null ? s.phone : '' }; }),
+      shifts: staffData.shifts || {},
+      baseVer: staffVer,
+    };
     return fetch('/api/jp-fnc-staff', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()), body: JSON.stringify(body) })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && j.ok) { staffData = { staff: j.staff || [], shifts: j.shifts || {} }; renderStaffView(); renderDutyNow(); toast('저장됨'); } else { toast('저장 실패 — 관리자 로그인을 확인하세요'); } })
-      .catch(function () { toast('저장 실패'); });
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (x) {
+        var j = x.j;
+        if (x.s === 409 && j && j.error === 'conflict') {
+          staffData = { staff: j.staff || [], shifts: j.shifts || {} }; staffVer = j.updatedAt || '';
+          renderStaffView(); renderDutyNow();
+          toast('다른 관리자가 먼저 저장했습니다 — 최신 명단을 불러왔습니다. 확인 후 다시 저장해 주세요');
+          return;
+        }
+        if (x.s === 409 && j && j.error === 'empty_guard') { toast(j.message || '빈 목록은 저장하지 않았습니다'); return; }
+        if (j && j.ok) {
+          staffData = { staff: j.staff || [], shifts: j.shifts || {} }; staffVer = j.updatedAt || '';
+          renderStaffView(); renderDutyNow(); toast('저장됨');
+          return;
+        }
+        toast('저장 실패 — 관리자 로그인을 확인하세요');
+        loadStaff().then(function () { renderStaffView(); });   // 화면이 저장된 척하지 않게 서버 값으로 되돌린다
+      })
+      .catch(function () {
+        toast('저장 실패 — 네트워크를 확인해 주세요');
+        loadStaff().then(function () { renderStaffView(); });
+      });
   }
   function mkStaffId() { return 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
   function currentShift(now) { var m = nowMinutes(now); for (var i = 0; i < STAFF_SHIFTS.length; i++) { var s = STAFF_SHIFTS[i]; if (m >= minutesOf(s[2]) && m < minutesOf(s[3])) return s; } return null; }
@@ -952,6 +992,8 @@
     catch (e) { return ''; }
   }
   function saveDuty() {
+    // 불러오기 전에는 저장하지 않는다 — 빈 배정으로 남의 작업을 덮어쓰는 사고를 막는다
+    if (!duties) { toast('배정을 아직 불러오지 못했습니다. 새로고침해 주세요.'); return; }
     var next = {};
     [].forEach.call(document.querySelectorAll('[data-duty]'), function (el) {
       var p = el.getAttribute('data-duty').split('~');
@@ -959,17 +1001,28 @@
       next[p[0]][p[1]] = el.value;
     });
     var btn = $('duty-save'); if (btn) { btn.disabled = true; btn.textContent = '저장 중…'; }
+    var reset = function () { if (btn) { btn.disabled = false; btn.textContent = '저장'; } };
     fetch('/api/jp-fnc', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()),
-      body: JSON.stringify({ duties: next }) })
-      .then(function (r) {
-        if (r.status === 401) { toast('관리자 세션이 만료됐습니다. 다시 로그인해 주세요.'); return null; }
-        return r.ok ? r.json() : null;
+      body: JSON.stringify({ duties: next, baseVer: (dutyMeta && dutyMeta.updatedAt) || '' }) })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.s === 401) { toast('관리자 세션이 만료됐습니다. 다시 로그인해 주세요.'); reset(); return; }
+        // 그 사이 다른 사람이 저장했다 — 덮어쓰지 않고 최신본을 보여 준다
+        if (res.s === 409 && res.j && res.j.error === 'conflict') {
+          duties = res.j.duties || {}; dutyMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
+          dutyEdit = false; renderDuty(); reset();
+          toast((res.j.by ? res.j.by + '님이' : '다른 사람이') + ' 먼저 저장했습니다. 최신 배정을 불러왔습니다 — 다시 확인해 주세요.');
+          return;
+        }
+        if (res.s === 409 && res.j && res.j.error === 'empty_guard') { reset(); toast(res.j.message || '빈 배정은 저장하지 않았습니다.'); return; }
+        if (res.j && res.j.ok) {
+          duties = res.j.duties || {}; dutyMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
+          dutyEdit = false; renderDuty(); toast('담당 배정을 저장했습니다');
+          return;
+        }
+        reset(); toast('저장하지 못했습니다.');
       })
-      .then(function (j) {
-        if (j && j.ok) { duties = j.duties || {}; dutyMeta = { updatedAt: j.updatedAt, by: j.by }; dutyEdit = false; renderDuty(); toast('담당 배정을 저장했습니다'); }
-        else { if (btn) { btn.disabled = false; btn.textContent = '저장'; } }
-      })
-      .catch(function () { toast('네트워크 오류'); if (btn) { btn.disabled = false; btn.textContent = '저장'; } });
+      .catch(function () { toast('네트워크 오류'); reset(); });
   }
 
   /* ── 검색 ──────────────────────────────────────────────────── */
@@ -1113,7 +1166,9 @@
     loadStaff().then(function () { if (cur === 'home') renderDutyNow(); if (cur === 'staff') renderStaffView(); });
     loadWeather();
     loadContent().then(function () { applyContent($('view-' + cur)); });
-    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift }; } catch (e) {}
+    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift,
+      // 회귀가 '다른 사람이 먼저 저장한 상황'을 만들 수 있게 열어 둔다(화면에서는 쓰지 않는다)
+      setDutyVer: function (v) { dutyMeta = { updatedAt: v, by: (dutyMeta && dutyMeta.by) || '' }; } }; } catch (e) {}
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

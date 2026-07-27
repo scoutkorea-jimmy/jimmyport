@@ -1,4 +1,4 @@
-/* /tour/admin CSV 가져오기 회귀 (v0.9.264)
+/* /tour/admin CSV 가져오기 + 지도 데이터 보호 회귀 (v0.9.277)
    엑셀에서 만든 표를 그대로 올릴 수 있어야 한다. 여기서 지키는 것:
      · 필수 열(name·lat·lng)이 없으면 **올리지 않고 이유를 말한다**
      · 잘못된 줄은 건너뛰되 **몇 줄을 왜 건너뛰었는지 알린다**(조용히 버리면 "올렸는데 없다"가 된다)
@@ -14,6 +14,7 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8909;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 let saved = null;
+let failUnitsGet = false;   // 불러오기가 실패한 상황을 만들기 위한 스위치
 const UNITS = [{ id: 'u1', kind: 'unit', name: '서울 1대', subtitle: '', country: 'Korea', nso: 'KSAK', region: 'APR',
   lang: 'ko', lat: 37.5, lng: 127.0, address: '서울', sections: [], tags: [], events: [], desc: '', instagram: '',
   homepage: '', phone: '', email: '', status: 'published' }];
@@ -23,6 +24,7 @@ const server = http.createServer((req, res) => {
   if (p === '/api/units') {
     if (req.method === 'PUT') { let b = ''; req.on('data', (c) => { b += c; });
       req.on('end', () => { try { saved = JSON.parse(b).units; } catch {} res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"ok":true}'); }); return; }
+    if (failUnitsGet) { res.writeHead(500); return res.end('down'); }
     res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ units: UNITS, updatedAt: null }));
   }
   if (p === '/api/me') { res.writeHead(/Bearer T/.test(req.headers.authorization || '') ? 200 : 401, { 'content-type': 'application/json' }); return res.end('{"ok":true}'); }
@@ -47,6 +49,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
+  /* 전체 교체는 되돌릴 수 없는 삭제다 — 확인창이 떠야 한다. 그 확인창을 여기서 조종한다. */
+  let acceptDialog = true, lastDialog = '';
+  p.on('dialog', async (d) => { lastDialog = d.message(); if (acceptDialog) await d.accept(); else await d.dismiss(); });
   await p.goto(base + '/tour/admin', { waitUntil: 'networkidle2' }); await wait(2000);
 
   const feed = (csv) => p.evaluate((text) => {
@@ -97,6 +102,23 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const after = (window.__units || []).filter((u) => u.name === '서울 1대');
     return before === 1 && after.length === 1 && after[0].address === '바뀐 주소' && after[0].lat === 37.6;
   }));
+  // ① 확인창에서 취소하면 기존 데이터가 그대로여야 한다(되돌릴 수 없는 삭제이므로)
+  acceptDialog = false; lastDialog = '';
+  const beforeCancel = await p.evaluate(() => (window.__units || []).length);
+  await p.evaluate(async () => {
+    document.querySelector('input[name="csv-mode"][value="replace"]').click();
+    const el = document.getElementById('csv-file');
+    const dt = new DataTransfer();
+    dt.items.add(new File(['name,lat,lng\n"취소될 곳",36.0,128.0\n'], 'x.csv', { type: 'text/csv' }));
+    el.files = dt.files; el.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 500));
+  });
+  chk('전체 교체 전에 몇 곳이 지워지는지 묻는다', /덮어쓰기/.test(lastDialog) && new RegExp(beforeCancel + '곳').test(lastDialog), lastDialog);
+  chk('확인을 취소하면 기존 데이터가 그대로다',
+    (await p.evaluate(() => (window.__units || []).length)) === beforeCancel &&
+    /취소/.test(await report()), await report());
+  acceptDialog = true;
+
   chk('전체 교체는 말 그대로 교체', await p.evaluate(async () => {
     document.querySelector('input[name="csv-mode"][value="replace"]').click();
     const el = document.getElementById('csv-file');
@@ -123,6 +145,56 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const t = window.__lastCsv || '';
     return /name,kind,subtitle/.test(t) && /서울 1대/.test(t);
   }));
+
+  /* 불러오기가 실패했는데 저장이 되면 지도 전체가 빈 목록으로 덮인다 — 실제로 그런 길이 있었다. */
+  console.log('\n[불러오기 실패 — 저장 잠금]');
+  {
+    failUnitsGet = true;
+    const p2 = await b.newPage(); await p2.setViewport({ width: 1440, height: 1000 });
+    await p2.evaluateOnNewDocument(() => {
+      localStorage.setItem('scoutfinder:admin-session', JSON.stringify({ token: 'T', exp: Date.now() + 9e6 }));
+    });
+    await p2.goto(base + '/tour/admin', { waitUntil: 'networkidle2' }); await wait(1800);
+    const label = await p2.evaluate(() => (document.getElementById('saved-label') || {}).textContent || '');
+    chk('못 불러왔으면 "저장됨" 이라고 적지 않는다', !/All changes saved/.test(label) && /load|disabled/i.test(label), label);
+    saved = null;
+    await p2.evaluate(() => { const btn = document.querySelector('[data-act="save"]'); if (btn) btn.click(); });
+    await wait(600);
+    chk('못 불러온 상태에서는 저장 자체를 하지 않는다', saved === null);
+    await p2.close();
+    failUnitsGet = false;
+  }
+
+  /* ── 서버 안전장치 ── 화면이 실수해도 서버가 마지막으로 막아야 한다.
+     배포되는 모듈을 가짜 KV(Map)로 그대로 돌린다 — 운영 KV 는 건드리지 않는다. */
+  console.log('\n[서버 — 지도 데이터 보호]');
+  {
+    const KV = new Map();
+    const fenv = { TOTP_SECRET: 'JBSWY3DPEHPK3PXP', SCOUT_KV: {
+      get: async (k) => (KV.has(k) ? KV.get(k) : null), put: async (k, v) => { KV.set(k, v); }, delete: async (k) => { KV.delete(k); } } };
+    const lib = await import('../functions/api/_lib.js');
+    const um = await import('../functions/api/units.js');
+    const sess = await lib.issueSession(fenv);
+    const H = { 'content-type': 'application/json', Authorization: 'Bearer ' + (sess.token || sess) };
+    const mk = (n) => Array.from({ length: n }, (_, i) => ({ id: 'u' + i, name: '단위대 ' + i, lat: 37, lng: 127 }));
+    const PUT = (body) => um.onRequestPut({ request: new Request('https://x/api/units', { method: 'PUT', headers: H, body: JSON.stringify(body) }), env: fenv });
+    let r = await PUT({ units: mk(20) });
+    chk('정상 저장은 통과한다', r.status === 200 && (await r.json()).count === 20);
+    r = await PUT({ units: [] });
+    chk('빈 목록으로 전체가 지워지지 않는다', r.status === 409 && (await r.json()).error === 'empty_guard');
+    r = await PUT({ units: mk(3) });
+    chk('대량 감소(20→3)는 확인 없이 저장되지 않는다', r.status === 409 && (await r.json()).error === 'shrink_guard');
+    r = await PUT({ units: mk(3), confirmShrink: true });
+    chk('의도한 감소는 확인 표시로 저장된다', r.status === 200 && (await r.json()).count === 3);
+    r = await um.onRequestGet({ request: new Request('https://x/api/units?snapshots=1', { headers: H }), env: fenv });
+    const snaps = (await r.json()).snapshots || [];
+    chk('덮어쓰기 전 스냅샷이 남는다', snaps.length >= 1 && snaps[0].count === 20);
+    r = await um.onRequestGet({ request: new Request('https://x/api/units?snapshots=1'), env: fenv });
+    chk('스냅샷은 관리자만 본다', r.status === 401);
+    r = await PUT({ restore: snaps[0].at });
+    chk('스냅샷으로 되돌릴 수 있다', r.status === 200 && (await r.json()).count === 20);
+    chk('누가 언제 바꿨는지 기록이 남는다', (JSON.parse(KV.get('log') || '[]')).some((x) => x.action === 'units.restore'));
+  }
 
   console.log('\n[콘솔]');
   chk('콘솔 에러 0', errors.length === 0, errors.slice(0, 2).join(' | '));

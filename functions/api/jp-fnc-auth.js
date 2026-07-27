@@ -8,9 +8,23 @@
  *    토큰은 홍보부 회원세션 인프라(HMAC 서명·만료)를 그대로 재사용하되 payload.fnc=1 로 표식한다.
  *    이 토큰의 검증은 _lib.js 의 fncAdmin(request, env) 이 담당한다(jp-fnc-staff·jp-meals 서버 게이트).
  */
-import { json, issueMemberSession } from "./_lib.js";
+import { json, issueMemberSession, clientIp } from "./_lib.js";
+
+/* ⚠️ id/pw 가 단순하다(사용자 지시). 그래서 최소한 **시도 횟수**는 막는다 —
+   자동화된 대량 시도로 세션이 계속 발급되면 편집 권한이 사실상 공개된다.
+   IP 당 10분에 20회. 넘으면 429. */
+const RL_MAX = 20, RL_TTL = 600;
+async function rateOk(env, request) {
+  const key = "fncauth:rl:" + (clientIp(request) || "noip");
+  let n = 0;
+  try { n = parseInt((await env.SCOUT_KV.get(key)) || "0", 10) || 0; } catch {}
+  if (n >= RL_MAX) return false;
+  try { await env.SCOUT_KV.put(key, String(n + 1), { expirationTtl: RL_TTL }); } catch {}
+  return true;
+}
 
 export async function onRequestPost({ request, env }) {
+  if (!(await rateOk(env, request))) return json({ ok: false, error: "too_many", message: "시도가 너무 많습니다. 잠시 뒤 다시 해 주세요." });
   let b = {};
   try { b = await request.json(); } catch {}
   const id = String(b.id == null ? "" : b.id).trim();

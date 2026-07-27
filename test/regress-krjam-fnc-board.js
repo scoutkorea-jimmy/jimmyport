@@ -92,7 +92,13 @@ const server = http.createServer((req, res) => {
       req.on('data', (c) => { body += c; });
       req.on('end', () => {
         if (!/Bearer /.test(req.headers.authorization || '')) { res.writeHead(401); return res.end('{"ok":false}'); }
-        try { DUTIES.duties = JSON.parse(body).duties || {}; } catch (e) {}
+        let x = {}; try { x = JSON.parse(body); } catch (e) {}
+        // 서버와 같은 규칙 — 불러온 뒤 다른 사람이 저장했으면 막고 최신본을 준다
+        if (DUTIES.updatedAt && x.baseVer !== DUTIES.updatedAt) {
+          res.writeHead(409, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: 'conflict', duties: DUTIES.duties, updatedAt: DUTIES.updatedAt, by: DUTIES.by }));
+        }
+        DUTIES.duties = x.duties || {};
         DUTIES.updatedAt = '2026-07-26T10:00:00Z'; DUTIES.by = '박지민'; dutyPuts++;
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ ok: true, duties: DUTIES.duties, updatedAt: DUTIES.updatedAt, by: DUTIES.by }));
@@ -249,7 +255,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const p4 = await b.newPage(); await p4.setViewport({ width: 1440, height: 1000 });
   const err4 = [];
   p4.on('pageerror', (e) => err4.push(e.message));
-  p4.on('console', (m) => { if (m.type() === 'error') err4.push(m.text()); });
+  /* 409(먼저 저장한 사람이 있음)는 브라우저가 콘솔에 리소스 오류로 적지만, 이건 **막아야 해서 막은 것**이다.
+     404·500 같은 진짜 오류는 그대로 잡는다. */
+  p4.on('console', (m) => { if (m.type() === 'error' && !/status of 409/.test(m.text())) err4.push(m.text()); });
   await p4.evaluateOnNewDocument(() => {
     localStorage.setItem('krjam-fnc:admin', JSON.stringify({ token: 'FNCTOK', exp: Date.now() + 9e6, name: '급식 관리자' }));
   });
@@ -268,6 +276,20 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   }));
   chk('저장이 서버에 실제로 도달했다', dutyPuts === 1, dutyPuts + '회');
   chk('저장 뒤 배정 건수가 늘어난다', await p4.evaluate(() => /배정 2 \/ 10/.test(document.querySelector('.dutybar').textContent)));
+  /* 두 사람이 같은 배정표를 열어 두고 저장하면 앞사람 작업이 조용히 사라졌다.
+     이제 서버가 막고, 화면은 최신본으로 바꾸고 사람에게 말해야 한다. */
+  chk('다른 사람이 먼저 저장하면 덮어쓰지 않고 최신본을 보여 준다', await p4.evaluate(async () => {
+    document.getElementById('duty-edit').click(); await new Promise((r) => setTimeout(r, 250));
+    // 화면이 들고 있는 버전을 낡게 만든다 = 그 사이 다른 사람이 저장한 상황
+    window.__fncBoard.setDutyVer('2026-07-26T09:59:00Z');
+    const el = document.querySelector('[data-duty="hall2~main"]');
+    if (el) el.value = '늦은사람';
+    document.getElementById('duty-save').click(); await new Promise((r) => setTimeout(r, 700));
+    const t = document.querySelector('.dutytbl tbody').textContent;
+    const toast = (document.getElementById('toast') || {}).textContent || '';
+    return !/늦은사람/.test(t) && /이훈혁/.test(t) && /먼저 저장|최신/.test(toast);
+  }));
+  chk('충돌은 저장으로 세지 않는다(덮어쓰기 없음)', dutyPuts === 1, dutyPuts + '회');
   chk('배정 화면 콘솔 에러 0', err4.length === 0, err4.slice(0, 2).join(' | '));
   await p4.close();
   // p4 가 심은 관리자 토큰은 같은 오리진 localStorage 를 공유하므로 p 에도 남는다 — 비관리자 검증 전에 지운다.

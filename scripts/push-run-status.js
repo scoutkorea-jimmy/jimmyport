@@ -66,7 +66,7 @@ function collect() {
     } catch { return ''; }
   })();
 
-  const perRoundTotal = 14;   // 한 라운드에 도는 검사 파일 수(러너와 같이 유지)
+  const perRoundTotal = 17;   // 한 라운드에 도는 검사 파일 수(러너와 같이 유지)
   return {
     label: '전체 회귀',
     rounds: roundsDone,

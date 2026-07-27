@@ -59,12 +59,29 @@ export async function onRequestGet({ env }) {
   return json({ ok: true, duties: r.duties, updatedAt: r.updatedAt, by: r.by });
 }
 
+/* ⚠️ 이 PUT 은 배정표를 **통째로** 덮어쓴다. 두 사람이 같은 시간에 저장하면 앞사람 배정이 사라진다.
+   그래서 baseVer(불러올 때 받은 updatedAt)를 함께 받아, 그 사이 다른 사람이 저장했으면 막고 최신본을 돌려준다.
+   ⚠️ 배정이 있는데 전부 빈 값이 오면(불러오기 실패 후 저장 등) 막는다 — 의도한 초기화는 confirmEmpty. */
 export async function onRequestPut({ request, env }) {
   const who = await memberOrAdmin(request, env);
   if (!who) return json({ ok: false, error: "unauthorized" }, 401);
   let body = {};
   try { body = await request.json(); } catch {}
   const duties = cleanDuties(body.duties);
+
+  const cur = await read(env);
+  const storedVer = cur.updatedAt || "";
+  const baseVer = String(body.baseVer == null ? "" : body.baseVer);
+  if (storedVer && baseVer !== storedVer) {
+    return json({ ok: false, error: "conflict", duties: cur.duties, updatedAt: storedVer, by: cur.by,
+      message: "그 사이 다른 사람이 저장했습니다. 최신 배정을 불러왔습니다." }, 409);
+  }
+  const had = Object.keys(cur.duties || {}).length;
+  if (had > 0 && Object.keys(duties).length === 0 && body.confirmEmpty !== true) {
+    return json({ ok: false, error: "empty_guard", had,
+      message: "배정 " + had + "건이 있는데 빈 배정이 올라왔습니다." }, 409);
+  }
+
   const rec = { duties, updatedAt: new Date().toISOString(), by: String(who.name || who.username || "").slice(0, 40) };
   await env.SCOUT_KV.put(KEY, JSON.stringify(rec));
   return json({ ok: true, duties: rec.duties, updatedAt: rec.updatedAt, by: rec.by });
