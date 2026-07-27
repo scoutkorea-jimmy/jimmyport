@@ -270,6 +270,20 @@ const SEED = () => {
   chk('컵 일정 마이그레이션: 구 8/4 제거 + 신 시드 교체 + 사용자항목 보존 + 멱등',
     cubmig.ran === 1 && cubmig.after0804 === 0 && cubmig.cubTotal === 34 && cubmig.userKept === true && cubmig.ranAgain === 0,
     JSON.stringify(cubmig));
+  const rep = await page.evaluate(() => {
+    try { localStorage.removeItem('jamboree-plan:cub-reporter-ksy'); } catch (e) {}
+    rosterList().push({ id: 'ksy1', name: '김승연 (대구)', role: '영상·촬영', team: 't2', arrive: '' });   // 명단에 김승연 추가
+    const ran = migrateCubReporterKSY();
+    const cubItems = ttList().filter((t) => t.track === 'cub');
+    const allHave = cubItems.length > 0 && cubItems.every((t) => (t.assignees || []).indexOf('ksy1') >= 0);
+    const again = migrateCubReporterKSY();   // localStorage 플래그 → no-op(개별 편집 존중)
+    // 정리: 김승연 및 그 배정 제거
+    ttList().forEach((t) => { if (t.assignees) { const i = t.assignees.indexOf('ksy1'); if (i >= 0) t.assignees.splice(i, 1); } });
+    state.roster = rosterList().filter((x) => x.id !== 'ksy1');
+    try { localStorage.removeItem('jamboree-plan:cub-reporter-ksy'); } catch (e) {}
+    return { ran, allHave, n: cubItems.length, again };
+  });
+  chk('컵 일정 취재 담당 = 김승연 일괄 지정(전체·1회)', rep.ran === 1 && rep.allHave === true && rep.n >= 34 && rep.again === 0, JSON.stringify(rep));
 
   console.log('\n[식사 메뉴]');
   await go('meals');

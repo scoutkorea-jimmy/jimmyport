@@ -382,6 +382,20 @@ function migrateCubSchedule(){
   console.info('[마이그레이션] 컵 참관단 일정 이미지 기준 갱신(구 8/4 스케줄 → 신 8/5 스케줄)');
   return 1;
 }
+/* 컵 참관단 일정 취재 담당 일괄 지정(2026-07-27, 사용자 지시): '김승연' 님을 모든 cub 항목 담당(assignees)으로.
+ * 라이브 데이터 조치라 직접 KV 쓰기가 불가 → 로드 시 클라(사용자 세션)로 반영. localStorage 로 **브라우저당 1회만** 실행해
+ * 이후 사용자가 개별 해제한 항목을 매 로드마다 되살리지 않는다(데이터 소실 패턴 회피). 명단에 '김승연' 없으면 no-op(플래그 미설정→다음에 재시도).
+ * '일괄' 지시이므로 입영/오프타임 가드는 무시하고 전체 지정(입영 이후에 도착이면 배치 화면에서 '입영 전' 충돌로 표시됨). */
+function migrateCubReporterKSY(){
+  try{ if(localStorage.getItem('jamboree-plan:cub-reporter-ksy')) return 0; }catch(e){}
+  var m=rosterList().filter(function(p){ return (p.name||'').indexOf('김승연')>=0; })[0];
+  if(!m) return 0;                                       // 아직 명단에 없음 → 플래그 미설정, 다음 로드에 재시도
+  var changed=false;
+  ttList().forEach(function(t){ if(t.track==='cub'){ if(!t.assignees) t.assignees=[]; if(t.assignees.indexOf(m.id)<0){ t.assignees.push(m.id); changed=true; } } });
+  try{ localStorage.setItem('jamboree-plan:cub-reporter-ksy','1'); }catch(e){}   // 지정 완료(1회) — 이후 개별 편집 존중
+  if(changed){ saveTimetable(); console.info('[일괄지정] 컵 참관단 일정 취재 담당 = 김승연'); }
+  return changed?1:0;
+}
 
 /* ===== 홍보부 인원 R&R + 배치표 ===== */
 function defaultRoster(){ return [
@@ -5222,7 +5236,7 @@ function setView(v){
 function loadBoard(){
   netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
     .then(function(){ netBusy(-1); });

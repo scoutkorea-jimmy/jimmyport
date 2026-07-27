@@ -90,6 +90,13 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (26) — 컵 일정 취재 담당 김승연 일괄 지정 (v0.9.267)
+대상: `/krjam-planning`(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.107.
+- 신규 `migrateCubReporterKSY()`: 명단의 '김승연' 인원 id를 모든 cub 항목 assignees 에 추가. **localStorage 로 브라우저당 1회**(개별 해제 존중), 명단에 없으면 no-op. '일괄' 지시라 입영/오프타임 가드 무시.
+- ⚠️ 김승연이 roster 에 있어야 적용. 임시 조치(provisional)라 이후 이 마이그레이션 제거 가능. 라이브는 사용자 세션 로드 시 반영됨(직접 KV 쓰기 아님).
+- 검증: planning **142/142 ×3라운드**. cub·meals·reporter 모두 "새 보드=시드 / 저장된 보드=1회성 마이그레이션" 패턴.
+- 배포: 여전히 타 작업 23개 WIP가 워킹트리에 있어 **내 파일만 격리 배포**(stash) — 깨진 트리 전체 배포 금지.
+
 ### 2026-07-27 (25) — 참가자 일반식 메뉴 이미지 기준 교체 (v0.9.266) + 사이트 안정성 점검
 대상: `/krjam-planning` meals(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.106.
 - **안정성 점검 결론**: "사이트가 다 깨졌다"는 **로컬 워킹트리의 타 작업 uncommitted 23개 파일**(index.html·jp-news.js·admin.js 등 대량 삭제 refactor) 때문 — **배포/커밋된 코드는 멀쩡**. 증거: 그 23개를 `git stash` 하면 전체 회귀 **13개 스위트 전부 통과**(planning 139·nav 19·server 16·press·news·jebo 29·fnc·fnc-board·landing·a11y·admin·tour-csv), 되돌리면 nav·news·landing 등 실패(cleanStage 삭제·랜딩 요소 삭제와 정확히 일치). 라이브 전 라우트 200. → 그 23개는 해당 작업자가 완성/커밋하거나 폐기해야 함(아직 워킹트리에 남아있음).
