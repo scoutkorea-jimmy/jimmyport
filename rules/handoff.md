@@ -90,6 +90,12 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (28) — 홍보부 회의 트랙 이동 + 편집 모달 '홍보부' 트랙 옵션 (v0.9.269)
+대상: `/krjam-planning`(`jamboree-plan/app.js`). 상세: §16.109.
+- 편집 모달 트랙 선택기에 '홍보부' 추가(미디어 트랙 신설 시 누락됐던 것). 이제 임의 일정을 홍보부 열로 직접 이동 가능.
+- `migrateMediaMoveMeetings()`: 제목에 '홍보부' 포함 항목만 잼버리→홍보부 트랙 1회 이동(localStorage, 멱등). 사용자 선택=홍보부 회의만(홍보활동 카테고리는 미이동).
+- 검증: planning **147/147 ×3라운드**. 배포는 내 파일만 격리(23개 WIP stash).
+
 ### 2026-07-27 (27) — 일정표 '홍보부' 트랙 신설 + 일일 사진셀렉·SNS포스팅 (v0.9.268)
 대상: `/krjam-planning` 일정표(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.108.
 - 신규 트랙 `media`(홍보부) — 컵 트랙과 동일 패턴(TT_TRACKS·ttTrackOfItem·필터·범례·일간뷰 열·색 `#7A3FA0`). 일간뷰 4열(잼버리·의전·홍보부·컵).

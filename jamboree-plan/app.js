@@ -428,6 +428,17 @@ function mergeMediaTrack(){
   if(added){ saveTimetable(); console.info('[홍보부 트랙] 일정 '+added+'건 주입'); }
   return added;
 }
+/* 기존 '홍보부 회의'(홍보부 일간 회의 등, 제목에 '홍보부' 포함)를 잼버리 열 → 홍보부 트랙으로 이동(사용자 지시: 홍보부 회의만).
+ * localStorage 로 브라우저당 1회(개별 조정 존중). 컵·이미 홍보부 항목은 제외. 사용자는 편집 모달의 '홍보부' 트랙으로 개별 조정 가능. */
+function migrateMediaMoveMeetings(){
+  try{ if(localStorage.getItem('jamboree-plan:media-move-mtg')) return 0; }catch(e){}
+  var moved=0;
+  ttList().forEach(function(t){ if(t.track==='cub'||t.track==='media') return;
+    if((t.title||'').indexOf('홍보부')>=0){ t.track='media'; t.batch=0; moved++; } });
+  try{ localStorage.setItem('jamboree-plan:media-move-mtg','1'); }catch(e){}
+  if(moved){ saveTimetable(); console.info('[홍보부 트랙] 홍보부 회의 '+moved+'건 이동'); }
+  return moved;
+}
 
 /* ===== 홍보부 인원 R&R + 배치표 ===== */
 function defaultRoster(){ return [
@@ -2654,9 +2665,9 @@ function renderTTModal(){
       ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><input type="color" class="ccolor" data-c="'+esc(c[0])+'" value="'+esc(c[1])+'" title="색상 변경">'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
       '<input type="text" class="cinput" id="tt-catinput" placeholder="+ 종류 입력">'+
     '</div></div>'+
-    '<div class="evfld"><label>트랙 — 이 일정이 표시될 열 (컵 참관단으로 되돌리기)</label><div class="evkinds" id="tt-track">'+
-      [['','잼버리 일정'],['cub1','컵 참관단 1기'],['cub2','컵 참관단 2기']].map(function(t){
-        var cur=ttDraft.track==='cub'?('cub'+((ttDraft.batch===2||ttDraft.batch==='2')?2:1)):'';
+    '<div class="evfld"><label>트랙 — 이 일정이 표시될 열</label><div class="evkinds" id="tt-track">'+
+      [['','잼버리 일정'],['media','홍보부'],['cub1','컵 참관단 1기'],['cub2','컵 참관단 2기']].map(function(t){
+        var cur=ttDraft.track==='media'?'media':ttDraft.track==='cub'?('cub'+((ttDraft.batch===2||ttDraft.batch==='2')?2:1)):'';
         var on=cur===t[0];
         return '<button type="button" class="evkind trk'+(on?' on':'')+'" data-trk="'+t[0]+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(t[1])+'</button>';
       }).join('')+
@@ -2724,7 +2735,7 @@ function renderTTModal(){
   ['tt-eh','tt-em'].forEach(function(idd){ var el=b.querySelector('#'+idd); if(el) el.addEventListener('input',syncEnd); });
   b.querySelectorAll('#tt-rep .rep').forEach(function(bt){ if(bt.disabled) return; bt.onclick=function(){ if(!ttDraft._repeat) ttDraft._repeat=[]; var dd=bt.dataset.d; var i=ttDraft._repeat.indexOf(dd); if(i>=0) ttDraft._repeat.splice(i,1); else ttDraft._repeat.push(dd); renderTTModal(); }; });
   var trkSet=b.querySelector('#tt-track'); if(trkSet) trkSet.addEventListener('click',function(e){ var btn=e.target.closest('[data-trk]'); if(!btn) return; var v=btn.getAttribute('data-trk');
-    if(v==='cub1'){ ttDraft.track='cub'; ttDraft.batch=1; } else if(v==='cub2'){ ttDraft.track='cub'; ttDraft.batch=2; } else { ttDraft.track=''; ttDraft.batch=0; }
+    if(v==='cub1'){ ttDraft.track='cub'; ttDraft.batch=1; } else if(v==='cub2'){ ttDraft.track='cub'; ttDraft.batch=2; } else if(v==='media'){ ttDraft.track='media'; ttDraft.batch=0; } else { ttDraft.track=''; ttDraft.batch=0; }
     trkSet.querySelectorAll('.trk').forEach(function(x){ x.classList.remove('on'); x.removeAttribute('style'); });
     btn.classList.add('on'); btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); });
   b.querySelector('#tt-f-title').oninput=function(){ ttDraft.title=clipField('timetable','title',this.value); };
@@ -5271,7 +5282,7 @@ function setView(v){
 function loadBoard(){
   netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
     .then(function(){ netBusy(-1); });

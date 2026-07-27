@@ -304,6 +304,25 @@ const SEED = () => {
     ['1차 사진 셀렉', '오전 브리핑 · SNS 포스팅', '2차 사진 셀렉', '오후 브리핑 · SNS 포스팅', '3차 사진 셀렉', '저녁 브리핑 · SNS 포스팅'].every((x) => media.titles.indexOf(x) >= 0),
     media.titles.join('|'));
   chk('홍보부 트랙 등록 + 일간뷰 열·블록 렌더', media.inTracks && media.hasLab && media.blocks >= 6, '등록=' + media.inTracks + ' 열=' + media.hasLab + ' 블록=' + media.blocks);
+  const mmove = await page.evaluate(() => {
+    try { localStorage.removeItem('jamboree-plan:media-move-mtg'); } catch (e) {}
+    state.timetable = ttList().concat([
+      { id: 'usr-hb1', day: '2026-08-06', start: '08:00', end: '09:00', title: '홍보부 일간 회의', cat: '회의', track: '', assignees: [], contacts: [], rundown: [] },
+      { id: 'usr-prog', day: '2026-08-06', start: '09:00', end: '12:00', title: '모듈 프로그램', cat: '프로그램', track: '', assignees: [], contacts: [], rundown: [] },
+    ]);
+    const moved = migrateMediaMoveMeetings();
+    const hb = ttById('usr-hb1'), prog = ttById('usr-prog');
+    const again = migrateMediaMoveMeetings();
+    // 트랙 선택 모달에 홍보부 옵션?
+    openTT('usr-hb1');
+    const trkOpts = [...document.querySelectorAll('#tt-track [data-trk]')].map((b) => b.textContent);
+    document.getElementById('tt-cancel').click();
+    state.timetable = ttList().filter((t) => t.id !== 'usr-hb1' && t.id !== 'usr-prog');
+    try { localStorage.removeItem('jamboree-plan:media-move-mtg'); } catch (e) {}
+    return { moved, hbTrack: hb && hb.track, progTrack: (prog && prog.track) || 'jam', again, trkOpts };
+  });
+  chk('홍보부 회의 → 홍보부 트랙 이동(프로그램은 유지·멱등)', mmove.moved === 1 && mmove.hbTrack === 'media' && mmove.progTrack === 'jam' && mmove.again === 0, JSON.stringify({ m: mmove.moved, hb: mmove.hbTrack, prog: mmove.progTrack, again: mmove.again }));
+  chk('편집 모달 트랙 선택에 홍보부 옵션', mmove.trkOpts.indexOf('홍보부') >= 0, mmove.trkOpts.join('|'));
 
   console.log('\n[식사 메뉴]');
   await go('meals');
