@@ -22,7 +22,8 @@ const MEALS = { ok: true, updatedAt: '2026-07-20T00:00:00Z', meals: {
   crew_s: {},
   staff: { '2026-08-05': { b: '그린샐러드·모닝빵', l: '간편식', d: '제육볶음' },
            '2026-08-06': { b: '죽·샐러드', l: '간편식', d: '닭갈비' } } } };
-let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0, staffPuts = 0;
+let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0, staffPuts = 0, contentPuts = 0;
+const CONTENT = {};
 const STAFF = { staff: [{ id: 'st1', name: '김운영', phone: '01012345678' }, { id: 'st2', name: '이배식', phone: '01099998888' }], shifts: { '2026-08-05': { am: ['st1'], pm: ['st2'] } } };
 const DUTIES = { duties: { supply: { main: '주명림', sub: '장문수', note: '06:00 보급 준비' } }, updatedAt: '2026-07-25T10:00:00Z', by: '심호웅' };
 
@@ -60,6 +61,20 @@ const server = http.createServer((req, res) => {
       : STAFF.staff.map((s) => ({ id: s.id, name: s.name, phone4: String(s.phone || '').slice(-4) }));
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, staff: st, shifts: STAFF.shifts, updatedAt: 'x', by: '', admin: admin }));
+  }
+  if (p === '/api/jp-fnc-content') {
+    var cadm = /Bearer FNCTOK/.test(req.headers.authorization || '');
+    if (req.method === 'PUT') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        if (!cadm) { res.writeHead(401); return res.end('{"ok":false}'); }
+        try { var b = JSON.parse(body); if (b.value) CONTENT[b.key] = b.value; else delete CONTENT[b.key]; contentPuts++; } catch (e) {}
+        res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, overrides: CONTENT }));
+      });
+      return;
+    }
+    res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, overrides: CONTENT }));
   }
   if (p === '/api/jp-fnc-auth') {
     let body = '';
@@ -230,16 +245,17 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const r = api.cleanDuties({ supply: { main: '  김  철수 ', sub: '', note: 'x' }, hack: { main: 'a' }, hall1: { main: '', sub: '', note: '' } });
     return Object.keys(r).length === 1 && r.supply.main === '김 철수';
   })());
-  // 홍보부 보드 세션이 있으면 같은 화면에서 바로 배정할 수 있어야 한다
+  // 급식 관리자로 로그인하면 같은 화면에서 바로 배정할 수 있어야 한다
   const p4 = await b.newPage(); await p4.setViewport({ width: 1440, height: 1000 });
   const err4 = [];
   p4.on('pageerror', (e) => err4.push(e.message));
   p4.on('console', (m) => { if (m.type() === 'error') err4.push(m.text()); });
   await p4.evaluateOnNewDocument(() => {
-    localStorage.setItem('jamboree-plan:session', JSON.stringify({ token: 'T', name: '박지민', username: 'jimmy', role: 'admin', exp: Date.now() + 9e6 }));
+    localStorage.setItem('krjam-fnc:admin', JSON.stringify({ token: 'FNCTOK', exp: Date.now() + 9e6, name: '급식 관리자' }));
   });
+  await hookWx(p4);
   await p4.goto(base + '/krjam-fnc#duty', { waitUntil: 'networkidle2' }); await wait(900);
-  chk('로그인 상태면 배정 버튼이 보인다', await p4.evaluate(() => !!document.getElementById('duty-edit')));
+  chk('관리자 로그인 시 배정 버튼이 보인다', await p4.evaluate(() => !!document.getElementById('duty-edit')));
   chk('배정을 바꿔 저장하면 서버로 간다', await p4.evaluate(async () => {
     document.getElementById('duty-edit').click(); await new Promise((r) => setTimeout(r, 250));
     const el = document.querySelector('[data-duty="hall1~main"]');
@@ -254,6 +270,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   chk('저장 뒤 배정 건수가 늘어난다', await p4.evaluate(() => /배정 2 \/ 10/.test(document.querySelector('.dutybar').textContent)));
   chk('배정 화면 콘솔 에러 0', err4.length === 0, err4.slice(0, 2).join(' | '));
   await p4.close();
+  // p4 가 심은 관리자 토큰은 같은 오리진 localStorage 를 공유하므로 p 에도 남는다 — 비관리자 검증 전에 지운다.
+  await p.evaluate(() => { localStorage.removeItem('krjam-fnc:admin'); if (window.__fncBoard) window.__fncBoard.renderAdminBtn(); });
 
   console.log('\n[살아 있는 부분]');
   await p.evaluate(() => window.__fncBoard.setView('home')); await wait(500);
@@ -325,6 +343,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     return out;
   });
   chk('원문 쪽 링크는 플립북 딥링크', srcs.every((h) => !h || /^\/krjam-fnc-book#p\d+$/.test(h) || h === '/krjam-planning'), srcs.join(','));
+  await wait(200);
+  chk('비관리자: 핵심 문구 인라인 편집 비활성(tx-edit 없음)', await p.evaluate(() => document.querySelectorAll('#view-food .tx-edit').length === 0));
 
   console.log('\n[운영요원 · 쉬프트]');
   await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(500);
@@ -333,7 +353,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     var t = document.getElementById('staffbox').textContent;
     return t.indexOf('김운영') >= 0 && t.indexOf('5678') >= 0 && t.indexOf('01012345678') < 0;
   }));
-  chk('비관리자: 배정 편집 UI 없음', await p.evaluate(() => document.querySelectorAll('#staffbox .shift-add').length === 0 && !document.getElementById('staff-add-go')));
+  chk('비관리자: 배정 편집 UI 없음', await p.evaluate(() => document.querySelectorAll('#staffbox .shift-search').length === 0 && !document.getElementById('staff-add-go')));
   chk('쉬프트 시간 계산(오전05–10·오후11–15·저녁16–21)', await p.evaluate(() => {
     var am = window.__fncBoard.currentShift(new Date('2026-08-05T06:00:00'));
     var pm = window.__fncBoard.currentShift(new Date('2026-08-05T12:00:00'));
@@ -365,11 +385,38 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   // 관리자 상태의 운영요원 뷰: 전화 전체 + 편집 UI + 추가 저장
   await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(500);
   chk('관리자: 전화 전체 표시', await p.evaluate(() => document.getElementById('staffbox').textContent.indexOf('01012345678') >= 0));
-  chk('관리자: 운영요원 추가/배정 UI', await p.evaluate(() => !!document.getElementById('staff-add-go') && document.querySelectorAll('#staffbox .shift-add').length > 0));
+  chk('관리자: 운영요원 추가/배정 UI', await p.evaluate(() => !!document.getElementById('staff-add-go') && document.querySelectorAll('#staffbox .shift-search').length > 0));
   const spBefore = staffPuts;
   await p.evaluate(async () => { document.getElementById('staff-name').value = '박신규'; document.getElementById('staff-phone').value = '01055551234'; document.getElementById('staff-add-go').click(); await new Promise((r) => setTimeout(r, 500)); });
   await wait(300);
   chk('관리자: 운영요원 추가 → 서버 저장(PUT)', staffPuts > spBefore, 'PUT ' + (staffPuts - spBefore));
+  // 담당 배정: 검색하면 칩 후보가 바로 뜨고(드롭다운 아님) 클릭하면 배정 저장
+  const spBefore2 = staffPuts;
+  const cand = await p.evaluate(async () => {
+    var inp = document.querySelector('#staffbox .shift-search'); if (!inp) return { err: 'no-input' };
+    inp.value = '이'; inp.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
+    var cs = inp.parentNode.querySelectorAll('[data-cand]');
+    var n = cs.length; if (n) cs[0].click();
+    await new Promise((r) => setTimeout(r, 500));
+    return { n: n };
+  });
+  await wait(300);
+  chk('배정: 검색 → 칩 후보 노출(드롭다운 아님)', cand.n >= 1, JSON.stringify(cand));
+  chk('배정: 후보 칩 클릭 → 서버 저장(PUT)', staffPuts > spBefore2, 'PUT ' + (staffPuts - spBefore2));
+  // 핵심 안내 문구 인라인 편집(override 저장) — 관리자만
+  await p.evaluate(() => window.__fncBoard.setView('food')); await wait(400);
+  const txn = await p.evaluate(() => document.querySelectorAll('#view-food .tx-edit[contenteditable]').length);
+  chk('관리자: 핵심 문구 인라인 편집 활성(tx-edit)', txn > 0, txn + '곳');
+  const cpBefore = contentPuts;
+  await p.evaluate(async () => {
+    var el = document.querySelector('#view-food .tx-edit[contenteditable]');
+    el.focus(); el.textContent = '수정된 안내 문구';
+    el.dispatchEvent(new Event('blur', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 500));
+  });
+  await wait(300);
+  chk('문구 수정 → 서버(jp-fnc-content) 저장', contentPuts > cpBefore, 'PUT ' + (contentPuts - cpBefore));
   await p.evaluate(() => { localStorage.removeItem('krjam-fnc:admin'); window.__fncBoard.renderAdminBtn(); });
 
   console.log('\n[서버가 없을 때]');

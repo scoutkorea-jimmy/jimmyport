@@ -307,3 +307,10 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - 사용자: 급식본부도 상단 탭에 날씨 표시. 홍보부 보드와 같은 방식(Open-Meteo 클라 fetch, 백엔드 없음).
 - 상단바 `#fnc-wx`: 아이콘·기온·날씨·오늘 최고/최저·강수확률·지역(강원 고성). WMO 코드 매핑, 30분 캐시. 좁은 화면에선 부가정보 단계적 숨김(≤820 날씨문구/최고최저, ≤600 지역/강수).
 - 검증: fnc-board 회귀 **67→68/68 ×3라운드**(상단바 기온 표시; open-meteo 는 테스트에서 CORS 헤더 포함 목업으로 결정적 처리 — 콘솔/요청실패 0 유지).
+
+### 19.x v0.9.274 — 텍스트 인라인 편집(Phase 4) + 담당 배정 칩검색 + 편집 게이트 관리자 전용·30분 타임아웃
+- 사용자: (1) 담당자 배정은 드롭다운이 아니라 **칩형** — 검색하면 칩 후보가 바로 뜨고 클릭하면 배정. (2) 기능상 겹치면 삭제. (3) **관리자 로그인 시에만 편집 권한**, 로그아웃 시 편집 불가. (4) 로그인 시 "관리자로 로그인되었습니다" 토스트 + **30분 타임아웃**. (5) 담당 배정도 관리자에서만 수정.
+- **Phase 4 텍스트 인라인 편집**: 백엔드 `functions/api/jp-fnc-content.js` 신설 — KV `jp:fnc-content`={overrides}. GET 공개, PUT=fncAdmin만, 키 단위 read-modify-write(빈 값=override 제거→기본값 복귀), cleanKey/cleanVal(800자)·최대 300키. 키는 클라가 `'c'+hash(뷰+'|'+원문)` 로 안정 생성(원문 코드 바뀌면 옛 override 자동 폐기). `board.js` `applyContent()` 가 렌더 후 `.card p/h3/h4/li·.sec-h`(링크·컨트롤·동적 영역 CONTENT_SKIP 제외)에 override 적용, 관리자면 `contenteditable`+`.tx-edit`, blur 시 PUT 저장.
+- **담당 배정 칩검색**: 쉬프트 배정 UI 를 `<select>` → `<input.shift-search>`+`<div.shift-cands>` 로 교체. 입력하면 `fillShiftCands()` 가 이름 매칭 칩(`.staffchip.cand`) 을 즉시 노출, 클릭 시 `assignShift`.
+- **편집 게이트 일원화**: `isAdmin()`=`!!fncSession()`, `canEditMenu()`·`canAssign()` 모두 fnc 관리자 로그인에만 참. 로그아웃 시 모든 편집 UI 사라짐. 로그인 만료(30분, `exp=Date.now()+1800000`) 시 tick() 이 감지해 자동 로그아웃+토스트.
+- 검증: `node --check`(board·jp-fnc-content·test) + fnc-board 회귀 **68→73/73 ×3라운드**(비/관리자 tx-edit 게이트·문구 수정→jp-fnc-content PUT·배정 칩검색 후보 노출·후보 클릭→PUT 신규). 회귀 결함 1건 수정: p4 가 심은 `krjam-fnc:admin` 토큰이 **같은 오리진 localStorage 공유**로 p 에 잔류해 비관리자 검사를 오염시켜, p4.close() 직후 p 에서 토큰 제거하도록 고정.

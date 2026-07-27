@@ -84,7 +84,7 @@
     } catch (e) {}
     return null;
   }
-  function canAssign() { return !!session(); }
+  function canAssign() { return !!fncSession(); }   // 담당 배정 편집도 급식 관리자 로그인 시에만
   function authHeader() { var s = session(); return s ? { Authorization: 'Bearer ' + s.token } : {}; }
 
   /* 급식 관리자 세션 — admin/admin (/api/jp-fnc-auth). 홍보부 세션과 별개.
@@ -111,8 +111,9 @@
       .then(function (r) { return r.json().catch(function () { return null; }); })
       .then(function (j) {
         if (j && j.ok && j.token) {
-          try { localStorage.setItem('krjam-fnc:admin', JSON.stringify({ token: j.token, exp: j.exp, name: '급식 관리자' })); } catch (e) {}
-          closeLogin(); renderAdminBtn(); setView(cur || 'home', false); toast('관리자로 로그인했습니다');
+          // 30분 타임아웃 — 서버 토큰이 더 길어도 클라에서 30분 뒤 만료시킨다(공용 PC 대비).
+          try { localStorage.setItem('krjam-fnc:admin', JSON.stringify({ token: j.token, exp: Date.now() + 1800000, name: '급식 관리자' })); } catch (e) {}
+          closeLogin(); renderAdminBtn(); setView(cur || 'home', false); toast('관리자로 로그인되었습니다 (30분 후 자동 로그아웃)');
         } else { loginErr('아이디 또는 비밀번호가 올바르지 않습니다.'); }
       }).catch(function () { loginErr('로그인 중 오류가 발생했습니다.'); });
   }
@@ -239,6 +240,41 @@
       (hi != null ? '<span class="wx-hl">↑' + Math.round(hi) + '° ↓' + Math.round(lo) + '°</span>' : '') +
       (pop != null ? '<span class="wx-pop">💧' + pop + '%</span>' : '') +
       '<span class="wx-loc">강원 고성</span>';
+  }
+
+  /* ── 핵심 안내 문구 인라인 편집 (v0.9.274) ──────────────────────
+     원문 코드를 다 고치지 않고, 렌더된 안내 카드 문구에 '뷰+원문 해시' 안정 키를 붙여 override 를 덮어씌운다.
+     관리자면 그 문구를 그 자리에서 고치고(contenteditable) 저장한다. 라이브 동적 영역(#mealnow 등)은 제외. */
+  var contentOv = {};
+  function loadContent() { return fetch('/api/jp-fnc-content').then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.ok) contentOv = j.overrides || {}; return j; }).catch(function () { return null; }); }
+  function hashStr(s) { var h = 5381, i = s.length; while (i) h = (h * 33) ^ s.charCodeAt(--i); return (h >>> 0).toString(36); }
+  var CONTENT_SKIP = '#mealnow,#dutynow,#hero,#todaybox,#menubox,#staffbox,#dutybox,#days,#mealtable,.searchres,.staffchip,.mcell';
+  function applyContent(root) {
+    if (!root) return;
+    var admin = isAdmin();
+    var els = root.querySelectorAll('.card p, .card h3, .card h4, .card li, .sec-h');
+    [].forEach.call(els, function (el) {
+      if (el.closest(CONTENT_SKIP)) return;
+      if (el.querySelector('a,button,input,select,.src')) return;   // 링크·컨트롤 포함 요소는 제외(단순 문구만)
+      var orig = (el.textContent || '').trim(); if (!orig) return;
+      if (!el.getAttribute('data-ek')) el.setAttribute('data-ek', 'c' + hashStr(cur + '|' + orig));
+      var key = el.getAttribute('data-ek');
+      if (contentOv[key] != null) el.textContent = contentOv[key];
+      if (admin) {
+        el.setAttribute('contenteditable', 'true'); el.classList.add('tx-edit');
+        if (!el.__txHooked) { el.__txHooked = 1; el.addEventListener('blur', function () { saveContentText(this); }); }
+      }
+    });
+  }
+  function saveContentText(el) {
+    var key = el.getAttribute('data-ek'); if (!key) return;
+    var val = (el.textContent || '').trim();
+    if (contentOv[key] === val || (contentOv[key] == null && !val)) return;   // 변경 없음
+    contentOv[key] = val;
+    fetch('/api/jp-fnc-content', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()), body: JSON.stringify({ key: key, value: val }) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) { contentOv = j.overrides || contentOv; toast('문구 저장됨'); } else { toast('저장 실패 — 관리자 로그인을 확인하세요'); } })
+      .catch(function () { toast('저장 실패'); });
   }
 
   /* ── 섹션 렌더러 ───────────────────────────────────────────── */
@@ -762,7 +798,7 @@
           var ids = ((staffData.shifts[d] || {})[sh[0]]) || [];
           var chips = ids.map(function (id) { var s = byId[id]; return s ? '<span class="staffchip sm">' + esc(s.name) + (admin ? '<button class="chip-x" data-unassign="' + d + '|' + sh[0] + '|' + esc(id) + '" aria-label="빼기">✕</button>' : '') + '</span>' : ''; }).join('');
           var picker = '';
-          if (admin) { var avail = staff.filter(function (s) { return ids.indexOf(s.id) < 0; }); picker = '<select class="shift-add" data-assign="' + d + '|' + sh[0] + '" aria-label="근무자 배정"><option value="">＋ 배정</option>' + avail.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>'; }).join('') + '</select>'; }
+          if (admin) picker = '<div class="shift-assign"><input class="shift-search" data-search="' + d + '|' + sh[0] + '" placeholder="이름 검색 +" autocomplete="off" aria-label="근무자 검색해 배정" /><div class="shift-cands" data-cands="' + d + '|' + sh[0] + '"></div></div>';
           return '<td>' + (chips || (admin ? '' : '<span class="muted">—</span>')) + picker + '</td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
@@ -782,6 +818,16 @@
     saveStaff();
   }
   function assignShift(d, k, id) { if (!staffData.shifts[d]) staffData.shifts[d] = {}; var a = staffData.shifts[d][k] = staffData.shifts[d][k] || []; if (a.indexOf(id) < 0) a.push(id); saveStaff(); }
+  // 검색하면 후보가 칩으로 바로 뜨고, 칩을 누르면 배정된다(드롭다운 아님).
+  function fillShiftCands(input) {
+    var parts = input.getAttribute('data-search').split('|'), d = parts[0], k = parts[1];
+    var cont = input.parentNode.querySelector('.shift-cands'); if (!cont) return;
+    var q = (input.value || '').trim().toLowerCase();
+    if (!q) { cont.innerHTML = ''; return; }
+    var ids = ((staffData.shifts[d] || {})[k]) || [];
+    var matches = staffData.staff.filter(function (s) { return ids.indexOf(s.id) < 0 && s.name.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+    cont.innerHTML = matches.length ? matches.map(function (s) { return '<button type="button" class="staffchip cand" data-cand="' + d + '|' + k + '|' + esc(s.id) + '">＋ ' + esc(s.name) + '</button>'; }).join('') : '<span class="muted" style="font-size:var(--fs-1)">일치하는 운영요원 없음</span>';
+  }
   function unassignShift(d, k, id) { var a = (staffData.shifts[d] || {})[k]; if (a) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } saveStaff(); }
 
   /* 식사 메뉴 — 홍보부 보드와 같은 자료(/api/jp-meals) */
@@ -794,7 +840,7 @@
       .catch(function () { return null; });
   }
   // 급식 관리자(admin/admin) 또는 홍보부 세션이면 메뉴를 인라인 편집할 수 있다(양방향, 같은 jp:meals).
-  function canEditMenu() { return !!fncSession() || !!session(); }
+  function canEditMenu() { return !!fncSession(); }   // 편집은 급식 관리자 로그인 시에만(로그아웃 시 불가)
   var MEAL_ROWS = [['b', '조식'], ['l', '중식'], ['d', '석식']];
   function renderMenu() {
     var box = $('menubox'); if (!box) return;
@@ -913,10 +959,10 @@
       next[p[0]][p[1]] = el.value;
     });
     var btn = $('duty-save'); if (btn) { btn.disabled = true; btn.textContent = '저장 중…'; }
-    fetch('/api/jp-fnc', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, authHeader()),
+    fetch('/api/jp-fnc', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()),
       body: JSON.stringify({ duties: next }) })
       .then(function (r) {
-        if (r.status === 401) { toast('로그인이 만료됐습니다. 홍보부 보드에서 다시 로그인해 주세요.'); return null; }
+        if (r.status === 401) { toast('관리자 세션이 만료됐습니다. 다시 로그인해 주세요.'); return null; }
         return r.ok ? r.json() : null;
       })
       .then(function (j) {
@@ -979,6 +1025,7 @@
     if (id === 'menu') { renderMenu(); if (!menuData) loadMenu().then(renderMenu); }
     if (id === 'duty') { renderDuty(); if (!duties) loadDuty().then(renderDuty); }
     if (id === 'staff') { renderStaffView(); if (!staffData) loadStaff().then(renderStaffView); else loadStaff().then(renderStaffView); }
+    applyContent($('view-' + id));   // 핵심 안내 문구 override 적용(+관리자면 인라인 편집)
     if (push !== false && location.hash !== '#' + id) history.pushState(null, '', '#' + id);
     closeSide();
     window.scrollTo(0, 0);
@@ -1001,7 +1048,12 @@
     }).join('');
   }
 
+  var lastAdmin = null;
   function tick() {
+    // 30분 만료 등으로 관리자 상태가 바뀌면 버튼·화면을 다시 그려 편집 권한을 회수한다.
+    var a = !!fncSession();
+    if (lastAdmin !== null && a !== lastAdmin) { renderAdminBtn(); setView(cur || 'home', false); if (!a) toast('관리자 세션이 만료되어 로그아웃되었습니다'); }
+    lastAdmin = a;
     if (cur === 'home') { renderHero(); renderMealNow(); renderDutyNow(); }
     if (cur === 'food') renderMealTable();
     var n = new Date();
@@ -1025,6 +1077,7 @@
       if (e.target.closest('#staff-add-go')) { addStaffMember(); return; }
       var srm = e.target.closest('[data-staff-rm]'); if (srm) { removeStaffMember(srm.getAttribute('data-staff-rm')); return; }
       var un = e.target.closest('[data-unassign]'); if (un) { var pp = un.getAttribute('data-unassign').split('|'); unassignShift(pp[0], pp[1], pp[2]); return; }
+      var cand = e.target.closest('[data-cand]'); if (cand) { var cp = cand.getAttribute('data-cand').split('|'); assignShift(cp[0], cp[1], cp[2]); return; }
       if (e.target.closest('#duty-edit')) { dutyEdit = true; renderDuty(); return; }
       if (e.target.closest('#duty-cancel')) { dutyEdit = false; renderDuty(); return; }
       if (e.target.closest('#duty-save')) { saveDuty(); return; }
@@ -1052,13 +1105,14 @@
     });
     setView((location.hash || '').replace('#', '') || 'home', false);
     tick(); setInterval(tick, 1000);
-    document.addEventListener('change', function (e) {
-      var as = e.target.closest('[data-assign]'); if (as && as.value) { var pp = as.getAttribute('data-assign').split('|'); assignShift(pp[0], pp[1], as.value); }
+    document.addEventListener('input', function (e) {
+      var ss = e.target.closest('[data-search]'); if (ss) fillShiftCands(ss);
     });
     loadMenu().then(function () { if (cur === 'menu') renderMenu(); });
     loadDuty().then(function () { if (cur === 'duty') renderDuty(); });
     loadStaff().then(function () { if (cur === 'home') renderDutyNow(); if (cur === 'staff') renderStaffView(); });
     loadWeather();
+    loadContent().then(function () { applyContent($('view-' + cur)); });
     try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift }; } catch (e) {}
   }
 

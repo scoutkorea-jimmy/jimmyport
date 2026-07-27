@@ -90,6 +90,16 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (33) — [급식본부] Phase 4 텍스트 인라인 편집 + 배정 칩검색 + 편집 게이트 관리자 전용·30분 타임아웃 (v0.9.274)
+대상: `/krjam-fnc`(`board.js`·`board.css`·`krjam-fnc.html`) + 신규 `functions/api/jp-fnc-content.js`. §v0.9.274.
+- **Phase 4**: 핵심 안내문구 인라인 편집 — `jp-fnc-content` API(KV `jp:fnc-content`, GET 공개·PUT fncAdmin, 키='c'+hash(뷰+원문)), `applyContent()` 가 관리자면 `.tx-edit` contenteditable→blur 저장. 담당 배정 select→**칩검색**(입력→후보칩→클릭 배정). 편집 권한 **관리자 로그인에만**(isAdmin/canEditMenu/canAssign=fncSession), 30분 exp+tick 자동 로그아웃.
+- fnc-board 회귀 **73/73 ×3라운드**. 결함 1 수정: p4 의 `krjam-fnc:admin` 토큰이 같은 오리진 localStorage 공유로 p 에 잔류→비관리자 검사 오염, p4.close() 직후 제거.
+- ⏭ 남은: 사용자에게 미해독 이미지 2건 확인(#1 "기능상 겹치면 삭제"=어느 겹치는 기능, #2 "모두가 아는거라 빼도 됨"=어느 섹션). Superpowers 플러그인은 사용자가 직접 `/plugin install` 필요.
+
+### 2026-07-27 (32) — [급식본부] 상단바 날씨 (v0.9.273)
+대상: `/krjam-fnc`(`board.js`·`board.css`·`krjam-fnc.html`). §v0.9.273.
+- 상단바 `#fnc-wx` Open-Meteo(강원 고성) 날씨. fnc-board 68/68 ×3.
+
 ### 2026-07-27 (31) — [급식본부] Phase 2: 운영요원·쉬프트·실시간 근무자·전화 마스킹 (v0.9.272)
 대상: `/krjam-fnc`(`board.js`·`board.css`) + 신규 `functions/api/jp-fnc-staff.js`. §v0.9.272.
 - 신규 뷰 '운영요원 근무'(명단 칩 + 8/2~8/9×3쉬프트 배정). 대시보드 '지금 근무·오늘 식사' 실시간 카드. 전화=관리자만 전체(비관리자 phone4). jp:fnc-staff API(GET 마스킹·PUT fncAdmin). fnc-board 67/67 ×3.
