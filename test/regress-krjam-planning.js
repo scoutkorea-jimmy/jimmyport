@@ -189,7 +189,7 @@ const SEED = () => {
     top: document.querySelector('.ttg-ev[data-id="t1"]').style.top,
     height: document.querySelector('.ttg-ev[data-id="t1"]').style.height,
   }));
-  chk('8/5 t1·t2 렌더 + 컵 참관단 병합(워터파크·저녁·K-POP·정리)', tt.t1 && tt.t2 && tt.cub === 4, 't1·t2 + 컵 ' + tt.cub + '건/총 ' + tt.evs);
+  chk('8/5 t1·t2 렌더 + 컵 1기 5건(등록·과정·저녁·개영·취침)', tt.t1 && tt.t2 && tt.cub === 5, 't1·t2 + 컵 ' + tt.cub + '건/총 ' + tt.evs);
   chk('취재 불필요(t2) 회색 · 배지', tt.nocover === 1 && tt.nctag);
   // 취재 불필요 = 저채도 비활성 블록. 라이트=고명도 회색 / 다크=저명도 회색 둘 다 통과하도록 채도로 검사.
   chk('취재 불필요 배경 = 저채도 회색(비활성)', (() => { const m = (tt.bg.match(/\d+/g) || []).map(Number); if (m.length < 3) return false; return Math.max(m[0], m[1], m[2]) - Math.min(m[0], m[1], m[2]) <= 16; })(), tt.bg);
@@ -224,7 +224,7 @@ const SEED = () => {
   await new Promise((r) => setTimeout(r, 300));
   const wp = await page.evaluate(() => ({ ids: ['t1', 't2', 't3'].every((id) => !!document.querySelector('.ttg-ev[data-id="' + id + '"]')),
     cub: [...document.querySelectorAll('.ttg-ev[data-id]')].filter((x) => /^cub-/.test(x.getAttribute('data-id'))).length }));
-  chk('전체기간 뷰 → t1·t2·t3 + 컵 참관단 35건 전부 렌더', wp.ids && wp.cub === 35, 't1·t2·t3 + 컵 ' + wp.cub);
+  chk('전체기간 뷰 → t1·t2·t3 + 컵 참관단 34건 전부 렌더', wp.ids && wp.cub === 34, 't1·t2·t3 + 컵 ' + wp.cub);
   await page.evaluate(() => { const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /일간/.test(x.textContent)); b && b.click(); });
   await new Promise((r) => setTimeout(r, 250));
 
@@ -239,6 +239,37 @@ const SEED = () => {
   chk('컵 블록에 기수 태그(1기)', cubv.tags.length > 0 && cubv.tags.every((t) => /^[12]기$/.test(t)), cubv.tags.slice(0, 4).join(','));
   chk('컵 색 = 빨강 아님(개·폐영식과 구분)', cubv.cubBg && !/176, 62, 36/.test(cubv.cubBg), cubv.cubBg);
   chk('범례: 컵 참관단 카테고리 제거 · 컵 1기/2기 스와치', !cubv.catHasCub && cubv.legend.includes('컵 1기') && cubv.legend.includes('컵 2기'), cubv.legend.join('·'));
+  // 컵 일정 이미지 개정(2026-07-27): 1기 8/5~8/7오전 · 2기 8/7오후~8/9오전. 구 8/4 스케줄은 1회성 마이그레이션으로 교체.
+  const cubimg = await page.evaluate(() => {
+    const seeds = cubObserverSeeds();
+    const byId = (id) => seeds.find((s) => s.id === id);
+    return {
+      total: seeds.length,
+      no0804: !seeds.some((s) => /^cub-1-0804-/.test(s.id)),
+      b1in: (byId('cub-1-0805-1400') || {}).title, b1out: (byId('cub-1-0807-0700') || {}).title,
+      b2in: (byId('cub-2-0807-1400') || {}).title, b2out: (byId('cub-2-0809-0700') || {}).title,
+      close: (byId('cub-2-0808-2000') || {}).title,
+    };
+  });
+  chk('컵 시드 = 이미지 기준(1기 8/5입소·8/7오전퇴소 · 2기 8/7오후입소·8/9오전퇴소)',
+    cubimg.total === 34 && cubimg.no0804 && /입소식/.test(cubimg.b1in) && /퇴소식/.test(cubimg.b1out) && /입소식/.test(cubimg.b2in) && /퇴소식/.test(cubimg.b2out) && cubimg.close === '폐영식',
+    JSON.stringify(cubimg));
+  const cubmig = await page.evaluate(() => {
+    state.timetable = ttList().concat([
+      { id: 'cub-1-0804-0900', day: '2026-08-04', start: '09:00', end: '14:00', title: '운영요원 입영', track: 'cub', batch: 1, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] },
+      { id: 'cub-1-0804-1400', day: '2026-08-04', start: '14:00', end: '15:00', title: '등록·입소식', track: 'cub', batch: 1, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] },
+      { id: 'mkid-user-cub', day: '2026-08-06', start: '13:00', end: '14:00', title: '사용자추가', track: 'cub', batch: 1, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] },
+    ]);
+    const ran = migrateCubSchedule();
+    const after0804 = ttList().filter((t) => /^cub-1-0804-/.test(t.id)).length;
+    const cubTotal = ttList().filter((t) => /^cub-\d-\d{4}-\d{4}$/.test(t.id)).length;
+    const userKept = !!ttList().find((t) => t.id === 'mkid-user-cub');
+    const ranAgain = migrateCubSchedule();   // 멱등: 8/4 사라졌으므로 no-op
+    return { ran, after0804, cubTotal, userKept, ranAgain };
+  });
+  chk('컵 일정 마이그레이션: 구 8/4 제거 + 신 시드 교체 + 사용자항목 보존 + 멱등',
+    cubmig.ran === 1 && cubmig.after0804 === 0 && cubmig.cubTotal === 34 && cubmig.userKept === true && cubmig.ranAgain === 0,
+    JSON.stringify(cubmig));
 
   console.log('\n[식사 메뉴]');
   await go('meals');
@@ -480,7 +511,7 @@ const SEED = () => {
   const bv0 = await page.evaluate(() => (window.boardVer && window.boardVer.timetable) || null);
   chk('불러온 버전(boardVer) 저장', bv0 === 'V1', 'timetable=' + bv0);
   const baseSent = await page.evaluate(async () => { window.__put.length = 0; saveTimetable(); await new Promise((r) => setTimeout(r, 700));
-    const p = window.__put[window.__put.length - 1]; return p && p.baseVer && p.baseVer.timetable; });
+    const p = window.__put.filter((x) => x.timetable).pop(); return p && p.baseVer && p.baseVer.timetable; });   // 다른 디바운스 저장과 경합하지 않게 timetable put 만 집는다(플레이키 제거)
   chk('저장 시 baseVer(불러온 버전) 동봉', baseSent === 'V1', 'baseVer.timetable=' + baseSent);
   const mrg = await page.evaluate(async () => {
     const rf = window.fetch;
@@ -809,12 +840,12 @@ const SEED = () => {
   chk('컵 batch 오값도 id 기준 교정(멱등)', cub.bBatch === 1, 'batch=' + cub.bBatch);
   const dup = await page.evaluate(() => {
     const before = ttDupGroups().length;
-    state.timetable = ttList().concat([{ id: 'dup-x', day: '2026-08-06', start: '20:00', end: '22:00', title: '컵스나잇', track: 'cub', batch: 1, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] }]);
+    state.timetable = ttList().concat([{ id: 'dup-x', day: '2026-08-06', start: '20:00', end: '22:00', title: 'K-POP 콘서트', track: 'cub', batch: 1, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] }]);
     renderTimetable();
     const shown = document.getElementById('tt-dupes').style.display !== 'none';
     const g = ttDupGroups().length;
     // 1기/2기가 같은 시각·제목인 것은 정상 — 중복이 아니다
-    state.timetable = ttList().concat([{ id: 'ok-2gi', day: '2026-08-06', start: '20:00', end: '22:00', title: '컵스나잇', track: 'cub', batch: 2, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] }]);
+    state.timetable = ttList().concat([{ id: 'ok-2gi', day: '2026-08-06', start: '20:00', end: '22:00', title: 'K-POP 콘서트', track: 'cub', batch: 2, cat: '컵 참관단', assignees: [], contacts: [], rundown: [] }]);
     const g2 = ttDupGroups().length;
     return { before, shown, g, g2 };
   });
