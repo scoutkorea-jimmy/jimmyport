@@ -1,11 +1,11 @@
 {
   "version": "0.9.277",
-  "commit": "4aedf9e",
-  "commitSubject": "fix(v0.9.275): mobile audit for both boards; calendar name pushed outside its cell",
-  "commitAt": "2026-07-27T21:30:04+09:00",
-  "deployedAt": "2026-07-27T16:18:44.368Z",
+  "commit": "bc6020f",
+  "commitSubject": "feat(v0.9.277): stop silent data loss - optimistic locking, wipe guards, snapshots, restore",
+  "commitAt": "2026-07-28T01:18:53+09:00",
+  "deployedAt": "2026-07-27T16:32:14.425Z",
   "verification": {
-    "at": "2026-07-27T16:18:44.368Z",
+    "at": "2026-07-27T16:32:14.426Z",
     "rounds": [
       {
         "round": 1,
@@ -119,10 +119,70 @@
       },
       {
         "round": 2,
-        "checks": 182,
+        "checks": 717,
         "fails": 0,
         "failures": [],
         "items": [
+          {
+            "name": "audit-krjam-fnc",
+            "pass": null,
+            "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-krjam-planning",
+            "pass": null,
+            "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-mobile",
+            "pass": 1,
+            "total": 1,
+            "fails": 0
+          },
+          {
+            "name": "regress-a11y-sweep",
+            "pass": 36,
+            "total": 36,
+            "fails": 0
+          },
+          {
+            "name": "regress-admin",
+            "pass": 42,
+            "total": 42,
+            "fails": 0
+          },
+          {
+            "name": "regress-fnc-stability",
+            "pass": 30,
+            "total": 30,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-fnc",
+            "pass": 92,
+            "total": 92,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-fnc-board",
+            "pass": 75,
+            "total": 75,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-jebo",
+            "pass": 29,
+            "total": 29,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-news",
+            "pass": 111,
+            "total": 111,
+            "fails": 0
+          },
           {
             "name": "regress-krjam-planning",
             "pass": 147,
@@ -131,8 +191,8 @@
           },
           {
             "name": "regress-krjam-planning-motion",
-            "pass": null,
-            "total": null,
+            "pass": 25,
+            "total": 25,
             "fails": 0
           },
           {
@@ -145,6 +205,134 @@
             "name": "regress-krjam-planning-server",
             "pass": 16,
             "total": 16,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-press",
+            "pass": 31,
+            "total": 31,
+            "fails": 0
+          },
+          {
+            "name": "regress-landing",
+            "pass": 38,
+            "total": 38,
+            "fails": 0
+          },
+          {
+            "name": "regress-tour-csv",
+            "pass": 25,
+            "total": 25,
+            "fails": 0
+          }
+        ]
+      },
+      {
+        "round": 3,
+        "checks": 717,
+        "fails": 0,
+        "failures": [],
+        "items": [
+          {
+            "name": "audit-krjam-fnc",
+            "pass": null,
+            "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-krjam-planning",
+            "pass": null,
+            "total": null,
+            "fails": 0
+          },
+          {
+            "name": "audit-mobile",
+            "pass": 1,
+            "total": 1,
+            "fails": 0
+          },
+          {
+            "name": "regress-a11y-sweep",
+            "pass": 36,
+            "total": 36,
+            "fails": 0
+          },
+          {
+            "name": "regress-admin",
+            "pass": 42,
+            "total": 42,
+            "fails": 0
+          },
+          {
+            "name": "regress-fnc-stability",
+            "pass": 30,
+            "total": 30,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-fnc",
+            "pass": 92,
+            "total": 92,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-fnc-board",
+            "pass": 75,
+            "total": 75,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-jebo",
+            "pass": 29,
+            "total": 29,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-news",
+            "pass": 111,
+            "total": 111,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-planning",
+            "pass": 147,
+            "total": 147,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-planning-motion",
+            "pass": 25,
+            "total": 25,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-planning-nav",
+            "pass": 19,
+            "total": 19,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-planning-server",
+            "pass": 16,
+            "total": 16,
+            "fails": 0
+          },
+          {
+            "name": "regress-krjam-press",
+            "pass": 31,
+            "total": 31,
+            "fails": 0
+          },
+          {
+            "name": "regress-landing",
+            "pass": 38,
+            "total": 38,
+            "fails": 0
+          },
+          {
+            "name": "regress-tour-csv",
+            "pass": 25,
+            "total": 25,
             "fails": 0
           }
         ]
