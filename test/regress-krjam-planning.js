@@ -279,6 +279,31 @@ const SEED = () => {
     cells: document.querySelectorAll('#mealbody td.mk[contenteditable]').length }));
   chk('식사 메뉴 7일(8/3~8/9) × 3끼', ml.rows === 7 && ml.cells === 21, ml.rows + '행 · ' + ml.cells + '칸');
   chk('식사 3그룹 토글(대원 일반식·특별식·운영요원)', ml.seg.length === 3 && ml.seg[0] === '대원 일반식*', ml.seg.join(' '));
+  // 참가자 일반식(crew_n) 이미지 기준 재구성(2026-07-27) — 원본 대조 고정
+  const meal = await page.evaluate(() => {
+    const cn = defaultMeals().crew_n;
+    return {
+      dates: Object.keys(cn).sort().join(','),
+      b0806: cn['2026-08-06'].b, d0806: cn['2026-08-06'].d, d0805: cn['2026-08-05'].d,
+      l0807: cn['2026-08-07'].l, d0808: cn['2026-08-08'].d, b0809: cn['2026-08-09'].b,
+      blank0805b: cn['2026-08-05'].b === '', blank0809d: cn['2026-08-09'].d === '',
+    };
+  });
+  chk('일반식 이미지 기준 값(요거톡·고기듬뿍김치찌개·클로렐라쌀밥·뽀로로두부봉·치킨마크니커리)',
+    meal.dates === '2026-08-05,2026-08-06,2026-08-07,2026-08-08,2026-08-09' &&
+    /롤유부초밥_햇반/.test(meal.b0806) && /요거톡/.test(meal.b0806) && /고기듬뿍김치찌개&라면사리/.test(meal.d0806) &&
+    /클로렐라쌀밥/.test(meal.d0805) && !/햇반/.test(meal.d0805.split('\n')[1] || '') && /뽀로로두부봉/.test(meal.l0807) &&
+    /치킨마크니커리/.test(meal.d0808) && /컵시리얼&흰우유/.test(meal.b0809) && meal.blank0805b && meal.blank0809d,
+    JSON.stringify(meal).slice(0, 120));
+  const mmig = await page.evaluate(() => {
+    // 구 일반식(롤유부초밥, _햇반 없음) 저장본 → 1회성 마이그레이션이 신 데이터로 교체
+    mealsData().crew_n = { '2026-08-06': { b: '롤유부초밥\n미역된장국', l: '', d: '돼지김치찌개&라면사리' } };
+    const ran = migrateMealsCrewN();
+    const after = /롤유부초밥_햇반/.test(mealsData().crew_n['2026-08-06'].b) && /고기듬뿍김치찌개/.test(mealsData().crew_n['2026-08-06'].d);
+    const again = migrateMealsCrewN();   // 멱등: 신 표식 있으면 no-op
+    return { ran, after, again, n: Object.keys(mealsData().crew_n).length };
+  });
+  chk('일반식 마이그레이션: 구 데이터 → 신 데이터 교체(멱등)', mmig.ran === 1 && mmig.after === true && mmig.again === 0 && mmig.n === 5, JSON.stringify(mmig));
 
   console.log('\n[소식 제보 → 일정]');
   await go('tips');

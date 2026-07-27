@@ -90,6 +90,13 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (25) — 참가자 일반식 메뉴 이미지 기준 교체 (v0.9.266) + 사이트 안정성 점검
+대상: `/krjam-planning` meals(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.106.
+- **안정성 점검 결론**: "사이트가 다 깨졌다"는 **로컬 워킹트리의 타 작업 uncommitted 23개 파일**(index.html·jp-news.js·admin.js 등 대량 삭제 refactor) 때문 — **배포/커밋된 코드는 멀쩡**. 증거: 그 23개를 `git stash` 하면 전체 회귀 **13개 스위트 전부 통과**(planning 139·nav 19·server 16·press·news·jebo 29·fnc·fnc-board·landing·a11y·admin·tour-csv), 되돌리면 nav·news·landing 등 실패(cleanStage 삭제·랜딩 요소 삭제와 정확히 일치). 라이브 전 라우트 200. → 그 23개는 해당 작업자가 완성/커밋하거나 폐기해야 함(아직 워킹트리에 남아있음).
+- **일반식 교체**: `defaultMeals().crew_n` 이미지대로 재작성 + `migrateMealsCrewN()` 1회성 교체(멱등). 이미지 대조로 기존 오타/누락 교정(요거톡·고기듬뿍김치찌개·클로렐라쌀밥·뽀로로두부봉·치킨마크니커리). crew_s·staff 불변.
+- 검증: planning **141/141 ×3라운드**. cub·meals 둘 다 "시드는 새 보드만 → 저장된 보드는 1회성 마이그레이션" 패턴 사용.
+- ⚠️ 배포는 cub 때와 동일하게 **cub/meals 파일만 격리 배포**(23개 WIP는 stash로 제외) — 깨진 트리 전체를 내보내지 않기 위함.
+
 ### 2026-07-27 (24) — 컵 참관단 일정표 이미지 기준 재구성 (v0.9.265)
 대상: `/krjam-planning` cub 트랙(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.105.
 - 제공 이미지대로 `cubObserverSeeds()` 재작성: **1기 8/5(오후)~8/7(오전) · 2기 8/7(오후)~8/9(오전)**, 34건(구 1기 8/4 시작 폐기).
