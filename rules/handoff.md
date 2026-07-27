@@ -90,6 +90,13 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (24) — 컵 참관단 일정표 이미지 기준 재구성 (v0.9.265)
+대상: `/krjam-planning` cub 트랙(`jamboree-plan/app.js`). 상세: [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) §16.105.
+- 제공 이미지대로 `cubObserverSeeds()` 재작성: **1기 8/5(오후)~8/7(오전) · 2기 8/7(오후)~8/9(오전)**, 34건(구 1기 8/4 시작 폐기).
+- **`migrateCubSchedule()`** 신설 — 시드는 `domainStored` 가드로 새 보드에만 들어가므로, 이미 저장된 보드는 **구 8/4 항목 존재를 신호로 1회성** 교체(멱등·사용자 mkid cub 보존). 구 8/4 담당 배정은 1회 초기화됨(재지정 필요).
+- 검증: planning **139/139 ×3라운드**. 옛 dup 테스트(컵스나잇 8/6)→새 슬롯(K-POP)으로 갱신, flaky baseVer 테스트를 timetable-put 필터로 결정론화.
+- ⚠️ **배포 특이사항**: 이 세션 시작 시 워킹트리에 **타 작업 23개 파일 uncommitted**(index.html·admin.js·functions/* 등 대규모)가 있었다. cub 변경은 `jamboree-plan/app.js`+`test/regress-krjam-planning.js`로 격리 커밋(7a35fd4). 사용자가 **트리 전체 배포**를 택해 v0.9.265 로 함께 배포 → 그 23개 변경도 이때 라이브로 나갔다(그 내용의 검증·문서화는 해당 작업자 몫).
+
 ### 2026-07-27 (23) — /admin 운영 현황 (v0.9.257) + 디자인 규칙 픽셀 감사 (v0.9.256)
 대상: 신규 `/admin` · 신규 `functions/api/hit.js`·`admin-stats.js` · 감사 도구 2종.
 - **/admin — TOTP 잠금 운영 현황**: 화면별 유입(PV) · 라우팅 실시간 점검 · 배포/검증 상태.
