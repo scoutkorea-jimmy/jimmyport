@@ -90,6 +90,11 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (31) — [급식본부] Phase 2: 운영요원·쉬프트·실시간 근무자·전화 마스킹 (v0.9.272)
+대상: `/krjam-fnc`(`board.js`·`board.css`) + 신규 `functions/api/jp-fnc-staff.js`. §v0.9.272.
+- 신규 뷰 '운영요원 근무'(명단 칩 + 8/2~8/9×3쉬프트 배정). 대시보드 '지금 근무·오늘 식사' 실시간 카드. 전화=관리자만 전체(비관리자 phone4). jp:fnc-staff API(GET 마스킹·PUT fncAdmin). fnc-board 67/67 ×3.
+- ⏭ 남은: **Phase 4**(핵심 안내문구 인라인 편집), **급식보드 상단바 날씨**.
+
 ### 2026-07-27 (30) — [급식본부] Phase 3: 식사 메뉴 반전+양방향 편집 (v0.9.271)
 대상: `/krjam-fnc`(`board.js`·`board.css`) + `functions/api/jp-meals.js`(PUT 신설). §v0.9.271.
 - fnc 메뉴 표 **행=조/중/석 · 열=날짜**(홍보부 보드 불변). 관리자/홍보부 세션이면 셀 인라인 편집→`PUT /api/jp-meals`(셀 단위 RMW, 양방향). fnc-board 60/60 ×3.

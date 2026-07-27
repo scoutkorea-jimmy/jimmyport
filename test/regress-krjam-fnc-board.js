@@ -22,7 +22,8 @@ const MEALS = { ok: true, updatedAt: '2026-07-20T00:00:00Z', meals: {
   crew_s: {},
   staff: { '2026-08-05': { b: '그린샐러드·모닝빵', l: '간편식', d: '제육볶음' },
            '2026-08-06': { b: '죽·샐러드', l: '간편식', d: '닭갈비' } } } };
-let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0;
+let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0, staffPuts = 0;
+const STAFF = { staff: [{ id: 'st1', name: '김운영', phone: '01012345678' }, { id: 'st2', name: '이배식', phone: '01099998888' }], shifts: { '2026-08-05': { am: ['st1'], pm: ['st2'] } } };
 const DUTIES = { duties: { supply: { main: '주명림', sub: '장문수', note: '06:00 보급 준비' } }, updatedAt: '2026-07-25T10:00:00Z', by: '심호웅' };
 
 const server = http.createServer((req, res) => {
@@ -41,6 +42,24 @@ const server = http.createServer((req, res) => {
     mealHits++;
     if (mealFail) { res.writeHead(500); return res.end('err'); }
     res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(MEALS));
+  }
+  if (p === '/api/jp-fnc-staff') {
+    var admin = /Bearer FNCTOK/.test(req.headers.authorization || '');
+    if (req.method === 'PUT') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        if (!admin) { res.writeHead(401); return res.end('{"ok":false}'); }
+        try { var b = JSON.parse(body); STAFF.staff = b.staff || []; STAFF.shifts = b.shifts || {}; staffPuts++; } catch (e) {}
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, staff: STAFF.staff, shifts: STAFF.shifts, updatedAt: 'x', by: '급식 관리자', admin: true }));
+      });
+      return;
+    }
+    var st = admin ? STAFF.staff.map((s) => ({ id: s.id, name: s.name, phone: s.phone }))
+      : STAFF.staff.map((s) => ({ id: s.id, name: s.name, phone4: String(s.phone || '').slice(-4) }));
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, staff: st, shifts: STAFF.shifts, updatedAt: 'x', by: '', admin: admin }));
   }
   if (p === '/api/jp-fnc-auth') {
     let body = '';
@@ -94,9 +113,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   console.log('\n[화면 · 이동]');
   const views = await p.evaluate(() => window.__fncBoard.VIEWS.map((v) => v.id));
-  chk('화면 11개 정의', views.length === 11 && views[0] === 'home', views.join(','));
-  chk('좌측 내비 11개 · 모바일 탭 5개', await p.evaluate(() =>
-    document.querySelectorAll('#sidenav .navitem').length === 11 && document.querySelectorAll('#tabbar .tabbtn').length === 5));
+  chk('화면 12개 정의', views.length === 12 && views[0] === 'home', views.join(','));
+  chk('좌측 내비 12개 · 모바일 탭 5개', await p.evaluate(() =>
+    document.querySelectorAll('#sidenav .navitem').length === 12 && document.querySelectorAll('#tabbar .tabbtn').length === 5));
   const empties = [];
   for (const v of views) {
     await p.evaluate((x) => window.__fncBoard.setView(x), v);
@@ -109,7 +128,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     }, v);
     if (!ok) empties.push(v);
   }
-  chk('11개 화면 모두 내용이 채워진다', empties.length === 0, empties.join(' | '));
+  chk('12개 화면 모두 내용이 채워진다', empties.length === 0, empties.join(' | '));
   chk('해시로 화면이 유지된다', await p.evaluate(async () => {
     location.hash = '#inout'; await new Promise((r) => setTimeout(r, 300));
     return document.getElementById('view-title').textContent === '입영 · 퇴영';
@@ -296,6 +315,22 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   chk('원문 쪽 링크는 플립북 딥링크', srcs.every((h) => !h || /^\/krjam-fnc-book#p\d+$/.test(h) || h === '/krjam-planning'), srcs.join(','));
 
+  console.log('\n[운영요원 · 쉬프트]');
+  await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(500);
+  chk('운영요원 명단 칩 렌더', await p.evaluate(() => document.querySelectorAll('#staffbox .staffchip').length >= 2));
+  chk('비관리자: 전화 끝 4자리만(전체번호 노출 안 함)', await p.evaluate(() => {
+    var t = document.getElementById('staffbox').textContent;
+    return t.indexOf('김운영') >= 0 && t.indexOf('5678') >= 0 && t.indexOf('01012345678') < 0;
+  }));
+  chk('비관리자: 배정 편집 UI 없음', await p.evaluate(() => document.querySelectorAll('#staffbox .shift-add').length === 0 && !document.getElementById('staff-add-go')));
+  chk('쉬프트 시간 계산(오전05–10·오후11–15·저녁16–21)', await p.evaluate(() => {
+    var am = window.__fncBoard.currentShift(new Date('2026-08-05T06:00:00'));
+    var pm = window.__fncBoard.currentShift(new Date('2026-08-05T12:00:00'));
+    var eve = window.__fncBoard.currentShift(new Date('2026-08-05T17:00:00'));
+    var none = window.__fncBoard.currentShift(new Date('2026-08-05T23:30:00'));
+    return am[0] === 'am' && pm[0] === 'pm' && eve[0] === 'eve' && none === null;
+  }));
+
   console.log('\n[급식 관리자 로그인]');
   const beforeLogin = await p.evaluate(() => ({ admin: window.__fncBoard.isAdmin(), btn: document.getElementById('fnc-admin-btn').textContent.trim(), modalHidden: document.getElementById('fnc-login').hidden }));
   chk('초기 비로그인(관리자 아님 · 모달 숨김)', beforeLogin.admin === false && beforeLogin.btn === '관리자' && beforeLogin.modalHidden === true, JSON.stringify(beforeLogin));
@@ -316,6 +351,14 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.evaluate(async () => { var c = document.querySelector('#menubox td.mcell[data-meal="b"]'); c.focus(); c.textContent = '테스트조식'; c.dispatchEvent(new Event('blur', { bubbles: true })); await new Promise((r) => setTimeout(r, 500)); });
   await wait(300);
   chk('메뉴 셀 수정 → 서버(jp-meals) 저장(양방향)', mealPuts > putsBefore, 'PUT ' + (mealPuts - putsBefore));
+  // 관리자 상태의 운영요원 뷰: 전화 전체 + 편집 UI + 추가 저장
+  await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(500);
+  chk('관리자: 전화 전체 표시', await p.evaluate(() => document.getElementById('staffbox').textContent.indexOf('01012345678') >= 0));
+  chk('관리자: 운영요원 추가/배정 UI', await p.evaluate(() => !!document.getElementById('staff-add-go') && document.querySelectorAll('#staffbox .shift-add').length > 0));
+  const spBefore = staffPuts;
+  await p.evaluate(async () => { document.getElementById('staff-name').value = '박신규'; document.getElementById('staff-phone').value = '01055551234'; document.getElementById('staff-add-go').click(); await new Promise((r) => setTimeout(r, 500)); });
+  await wait(300);
+  chk('관리자: 운영요원 추가 → 서버 저장(PUT)', staffPuts > spBefore, 'PUT ' + (staffPuts - spBefore));
   await p.evaluate(() => { localStorage.removeItem('krjam-fnc:admin'); window.__fncBoard.renderAdminBtn(); });
 
   console.log('\n[서버가 없을 때]');
@@ -326,7 +369,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p3.goto(base + '/krjam-fnc#menu', { waitUntil: 'networkidle2' });
   await wait(900);
   chk('메뉴 API 가 죽어도 화면은 살아 있다', await p3.evaluate(() =>
-    document.querySelectorAll('.navitem').length === 11 && /불러오지 못했습니다|다시 불러오기/.test(document.body.textContent)));
+    document.querySelectorAll('.navitem').length === 12 && /불러오지 못했습니다|다시 불러오기/.test(document.body.textContent)));
   chk('그때도 콘솔 에러 0', err3.length === 0, err3.slice(0, 2).join(' | '));
   await p3.close();
   mealFail = false;

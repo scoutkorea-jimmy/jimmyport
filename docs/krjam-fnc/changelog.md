@@ -296,3 +296,9 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - 인라인 편집: fnc 관리자(admin) 또는 홍보부 세션이면 셀 `contenteditable` → blur/Enter 시 `PUT /api/jp-meals {group,date,meal,value}` 로 셀 단위 저장. 같은 jp:meals 라 홍보부에 즉시 반영(양방향).
 - 백엔드 `jp-meals.js` 에 **PUT 신설**(GET 전용→편집 가능): 권한 memberOrAdmin ∥ fncAdmin, 셀 단위 read-modify-write(다른 칸 미덮어씀), pickMeals 정규화·400자 제한.
 - 검증: `node --check`(board·jp-meals·test) + fnc-board 회귀 **57→60/60 ×3라운드**(표 반전 구조·관리자 셀 편집 21칸·셀 수정→PUT 저장 신규; 기존 '메뉴는 같은 자료' 텍스트 검사 불변).
+
+### 19.x v0.9.272 — 운영요원·쉬프트 캘린더 + 대시보드 실시간 근무자 + 전화 마스킹 [Phase 2/4]
+- 사용자: 운영요원 리스트(이름 필수·전화 선택·칩) + 쉬프트(오전05–10·오후11–15·저녁16–21, 8/2~8/9 캘린더) + 대시보드 현재 근무자·오늘 메뉴 실시간 + 전화는 관리자만(평소 이름+끝4자리).
+- 백엔드 `functions/api/jp-fnc-staff.js`: KV `jp:fnc-staff`={staff,shifts}. GET 공개(관리자면 전화 전체, 아니면 **phone4**=끝4자리만 — 서버가 전체번호를 비관리자에게 절대 안 보냄). PUT=fncAdmin만. cleanStaff(이름 필수·전화 숫자만)·cleanShifts.
+- 프론트 `board.js`: 신규 뷰 **'운영요원 근무'**(명단 칩 + 8/2~8/9×3쉬프트 배정 표). 관리자면 인원 추가(이름/전화)·삭제·쉬프트 배정(select)·해제. 대시보드에 **'지금 근무 · 오늘 식사'** 카드(`renderDutyNow`, 현재 시각→쉬프트 계산, 1초 tick 갱신, 오늘 운영요원 메뉴 표시). `staffLabel`=이름(전화|끝4).
+- 검증: `node --check`(board·jp-fnc-staff·test) + fnc-board 회귀 **60→67/67 ×3라운드**(명단 칩·비관리자 마스킹[전체번호 미노출]·배정 UI 게이트·쉬프트 시간계산·관리자 전화전체·추가 저장 PUT 신규; 화면 11→12 카운트 갱신).

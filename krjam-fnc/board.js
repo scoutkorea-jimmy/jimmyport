@@ -126,6 +126,7 @@
     { id: 'menu',    ic: '☰', label: '식사 메뉴',   short: '메뉴',   grp: '현장에서 바로' },
     { id: 'fac',     ic: '☕', label: '편의시설',    short: '편의',   grp: '현장에서 바로' },
     { id: 'duty',    ic: '👤', label: '담당 배정',   short: '담당',   grp: '운영' },
+    { id: 'staff',   ic: '🧑‍🍳', label: '운영요원 근무', short: '근무', grp: '운영' },
     { id: 'org',     ic: '▣', label: '본부 · 조직',  short: '조직',   grp: '운영' },
     { id: 'sched',   ic: '▤', label: '업무 일정',    short: '일정',   grp: '운영' },
     { id: 'inout',   ic: '⇄', label: '입영 · 퇴영',  short: '입퇴영', grp: '준비' },
@@ -225,6 +226,10 @@
           '<em>The 16th KNJ Food Service &amp; Convenience Division · 운영요원(IST)</em></div>' +
       '</div>' +
       '<div class="hero" id="hero"></div>' +
+      '<section class="sec">' +
+        '<h2 class="sec-h">지금 근무 · 오늘 식사</h2>' +
+        '<div class="card" id="dutynow"></div>' +
+      '</section>' +
       '<section class="sec">' +
         '<h2 class="sec-h">지금 식사 운영' + srcLink(12) + '</h2>' +
         '<div class="card" id="mealnow"></div>' +
@@ -585,7 +590,7 @@
       '</section>';
   }
   var RENDER = { home: viewHome, org: viewOrg, food: viewFood, menu: viewMenu, fac: viewFac,
-                 inout: viewInout, ist: viewIst, duty: viewDuty, sched: viewSched,
+                 inout: viewInout, ist: viewIst, duty: viewDuty, staff: viewStaff, sched: viewSched,
                  gallery: viewGallery, book: viewBook };
 
   /* ── 살아 있는 부분 ────────────────────────────────────────── */
@@ -678,6 +683,82 @@
         '<ul>' + d.items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul></div>';
     }).join('');
   }
+
+  /* ── 운영요원 · 쉬프트 (v0.9.272) ──────────────────────────────
+     운영요원: 이름(필수)·전화(선택). 전화 전체는 관리자만(비관리자엔 끝 4자리).
+     쉬프트: 오전 05–10 · 오후 11–15 · 저녁 16–21, 날짜 8/2~8/9. 대시보드에 현재 근무자 + 오늘 메뉴. */
+  var STAFF_SHIFTS = [['am', '오전', '05:00', '10:00'], ['pm', '오후', '11:00', '15:00'], ['eve', '저녁', '16:00', '21:00']];
+  var STAFF_DAYS = ['2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09'];
+  var staffData = null;
+  function staffHeader() { var f = fncSession(); return f ? { Authorization: 'Bearer ' + f.token } : {}; }   // 관리자면 전체번호 수신
+  function loadStaff() {
+    return fetch('/api/jp-fnc-staff', { headers: staffHeader() }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) staffData = { staff: j.staff || [], shifts: j.shifts || {} }; return j; })
+      .catch(function () { return null; });
+  }
+  function saveStaff() {
+    var body = { staff: (staffData.staff || []).map(function (s) { return { id: s.id, name: s.name, phone: s.phone != null ? s.phone : '' }; }), shifts: staffData.shifts || {} };
+    return fetch('/api/jp-fnc-staff', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()), body: JSON.stringify(body) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.ok) { staffData = { staff: j.staff || [], shifts: j.shifts || {} }; renderStaffView(); renderDutyNow(); toast('저장됨'); } else { toast('저장 실패 — 관리자 로그인을 확인하세요'); } })
+      .catch(function () { toast('저장 실패'); });
+  }
+  function mkStaffId() { return 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+  function currentShift(now) { var m = nowMinutes(now); for (var i = 0; i < STAFF_SHIFTS.length; i++) { var s = STAFF_SHIFTS[i]; if (m >= minutesOf(s[2]) && m < minutesOf(s[3])) return s; } return null; }
+  function staffLabel(s) { var ph = (s.phone != null) ? s.phone : (s.phone4 || ''); return s.name + (ph ? ' (' + ph + ')' : ''); }
+  // 대시보드 실시간 근무자 + 오늘 메뉴
+  function renderDutyNow() {
+    var box = $('dutynow'); if (!box) return;
+    var now = new Date(), sh = currentShift(now);
+    var today = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
+    var staff = staffData ? staffData.staff : [], byId = {}; staff.forEach(function (s) { byId[s.id] = s; });
+    var onNow = [];
+    if (sh && staffData) onNow = (((staffData.shifts[today] || {})[sh[0]]) || []).map(function (id) { return byId[id]; }).filter(Boolean);
+    var mt = menuData ? ((menuData.staff || {})[today] || {}) : null;
+    var menuHtml = (mt && (mt.b || mt.l || mt.d))
+      ? [['b', '조식'], ['l', '중식'], ['d', '석식']].map(function (x) { return mt[x[0]] ? '<div class="dn-meal"><span>' + x[1] + '</span>' + esc(mt[x[0]]) + '</div>' : ''; }).join('')
+      : '<span class="muted">오늘 등록된 메뉴가 없습니다</span>';
+    box.innerHTML =
+      '<div class="dutynow-shift">' + (sh ? ('<span class="chip ok">' + sh[1] + '팀 근무 중</span> <b>' + sh[2] + ' ~ ' + sh[3] + '</b>') : '<span class="chip">지금은 지정 근무 시간이 아닙니다</span>') + '</div>' +
+      '<div class="dutynow-people">' + (onNow.length ? onNow.map(function (s) { return '<span class="staffchip">' + esc(staffLabel(s)) + '</span>'; }).join('') : '<span class="muted">' + (staffData ? '배정된 근무자가 없습니다' : '운영요원 정보를 불러오는 중…') + '</span>') + '</div>' +
+      '<div class="dutynow-menu"><b>오늘 식사(운영요원)</b>' + menuHtml + '</div>';
+  }
+  function viewStaff() { return '<section class="sec"><h2 class="sec-h">운영요원 · 쉬프트 배정</h2><div class="card" id="staffbox"><p class="muted">불러오는 중…</p></div></section>'; }
+  function renderStaffView() {
+    var box = $('staffbox'); if (!box) return;
+    if (!staffData) { box.innerHTML = '<p class="muted">운영요원 정보를 불러오지 못했습니다.</p><button class="btn sm" id="staff-retry">다시 불러오기</button>'; return; }
+    var admin = isAdmin(), staff = staffData.staff, byId = {}; staff.forEach(function (s) { byId[s.id] = s; });
+    var roster = staff.map(function (s) { return '<span class="staffchip">' + esc(staffLabel(s)) + (admin ? '<button class="chip-x" data-staff-rm="' + esc(s.id) + '" aria-label="삭제">✕</button>' : '') + '</span>'; }).join('') || '<span class="muted">등록된 운영요원이 없습니다.</span>';
+    var addForm = admin ? '<div class="staff-add"><input id="staff-name" placeholder="이름 (필수)" autocomplete="off" /><input id="staff-phone" placeholder="전화 (선택)" inputmode="numeric" autocomplete="off" /><button type="button" class="btn sm solid" id="staff-add-go">＋ 추가</button></div>' : '';
+    var cal = '<div class="tblwrap"><table class="tbl shifttbl"><thead><tr><th>날짜</th>' +
+      STAFF_SHIFTS.map(function (s) { return '<th>' + s[1] + '팀<span class="sh-t">' + s[2] + '~' + s[3] + '</span></th>'; }).join('') + '</tr></thead><tbody>' +
+      STAFF_DAYS.map(function (d) {
+        var dd = (+d.slice(5, 7)) + '/' + (+d.slice(8, 10));
+        return '<tr><th>' + dd + '</th>' + STAFF_SHIFTS.map(function (sh) {
+          var ids = ((staffData.shifts[d] || {})[sh[0]]) || [];
+          var chips = ids.map(function (id) { var s = byId[id]; return s ? '<span class="staffchip sm">' + esc(s.name) + (admin ? '<button class="chip-x" data-unassign="' + d + '|' + sh[0] + '|' + esc(id) + '" aria-label="빼기">✕</button>' : '') + '</span>' : ''; }).join('');
+          var picker = '';
+          if (admin) { var avail = staff.filter(function (s) { return ids.indexOf(s.id) < 0; }); picker = '<select class="shift-add" data-assign="' + d + '|' + sh[0] + '" aria-label="근무자 배정"><option value="">＋ 배정</option>' + avail.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>'; }).join('') + '</select>'; }
+          return '<td>' + (chips || (admin ? '' : '<span class="muted">—</span>')) + picker + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    box.innerHTML = '<h3>운영요원 명단' + (admin ? '' : ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 전화 전체는 관리자만 (평소 끝 4자리)</span>') + '</h3>' +
+      '<div class="staff-roster">' + roster + '</div>' + addForm +
+      '<h3 style="margin-top:18px">쉬프트 배정 <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 오전 05–10 · 오후 11–15 · 저녁 16–21</span></h3>' + cal +
+      (admin ? '' : '<p class="muted" style="margin-top:10px">배정 편집은 <b>관리자</b> 로그인 후 가능합니다.</p>');
+  }
+  function addStaffMember() {
+    var nm = ($('staff-name').value || '').trim(); if (!nm) { toast('이름은 필수입니다'); return; }
+    var ph = ($('staff-phone').value || '').replace(/[^0-9]/g, '');
+    staffData.staff.push({ id: mkStaffId(), name: nm, phone: ph }); saveStaff();
+  }
+  function removeStaffMember(id) {
+    staffData.staff = staffData.staff.filter(function (s) { return s.id !== id; });
+    Object.keys(staffData.shifts).forEach(function (d) { STAFF_SHIFTS.forEach(function (sh) { var a = (staffData.shifts[d] || {})[sh[0]]; if (a) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } }); });
+    saveStaff();
+  }
+  function assignShift(d, k, id) { if (!staffData.shifts[d]) staffData.shifts[d] = {}; var a = staffData.shifts[d][k] = staffData.shifts[d][k] || []; if (a.indexOf(id) < 0) a.push(id); saveStaff(); }
+  function unassignShift(d, k, id) { var a = (staffData.shifts[d] || {})[k]; if (a) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } saveStaff(); }
 
   /* 식사 메뉴 — 홍보부 보드와 같은 자료(/api/jp-meals) */
   var MENU_DAYS = ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09'];
@@ -868,11 +949,12 @@
     [].forEach.call(document.querySelectorAll('[data-nav]'), function (b) {
       b.classList.toggle('on', b.getAttribute('data-nav') === id);
     });
-    if (id === 'home') { renderHero(); renderMealNow(); renderToday(); }
+    if (id === 'home') { renderHero(); renderMealNow(); renderToday(); renderDutyNow(); if (!staffData) loadStaff().then(renderDutyNow); }
     if (id === 'food') renderMealTable();
     if (id === 'sched') renderDays();
     if (id === 'menu') { renderMenu(); if (!menuData) loadMenu().then(renderMenu); }
     if (id === 'duty') { renderDuty(); if (!duties) loadDuty().then(renderDuty); }
+    if (id === 'staff') { renderStaffView(); if (!staffData) loadStaff().then(renderStaffView); else loadStaff().then(renderStaffView); }
     if (push !== false && location.hash !== '#' + id) history.pushState(null, '', '#' + id);
     closeSide();
     window.scrollTo(0, 0);
@@ -896,7 +978,7 @@
   }
 
   function tick() {
-    if (cur === 'home') { renderHero(); renderMealNow(); }
+    if (cur === 'home') { renderHero(); renderMealNow(); renderDutyNow(); }
     if (cur === 'food') renderMealTable();
     var n = new Date();
     var t = $('topnow'); if (t) t.textContent = pad2(n.getHours()) + ':' + pad2(n.getMinutes());
@@ -915,6 +997,10 @@
       var mg = e.target.closest('[data-mg]'); if (mg) { menuGroup = mg.getAttribute('data-mg'); renderMenu(); return; }
       if (e.target.closest('#menu-retry')) { loadMenu().then(renderMenu); return; }
       if (e.target.closest('#duty-retry')) { loadDuty().then(renderDuty); return; }
+      if (e.target.closest('#staff-retry')) { loadStaff().then(renderStaffView); return; }
+      if (e.target.closest('#staff-add-go')) { addStaffMember(); return; }
+      var srm = e.target.closest('[data-staff-rm]'); if (srm) { removeStaffMember(srm.getAttribute('data-staff-rm')); return; }
+      var un = e.target.closest('[data-unassign]'); if (un) { var pp = un.getAttribute('data-unassign').split('|'); unassignShift(pp[0], pp[1], pp[2]); return; }
       if (e.target.closest('#duty-edit')) { dutyEdit = true; renderDuty(); return; }
       if (e.target.closest('#duty-cancel')) { dutyEdit = false; renderDuty(); return; }
       if (e.target.closest('#duty-save')) { saveDuty(); return; }
@@ -942,9 +1028,13 @@
     });
     setView((location.hash || '').replace('#', '') || 'home', false);
     tick(); setInterval(tick, 1000);
+    document.addEventListener('change', function (e) {
+      var as = e.target.closest('[data-assign]'); if (as && as.value) { var pp = as.getAttribute('data-assign').split('|'); assignShift(pp[0], pp[1], as.value); }
+    });
     loadMenu().then(function () { if (cur === 'menu') renderMenu(); });
     loadDuty().then(function () { if (cur === 'duty') renderDuty(); });
-    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn }; } catch (e) {}
+    loadStaff().then(function () { if (cur === 'home') renderDutyNow(); if (cur === 'staff') renderStaffView(); });
+    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift }; } catch (e) {}
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

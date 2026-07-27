@@ -361,3 +361,20 @@ body,button,input,select,textarea{word-break:keep-all; overflow-wrap:break-word}
 .tbl.editable td.mcell{cursor:text;min-width:98px}
 .tbl.editable td.mcell:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft-2)}
 .tbl.editable td.mcell:empty::before{content:'—';color:var(--faint)}
+
+/* ── 운영요원 · 쉬프트 (v0.9.272) ── */
+.staffchip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;margin:3px;border-radius:var(--pill,999px);background:var(--accent-soft);color:var(--accent-ink);font-size:var(--fs-1);font-weight:600}
+.staffchip.sm{padding:3px 9px;margin:2px}
+.staffchip .chip-x{border:none;background:transparent;color:var(--accent-ink);cursor:pointer;font-size:12px;line-height:1;padding:0 2px}
+.staff-roster{margin:8px 0}
+.staff-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.staff-add input{min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-1)}
+.staff-add input:focus{outline:none;border-color:var(--accent);background:var(--accent-soft-2)}
+.shifttbl th .sh-t{display:block;font-weight:500;font-size:var(--fs-1);color:var(--muted)}
+.shifttbl td{vertical-align:top;min-width:120px}
+.shift-add{display:block;margin-top:5px;min-height:34px;font:inherit;font-size:var(--fs-1);border:1px dashed var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--muted);padding:0 6px}
+.dutynow-shift{margin-bottom:8px}
+.dutynow-people{display:flex;flex-wrap:wrap;margin-bottom:10px;min-height:26px}
+.dutynow-menu{border-top:1px solid var(--line);padding-top:9px;font-size:var(--fs-1)}
+.dn-meal{display:flex;gap:8px;margin-top:4px}
+.dn-meal span{min-width:34px;color:var(--muted);font-weight:600}
