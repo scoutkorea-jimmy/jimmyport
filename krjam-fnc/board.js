@@ -87,6 +87,37 @@
   function canAssign() { return !!session(); }
   function authHeader() { var s = session(); return s ? { Authorization: 'Bearer ' + s.token } : {}; }
 
+  /* 급식 관리자 세션 — admin/admin (/api/jp-fnc-auth). 홍보부 세션과 별개.
+     로그인하면 운영요원 전화 전체 열람 · 내용/텍스트 편집 · 식사 메뉴 편집이 열린다. */
+  function fncSession() {
+    try { var s = JSON.parse(localStorage.getItem('krjam-fnc:admin') || 'null');
+      if (s && s.token && s.exp && s.exp > Date.now()) return s; } catch (e) {}
+    return null;
+  }
+  function isAdmin() { return !!fncSession(); }   // 급식 관리자(admin/admin)만 — 전화 열람·편집 게이트
+  // 쓰기용 토큰 — 급식 관리자 우선, 없으면 홍보부 세션(식사 메뉴 양방향 편집용)
+  function writeHeader() { var f = fncSession(); if (f) return { Authorization: 'Bearer ' + f.token }; var s = session(); return s ? { Authorization: 'Bearer ' + s.token } : {}; }
+  function renderAdminBtn() {
+    var b = $('fnc-admin-btn'); if (!b) return;
+    if (fncSession()) { b.textContent = '관리자 ✓'; b.classList.add('on'); b.setAttribute('aria-label', '관리자 로그아웃'); }
+    else { b.textContent = '관리자'; b.classList.remove('on'); b.setAttribute('aria-label', '관리자 로그인'); }
+  }
+  function openLogin() { var m = $('fnc-login'); if (!m) return; m.hidden = false; $('fl-err').hidden = true; $('fl-id').value = ''; $('fl-pw').value = ''; setTimeout(function () { var el = $('fl-id'); if (el) el.focus(); }, 30); }
+  function closeLogin() { var m = $('fnc-login'); if (m) m.hidden = true; }
+  function loginErr(msg) { var e = $('fl-err'); if (e) { e.textContent = msg; e.hidden = false; } }
+  function submitLogin() {
+    var id = ($('fl-id').value || '').trim(), pw = $('fl-pw').value || '';
+    fetch('/api/jp-fnc-auth', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: id, pw: pw }) })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (j) {
+        if (j && j.ok && j.token) {
+          try { localStorage.setItem('krjam-fnc:admin', JSON.stringify({ token: j.token, exp: j.exp, name: '급식 관리자' })); } catch (e) {}
+          closeLogin(); renderAdminBtn(); setView(cur || 'home', false); toast('관리자로 로그인했습니다');
+        } else { loginErr('아이디 또는 비밀번호가 올바르지 않습니다.'); }
+      }).catch(function () { loginErr('로그인 중 오류가 발생했습니다.'); });
+  }
+  function logoutAdmin() { try { localStorage.removeItem('krjam-fnc:admin'); } catch (e) {} renderAdminBtn(); setView(cur || 'home', false); toast('로그아웃되었습니다'); }
+
   /* ── 화면 정의 ─────────────────────────────────────────────── */
   // short: 모바일 하단 탭 라벨. 긴 이름은 두 줄로 접혀 탭이 흔들린다.
   var VIEWS = [
@@ -845,7 +876,12 @@
 
   function init() {
     buildNav();
+    renderAdminBtn();
     document.addEventListener('click', function (e) {
+      if (e.target.closest('#fnc-admin-btn')) { if (fncSession()) { if (confirm('관리자에서 로그아웃할까요?')) logoutAdmin(); } else openLogin(); return; }
+      if (e.target.closest('#fl-cancel')) { closeLogin(); return; }
+      if (e.target.closest('#fl-go')) { submitLogin(); return; }
+      if (e.target.id === 'fnc-login') { closeLogin(); return; }
       var nav = e.target.closest('[data-nav]'); if (nav) { setView(nav.getAttribute('data-nav')); return; }
       var go = e.target.closest('[data-go]'); if (go) { setView(go.getAttribute('data-go')); $('search').value = ''; runSearch(''); $('search-x').hidden = true; return; }
       var mg = e.target.closest('[data-mg]'); if (mg) { menuGroup = mg.getAttribute('data-mg'); renderMenu(); return; }
@@ -868,7 +904,9 @@
       runSearch(this.value);
     });
     window.addEventListener('hashchange', function () { setView((location.hash || '').replace('#', ''), false); });
+    ['fl-id', 'fl-pw'].forEach(function (id) { var el = $(id); if (el) el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submitLogin(); } }); });
     document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('fnc-login').hidden) { closeLogin(); return; }
       if (e.key === 'Escape' && lbPage !== null) { closeLb(); return; }
       if (lbPage !== null && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { stepLb(e.key === 'ArrowLeft' ? -1 : 1); return; }
       if (e.key === 'Escape') { closeSide(); if ($('search').value) { $('search').value = ''; runSearch(''); $('search-x').hidden = true; } }
@@ -878,7 +916,7 @@
     tick(); setInterval(tick, 1000);
     loadMenu().then(function () { if (cur === 'menu') renderMenu(); });
     loadDuty().then(function () { if (cur === 'duty') renderDuty(); });
-    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER }; } catch (e) {}
+    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn }; } catch (e) {}
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

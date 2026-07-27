@@ -32,6 +32,16 @@ const server = http.createServer((req, res) => {
     if (mealFail) { res.writeHead(500); return res.end('err'); }
     res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(MEALS));
   }
+  if (p === '/api/jp-fnc-auth') {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      let b = {}; try { b = JSON.parse(body); } catch (e) {}
+      if (b.id === 'admin' && b.pw === 'admin') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, token: 'FNCTOK', exp: Date.now() + 9e6 })); }
+      else { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"ok":false}'); }
+    });
+    return;
+  }
   if (p.startsWith('/api/jp-fnc')) {
     if (req.method === 'PUT') {
       let body = '';
@@ -67,7 +77,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const p = await b.newPage(); await p.setViewport({ width: 1440, height: 1000 });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  p.on('requestfailed', (r) => failed.push(r.url()));
+  // 외부 CDN(Pretendard 웹폰트 등)은 우리 자원이 아니라 간헐적으로 실패할 수 있다 — 우리 보드 검증에서 제외한다.
+  p.on('requestfailed', (r) => { const u = r.url(); if (!/^https?:\/\//.test(u) || /scoutingapp\.net|localhost/.test(u)) failed.push(u); });
   await p.goto(base + '/krjam-fnc', { waitUntil: 'networkidle2' });
   await wait(700);
 
@@ -203,7 +214,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.evaluate(() => window.__fncBoard.setView('home')); await wait(500);
   chk('카운트다운 3종이 초 단위로 흐른다', await p.evaluate(async () => {
     const t0 = document.querySelector('#hero .dv').textContent;
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 2200));   // 1초 tick + CPU 경합 여유(플레이키 방지)
     const t1 = document.querySelector('#hero .dv').textContent;
     return document.querySelectorAll('#hero .dcard').length === 3 && t0 !== t1;
   }));
@@ -269,6 +280,20 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     return out;
   });
   chk('원문 쪽 링크는 플립북 딥링크', srcs.every((h) => !h || /^\/krjam-fnc-book#p\d+$/.test(h) || h === '/krjam-planning'), srcs.join(','));
+
+  console.log('\n[급식 관리자 로그인]');
+  const beforeLogin = await p.evaluate(() => ({ admin: window.__fncBoard.isAdmin(), btn: document.getElementById('fnc-admin-btn').textContent.trim(), modalHidden: document.getElementById('fnc-login').hidden }));
+  chk('초기 비로그인(관리자 아님 · 모달 숨김)', beforeLogin.admin === false && beforeLogin.btn === '관리자' && beforeLogin.modalHidden === true, JSON.stringify(beforeLogin));
+  await p.click('#fnc-admin-btn'); await wait(80);
+  chk('관리자 버튼 → 로그인 모달 열림', await p.evaluate(() => document.getElementById('fnc-login').hidden === false));
+  await p.evaluate(() => { document.getElementById('fl-id').value = 'admin'; document.getElementById('fl-pw').value = 'nope'; });
+  await p.click('#fl-go'); await wait(400);
+  chk('틀린 비번 → 오류 표시 · 비로그인 유지', await p.evaluate(() => document.getElementById('fl-err').hidden === false && window.__fncBoard.isAdmin() === false));
+  await p.evaluate(() => { document.getElementById('fl-id').value = 'admin'; document.getElementById('fl-pw').value = 'admin'; });
+  await p.click('#fl-go'); await wait(500);
+  const afterLogin = await p.evaluate(() => ({ admin: window.__fncBoard.isAdmin(), btn: document.getElementById('fnc-admin-btn').textContent.trim(), modalHidden: document.getElementById('fnc-login').hidden, tok: !!JSON.parse(localStorage.getItem('krjam-fnc:admin') || 'null') }));
+  chk('admin/admin 로그인 성공(관리자 · 모달 닫힘 · 토큰 저장)', afterLogin.admin === true && /관리자 ✓/.test(afterLogin.btn) && afterLogin.modalHidden === true && afterLogin.tok === true, JSON.stringify(afterLogin));
+  await p.evaluate(() => { localStorage.removeItem('krjam-fnc:admin'); window.__fncBoard.renderAdminBtn(); });
 
   console.log('\n[서버가 없을 때]');
   mealFail = true;

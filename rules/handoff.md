@@ -90,6 +90,13 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (29) — [급식본부 대시보드 관리] Phase 1: 관리자 로그인(admin/admin) (v0.9.270)
+대상: `/krjam-fnc` 보드(`krjam-fnc/board.js`·`board.css`·`krjam-fnc.html`) + 신규 `functions/api/jp-fnc-auth.js` + `_lib.js`. 상세: docs/krjam-fnc/changelog.md §v0.9.270.
+- 급식본부 대시보드 관리 요청(4단계 계획): **P1 관리자 로그인(완료)** · P2 운영요원/쉬프트 캘린더+대시보드 실시간 근무자 보드(전화 마스킹, jp:fnc-staff API) · P3 식사메뉴 행↔열 반전(fnc 한정)+양방향 인라인 편집(jp-meals 쓰기) · P4 핵심 안내문구 인라인 편집.
+- 확정 사항(사용자): 텍스트 편집=핵심 안내문구 전반 인라인 · 캘린더=8/2~8/9 × 3쉬프트(오전05–10·오후11–15·저녁16–21) · 식사편집 권한=fnc admin+홍보부 세션 둘 다 · 대시보드에 현재 근무자+오늘 메뉴 표시 · 전화는 관리자만(평소 이름+끝4자리) · 비로그인 열람 가능.
+- P1: fnc 전용 관리자 세션(`fncSession`/`isAdmin`=fnc만/`writeHeader`), `/api/jp-fnc-auth`(admin/admin→토큰, 실패도 200), `_lib.fncAdmin`. fnc-board 회귀 57/57.
+- ⚠️ fnc 파일은 23개 WIP와 무관(clean) — 배포는 fnc 관련 파일만 격리(stash).
+
 ### 2026-07-27 (28) — 홍보부 회의 트랙 이동 + 편집 모달 '홍보부' 트랙 옵션 (v0.9.269)
 대상: `/krjam-planning`(`jamboree-plan/app.js`). 상세: §16.109.
 - 편집 모달 트랙 선택기에 '홍보부' 추가(미디어 트랙 신설 시 누락됐던 것). 이제 임의 일정을 홍보부 열로 직접 이동 가능.

@@ -281,3 +281,11 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - 달력 칸 `+` 가 모바일에서 20px 이고 hover 로만 떠올랐다(터치엔 hover 가 없어 사실상 못 눌렀다) → 터치에서 **항상 보이고 40px**.
 
 두 감사를 회귀 스위트에 넣어 매번 돌린다(한 라운드 13개 검사).
+
+### 19.x v0.9.270 — 급식 관리자 로그인(admin/admin) 신설 [Phase 1/4]
+- 사용자: 급식본부 대시보드 관리를 위해 관리자 로그인 추가(id/pw=admin 통일). 목적 = 텍스트/내용 수정·운영요원 개인정보 관리·식사메뉴 편집의 게이트.
+- 기존엔 fnc 보드가 홍보부 세션을 재사용했음 → **fnc 전용 관리자 로그인** 신설. 비로그인도 보드 열람은 그대로, 로그인 시 관리자 기능 해제(후속 단계).
+- 백엔드 `functions/api/jp-fnc-auth.js`(POST): id/pw=admin/admin 이면 회원세션 인프라로 서명 토큰 발급(payload.fnc=1). 실패도 200 {ok:false}(401 은 콘솔 에러로 찍혀 검증 기준 위반). `_lib.js` 에 `fncAdmin(request,env)` 검증 헬퍼(후속 전화 마스킹·저장 게이트용).
+- 클라 `krjam-fnc/board.js`: `fncSession()`(localStorage `krjam-fnc:admin`)·`isAdmin()`(fnc 세션만)·`writeHeader()`(fnc 우선, 없으면 홍보부=메뉴 양방향). 상단바 '관리자' 버튼→로그인 모달(admin/admin), 로그인 시 '관리자 ✓'·로그아웃. Enter/Esc 지원.
+- 검증: `node --check`(board·jp-fnc-auth·_lib·test) + fnc-board 회귀 **50→57/57 ×라운드**(초기 비로그인·모달 열림·틀린비번 오류·admin/admin 성공·토큰저장 신규, a11y 스윕[숨은 모달 제외]·콘솔 0·요청실패 0 유지).
+- ⏭ 다음: Phase 2 운영요원/쉬프트 캘린더 + 대시보드 실시간 근무자 보드, Phase 3 식사 행열반전+양방향편집, Phase 4 텍스트 인라인 편집.

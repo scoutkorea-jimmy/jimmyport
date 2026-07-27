@@ -191,6 +191,16 @@ export async function memberOrAdmin(request, env) {
   return p ? { username: p.username, name: p.name || "", admin: !!p.master, master: !!p.master, staff: !!(p.master || p.staff) } : null;
 }
 
+// 급식편의본부(fnc) 보드 전용 관리자 토큰(payload.fnc=1, /api/jp-fnc-auth 발급) 검증.
+// 전화 전체 열람·운영요원/텍스트 편집 서버 게이트용. Returns { fnc:true, name } | null.
+export async function fncAdmin(request, env) {
+  const auth = request.headers.get("Authorization") || "";
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  if (!m) return null;
+  const p = await verifyMemberSession(env, m[1]);
+  return (p && p.fnc) ? { fnc: true, name: p.name || "급식 관리자" } : null;
+}
+
 // 공개 업로드 엔드포인트용 IP 레이트리밋 (KV TTL 카운터, 40건/10분)
 export async function uploadRateOk(env, request, bucket) {
   const ip = clientIp(request) || "noip";

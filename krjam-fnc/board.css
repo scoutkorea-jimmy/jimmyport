@@ -341,3 +341,17 @@ a{color:var(--accent-ink)}
    overflow-wrap:break-word 로 마지막 수단을 쓴다. 두 줄을 함께 걸어야 한다. */
 html{word-break:keep-all; overflow-wrap:break-word}
 body,button,input,select,textarea{word-break:keep-all; overflow-wrap:break-word}
+
+/* ── 급식 관리자 로그인 (v0.9.270) ── */
+#fnc-admin-btn{flex:none;white-space:nowrap}
+#fnc-admin-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.fnclogin{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(27,23,35,.44);padding:20px}
+.fnclogin[hidden]{display:none!important}
+.fnclogin-box{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-2,16px);box-shadow:0 18px 48px rgba(27,23,35,.28);padding:22px 20px}
+.fnclogin-box h2{margin:0 0 6px;font-size:var(--fs-3,18px)}
+.fnclogin-box .muted{margin:0 0 14px;font-size:var(--fs-1);color:var(--muted);line-height:1.5}
+.fnclogin-box input{width:100%;min-height:44px;padding:0 12px;margin-bottom:10px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-2)}
+.fnclogin-box input:focus{outline:none;border-color:var(--accent);background:var(--accent-soft-2)}
+.fnclogin-box .fl-err{margin:2px 0 10px;color:#B3261E;font-size:var(--fs-1)}
+.fnclogin-box .fl-err[hidden]{display:none!important}
+.fnclogin-box .fl-acts{display:flex;gap:8px;justify-content:flex-end}
