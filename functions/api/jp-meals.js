@@ -11,7 +11,7 @@
  *    /api/jamboree-plan 이 로그인 뒤에 있는 이유(연락처·인원 실명)는 여기에 담기지 않는다.
  * ⚠️ 쓰기 경로 없음(GET 전용). 운영 KV 파괴적 쓰기 금지 규칙과 같은 방향이다.
  */
-import { json } from "./_lib.js";
+import { json, memberOrAdmin, fncAdmin } from "./_lib.js";
 
 const KEY = "jp:meals";
 export const MEAL_GROUPS = ["crew_n", "crew_s", "staff"];
@@ -45,5 +45,31 @@ export async function onRequestGet({ env }) {
     else meals = pickMeals(null);
   } catch { meals = pickMeals(null); }
   // json() 은 no-store 를 붙인다 — 메뉴는 바꾸면 곧 반영돼야 하므로 그대로 둔다(자주 부르는 값도 아니다).
+  return json({ ok: true, meals, updatedAt });
+}
+
+/* 셀 단위 편집 (v0.9.271) — 홍보부·급식(fnc) 어느 쪽에서든 식사 메뉴를 고칠 수 있게 한다(양방향, 같은 KV).
+ *  PUT /api/jp-meals { group, date, meal:'b'|'l'|'d', value }
+ *  권한: 홍보부 회원세션(memberOrAdmin) 또는 급식 관리자(fncAdmin).
+ *  ⚠️ 셀 단위 read-modify-write 로 다른 칸을 덮어쓰지 않는다(홍보부 통짜 저장과 충돌 최소화). */
+export async function onRequestPut({ request, env }) {
+  const who = (await memberOrAdmin(request, env)) || (await fncAdmin(request, env));
+  if (!who) return json({ ok: false, error: "unauthorized" }, 401);
+  let b = {};
+  try { b = await request.json(); } catch {}
+  const group = String(b.group || "");
+  const date = String(b.date || "").slice(0, 10);
+  const meal = String(b.meal || "");
+  if (MEAL_GROUPS.indexOf(group) < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date) || ["b", "l", "d"].indexOf(meal) < 0)
+    return json({ ok: false, error: "bad request" }, 400);
+  const value = String(b.value == null ? "" : b.value).slice(0, 400);
+  let cur = {}, author = "";
+  try { const raw = await env.SCOUT_KV.get(KEY); if (raw) { const p = JSON.parse(raw); cur = p.meals || {}; author = String(p.author || ""); } } catch {}
+  const meals = pickMeals(cur);                       // 형태 정규화
+  if (!meals[group]) meals[group] = {};
+  if (!meals[group][date]) meals[group][date] = { b: "", l: "", d: "" };
+  meals[group][date][meal] = value;
+  const updatedAt = new Date().toISOString();
+  await env.SCOUT_KV.put(KEY, JSON.stringify({ meals, updatedAt, author }));
   return json({ ok: true, meals, updatedAt });
 }

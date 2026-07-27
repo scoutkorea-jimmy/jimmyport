@@ -289,3 +289,10 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - 클라 `krjam-fnc/board.js`: `fncSession()`(localStorage `krjam-fnc:admin`)·`isAdmin()`(fnc 세션만)·`writeHeader()`(fnc 우선, 없으면 홍보부=메뉴 양방향). 상단바 '관리자' 버튼→로그인 모달(admin/admin), 로그인 시 '관리자 ✓'·로그아웃. Enter/Esc 지원.
 - 검증: `node --check`(board·jp-fnc-auth·_lib·test) + fnc-board 회귀 **50→57/57 ×라운드**(초기 비로그인·모달 열림·틀린비번 오류·admin/admin 성공·토큰저장 신규, a11y 스윕[숨은 모달 제외]·콘솔 0·요청실패 0 유지).
 - ⏭ 다음: Phase 2 운영요원/쉬프트 캘린더 + 대시보드 실시간 근무자 보드, Phase 3 식사 행열반전+양방향편집, Phase 4 텍스트 인라인 편집.
+
+### 19.x v0.9.271 — 식사 메뉴 행↔열 반전(급식보드 한정) + 양방향 인라인 편집 [Phase 3/4]
+- 사용자: 식사 메뉴 가시성 확대(행열 반전, 급식보드 한정) + fnc↔홍보부 양방향 편집.
+- fnc `renderMenu` 반전: **행=조식/중식/석식 · 열=날짜(8/3~8/9)**(홍보부 보드는 그대로 행=날짜). `.tblwrap` 가로 스크롤.
+- 인라인 편집: fnc 관리자(admin) 또는 홍보부 세션이면 셀 `contenteditable` → blur/Enter 시 `PUT /api/jp-meals {group,date,meal,value}` 로 셀 단위 저장. 같은 jp:meals 라 홍보부에 즉시 반영(양방향).
+- 백엔드 `jp-meals.js` 에 **PUT 신설**(GET 전용→편집 가능): 권한 memberOrAdmin ∥ fncAdmin, 셀 단위 read-modify-write(다른 칸 미덮어씀), pickMeals 정규화·400자 제한.
+- 검증: `node --check`(board·jp-meals·test) + fnc-board 회귀 **57→60/60 ×3라운드**(표 반전 구조·관리자 셀 편집 21칸·셀 수정→PUT 저장 신규; 기존 '메뉴는 같은 자료' 텍스트 검사 불변).

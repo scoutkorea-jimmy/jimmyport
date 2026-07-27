@@ -688,6 +688,9 @@
       .then(function (j) { if (j && j.ok) { menuData = j.meals || {}; } return j; })
       .catch(function () { return null; });
   }
+  // 급식 관리자(admin/admin) 또는 홍보부 세션이면 메뉴를 인라인 편집할 수 있다(양방향, 같은 jp:meals).
+  function canEditMenu() { return !!fncSession() || !!session(); }
+  var MEAL_ROWS = [['b', '조식'], ['l', '중식'], ['d', '석식']];
   function renderMenu() {
     var box = $('menubox'); if (!box) return;
     if (!menuData) {
@@ -700,17 +703,42 @@
     }).join(' ');
     var days = menuData[menuGroup] || {};
     var any = MENU_DAYS.some(function (d) { var r = days[d] || {}; return (r.b || r.l || r.d); });
-    var rows = MENU_DAYS.map(function (d) {
-      var r = days[d] || {};
-      var lbl = (+d.slice(5, 7)) + '/' + (+d.slice(8, 10));
-      return '<tr><th>' + esc(lbl) + '</th><td>' + (esc(r.b) || '<span class="muted">—</span>') + '</td>' +
-        '<td>' + (esc(r.l) || '<span class="muted">—</span>') + '</td>' +
-        '<td>' + (esc(r.d) || '<span class="muted">—</span>') + '</td></tr>';
+    var edit = canEditMenu();
+    // 급식보드 한정: 행=조식/중식/석식, 열=날짜 (가시성 확대)
+    var head = '<tr><th>구분</th>' + MENU_DAYS.map(function (d) {
+      return '<th>' + (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) + '</th>';
+    }).join('') + '</tr>';
+    var body = MEAL_ROWS.map(function (mk) {
+      return '<tr><th>' + mk[1] + '</th>' + MENU_DAYS.map(function (d) {
+        var v = (days[d] || {})[mk[0]] || '';
+        if (edit) return '<td class="mcell" contenteditable data-date="' + d + '" data-meal="' + mk[0] + '" title="눌러서 수정 · Enter로 확정">' + esc(v) + '</td>';
+        return '<td>' + (esc(v) || '<span class="muted">—</span>') + '</td>';
+      }).join('') + '</tr>';
     }).join('');
-    box.innerHTML = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">' + seg + '</div>' +
-      (any ? '' : '<p class="muted">아직 등록된 메뉴가 없습니다. 홍보부 운영보드의 <b>식사 메뉴</b>에서 입력하면 여기에도 바로 보입니다.</p>') +
-      '<div class="tblwrap"><table class="tbl"><thead><tr><th>날짜</th><th>조식</th><th>중식</th><th>석식</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    box.innerHTML = '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px">' + seg +
+      (edit ? '<span class="chip info" style="margin-left:auto">관리자 · 셀을 눌러 수정(홍보부와 실시간 공유)</span>' : '') + '</div>' +
+      (any ? '' : '<p class="muted">아직 등록된 메뉴가 없습니다. ' + (edit ? '아래 표의 칸을 눌러 입력하면' : '홍보부 운영보드 또는 급식 관리자가 입력하면') + ' 양쪽에 바로 반영됩니다.</p>') +
+      '<div class="tblwrap"><table class="tbl menutbl' + (edit ? ' editable' : '') + '"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       (menuGroup === 'staff' ? '<p class="muted" style="margin-top:10px">조식 고정메뉴: 그린샐러드&amp;드레싱 · 식빵&amp;모닝빵&amp;딸기잼 · 우유(흰·딸기·초코) / 중식·석식: 제철과일 제공</p>' : '');
+    if (edit) {
+      box.querySelectorAll('.mcell').forEach(function (td) {
+        td.addEventListener('blur', function () { saveMenuCell(this); });
+        td.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); this.blur(); } });
+      });
+    }
+  }
+  function saveMenuCell(td) {
+    var date = td.getAttribute('data-date'), meal = td.getAttribute('data-meal');
+    var value = (td.textContent || '').trim();
+    var prev = (((menuData[menuGroup] || {})[date] || {})[meal]) || '';
+    if (value === prev) return;   // 변경 없으면 저장 안 함
+    var grp = menuGroup;
+    fetch('/api/jp-meals', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, writeHeader()), body: JSON.stringify({ group: grp, date: date, meal: meal, value: value }) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (j && j.ok) { menuData = j.meals || menuData; toast('메뉴 저장됨'); }
+        else { toast('저장 실패 — 관리자 로그인을 확인하세요'); renderMenu(); }
+      }).catch(function () { toast('저장 실패'); renderMenu(); });
   }
 
   /* ── 담당 배정 ─────────────────────────────────────────────── */

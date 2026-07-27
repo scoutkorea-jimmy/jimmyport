@@ -90,6 +90,11 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-27 (30) — [급식본부] Phase 3: 식사 메뉴 반전+양방향 편집 (v0.9.271)
+대상: `/krjam-fnc`(`board.js`·`board.css`) + `functions/api/jp-meals.js`(PUT 신설). §v0.9.271.
+- fnc 메뉴 표 **행=조/중/석 · 열=날짜**(홍보부 보드 불변). 관리자/홍보부 세션이면 셀 인라인 편집→`PUT /api/jp-meals`(셀 단위 RMW, 양방향). fnc-board 60/60 ×3.
+- ⏭ 남은: **Phase 2**(운영요원/쉬프트 캘린더+대시보드 실시간 근무자·오늘메뉴+전화 마스킹, jp:fnc-staff), **Phase 4**(핵심 안내문구 인라인 편집), **급식보드 상단바 날씨**(홍보부 방식 재사용).
+
 ### 2026-07-27 (29) — [급식본부 대시보드 관리] Phase 1: 관리자 로그인(admin/admin) (v0.9.270)
 대상: `/krjam-fnc` 보드(`krjam-fnc/board.js`·`board.css`·`krjam-fnc.html`) + 신규 `functions/api/jp-fnc-auth.js` + `_lib.js`. 상세: docs/krjam-fnc/changelog.md §v0.9.270.
 - 급식본부 대시보드 관리 요청(4단계 계획): **P1 관리자 로그인(완료)** · P2 운영요원/쉬프트 캘린더+대시보드 실시간 근무자 보드(전화 마스킹, jp:fnc-staff API) · P3 식사메뉴 행↔열 반전(fnc 한정)+양방향 인라인 편집(jp-meals 쓰기) · P4 핵심 안내문구 인라인 편집.

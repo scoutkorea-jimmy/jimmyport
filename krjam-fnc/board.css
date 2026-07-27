@@ -355,3 +355,9 @@ body,button,input,select,textarea{word-break:keep-all; overflow-wrap:break-word}
 .fnclogin-box .fl-err{margin:2px 0 10px;color:#B3261E;font-size:var(--fs-1)}
 .fnclogin-box .fl-err[hidden]{display:none!important}
 .fnclogin-box .fl-acts{display:flex;gap:8px;justify-content:flex-end}
+
+/* ── 식사 메뉴 편집 (v0.9.271, 급식보드 한정 — 행=끼니 / 열=날짜) ── */
+.menutbl th{white-space:nowrap}
+.tbl.editable td.mcell{cursor:text;min-width:98px}
+.tbl.editable td.mcell:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft-2)}
+.tbl.editable td.mcell:empty::before{content:'—';color:var(--faint)}

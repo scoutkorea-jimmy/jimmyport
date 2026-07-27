@@ -22,12 +22,22 @@ const MEALS = { ok: true, updatedAt: '2026-07-20T00:00:00Z', meals: {
   crew_s: {},
   staff: { '2026-08-05': { b: '그린샐러드·모닝빵', l: '간편식', d: '제육볶음' },
            '2026-08-06': { b: '죽·샐러드', l: '간편식', d: '닭갈비' } } } };
-let mealHits = 0, mealFail = false, dutyPuts = 0;
+let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0;
 const DUTIES = { duties: { supply: { main: '주명림', sub: '장문수', note: '06:00 보급 준비' } }, updatedAt: '2026-07-25T10:00:00Z', by: '심호웅' };
 
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p.startsWith('/api/jp-meals')) {
+    if (req.method === 'PUT') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        if (!/Bearer /.test(req.headers.authorization || '')) { res.writeHead(401); return res.end('{"ok":false}'); }
+        try { var b = JSON.parse(body); MEALS.meals[b.group] = MEALS.meals[b.group] || {}; MEALS.meals[b.group][b.date] = MEALS.meals[b.group][b.date] || { b: '', l: '', d: '' }; MEALS.meals[b.group][b.date][b.meal] = b.value; mealPuts++; } catch (e) {}
+        res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, meals: MEALS.meals, updatedAt: '2026-07-27T00:00:00Z' }));
+      });
+      return;
+    }
     mealHits++;
     if (mealFail) { res.writeHead(500); return res.end('err'); }
     res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(MEALS));
@@ -142,6 +152,11 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   chk('메뉴 화면에 서버 값이 그대로 나온다', await p.evaluate(() => {
     const t = document.getElementById('menubox').textContent;
     return t.indexOf('그린샐러드·모닝빵') >= 0 && t.indexOf('제육볶음') >= 0;
+  }));
+  chk('식사 표 반전(급식보드 한정 · 행=조/중/석, 열=날짜)', await p.evaluate(() => {
+    var ths = [].map.call(document.querySelectorAll('#menubox thead th'), function (x) { return x.textContent; });
+    var rowhs = [].map.call(document.querySelectorAll('#menubox tbody th'), function (x) { return x.textContent; });
+    return ths[0] === '구분' && ths.length === 8 && rowhs.join(',') === '조식,중식,석식';
   }));
   chk('그룹 3종(대원 일반식·특별식·운영요원) 전환', await p.evaluate(async () => {
     const bs = [...document.querySelectorAll('[data-mg]')];
@@ -293,6 +308,14 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.click('#fl-go'); await wait(500);
   const afterLogin = await p.evaluate(() => ({ admin: window.__fncBoard.isAdmin(), btn: document.getElementById('fnc-admin-btn').textContent.trim(), modalHidden: document.getElementById('fnc-login').hidden, tok: !!JSON.parse(localStorage.getItem('krjam-fnc:admin') || 'null') }));
   chk('admin/admin 로그인 성공(관리자 · 모달 닫힘 · 토큰 저장)', afterLogin.admin === true && /관리자 ✓/.test(afterLogin.btn) && afterLogin.modalHidden === true && afterLogin.tok === true, JSON.stringify(afterLogin));
+  // 로그인 상태 → 식사 메뉴 인라인 편집 + 서버 저장(양방향)
+  await p.evaluate(() => window.__fncBoard.setView('menu')); await wait(400);
+  const editable = await p.evaluate(() => document.querySelectorAll('#menubox td.mcell[contenteditable]').length);
+  chk('관리자 로그인 시 메뉴 셀 편집 가능', editable > 0, editable + '칸');
+  const putsBefore = mealPuts;
+  await p.evaluate(async () => { var c = document.querySelector('#menubox td.mcell[data-meal="b"]'); c.focus(); c.textContent = '테스트조식'; c.dispatchEvent(new Event('blur', { bubbles: true })); await new Promise((r) => setTimeout(r, 500)); });
+  await wait(300);
+  chk('메뉴 셀 수정 → 서버(jp-meals) 저장(양방향)', mealPuts > putsBefore, 'PUT ' + (mealPuts - putsBefore));
   await p.evaluate(() => { localStorage.removeItem('krjam-fnc:admin'); window.__fncBoard.renderAdminBtn(); });
 
   console.log('\n[서버가 없을 때]');
