@@ -76,6 +76,7 @@
 - **문서 이행 마지막 단계(미착수·큰 리스크)**: 코드의 서비스 폴더 이동(`app.js`·`tour/`·`jamboree/`·`jamboree-plan/` → 서비스 폴더)은 **라우팅·`?v=`·HTML src 전면 재배선** 필요. 라이브 라우팅이 깨질 수 있어 반드시 계획+단계적+회귀·헤드리스 검증 후, 사용자 확인하에 진행. → [stack-routing.md](stack-routing.md).
 - **scout-finder(`/tour`)**: 공개 '단위대 추가 제안 폼'(`/api/submissions`) + 관리자 승인대기/변경로그(`/api/log`)/댓글관리 뷰 — [brief §14](../docs/scout-finder/brief.md). 죽은 편집기 CSS 정리는 디자인 자료 수령 후.
 - Superpowers 플러그인: 설치는 대화형 `/plugin install superpowers@claude-plugins-official`(에이전트가 실행 불가, 사용자 안내만).
+- **`stash@{0}` 삭제 대기**(2026-07-28): "local drift before aligning to origin/main (v0.9.274)" — 내용은 2026-06-25(v0.9.146) 시점 낡은 로컬 사본이라 **적용하면 되감기**가 된다. 지우는 게 맞지만 `git stash drop` 이 권한 분류기에 막힘 → 사용자가 직접 실행.
 
 ## 🖥 화면을 갈아엎을 때 (v0.9.250 교훈)
 1. **옛 화면의 기능을 먼저 목록으로 적는다.** 함수와 이벤트 위임이 남아 있어도 **부르는 곳이 없으면 기능은 사라진 것**이다(검수 코멘트·카드뉴스 만들기가 그렇게 없어졌다). 회귀에 "그 기능이 아직 보이는가"를 넣는다.
@@ -98,6 +99,13 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-28 — 로컬 잔재 정리 (코드 무변경 · VERSION 유지 0.9.285)
+대상: 저장소 전역(로컬 파일만). **추적 파일·배포 자산은 하나도 건드리지 않았다** → 워킹트리 클린, 라이브 무영향.
+- 지운 것: `.DS_Store` ×2 · `.wrangler/`(로컬 캐시) · `_regress-status.md`(감시 임시파일, `scripts/watch-regress.js` 가 재생성) · gilwell-media 의 `.DS_Store`·`.wrangler/`·`test-results/`.
+- **`.git/objects/pack/` 고아 잔재 5개 제거** — 2026-07-27 17:09 중단된 repack 이 남긴 `.idx` 없는 `.pack`/`.rev`(git 이 못 읽는 파일). 지우기 전후 `git fsck` 오류 0 확인. 45M → 43M.
+- ⚠️ **남긴 것(의도적)**: `KakaoTalk_Photo_*.png`(sitemap.png 고해상 원본, `_middleware` 가 공개 차단) · gilwell-media 의 `node_modules/`·`BP미디어 카드뉴스*.html`(23MB, R2 사본 여부 미확인). 사용자 판단 = **유지**.
+- ⏳ **미완**: `stash@{0}`(v0.9.274 로컬 드리프트, 내용은 2026-06-25 시점 낡은 사본) 삭제가 **권한 분류기에 막혔다**. patch 백업은 스크래치패드에 있음. 다음에 지우려면 사용자가 직접 `git stash drop` 또는 Bash 권한 허용.
 
 ### 2026-07-28 — 로그인/로그아웃 명확화 + 근무뷰 2카드 (v0.9.285) → 아래 안정성검토 이어짐
 
