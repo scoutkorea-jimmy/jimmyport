@@ -356,3 +356,9 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - `board.css`: `.staffrow`/`.phone-in`/`.staff-roster.editing` 그리드.
 - ⚠️ 마이그레이션: 라이브 `jp:fnc-staff` 는 비어 있어(이전 수동입력 없음) id→이름 전환 영향 없음. 기존 데이터가 있었다면 옛 id 배정은 이름과 매칭 안 돼 사라질 수 있음(해당 없음).
 - 검증: `node --check`(board·test) + fnc-board 회귀 **80/80 ×N라운드**(명단=조직 로스터·비관리자 phone4·관리자 이름별 전화 입력/저장/재표시·이름 기반 배정 칩검색 신규).
+
+### 19.x v0.9.283 — 운영요원 식사메뉴 확정본 반영 + fnc 관리자 계정 변경
+- 사용자: (1) 급식 메뉴 최종 PDF(2026-07-28) 반영. (2) fnc 관리자 계정 → **foodservice / 20260803**.
+- **메뉴(staff)**: `jamboree-plan/app.js` `defaultMeals().staff` 를 확정 PDF 기준으로 전면 재작성. 기존 seed 가 **조식이 하루 밀려 있고**(8/3 조식 존재 — 입영 14:00이라 조식 없음이 맞음) 오타(뽀로로두부북→봉·오이고추짱장→쌈장·부추걸절이→겉절이·얼큰 무채어묵탕→얼큰계란감자국)가 있어 교정. 음료/디저트는 `[ ]` 로, 조식 고정메뉴·제철과일은 MEAL_NOTE 유지. 1회성 멱등 마이그레이션 `migrateMealsStaff()`(가드: 8/8 조식 '돈육짜장덮밥') 추가 — crew_n/crew_s 불변. 메뉴는 공유 데이터라 홍보부 보드에도 반영(fnc↔홍보부 동일 jp:meals).
+- **계정**: `functions/api/jp-fnc-auth.js` 인증을 admin/admin → **foodservice/20260803**. 관련 주석·회귀 로그인 케이스 갱신.
+- 검증: regress-krjam-planning **149/149**(운영요원 확정본 값·마이그레이션 멱등 신규) + fnc-board **80/80**(foodservice 로그인) ×2라운드.

@@ -1932,14 +1932,14 @@ function defaultMeals(){
       '2026-08-09':{ b:C('컵시리얼&흰우유','촉촉한반숙란','샐러드주스오렌지','딸기구겔호프','액티비아딸기요거트'), l:'', d:'' },
       '2026-08-05':{ b:'', l:'', d:C('동원짜장참치캔','햇반','계란북엇국','직화가자미구이','반달단무지','복숭아퐁당컵과일','쥬시쿨자두') }
     },
-    staff:{
-      '2026-08-03':{ b:C('쌀밥','소고기미역국','떡갈비&양송이','김치'), l:C('쌀밥','비프카레','맑은김치국','통등심돈까스','시금치나물','블루베리샐러드','김치'), d:C('[망고음료]','쌀밥','닭개장','오징어야채핫바','메추리알조림','건파래볶음','김치') },
-      '2026-08-04':{ b:C('쌀밥','소고기우거지국','고등어무조림','김치'), l:C('쌀밥','황태무국','닭볶음탕','김말이강정','오이양파무침','김치'), d:C('[포도음료]','쌀밥','건새우아욱국','파채소불고기','야채계란찜','무말랭이무침','김치') },
-      '2026-08-05':{ b:C('쌀밥','쑥갓어묵탕','미트볼야채볶음','김치'), l:'', d:C('[요거트푸딩]','쌀밥','사골떡국','단호박순살갈비찜','갈비만두찜','치커리유자청무침','김치') },
-      '2026-08-06':{ b:C('쌀밥','소고기무국','메추리알장조림','김치'), l:C('화이트패스츄리빵','빅요구르트','초코퍼지휘낭시애','쫄깃한메추리알','미니팝콘','복숭아곤약젤리'), d:C('[오색경단]','장각삼계탕','쌀밥','김치전','오이고추짱장무침','요구르트','김치') },
-      '2026-08-07':{ b:C('돈육짜장덮밥','팽이장국','등심탕수육','김치'), l:C('초코칩머핀','아침에주스포도','우리밀바나나빵','뽀로로두부북','국산콩두부칩','쭈욱짜먹는애플'), d:C('[사과주스]','삼겹보쌈','쌀밥','얼갈이된장국','비빔막국수','배추된장무침','김치') },
-      '2026-08-08':{ b:'', l:C('미니딸기샌드','레몬에이드','크림치즈휘낭시애','구운계란','그레인미니바이트초코','감귤퐁당컵과일'), d:C('[카프리썬]','쌀밥','된장찌개','제육볶음','한식잡채','부추걸절이','김치') },
-      '2026-08-09':{ b:C('쌀밥','얼큰 무채어묵탕','떡갈비야채조림','김치'), l:'', d:'' }
+    staff:{   // 운영요원 식사메뉴 확정본(2026-07-28 PDF). 8/3 조·중 없음(입영 14:00)·8/9 중·석 없음(귀가). 음료/디저트는 [ ]. 조식 고정메뉴·제철과일은 MEAL_NOTE.
+      '2026-08-03':{ b:'', l:'', d:C('[망고음료]','쌀밥','닭개장','오징어야채핫바','메추리알조림','건파래볶음','김치') },
+      '2026-08-04':{ b:C('쌀밥','소고기미역국','떡갈비&양송이','김치'), l:C('[요구르트]','쌀밥','비프카레','맑은김치국','통등심돈까스','시금치나물','블루베리샐러드','김치'), d:C('[포도음료]','쌀밥','건새우아욱국','파채소불고기','야채계란찜','무말랭이무침','김치') },
+      '2026-08-05':{ b:C('쌀밥','소고기우거지국','고등어무조림','김치'), l:C('[요플레포도맛]','쌀밥','황태무국','닭볶음탕','김말이강정','오이양파무침','김치'), d:C('[요거트푸딩]','쌀밥','사골떡국','단호박순살갈비찜','갈비만두찜','치커리유자청무침','김치') },
+      '2026-08-06':{ b:C('쌀밥','쑥갓어묵탕','미트볼야채볶음','김치'), l:C('화이트패스츄리빵','빅요구르트','초코퍼지휘낭시애','쫄깃한메추리알','미니팝콘','복숭아곤약젤리'), d:C('[오색경단]','장각삼계탕','쌀밥','김치전','오이고추쌈장무침','요구르트','김치') },
+      '2026-08-07':{ b:C('쌀밥','소고기무국','메추리알장조림','김치'), l:C('초코칩머핀','아침에주스포도','우리밀바나나빵','뽀로로두부봉','국산콩두부칩','쭈욱짜먹는애플'), d:C('[사과주스]','삼겹보쌈','쌀밥','얼갈이된장국','비빔막국수','배추된장무침','김치') },
+      '2026-08-08':{ b:C('돈육짜장덮밥','팽이장국','등심탕수육','김치'), l:C('미니딸기샌드','레몬에이드','크림치즈휘낭시애','구운계란','그레인바이트초코','감귤퐁당컵과일'), d:C('[카프리썬]','쌀밥','된장찌개','제육볶음','한식잡채','부추겉절이','김치') },
+      '2026-08-09':{ b:C('쌀밥','얼큰계란감자국','떡갈비야채조림','김치'), l:'', d:'' }
     }
   };
 }
@@ -1955,6 +1955,16 @@ function migrateMealsCrewN(){
   if(/롤유부초밥_햇반/.test((cn['2026-08-06']||{}).b||'')) return 0;   // 이미 신 일반식 → no-op
   m.crew_n=defaultMeals().crew_n; saveMeals();                        // 일반식 전체 교체(기존 삭제)
   console.info('[마이그레이션] 참가자 일반식(crew_n) 이미지 기준 교체');
+  return 1;
+}
+/* 운영요원(staff) 식사메뉴 확정본 교체(2026-07-28 PDF) — 기존 seed 는 조식이 하루 밀리고(8/3 조식 존재) 오타가 있었다.
+ * 저장된 보드는 1회성으로 staff 전체를 확정본으로 교체한다. 가드: 신 데이터 표식(8/8 조식 '돈육짜장덮밥')이 있으면 no-op(멱등).
+ * crew_n(일반식)·crew_s(특별식)는 건드리지 않는다. */
+function migrateMealsStaff(){
+  var m=mealsData(), st=m.staff||{};
+  if(/돈육짜장덮밥/.test((st['2026-08-08']||{}).b||'')) return 0;   // 이미 확정본 → no-op
+  m.staff=defaultMeals().staff; saveMeals();
+  console.info('[마이그레이션] 운영요원(staff) 식사메뉴 확정본 교체');
   return 1;
 }
 function renderMeals(){
@@ -5282,7 +5292,7 @@ function setView(v){
 function loadBoard(){
   netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); migrateMealsStaff(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
     .then(function(){ netBusy(-1); });

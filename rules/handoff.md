@@ -99,6 +99,13 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-28 — [급식본부/홍보부] 운영요원 식사메뉴 확정본 + fnc 계정 변경 (v0.9.283)
+대상: `jamboree-plan/app.js`(공유 meals) + `functions/api/jp-fnc-auth.js`. §fnc v0.9.283.
+- 운영요원(staff) 식사메뉴를 확정 PDF(2026-07-28)로 재작성 — 기존 seed 조식 하루 밀림·오타 교정. 멱등 마이그레이션 `migrateMealsStaff()`(가드 8/8 조식 돈육짜장덮밥). crew_n/crew_s 불변. 공유 데이터라 홍보부·fnc 동시 반영.
+- **fnc 관리자 계정 admin/admin → foodservice / 20260803**(jp-fnc-auth.js). 
+- ⚠️ 메뉴는 마이그레이션이 **홍보부 admin 이 /krjam-planning 로드 시** saveMeals()로 KV(jp:meals)에 영구화된다(로그인 필요). 그 전까지 시드는 새 보드에만. → 배포 후 홍보부 로그인 1회 필요.
+- 검증: planning 149/149 + fnc 80/80 ×2.
+
 ### 2026-07-28 — [홍보부] 잼버리 일정표 '시간 일정 편집' 모달 항목 순서 정리 (v0.9.282)
 대상: `/krjam-planning`(`jamboree-plan/app.js` `renderTTModal`). §krjam-planning v0.9.282.
 - 제목을 맨 위로, 이후 상식적 순서(제목→종류→트랙→날짜→시간→반복→장소→구역→취재불필요→담당→연락처→메모→식순). 핸들러는 id 바인딩이라 순서만 변경, 로직 불변. regress-krjam-planning 147/147 ×2 + nav. planning html ?v 0.9.269→0.9.282.

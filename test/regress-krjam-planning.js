@@ -357,6 +357,27 @@ const SEED = () => {
     return { ran, after, again, n: Object.keys(mealsData().crew_n).length };
   });
   chk('일반식 마이그레이션: 구 데이터 → 신 데이터 교체(멱등)', mmig.ran === 1 && mmig.after === true && mmig.again === 0 && mmig.n === 5, JSON.stringify(mmig));
+  // 운영요원(staff) 식사메뉴 확정본(2026-07-28 PDF) — 조식 하루 밀림·오타 교정. 원본 대조 고정.
+  const smeal = await page.evaluate(() => {
+    const st = defaultMeals().staff;
+    return { dates: Object.keys(st).sort().join(','),
+      b0803: st['2026-08-03'].b, b0808: st['2026-08-08'].b, b0809: st['2026-08-09'].b,
+      l0804: st['2026-08-04'].l, d0803: st['2026-08-03'].d, d0808: st['2026-08-08'].d };
+  });
+  chk('운영요원 확정본(8/3 조식 없음·8/8 조식 돈육짜장덮밥·8/9 얼큰계란감자국·음료 [ ]·부추겉절이)',
+    smeal.dates === '2026-08-03,2026-08-04,2026-08-05,2026-08-06,2026-08-07,2026-08-08,2026-08-09' &&
+    smeal.b0803 === '' && /돈육짜장덮밥/.test(smeal.b0808) && /얼큰계란감자국/.test(smeal.b0809) &&
+    /\[요구르트\]/.test(smeal.l0804) && /\[망고음료\]/.test(smeal.d0803) && /부추겉절이/.test(smeal.d0808),
+    JSON.stringify(smeal).slice(0, 120));
+  const smig = await page.evaluate(() => {
+    // 구 운영요원(조식 하루 밀림: 8/3 조식 존재·8/8 조식 없음) 저장본 → 1회성 마이그레이션이 확정본으로 교체
+    mealsData().staff = { '2026-08-03': { b: '쌀밥\n소고기미역국', l: '', d: '' }, '2026-08-08': { b: '', l: '', d: '' } };
+    const ran = migrateMealsStaff();
+    const after = mealsData().staff['2026-08-03'].b === '' && /돈육짜장덮밥/.test(mealsData().staff['2026-08-08'].b);
+    const again = migrateMealsStaff();   // 멱등: 확정본 표식 있으면 no-op
+    return { ran, after, again, n: Object.keys(mealsData().staff).length };
+  });
+  chk('운영요원 마이그레이션: 구(밀림) → 확정본 교체(멱등)', smig.ran === 1 && smig.after === true && smig.again === 0 && smig.n === 7, JSON.stringify(smig));
 
   console.log('\n[소식 제보 → 일정]');
   await go('tips');

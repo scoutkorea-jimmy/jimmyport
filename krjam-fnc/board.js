@@ -76,14 +76,14 @@
   function canAssign() { return !!fncSession(); }   // 담당 배정 편집도 급식 관리자 로그인 시에만
   function authHeader() { var s = session(); return s ? { Authorization: 'Bearer ' + s.token } : {}; }
 
-  /* 급식 관리자 세션 — admin/admin (/api/jp-fnc-auth). 홍보부 세션과 별개.
+  /* 급식 관리자 세션 — foodservice/20260803 (/api/jp-fnc-auth). 홍보부 세션과 별개.
      로그인하면 운영요원 전화 전체 열람 · 내용/텍스트 편집 · 식사 메뉴 편집이 열린다. */
   function fncSession() {
     try { var s = JSON.parse(localStorage.getItem('krjam-fnc:admin') || 'null');
       if (s && s.token && s.exp && s.exp > Date.now()) return s; } catch (e) {}
     return null;
   }
-  function isAdmin() { return !!fncSession(); }   // 급식 관리자(admin/admin)만 — 전화 열람·편집 게이트
+  function isAdmin() { return !!fncSession(); }   // 급식 관리자만 — 전화 열람·편집 게이트
   // 쓰기용 토큰 — 급식 관리자 우선, 없으면 홍보부 세션(식사 메뉴 양방향 편집용)
   function writeHeader() { var f = fncSession(); if (f) return { Authorization: 'Bearer ' + f.token }; var s = session(); return s ? { Authorization: 'Bearer ' + s.token } : {}; }
   function renderAdminBtn() {
@@ -896,7 +896,7 @@
       .then(function (j) { if (j && j.ok) { menuData = j.meals || {}; } return j; })
       .catch(function () { return null; });
   }
-  // 급식 관리자(admin/admin) 또는 홍보부 세션이면 메뉴를 인라인 편집할 수 있다(양방향, 같은 jp:meals).
+  // 급식 관리자 또는 홍보부 세션이면 메뉴를 인라인 편집할 수 있다(양방향, 같은 jp:meals).
   function canEditMenu() { return !!fncSession(); }   // 편집은 급식 관리자 로그인 시에만(로그아웃 시 불가)
   var MEAL_ROWS = [['b', '조식'], ['l', '중식'], ['d', '석식']];
   function renderMenu() {
