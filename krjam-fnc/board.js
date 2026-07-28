@@ -1019,7 +1019,7 @@
       ? (orgEdit
           ? '<button class="btn sm solid" id="duty-save">저장</button> <button class="btn sm ghost" id="duty-cancel">취소</button>'
           : '<button class="btn sm" id="duty-edit">조직 편집</button>')
-      : '<span class="muted" style="font-size:var(--fs-1)">부서·팀·인원을 바꾸려면 <button type="button" class="linkbtn" data-open-login>급식 관리자로 로그인</button>하세요.</span>';
+      : '<span class="muted" style="font-size:var(--fs-1)">부서·팀·인원은 관리자만 편집할 수 있습니다. </span><button type="button" class="btn sm" data-open-login>급식 관리자로 로그인</button>';
     box.innerHTML = '<div class="card">' +
       '<div class="dutybar">' + headline +
         (orgMeta.updatedAt ? '<span class="muted" style="font-size:var(--fs-1)">마지막 수정 ' + esc(fmtWhen(orgMeta.updatedAt)) + (orgMeta.by ? ' · ' + esc(orgMeta.by) : '') + '</span>' : '') +

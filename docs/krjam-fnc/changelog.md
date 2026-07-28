@@ -362,3 +362,10 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - **메뉴(staff)**: `jamboree-plan/app.js` `defaultMeals().staff` 를 확정 PDF 기준으로 전면 재작성. 기존 seed 가 **조식이 하루 밀려 있고**(8/3 조식 존재 — 입영 14:00이라 조식 없음이 맞음) 오타(뽀로로두부북→봉·오이고추짱장→쌈장·부추걸절이→겉절이·얼큰 무채어묵탕→얼큰계란감자국)가 있어 교정. 음료/디저트는 `[ ]` 로, 조식 고정메뉴·제철과일은 MEAL_NOTE 유지. 1회성 멱등 마이그레이션 `migrateMealsStaff()`(가드: 8/8 조식 '돈육짜장덮밥') 추가 — crew_n/crew_s 불변. 메뉴는 공유 데이터라 홍보부 보드에도 반영(fnc↔홍보부 동일 jp:meals).
 - **계정**: `functions/api/jp-fnc-auth.js` 인증을 admin/admin → **foodservice/20260803**. 관련 주석·회귀 로그인 케이스 갱신.
 - 검증: regress-krjam-planning **149/149**(운영요원 확정본 값·마이그레이션 멱등 신규) + fnc-board **80/80**(foodservice 로그인) ×2라운드.
+
+### 19.x v0.9.284 — 안정성 검토 후속: 담당 배정 로그인 버튼 40px 확보 + 안정성 테스트 계정 동기화
+- 전체 회귀 스위트(16종+감사3)를 돌려 이번 세션 변경의 안정성을 점검, 결함 2건 발견·수정:
+  1) **담당 배정 비관리자 안내의 `.linkbtn`(20.8px)** 이 조작 요소 40px 기준 위반(audit-krjam-fnc·audit-mobile duty 화면) → 인라인 텍스트 링크를 **`.btn.sm`(40px) '급식 관리자로 로그인' 버튼**으로 교체(문구·`data-open-login` 유지). dead `.linkbtn` CSS 제거.
+  2) **regress-fnc-stability** 가 실제 jp-fnc-auth 모듈에 admin/admin 로그인 → v0.9.283 계정 변경(foodservice/20260803) 미반영으로 6건 연쇄 실패 → 테스트 계정 동기화.
+- 검증: 전체 스위트 그린(a11y36·admin42·fnc-stability30·fnc보드80·fnc플립북92·jebo29·news111·motion25·nav19·server16·planning149·press31·landing38·tour-csv25 + 감사3). 재발 방지: 재실행 4종 ×2라운드 그린.
+- 라이브 헬스: 전 라우트 200(/tour 308→200)·전 API GET 200·전 쓰기 PUT 401 게이트·VERSION 일치.

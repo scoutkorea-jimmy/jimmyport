@@ -83,10 +83,10 @@ const login = async (page) => page.evaluate(() => {
     body: body === undefined ? undefined : JSON.stringify(body) });
 
   const authMod = await import('../functions/api/jp-fnc-auth.js');
-  let res = await authMod.onRequestPost({ request: rq('POST', { id: 'admin', pw: 'nope' }), env: fenv });
+  let res = await authMod.onRequestPost({ request: rq('POST', { id: 'foodservice', pw: 'nope' }), env: fenv });
   let jj = await res.json();
   chk('틀린 비밀번호는 거절한다', res.status === 200 && jj.ok === false);
-  res = await authMod.onRequestPost({ request: rq('POST', { id: 'admin', pw: 'admin' }), env: fenv });
+  res = await authMod.onRequestPost({ request: rq('POST', { id: 'foodservice', pw: '20260803' }), env: fenv });
   const sess = await res.json();
   chk('맞는 비밀번호는 세션을 준다', sess.ok === true && !!sess.token);
   for (let i = 0; i < 25; i++) await authMod.onRequestPost({ request: rq('POST', { id: 'admin', pw: 'x' }), env: fenv });
