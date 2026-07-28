@@ -137,7 +137,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   // 외부 CDN(Pretendard 웹폰트 등)은 우리 자원이 아니라 간헐적으로 실패할 수 있다 — 우리 보드 검증에서 제외한다.
-  p.on('requestfailed', (r) => { const u = r.url(); if (!/^https?:\/\//.test(u) || /scoutingapp\.net|localhost/.test(u)) failed.push(u); });
+  // net::ERR_ABORTED 는 뷰를 빠르게 넘길 때 아직 뜨는 중이던 썸네일 로드가 취소된 것 — 깨진 자원이 아니라 정상 취소다.
+  p.on('requestfailed', (r) => {
+    const u = r.url(); const err = (r.failure() && r.failure().errorText) || '';
+    if (/ERR_ABORTED/.test(err)) return;
+    if (!/^https?:\/\//.test(u) || /scoutingapp\.net|localhost/.test(u)) failed.push(u);
+  });
   await hookWx(p);
   await p.goto(base + '/krjam-fnc', { waitUntil: 'networkidle2' });
   await wait(700);
