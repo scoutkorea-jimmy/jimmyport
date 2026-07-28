@@ -241,6 +241,18 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   }));
   chk('로그인 안 하면 바꾸지 못한다(안내만)', await p.evaluate(() =>
     !document.getElementById('duty-edit') && /로그인/.test(document.querySelector('.dutybar').textContent)));
+  chk('배정 안내는 급식 관리자 기준(홍보부 아님)', await p.evaluate(() => {
+    var v = document.getElementById('view-duty').textContent;
+    return /급식 관리자로 로그인/.test(v) && v.indexOf('홍보부') < 0
+      && !document.querySelector('#view-duty a[href="/krjam-planning"]');
+  }));
+  chk('배정 안내 로그인 링크 → 급식 로그인 모달 열림', await p.evaluate(async () => {
+    var btn = document.querySelector('#view-duty [data-open-login]'); if (!btn) return false;
+    btn.click(); await new Promise((r) => setTimeout(r, 80));
+    var open = document.getElementById('fnc-login').hidden === false;
+    document.getElementById('fl-cancel').click();
+    return open;
+  }));
   chk('서버 화이트리스트 키 10종이 화면과 같다', await (async () => {
     const api = await import('../functions/api/jp-fnc.js');
     const ui = await p.evaluate(() => window.__fncBoard.DUTIES.map((d) => d[0]));

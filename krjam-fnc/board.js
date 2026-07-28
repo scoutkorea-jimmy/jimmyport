@@ -657,7 +657,7 @@
     return '' +
       '<section class="sec">' +
         '<h2 class="sec-h">담당 배정' + srcLink(5, '조직도') + '</h2>' +
-        '<p class="lead">구역·업무마다 <b>담당</b>과 <b>지원</b>을 정해 둡니다. 배정은 <b>홍보부 운영보드에 로그인</b>한 사람만 바꿀 수 있고, 누구나 볼 수 있습니다.</p>' +
+        '<p class="lead">구역·업무마다 <b>담당</b>과 <b>지원</b>을 정해 둡니다. 배정은 <b>급식 관리자로 로그인</b>한 사람만 바꿀 수 있고, 누구나 볼 수 있습니다.</p>' +
         '<div id="dutybox">불러오는 중…</div>' +
       '</section>';
   }
@@ -979,7 +979,7 @@
       ? (dutyEdit
           ? '<button class="btn sm solid" id="duty-save">저장</button> <button class="btn sm ghost" id="duty-cancel">취소</button>'
           : '<button class="btn sm" id="duty-edit">배정 바꾸기</button>')
-      : '<span class="muted" style="font-size:var(--fs-1)">배정을 바꾸려면 <a href="/krjam-planning" target="_blank" rel="noopener">홍보부 운영보드</a>에 로그인하세요.</span>';
+      : '<span class="muted" style="font-size:var(--fs-1)">배정을 바꾸려면 <button type="button" class="linkbtn" data-open-login>급식 관리자로 로그인</button>하세요.</span>';
     box.innerHTML = '<div class="card">' +
       '<div class="dutybar"><span class="chip' + (assigned === DUTIES.length ? ' ok' : '') + '">배정 ' + assigned + ' / ' + DUTIES.length + '</span>' +
         (dutyMeta.updatedAt ? '<span class="muted" style="font-size:var(--fs-1)">마지막 수정 ' + esc(fmtWhen(dutyMeta.updatedAt)) + (dutyMeta.by ? ' · ' + esc(dutyMeta.by) : '') + '</span>' : '') +
@@ -1118,6 +1118,7 @@
     renderAdminBtn();
     document.addEventListener('click', function (e) {
       if (e.target.closest('#fnc-admin-btn')) { if (fncSession()) { if (confirm('관리자에서 로그아웃할까요?')) logoutAdmin(); } else openLogin(); return; }
+      if (e.target.closest('[data-open-login]')) { openLogin(); return; }
       if (e.target.closest('#fl-cancel')) { closeLogin(); return; }
       if (e.target.closest('#fl-go')) { submitLogin(); return; }
       if (e.target.id === 'fnc-login') { closeLogin(); return; }
