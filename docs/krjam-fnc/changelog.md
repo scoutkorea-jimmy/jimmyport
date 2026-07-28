@@ -340,3 +340,11 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - **헤더선 정렬**: `.sidebrand`(64px 고정)와 `.top`(min-height→height 64px 고정, border-box)를 같은 높이로 맞춰 밑선 정렬. `--top-h` 60→64.
 - **식사 메뉴 문구**: "홍보부 보드에서 수정" 링크 제거 → "급식본부에서 관리하는 식사 메뉴 · 입력 내용은 홍보부 보드에도 함께 공유되니 저장 전 한 번 더 확인". (부서 구분: [[fnc-vs-hongbo-separate-depts]] — 메뉴 데이터 공유는 유지, 편집 주체는 급식.)
 - 검증: fnc-board 회귀 **77→79/79 ×2라운드**(아이콘 인라인 SVG·이모지 잔존 없음·stroke currentColor / 헤더선 정렬 ±1px 신규).
+
+### 19.x v0.9.280 — 조직/인적 단일 저장소(jp-fnc-org) → 담당 배정=조직 로스터 배정표(관리자 편집) [Phase 2a]
+- 사용자: 조직도를 표로 만들어 담당 배정에 넣고, **그 인원이 운영요원 근무 등 다른 서브메뉴에도 공유**되게 — "모든 데이터가 한 곳에 올라가 여러 화면에서 운영"되는 게 최우선. 부서/팀 이름도 관리자가 편집 가능하게(오타 정정 포함).
+- 백엔드 `functions/api/jp-fnc-org.js` 신설: KV `jp:fnc-org`={org:{head,depts:[{name,chief,teams:[{name,lead,members[]}]}]}}. GET 공개, PUT fncAdmin. **낙관적 잠금**(baseVer→409 conflict)·**빈 조직 가드**(confirmEmpty)·`cleanOrg`(빈 부서/팀명 버림·공백 접기·팀원 정리·개수 상한). 연락처 미포함(이름만).
+- 프론트 `board.js`: **담당 배정 = 조직 로스터 표**로 교체(기존 구역·업무 담당/지원 placeholder 배정표 제거). 부서·부장 / 팀·팀장 / 팀원 3열, 부서 rowspan. 관리자면 '조직 편집' → 부서명·부장·팀명·팀장 input + 팀원 textarea(쉼표/줄바꿈)로 통째 편집 후 PUT. 저장 성공 시 운영요원 근무도 갱신(`renderStaffView`). ORG 는 서버값이 있으면 그것으로, 없으면 내장 시드. `peopleList()`/`getOrg()` 노출.
+- ⚠️ 기존 담당 area-assignment(`jp-fnc.js` duties)·`__fncBoard.DUTIES` 제거. `jp-fnc.js` API 파일과 회귀의 옛 목업은 사용 안 하지만 무해하게 남겨둠(다음에 정리).
+- 검증: `node --check`(board·jp-fnc-org·test) + fnc-board 회귀 **79/79 ×N라운드**(조직표 부서4·팀5 시드·부장/팀장/팀원 표시·인원수·비관리자 편집 불가·급식 관리자 안내·cleanOrg 정리·팀장/부서명 편집 저장·낙관적 잠금 충돌 최신본 신규).
+- 🔜 Phase 2b: 운영요원 근무 쉬프트 후보를 조직 로스터에서 직접(현재는 별도 staff 목록).

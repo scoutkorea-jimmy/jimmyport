@@ -22,8 +22,10 @@ const MEALS = { ok: true, updatedAt: '2026-07-20T00:00:00Z', meals: {
   crew_s: {},
   staff: { '2026-08-05': { b: '그린샐러드·모닝빵', l: '간편식', d: '제육볶음' },
            '2026-08-06': { b: '죽·샐러드', l: '간편식', d: '닭갈비' } } } };
-let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0, staffPuts = 0, contentPuts = 0;
+let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0, staffPuts = 0, contentPuts = 0, orgPuts = 0;
 const CONTENT = {};
+// 조직 단일 저장소 — org=null 이면 클라가 내장 시드(ORG)를 쓴다. 저장하면 여기 채워진다.
+const ORGDATA = { org: null, updatedAt: null, by: '' };
 const STAFF = { staff: [{ id: 'st1', name: '김운영', phone: '01012345678' }, { id: 'st2', name: '이배식', phone: '01099998888' }], shifts: { '2026-08-05': { am: ['st1'], pm: ['st2'] } } };
 const DUTIES = { duties: { supply: { main: '주명림', sub: '장문수', note: '06:00 보급 준비' } }, updatedAt: '2026-07-25T10:00:00Z', by: '심호웅' };
 
@@ -75,6 +77,27 @@ const server = http.createServer((req, res) => {
       return;
     }
     res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, overrides: CONTENT }));
+  }
+  if (p === '/api/jp-fnc-org') {
+    var oadm = /Bearer FNCTOK/.test(req.headers.authorization || '');
+    if (req.method === 'PUT') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        if (!oadm) { res.writeHead(401); return res.end('{"ok":false}'); }
+        let x = {}; try { x = JSON.parse(body); } catch (e) {}
+        if (ORGDATA.updatedAt && x.baseVer !== ORGDATA.updatedAt) {
+          res.writeHead(409, { 'content-type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: 'conflict', org: ORGDATA.org, updatedAt: ORGDATA.updatedAt, by: ORGDATA.by }));
+        }
+        ORGDATA.org = x.org || { head: '', depts: [] }; ORGDATA.updatedAt = '2026-07-28T10:00:00Z'; ORGDATA.by = '급식 관리자'; orgPuts++;
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, org: ORGDATA.org, updatedAt: ORGDATA.updatedAt, by: ORGDATA.by }));
+      });
+      return;
+    }
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, org: ORGDATA.org, updatedAt: ORGDATA.updatedAt, by: ORGDATA.by }));
   }
   if (p === '/api/jp-fnc-auth') {
     let body = '';
@@ -246,42 +269,43 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   })());
   chk('빈 저장소여도 폭발하지 않는다', JSON.stringify(api.pickMeals(null)) === '{"crew_n":{},"crew_s":{},"staff":{}}');
 
-  console.log('\n[담당 배정]');
+  console.log('\n[담당 배정 — 조직 로스터]');
   await p.evaluate(() => window.__fncBoard.setView('duty')); await wait(700);
-  chk('배정 대상 10종 · 서버 값이 그대로 보인다', await p.evaluate(() => {
-    const rows = [...document.querySelectorAll('.dutytbl tbody tr')];
-    return rows.length === 10 && /주명림/.test(rows[0].textContent) && /장문수/.test(rows[0].textContent)
-      && /미배정/.test(rows[1].textContent);
+  chk('조직표: 본부장 + 부서 4 · 팀 5(시드)', await p.evaluate(() => {
+    const rows = [...document.querySelectorAll('.orgtbl tbody tr')];
+    const depts = [...document.querySelectorAll('.orgtbl .org-dept')];
+    const bar = document.querySelector('.dutybar').textContent;
+    return rows.length === 5 && depts.length === 4 && /본부장 심호웅/.test(bar);
   }));
-  chk('배정 건수와 마지막 수정자를 알린다', await p.evaluate(() => {
-    const t = document.querySelector('.dutybar').textContent;
-    return /배정 1 \/ 10/.test(t) && /심호웅/.test(t);
+  chk('부장·팀장·팀원이 함께 보인다', await p.evaluate(() => {
+    const t = document.querySelector('.orgtbl tbody').textContent;
+    return /유학준/.test(t) && /주명림/.test(t) && /장문수/.test(t) && /이훈혁/.test(t) && /충원예정/.test(t) && /김시람/.test(t);
   }));
+  chk('한 화면(조직)에서 인원수를 알린다', await p.evaluate(() => /인원 \d+명/.test(document.querySelector('.dutybar').textContent)));
   chk('로그인 안 하면 바꾸지 못한다(안내만)', await p.evaluate(() =>
     !document.getElementById('duty-edit') && /로그인/.test(document.querySelector('.dutybar').textContent)));
-  chk('배정 안내는 급식 관리자 기준(홍보부 아님)', await p.evaluate(() => {
+  chk('편집 안내는 급식 관리자 기준(홍보부 아님)', await p.evaluate(() => {
     var v = document.getElementById('view-duty').textContent;
     return /급식 관리자로 로그인/.test(v) && v.indexOf('홍보부') < 0
       && !document.querySelector('#view-duty a[href="/krjam-planning"]');
   }));
-  chk('배정 안내 로그인 링크 → 급식 로그인 모달 열림', await p.evaluate(async () => {
+  chk('편집 안내 로그인 링크 → 급식 로그인 모달 열림', await p.evaluate(async () => {
     var btn = document.querySelector('#view-duty [data-open-login]'); if (!btn) return false;
     btn.click(); await new Promise((r) => setTimeout(r, 80));
     var open = document.getElementById('fnc-login').hidden === false;
     document.getElementById('fl-cancel').click();
     return open;
   }));
-  chk('서버 화이트리스트 키 10종이 화면과 같다', await (async () => {
-    const api = await import('../functions/api/jp-fnc.js');
-    const ui = await p.evaluate(() => window.__fncBoard.DUTIES.map((d) => d[0]));
-    return JSON.stringify(api.DUTY_KEYS) === JSON.stringify(ui);
+  chk('서버 cleanOrg: 빈 부서/팀 버리고 공백 접고 팀원 정리', await (async () => {
+    const org = await import('../functions/api/jp-fnc-org.js');
+    const r = org.cleanOrg({ head: '  심 호웅 ', depts: [
+      { name: ' A ', chief: 'x', teams: [ { name: '', lead: 'y', members: ['a'] }, { name: 'T', lead: '', members: ['  c  ', '', 'd'] } ] },
+      { name: '', teams: [] } ] });
+    return r.head === '심 호웅' && r.depts.length === 1 && r.depts[0].name === 'A'
+      && r.depts[0].teams.length === 1 && r.depts[0].teams[0].name === 'T'
+      && JSON.stringify(r.depts[0].teams[0].members) === '["c","d"]';
   })());
-  chk('서버는 모르는 키를 버리고 공백을 접는다', await (async () => {
-    const api = await import('../functions/api/jp-fnc.js');
-    const r = api.cleanDuties({ supply: { main: '  김  철수 ', sub: '', note: 'x' }, hack: { main: 'a' }, hall1: { main: '', sub: '', note: '' } });
-    return Object.keys(r).length === 1 && r.supply.main === '김 철수';
-  })());
-  // 급식 관리자로 로그인하면 같은 화면에서 바로 배정할 수 있어야 한다
+  // 급식 관리자로 로그인하면 같은 화면에서 부서·팀·인원을 바꿀 수 있어야 한다
   const p4 = await b.newPage(); await p4.setViewport({ width: 1440, height: 1000 });
   const err4 = [];
   p4.on('pageerror', (e) => err4.push(e.message));
@@ -293,34 +317,39 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   await hookWx(p4);
   await p4.goto(base + '/krjam-fnc#duty', { waitUntil: 'networkidle2' }); await wait(900);
-  chk('관리자 로그인 시 배정 버튼이 보인다', await p4.evaluate(() => !!document.getElementById('duty-edit')));
-  chk('배정을 바꿔 저장하면 서버로 간다', await p4.evaluate(async () => {
+  chk('관리자 로그인 시 조직 편집 버튼이 보인다', await p4.evaluate(() => !!document.getElementById('duty-edit')));
+  chk('팀장 이름을 바꿔 저장하면 서버로 간다', await p4.evaluate(async () => {
     document.getElementById('duty-edit').click(); await new Promise((r) => setTimeout(r, 250));
-    const el = document.querySelector('[data-duty="hall1~main"]');
+    const el = document.querySelector('[data-org="t~1~0~lead"]');   // 식자재보급운영팀 팀장(주명림)
     if (!el) return false;
-    el.value = '이훈혁';
-    document.querySelector('[data-duty="hall1~note"]').value = '배식 총괄';
+    el.value = '주명림A';
     document.getElementById('duty-save').click(); await new Promise((r) => setTimeout(r, 600));
-    const t = document.querySelector('.dutytbl tbody').textContent;
-    return /이훈혁/.test(t) && /배식 총괄/.test(t) && !document.getElementById('duty-save');
+    const t = document.querySelector('.orgtbl tbody').textContent;
+    return /주명림A/.test(t) && !document.getElementById('duty-save');
   }));
-  chk('저장이 서버에 실제로 도달했다', dutyPuts === 1, dutyPuts + '회');
-  chk('저장 뒤 배정 건수가 늘어난다', await p4.evaluate(() => /배정 2 \/ 10/.test(document.querySelector('.dutybar').textContent)));
-  /* 두 사람이 같은 배정표를 열어 두고 저장하면 앞사람 작업이 조용히 사라졌다.
+  chk('저장이 서버에 실제로 도달했다', orgPuts === 1, orgPuts + '회');
+  chk('부서 이름도 바꿀 수 있다', await p4.evaluate(async () => {
+    document.getElementById('duty-edit').click(); await new Promise((r) => setTimeout(r, 250));
+    const el = document.querySelector('[data-org="d~0~name"]');
+    if (!el) return false;
+    el.value = '급식편의지원부(수정)';
+    document.getElementById('duty-save').click(); await new Promise((r) => setTimeout(r, 600));
+    return /급식편의지원부\(수정\)/.test(document.querySelector('.orgtbl tbody').textContent);
+  }));
+  /* 두 사람이 같은 조직표를 열어 두고 저장하면 앞사람 작업이 조용히 사라졌다.
      이제 서버가 막고, 화면은 최신본으로 바꾸고 사람에게 말해야 한다. */
   chk('다른 사람이 먼저 저장하면 덮어쓰지 않고 최신본을 보여 준다', await p4.evaluate(async () => {
     document.getElementById('duty-edit').click(); await new Promise((r) => setTimeout(r, 250));
-    // 화면이 들고 있는 버전을 낡게 만든다 = 그 사이 다른 사람이 저장한 상황
-    window.__fncBoard.setDutyVer('2026-07-26T09:59:00Z');
-    const el = document.querySelector('[data-duty="hall2~main"]');
+    window.__fncBoard.setOrgVer('2026-07-28T09:00:00Z');   // 낡은 버전 = 그 사이 다른 사람이 저장한 상황
+    const el = document.querySelector('[data-org="t~2~0~lead"]');
     if (el) el.value = '늦은사람';
     document.getElementById('duty-save').click(); await new Promise((r) => setTimeout(r, 700));
-    const t = document.querySelector('.dutytbl tbody').textContent;
+    const t = document.querySelector('.orgtbl tbody').textContent;
     const toast = (document.getElementById('toast') || {}).textContent || '';
-    return !/늦은사람/.test(t) && /이훈혁/.test(t) && /먼저 저장|최신/.test(toast);
+    return !/늦은사람/.test(t) && /주명림A/.test(t) && /먼저 저장|최신/.test(toast);
   }));
-  chk('충돌은 저장으로 세지 않는다(덮어쓰기 없음)', dutyPuts === 1, dutyPuts + '회');
-  chk('배정 화면 콘솔 에러 0', err4.length === 0, err4.slice(0, 2).join(' | '));
+  chk('충돌은 저장으로 세지 않는다(덮어쓰기 없음)', orgPuts === 2, orgPuts + '회');
+  chk('조직 편집 화면 콘솔 에러 0', err4.length === 0, err4.slice(0, 2).join(' | '));
   await p4.close();
   // p4 가 심은 관리자 토큰은 같은 오리진 localStorage 를 공유하므로 p 에도 남는다 — 비관리자 검증 전에 지운다.
   await p.evaluate(() => { localStorage.removeItem('krjam-fnc:admin'); if (window.__fncBoard) window.__fncBoard.renderAdminBtn(); });

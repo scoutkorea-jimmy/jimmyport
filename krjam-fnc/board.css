@@ -194,6 +194,17 @@ a{color:var(--accent-ink)}
 .dfield{width:100%; min-height:40px; padding:0 10px; border:1px solid var(--line); border-radius:var(--r-1);
   background:var(--surface); color:var(--ink); font:inherit; font-size:var(--fs-1)}
 .dfield:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
+.dfield.sm{min-height:34px; margin-top:5px; font-size:var(--fs-1)}
+.dfield.ta{min-height:64px; padding:8px 10px; line-height:1.6; resize:vertical}
+.dfield.inline{display:inline-block; width:auto; min-height:28px; padding:0 8px}
+/* 담당 배정 = 조직 로스터 표 */
+.orgtbl td{vertical-align:top}
+.orgtbl .org-dept{width:26%; background:var(--surface-2)}
+.orgtbl .org-dept b{display:block; font-size:var(--fs-2); font-weight:800}
+.orgtbl .org-team{width:26%}
+.orgtbl .org-team b{font-weight:800}
+.orgtbl .who{display:block; font-size:var(--fs-1); color:var(--accent-ink); font-weight:700; margin-top:2px}
+.orgtbl td{line-height:1.7}
 
 /* 일정 타임라인 */
 .days{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:10px}

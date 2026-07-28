@@ -61,19 +61,8 @@
 
   /* 담당 배정 대상 — 서버 화이트리스트(functions/api/jp-fnc.js DUTY_KEYS)와 같은 키를 쓴다.
      ⚠️ 키를 바꾸면 서버도 같이 바꿔야 한다. 안 그러면 저장은 되는 듯 보이고 값만 사라진다. */
-  var DUTIES = [
-    ['supply',   '식자재 보급소',        '유닛 단위 보급 · 반납 확인 · 재고'],
-    ['hall1',    '1식당 (본 식당)',      '최대 200명 · 배식 · 질서'],
-    ['hall2',    '2식당 (세미나 2)',     '패스트트랙 · 운영요원 특별식'],
-    ['hall3',    '3식당 (세미나 1)',     '중식 보급 및 보관'],
-    ['bookcafe', '북카페 (IST라운지)',   '09:00~21:00 · 식사시간 전후 1시간 중단'],
-    ['cu',       '편의점 (CU)',          '09:00~21:00 · 브레이크 타임 협의'],
-    ['coffee',   '이디야 커피차',        '09:00~21:00'],
-    ['lounge',   '소모임 (미니 라운지)', '8/4·6·7 18:00~19:30 / 19:30~21:00'],
-    ['inout',    '입 · 퇴영 지원',       '명단 · SfH 이수 확인 · 지급품'],
-    ['safety',   '상황 보고 · 안전',     '비상 연락 · 식중독 대응 · 상황실 신고'],
-  ];
-  var duties = null, dutyMeta = { updatedAt: null, by: '' }, dutyEdit = false;
+  // 담당 배정 = 조직 로스터(ORG)의 단일 원본. 서버(jp-fnc-org)에서 불러와 ORG 를 덮어쓴다.
+  var orgLoaded = false, orgMeta = { updatedAt: null, by: '' }, orgEdit = false, orgFail = false;
 
   /* 배정은 홍보부 보드 세션이 있으면 할 수 있다 — 같은 도메인이라 그 세션을 그대로 쓴다.
      (로그인 화면을 하나 더 만들면 비밀번호가 하나 더 생긴다.) */
@@ -675,7 +664,7 @@
     return '' +
       '<section class="sec">' +
         '<h2 class="sec-h">담당 배정' + srcLink(5, '조직도') + '</h2>' +
-        '<p class="lead">구역·업무마다 <b>담당</b>과 <b>지원</b>을 정해 둡니다. 배정은 <b>급식 관리자로 로그인</b>한 사람만 바꿀 수 있고, 누구나 볼 수 있습니다.</p>' +
+        '<p class="lead">급식편의본부 조직과 담당 인원입니다. 본부장·부장·팀장·팀원을 한눈에 보고, <b>급식 관리자로 로그인</b>하면 부서·팀 이름과 인원까지 바꿀 수 있습니다. 여기 인원이 <b>운영요원 근무</b> 등 다른 화면에도 그대로 쓰입니다.</p>' +
         '<div id="dutybox">불러오는 중…</div>' +
       '</section>';
   }
@@ -965,77 +954,109 @@
     out.forEach(function (n) { if (!seen[n]) { seen[n] = 1; uniq.push(n); } });
     return uniq;
   }
-  function loadDuty() {
-    return fetch('/api/jp-fnc').then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && j.ok) { duties = j.duties || {}; dutyMeta = { updatedAt: j.updatedAt, by: j.by }; } return j; })
-      .catch(function () { return null; });
+  function loadOrg() {
+    return fetch('/api/jp-fnc-org').then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (j && j.ok) {
+          if (j.org && j.org.depts && j.org.depts.length) ORG = j.org;   // 서버 값이 있으면 시드 대신 그것을 쓴다
+          orgMeta = { updatedAt: j.updatedAt || null, by: j.by || '' };
+          orgLoaded = true; orgFail = false;
+        } else { orgFail = true; }
+        return j;
+      })
+      .catch(function () { orgFail = true; return null; });
+  }
+  function orgPeopleCount() {
+    return peopleList().filter(function (n) { return n && n !== '충원예정'; }).length;
   }
   function renderDuty() {
     var box = $('dutybox'); if (!box) return;
-    if (!duties) {
-      box.innerHTML = '<div class="card"><p class="muted">담당 배정을 불러오지 못했습니다.</p>' +
+    if (orgFail && !orgLoaded) {
+      box.innerHTML = '<div class="card"><p class="muted">조직표를 불러오지 못했습니다.</p>' +
         '<button class="btn sm" id="duty-retry">다시 불러오기</button></div>';
       return;
     }
     var can = canAssign();
-    var dl = '<datalist id="duty-people">' + peopleList().map(function (n) { return '<option value="' + esc(n) + '"></option>'; }).join('') + '</datalist>';
-    var rows = DUTIES.map(function (d) {
-      var v = duties[d[0]] || { main: '', sub: '', note: '' };
-      if (dutyEdit) {
-        return '<tr><th>' + esc(d[1]) + '<span class="dmemo">' + esc(d[2]) + '</span></th>' +
-          '<td><input class="dfield" type="text" list="duty-people" maxlength="60" data-duty="' + d[0] + '~main" value="' + esc(v.main) + '" placeholder="담당"></td>' +
-          '<td><input class="dfield" type="text" list="duty-people" maxlength="60" data-duty="' + d[0] + '~sub" value="' + esc(v.sub) + '" placeholder="지원"></td>' +
-          '<td><input class="dfield" type="text" maxlength="120" data-duty="' + d[0] + '~note" value="' + esc(v.note) + '" placeholder="메모"></td></tr>';
-      }
-      return '<tr><th>' + esc(d[1]) + '<span class="dmemo">' + esc(d[2]) + '</span></th>' +
-        '<td>' + (v.main ? '<b>' + esc(v.main) + '</b>' : '<span class="muted">미배정</span>') + '</td>' +
-        '<td>' + (v.sub ? esc(v.sub) : '<span class="muted">—</span>') + '</td>' +
-        '<td>' + (v.note ? esc(v.note) : '<span class="muted">—</span>') + '</td></tr>';
-    }).join('');
-    var assigned = DUTIES.filter(function (d) { return (duties[d[0]] || {}).main; }).length;
+    var rows = '';
+    ORG.depts.forEach(function (d, di) {
+      var teams = (d.teams && d.teams.length) ? d.teams : [{ name: '', lead: '', members: [] }];
+      teams.forEach(function (t, ti) {
+        rows += '<tr>';
+        if (ti === 0) {
+          if (orgEdit) {
+            rows += '<td rowspan="' + teams.length + '" class="org-dept"><input class="dfield" maxlength="60" data-org="d~' + di + '~name" value="' + esc(d.name) + '" placeholder="부서명">' +
+              '<input class="dfield sm" maxlength="60" data-org="d~' + di + '~chief" value="' + esc(d.chief || '') + '" placeholder="부장"></td>';
+          } else {
+            rows += '<td rowspan="' + teams.length + '" class="org-dept"><b>' + esc(d.name) + '</b>' + (d.chief ? '<span class="who">부장 ' + esc(d.chief) + '</span>' : '') + '</td>';
+          }
+        }
+        if (orgEdit) {
+          rows += '<td class="org-team"><input class="dfield" maxlength="60" data-org="t~' + di + '~' + ti + '~name" value="' + esc(t.name) + '" placeholder="팀명">' +
+            '<input class="dfield sm" maxlength="60" data-org="t~' + di + '~' + ti + '~lead" value="' + esc(t.lead || '') + '" placeholder="팀장"></td>' +
+            '<td><textarea class="dfield ta" rows="3" data-org="m~' + di + '~' + ti + '" placeholder="팀원 (쉼표 또는 줄바꿈으로 구분)">' + esc((t.members || []).join(', ')) + '</textarea></td>';
+        } else {
+          var mem = (t.members || []).map(function (m) { return m === '충원예정' ? '<span class="muted">충원예정</span>' : esc(m); }).join(' · ');
+          rows += '<td class="org-team"><b>' + esc(t.name) + '</b>' + (t.lead ? '<span class="who">팀장 ' + esc(t.lead) + '</span>' : '') + '</td>' +
+            '<td>' + (mem || '<span class="muted">—</span>') + '</td>';
+        }
+        rows += '</tr>';
+      });
+    });
+    var headline = orgEdit
+      ? '<span class="chip">본부장 <input class="dfield sm inline" maxlength="60" data-org="head" value="' + esc(ORG.head || '') + '" placeholder="본부장" style="width:8em;margin-left:6px"></span>'
+      : '<span class="chip ok">본부장 ' + esc(ORG.head) + '</span><span class="chip">인원 ' + orgPeopleCount() + '명</span>';
     var tools = can
-      ? (dutyEdit
+      ? (orgEdit
           ? '<button class="btn sm solid" id="duty-save">저장</button> <button class="btn sm ghost" id="duty-cancel">취소</button>'
-          : '<button class="btn sm" id="duty-edit">배정 바꾸기</button>')
-      : '<span class="muted" style="font-size:var(--fs-1)">배정을 바꾸려면 <button type="button" class="linkbtn" data-open-login>급식 관리자로 로그인</button>하세요.</span>';
+          : '<button class="btn sm" id="duty-edit">조직 편집</button>')
+      : '<span class="muted" style="font-size:var(--fs-1)">부서·팀·인원을 바꾸려면 <button type="button" class="linkbtn" data-open-login>급식 관리자로 로그인</button>하세요.</span>';
     box.innerHTML = '<div class="card">' +
-      '<div class="dutybar"><span class="chip' + (assigned === DUTIES.length ? ' ok' : '') + '">배정 ' + assigned + ' / ' + DUTIES.length + '</span>' +
-        (dutyMeta.updatedAt ? '<span class="muted" style="font-size:var(--fs-1)">마지막 수정 ' + esc(fmtWhen(dutyMeta.updatedAt)) + (dutyMeta.by ? ' · ' + esc(dutyMeta.by) : '') + '</span>' : '') +
+      '<div class="dutybar">' + headline +
+        (orgMeta.updatedAt ? '<span class="muted" style="font-size:var(--fs-1)">마지막 수정 ' + esc(fmtWhen(orgMeta.updatedAt)) + (orgMeta.by ? ' · ' + esc(orgMeta.by) : '') + '</span>' : '') +
         '<span class="spacer"></span>' + tools + '</div>' +
-      '<div class="tblwrap"><table class="tbl dutytbl"><thead><tr><th>구역 · 업무</th><th>담당</th><th>지원</th><th>메모</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>' + dl + '</div>';
+      '<div class="tblwrap"><table class="tbl dutytbl orgtbl"><thead><tr><th>부서 · 부장</th><th>팀 · 팀장</th><th>팀원</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div></div>';
   }
   function fmtWhen(iso) {
     try { var d = new Date(iso); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
     catch (e) { return ''; }
   }
-  function saveDuty() {
-    // 불러오기 전에는 저장하지 않는다 — 빈 배정으로 남의 작업을 덮어쓰는 사고를 막는다
-    if (!duties) { toast('배정을 아직 불러오지 못했습니다. 새로고침해 주세요.'); return; }
-    var next = {};
-    [].forEach.call(document.querySelectorAll('[data-duty]'), function (el) {
-      var p = el.getAttribute('data-duty').split('~');
-      if (!next[p[0]]) next[p[0]] = { main: '', sub: '', note: '' };
-      next[p[0]][p[1]] = el.value;
+  // 편집 화면의 입력들을 모아 ORG 구조를 다시 만든다(인덱스 기준 — 편집 중 구조는 그대로라 안전).
+  function collectOrg() {
+    var head = ORG.head, depts = ORG.depts.map(function (d) {
+      return { name: d.name, chief: d.chief || '', teams: (d.teams && d.teams.length ? d.teams : []).map(function (t) { return { name: t.name, lead: t.lead || '', members: (t.members || []).slice() }; }) };
     });
+    var he = document.querySelector('[data-org="head"]'); if (he) head = he.value;
+    [].forEach.call(document.querySelectorAll('[data-org]'), function (el) {
+      var p = el.getAttribute('data-org').split('~');
+      if (p[0] === 'd') { if (depts[p[1]]) depts[p[1]][p[2]] = el.value; }
+      else if (p[0] === 't') { if (depts[p[1]] && depts[p[1]].teams[p[2]]) depts[p[1]].teams[p[2]][p[3]] = el.value; }
+      else if (p[0] === 'm') { if (depts[p[1]] && depts[p[1]].teams[p[2]]) depts[p[1]].teams[p[2]].members = String(el.value || '').split(/[,\n]/).map(function (s) { return s.trim(); }).filter(Boolean); }
+    });
+    return { head: head, depts: depts };
+  }
+  function saveDuty() {
+    if (!orgLoaded && orgFail) { toast('조직표를 아직 불러오지 못했습니다. 새로고침해 주세요.'); return; }
+    var next = collectOrg();
     var btn = $('duty-save'); if (btn) { btn.disabled = true; btn.textContent = '저장 중…'; }
     var reset = function () { if (btn) { btn.disabled = false; btn.textContent = '저장'; } };
-    fetch('/api/jp-fnc', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()),
-      body: JSON.stringify({ duties: next, baseVer: (dutyMeta && dutyMeta.updatedAt) || '' }) })
+    fetch('/api/jp-fnc-org', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()),
+      body: JSON.stringify({ org: next, baseVer: (orgMeta && orgMeta.updatedAt) || '' }) })
       .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
       .then(function (res) {
         if (res.s === 401) { toast('관리자 세션이 만료됐습니다. 다시 로그인해 주세요.'); reset(); return; }
-        // 그 사이 다른 사람이 저장했다 — 덮어쓰지 않고 최신본을 보여 준다
         if (res.s === 409 && res.j && res.j.error === 'conflict') {
-          duties = res.j.duties || {}; dutyMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
-          dutyEdit = false; renderDuty(); reset();
-          toast((res.j.by ? res.j.by + '님이' : '다른 사람이') + ' 먼저 저장했습니다. 최신 배정을 불러왔습니다 — 다시 확인해 주세요.');
+          if (res.j.org) ORG = res.j.org; orgMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
+          orgEdit = false; renderDuty(); reset();
+          toast((res.j.by ? res.j.by + '님이' : '다른 사람이') + ' 먼저 저장했습니다. 최신 조직표를 불러왔습니다 — 다시 확인해 주세요.');
           return;
         }
-        if (res.s === 409 && res.j && res.j.error === 'empty_guard') { reset(); toast(res.j.message || '빈 배정은 저장하지 않았습니다.'); return; }
+        if (res.s === 409 && res.j && res.j.error === 'empty_guard') { reset(); toast(res.j.message || '빈 조직표는 저장하지 않았습니다.'); return; }
         if (res.j && res.j.ok) {
-          duties = res.j.duties || {}; dutyMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
-          dutyEdit = false; renderDuty(); toast('담당 배정을 저장했습니다');
+          if (res.j.org) ORG = res.j.org; orgMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
+          orgEdit = false; renderDuty();
+          if (staffData) renderStaffView();   // 인원이 바뀌면 운영요원 근무 후보도 갱신
+          toast('조직표를 저장했습니다');
           return;
         }
         reset(); toast('저장하지 못했습니다.');
@@ -1094,7 +1115,7 @@
     if (id === 'food') renderMealTable();
     if (id === 'sched') renderDays();
     if (id === 'menu') { renderMenu(); if (!menuData) loadMenu().then(renderMenu); }
-    if (id === 'duty') { renderDuty(); if (!duties) loadDuty().then(renderDuty); }
+    if (id === 'duty') { renderDuty(); if (!orgLoaded) loadOrg().then(renderDuty); }
     if (id === 'staff') { renderStaffView(); if (!staffData) loadStaff().then(renderStaffView); else loadStaff().then(renderStaffView); }
     applyContent($('view-' + id));   // 핵심 안내 문구 override 적용(+관리자면 인라인 편집)
     if (push !== false && location.hash !== '#' + id) history.pushState(null, '', '#' + id);
@@ -1144,14 +1165,14 @@
       var go = e.target.closest('[data-go]'); if (go) { setView(go.getAttribute('data-go')); $('search').value = ''; runSearch(''); $('search-x').hidden = true; return; }
       var mg = e.target.closest('[data-mg]'); if (mg) { menuGroup = mg.getAttribute('data-mg'); renderMenu(); return; }
       if (e.target.closest('#menu-retry')) { loadMenu().then(renderMenu); return; }
-      if (e.target.closest('#duty-retry')) { loadDuty().then(renderDuty); return; }
+      if (e.target.closest('#duty-retry')) { loadOrg().then(renderDuty); return; }
       if (e.target.closest('#staff-retry')) { loadStaff().then(renderStaffView); return; }
       if (e.target.closest('#staff-add-go')) { addStaffMember(); return; }
       var srm = e.target.closest('[data-staff-rm]'); if (srm) { removeStaffMember(srm.getAttribute('data-staff-rm')); return; }
       var un = e.target.closest('[data-unassign]'); if (un) { var pp = un.getAttribute('data-unassign').split('|'); unassignShift(pp[0], pp[1], pp[2]); return; }
       var cand = e.target.closest('[data-cand]'); if (cand) { var cp = cand.getAttribute('data-cand').split('|'); assignShift(cp[0], cp[1], cp[2]); return; }
-      if (e.target.closest('#duty-edit')) { dutyEdit = true; renderDuty(); return; }
-      if (e.target.closest('#duty-cancel')) { dutyEdit = false; renderDuty(); return; }
+      if (e.target.closest('#duty-edit')) { orgEdit = true; renderDuty(); return; }
+      if (e.target.closest('#duty-cancel')) { orgEdit = false; loadOrg().then(renderDuty); return; }
       if (e.target.closest('#duty-save')) { saveDuty(); return; }
       var f = e.target.closest('[data-fig]'); if (f) { openLb(+f.getAttribute('data-fig')); return; }
       if (e.target.closest('#lb-x')) { closeLb(); return; }
@@ -1181,13 +1202,14 @@
       var ss = e.target.closest('[data-search]'); if (ss) fillShiftCands(ss);
     });
     loadMenu().then(function () { if (cur === 'menu') renderMenu(); });
-    loadDuty().then(function () { if (cur === 'duty') renderDuty(); });
+    loadOrg().then(function () { if (cur === 'duty') renderDuty(); });
     loadStaff().then(function () { if (cur === 'home') renderDutyNow(); if (cur === 'staff') renderStaffView(); });
     loadWeather();
     loadContent().then(function () { applyContent($('view-' + cur)); });
-    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, DUTIES: DUTIES, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift,
+    try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift,
+      loadOrg: loadOrg, peopleList: peopleList, getOrg: function () { return ORG; },
       // 회귀가 '다른 사람이 먼저 저장한 상황'을 만들 수 있게 열어 둔다(화면에서는 쓰지 않는다)
-      setDutyVer: function (v) { dutyMeta = { updatedAt: v, by: (dutyMeta && dutyMeta.by) || '' }; } }; } catch (e) {}
+      setOrgVer: function (v) { orgMeta = { updatedAt: v, by: (orgMeta && orgMeta.by) || '' }; } }; } catch (e) {}
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
