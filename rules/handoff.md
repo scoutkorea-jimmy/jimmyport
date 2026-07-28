@@ -99,6 +99,10 @@
 
 ## 🗓 세션 이력 (최신 순)
 
+### 2026-07-28 — 기능 안정성 검토(전체 스위트) + 결함 2건 수정 (v0.9.284)
+대상: 전체 회귀 + `/krjam-fnc`(`board.js`·`board.css`). §fnc v0.9.284.
+- 전체 스위트(16 regress + 감사3) 1라운드 → 결함 2건: (1) 담당 배정 `.linkbtn`(20.8px) 40px 조작기준 위반 → `.btn.sm` 버튼으로 교체(문구·data-open-login 유지, dead css 제거); (2) regress-fnc-stability 가 admin/admin 사용 → foodservice/20260803 동기화(6건 연쇄 실패 해소). 수정 후 4종 ×2 그린, 전 스위트 그린. 라이브 헬스 전부 정상(라우트 200·API 200·PUT 401·VERSION 일치).
+
 ### 2026-07-28 — [급식본부/홍보부] 운영요원 식사메뉴 확정본 + fnc 계정 변경 (v0.9.283)
 대상: `jamboree-plan/app.js`(공유 meals) + `functions/api/jp-fnc-auth.js`. §fnc v0.9.283.
 - 운영요원(staff) 식사메뉴를 확정 PDF(2026-07-28)로 재작성 — 기존 seed 조식 하루 밀림·오타 교정. 멱등 마이그레이션 `migrateMealsStaff()`(가드 8/8 조식 돈육짜장덮밥). crew_n/crew_s 불변. 공유 데이터라 홍보부·fnc 동시 반영.
