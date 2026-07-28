@@ -348,3 +348,11 @@ v0.9.240 에서 한 번에 너무 많은 것을 움직였다. **동시에 움직
 - ⚠️ 기존 담당 area-assignment(`jp-fnc.js` duties)·`__fncBoard.DUTIES` 제거. `jp-fnc.js` API 파일과 회귀의 옛 목업은 사용 안 하지만 무해하게 남겨둠(다음에 정리).
 - 검증: `node --check`(board·jp-fnc-org·test) + fnc-board 회귀 **79/79 ×N라운드**(조직표 부서4·팀5 시드·부장/팀장/팀원 표시·인원수·비관리자 편집 불가·급식 관리자 안내·cleanOrg 정리·팀장/부서명 편집 저장·낙관적 잠금 충돌 최신본 신규).
 - 🔜 Phase 2b: 운영요원 근무 쉬프트 후보를 조직 로스터에서 직접(현재는 별도 staff 목록).
+
+### 19.x v0.9.281 — 운영요원 근무 인원 = 조직 로스터(단일 원본) · 전화는 근무화면 별도 [Phase 2b]
+- 사용자: "모든 인원이 운영요원 근무에도 보이게" — 이름은 조직(담당 배정)에서, 전화는 근무 화면에서 별도 관리(사용자 확정).
+- `board.js`: 운영요원 근무의 **근무 후보/명단 = 조직 로스터**(`rosterNames()`=peopleList, 충원예정 제외). 쉬프트 배정을 **id→이름** 키로 전환(assign/unassign/후보검색 모두 이름). 대시보드 '지금 근무'도 이름 기반. 수동 인원 추가/삭제 UI 제거(인원 원본은 조직표). 전화는 이름별 입력(`data-phone`) + '연락처 저장'(`savePhones`) — `jp-fnc-staff` 를 **이름→전화 레지스트리**로 재사용(비관리자 phone4 유지). `staffLabel(name)`·`phoneMap()` 신설.
+- `saveStaff` 는 `confirmEmpty:true`(staff 가 이제 선택적 전화 레지스트리 — 빈 값도 정상. 낙관적 잠금·스냅샷으로 보호). 서버 `jp-fnc-staff.js` 스키마 그대로(문자열 배열=이름) — 무변경.
+- `board.css`: `.staffrow`/`.phone-in`/`.staff-roster.editing` 그리드.
+- ⚠️ 마이그레이션: 라이브 `jp:fnc-staff` 는 비어 있어(이전 수동입력 없음) id→이름 전환 영향 없음. 기존 데이터가 있었다면 옛 id 배정은 이름과 매칭 안 돼 사라질 수 있음(해당 없음).
+- 검증: `node --check`(board·test) + fnc-board 회귀 **80/80 ×N라운드**(명단=조직 로스터·비관리자 phone4·관리자 이름별 전화 입력/저장/재표시·이름 기반 배정 칩검색 신규).

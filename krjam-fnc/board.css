@@ -385,6 +385,11 @@ body,button,input,select,textarea{word-break:keep-all; overflow-wrap:break-word}
 .staffchip.sm{padding:3px 9px;margin:2px}
 .staffchip .chip-x{border:none;background:transparent;color:var(--accent-ink);cursor:pointer;font-size:12px;line-height:1;padding:0 2px}
 .staff-roster{margin:8px 0}
+.staff-roster.editing{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px}
+.staffrow{display:flex; align-items:center; gap:8px; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-1); padding:5px 8px}
+.staffrow .nm{flex:0 0 auto; min-width:4.5em; font-weight:700}
+.staffrow .phone-in{flex:1; min-width:0; margin-top:0}
+.staff-add{align-items:center}
 .staff-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .staff-add input{min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--fs-1)}
 .staff-add input:focus{outline:none;border-color:var(--accent);background:var(--accent-soft-2)}

@@ -785,6 +785,7 @@
       staff: (staffData.staff || []).map(function (s) { return { id: s.id, name: s.name, phone: s.phone != null ? s.phone : '' }; }),
       shifts: staffData.shifts || {},
       baseVer: staffVer,
+      confirmEmpty: true,   // staff 는 이제 '선택적 전화 레지스트리'라 빈 값도 정상(인원 원본은 조직표). 잠금·스냅샷으로 보호.
     };
     return fetch('/api/jp-fnc-staff', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()), body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
@@ -810,72 +811,81 @@
         loadStaff().then(function () { renderStaffView(); });
       });
   }
-  function mkStaffId() { return 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
   function currentShift(now) { var m = nowMinutes(now); for (var i = 0; i < STAFF_SHIFTS.length; i++) { var s = STAFF_SHIFTS[i]; if (m >= minutesOf(s[2]) && m < minutesOf(s[3])) return s; } return null; }
-  function staffLabel(s) { var ph = (s.phone != null) ? s.phone : (s.phone4 || ''); return s.name + (ph ? ' (' + ph + ')' : ''); }
+  // 이름→전화 레지스트리(전화는 근무 화면에서 별도 관리 · 이름은 조직 로스터에서). 비관리자는 phone4(끝4).
+  function phoneMap() { var m = {}; ((staffData && staffData.staff) || []).forEach(function (s) { if (s && s.name) m[s.name] = (s.phone != null) ? s.phone : (s.phone4 || ''); }); return m; }
+  // 근무 후보 = 조직 로스터 인원(충원예정 제외) — 담당 배정과 같은 단일 원본을 쓴다.
+  function rosterNames() { return peopleList().filter(function (n) { return n && n !== '충원예정'; }); }
+  function staffLabel(name) { var ph = phoneMap()[name] || ''; return name + (ph ? ' (' + ph + ')' : ''); }
   // 대시보드 실시간 근무자 + 오늘 메뉴
   function renderDutyNow() {
     var box = $('dutynow'); if (!box) return;
     var now = new Date(), sh = currentShift(now);
     var today = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
-    var staff = staffData ? staffData.staff : [], byId = {}; staff.forEach(function (s) { byId[s.id] = s; });
     var onNow = [];
-    if (sh && staffData) onNow = (((staffData.shifts[today] || {})[sh[0]]) || []).map(function (id) { return byId[id]; }).filter(Boolean);
+    if (sh && staffData) onNow = (((staffData.shifts[today] || {})[sh[0]]) || []).slice();
     var mt = menuData ? ((menuData.staff || {})[today] || {}) : null;
     var menuHtml = (mt && (mt.b || mt.l || mt.d))
       ? [['b', '조식'], ['l', '중식'], ['d', '석식']].map(function (x) { return mt[x[0]] ? '<div class="dn-meal"><span>' + x[1] + '</span>' + esc(mt[x[0]]) + '</div>' : ''; }).join('')
       : '<span class="muted">오늘 등록된 메뉴가 없습니다</span>';
     box.innerHTML =
       '<div class="dutynow-shift">' + (sh ? ('<span class="chip ok">' + sh[1] + '팀 근무 중</span> <b>' + sh[2] + ' ~ ' + sh[3] + '</b>') : '<span class="chip">지금은 지정 근무 시간이 아닙니다</span>') + '</div>' +
-      '<div class="dutynow-people">' + (onNow.length ? onNow.map(function (s) { return '<span class="staffchip">' + esc(staffLabel(s)) + '</span>'; }).join('') : '<span class="muted">' + (staffData ? '배정된 근무자가 없습니다' : '운영요원 정보를 불러오는 중…') + '</span>') + '</div>' +
+      '<div class="dutynow-people">' + (onNow.length ? onNow.map(function (n) { return '<span class="staffchip">' + esc(staffLabel(n)) + '</span>'; }).join('') : '<span class="muted">' + (staffData ? '배정된 근무자가 없습니다' : '운영요원 정보를 불러오는 중…') + '</span>') + '</div>' +
       '<div class="dutynow-menu"><b>오늘 식사(운영요원)</b>' + menuHtml + '</div>';
   }
   function viewStaff() { return '<section class="sec"><h2 class="sec-h">운영요원 · 쉬프트 배정</h2><div class="card" id="staffbox"><p class="muted">불러오는 중…</p></div></section>'; }
   function renderStaffView() {
     var box = $('staffbox'); if (!box) return;
     if (!staffData) { box.innerHTML = '<p class="muted">운영요원 정보를 불러오지 못했습니다.</p><button class="btn sm" id="staff-retry">다시 불러오기</button>'; return; }
-    var admin = isAdmin(), staff = staffData.staff, byId = {}; staff.forEach(function (s) { byId[s.id] = s; });
-    var roster = staff.map(function (s) { return '<span class="staffchip">' + esc(staffLabel(s)) + (admin ? '<button class="chip-x" data-staff-rm="' + esc(s.id) + '" aria-label="삭제">✕</button>' : '') + '</span>'; }).join('') || '<span class="muted">등록된 운영요원이 없습니다.</span>';
-    var addForm = admin ? '<div class="staff-add"><input id="staff-name" placeholder="이름 (필수)" autocomplete="off" /><input id="staff-phone" placeholder="전화 (선택)" inputmode="numeric" autocomplete="off" /><button type="button" class="btn sm solid" id="staff-add-go">＋ 추가</button></div>' : '';
+    var admin = isAdmin(), pm = phoneMap(), names = rosterNames();
+    var roster;
+    if (!names.length) {
+      roster = '<span class="muted">담당 배정(조직표)에 인원이 없습니다.</span>';
+    } else if (admin) {
+      roster = names.map(function (n) { return '<div class="staffrow"><span class="nm">' + esc(n) + '</span><input class="dfield sm phone-in" data-phone="' + esc(n) + '" inputmode="numeric" autocomplete="off" placeholder="전화 (선택)" value="' + esc(pm[n] || '') + '"></div>'; }).join('');
+    } else {
+      roster = names.map(function (n) { return '<span class="staffchip">' + esc(n) + (pm[n] ? ' <span class="muted">(' + esc(pm[n]) + ')</span>' : '') + '</span>'; }).join('');
+    }
+    var phoneSave = admin ? '<div class="staff-add"><button type="button" class="btn sm solid" id="staff-phones-save">연락처 저장</button><span class="muted" style="font-size:var(--fs-1)">이름은 <b>담당 배정</b>(조직표)에서 관리됩니다</span></div>' : '';
     var cal = '<div class="tblwrap"><table class="tbl shifttbl"><thead><tr><th>날짜</th>' +
       STAFF_SHIFTS.map(function (s) { return '<th>' + s[1] + '팀<span class="sh-t">' + s[2] + '~' + s[3] + '</span></th>'; }).join('') + '</tr></thead><tbody>' +
       STAFF_DAYS.map(function (d) {
         var dd = (+d.slice(5, 7)) + '/' + (+d.slice(8, 10));
         return '<tr><th>' + dd + '</th>' + STAFF_SHIFTS.map(function (sh) {
-          var ids = ((staffData.shifts[d] || {})[sh[0]]) || [];
-          var chips = ids.map(function (id) { var s = byId[id]; return s ? '<span class="staffchip sm">' + esc(s.name) + (admin ? '<button class="chip-x" data-unassign="' + d + '|' + sh[0] + '|' + esc(id) + '" aria-label="빼기">✕</button>' : '') + '</span>' : ''; }).join('');
+          var arr = ((staffData.shifts[d] || {})[sh[0]]) || [];
+          var chips = arr.map(function (n) { return '<span class="staffchip sm">' + esc(n) + (admin ? '<button class="chip-x" data-unassign="' + d + '|' + sh[0] + '|' + esc(n) + '" aria-label="빼기">✕</button>' : '') + '</span>'; }).join('');
           var picker = '';
           if (admin) picker = '<div class="shift-assign"><input class="shift-search" data-search="' + d + '|' + sh[0] + '" placeholder="이름 검색 +" autocomplete="off" aria-label="근무자 검색해 배정" /><div class="shift-cands" data-cands="' + d + '|' + sh[0] + '"></div></div>';
           return '<td>' + (chips || (admin ? '' : '<span class="muted">—</span>')) + picker + '</td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
-    box.innerHTML = '<h3>운영요원 명단' + (admin ? '' : ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 전화 전체는 관리자만 (평소 끝 4자리)</span>') + '</h3>' +
-      '<div class="staff-roster">' + roster + '</div>' + addForm +
+    box.innerHTML = '<h3>운영요원 명단' + (admin ? ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 이름은 담당 배정에서, 전화는 여기서</span>' : ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 전화 전체는 관리자만 (평소 끝 4자리)</span>') + '</h3>' +
+      '<div class="staff-roster' + (admin ? ' editing' : '') + '">' + roster + '</div>' + phoneSave +
       '<h3 style="margin-top:18px">쉬프트 배정 <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 오전 05–10 · 오후 11–15 · 저녁 16–21</span></h3>' + cal +
       (admin ? '' : '<p class="muted" style="margin-top:10px">배정 편집은 <b>관리자</b> 로그인 후 가능합니다.</p>');
   }
-  function addStaffMember() {
-    var nm = ($('staff-name').value || '').trim(); if (!nm) { toast('이름은 필수입니다'); return; }
-    var ph = ($('staff-phone').value || '').replace(/[^0-9]/g, '');
-    staffData.staff.push({ id: mkStaffId(), name: nm, phone: ph }); saveStaff();
+  // 전화 레지스트리 저장(이름→전화, 빈 값은 제외). 이름은 조직표가 원본이라 여기서 추가/삭제하지 않는다.
+  function savePhones() {
+    if (!staffData) return;
+    var reg = [];
+    [].forEach.call(document.querySelectorAll('[data-phone]'), function (el) {
+      var name = el.getAttribute('data-phone'), ph = (el.value || '').replace(/[^0-9]/g, '');
+      if (ph) reg.push({ id: name, name: name, phone: ph });
+    });
+    staffData.staff = reg; saveStaff();
   }
-  function removeStaffMember(id) {
-    staffData.staff = staffData.staff.filter(function (s) { return s.id !== id; });
-    Object.keys(staffData.shifts).forEach(function (d) { STAFF_SHIFTS.forEach(function (sh) { var a = (staffData.shifts[d] || {})[sh[0]]; if (a) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } }); });
-    saveStaff();
-  }
-  function assignShift(d, k, id) { if (!staffData.shifts[d]) staffData.shifts[d] = {}; var a = staffData.shifts[d][k] = staffData.shifts[d][k] || []; if (a.indexOf(id) < 0) a.push(id); saveStaff(); }
-  // 검색하면 후보가 칩으로 바로 뜨고, 칩을 누르면 배정된다(드롭다운 아님).
+  function assignShift(d, k, name) { if (!staffData.shifts[d]) staffData.shifts[d] = {}; var a = staffData.shifts[d][k] = staffData.shifts[d][k] || []; if (a.indexOf(name) < 0) a.push(name); saveStaff(); }
+  // 검색하면 후보(조직 로스터 이름)가 칩으로 바로 뜨고, 칩을 누르면 배정된다(드롭다운 아님).
   function fillShiftCands(input) {
     var parts = input.getAttribute('data-search').split('|'), d = parts[0], k = parts[1];
     var cont = input.parentNode.querySelector('.shift-cands'); if (!cont) return;
     var q = (input.value || '').trim().toLowerCase();
     if (!q) { cont.innerHTML = ''; return; }
-    var ids = ((staffData.shifts[d] || {})[k]) || [];
-    var matches = staffData.staff.filter(function (s) { return ids.indexOf(s.id) < 0 && s.name.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
-    cont.innerHTML = matches.length ? matches.map(function (s) { return '<button type="button" class="staffchip cand" data-cand="' + d + '|' + k + '|' + esc(s.id) + '">＋ ' + esc(s.name) + '</button>'; }).join('') : '<span class="muted" style="font-size:var(--fs-1)">일치하는 운영요원 없음</span>';
+    var assigned = ((staffData.shifts[d] || {})[k]) || [];
+    var matches = rosterNames().filter(function (n) { return assigned.indexOf(n) < 0 && n.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+    cont.innerHTML = matches.length ? matches.map(function (n) { return '<button type="button" class="staffchip cand" data-cand="' + d + '|' + k + '|' + esc(n) + '">＋ ' + esc(n) + '</button>'; }).join('') : '<span class="muted" style="font-size:var(--fs-1)">일치하는 운영요원 없음</span>';
   }
-  function unassignShift(d, k, id) { var a = (staffData.shifts[d] || {})[k]; if (a) { var i = a.indexOf(id); if (i >= 0) a.splice(i, 1); } saveStaff(); }
+  function unassignShift(d, k, name) { var a = (staffData.shifts[d] || {})[k]; if (a) { var i = a.indexOf(name); if (i >= 0) a.splice(i, 1); } saveStaff(); }
 
   /* 식사 메뉴 — 홍보부 보드와 같은 자료(/api/jp-meals) */
   var MENU_DAYS = ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09'];
@@ -1116,7 +1126,7 @@
     if (id === 'sched') renderDays();
     if (id === 'menu') { renderMenu(); if (!menuData) loadMenu().then(renderMenu); }
     if (id === 'duty') { renderDuty(); if (!orgLoaded) loadOrg().then(renderDuty); }
-    if (id === 'staff') { renderStaffView(); if (!staffData) loadStaff().then(renderStaffView); else loadStaff().then(renderStaffView); }
+    if (id === 'staff') { renderStaffView(); if (!orgLoaded) loadOrg().then(renderStaffView); loadStaff().then(renderStaffView); }
     applyContent($('view-' + id));   // 핵심 안내 문구 override 적용(+관리자면 인라인 편집)
     if (push !== false && location.hash !== '#' + id) history.pushState(null, '', '#' + id);
     closeSide();
@@ -1167,8 +1177,7 @@
       if (e.target.closest('#menu-retry')) { loadMenu().then(renderMenu); return; }
       if (e.target.closest('#duty-retry')) { loadOrg().then(renderDuty); return; }
       if (e.target.closest('#staff-retry')) { loadStaff().then(renderStaffView); return; }
-      if (e.target.closest('#staff-add-go')) { addStaffMember(); return; }
-      var srm = e.target.closest('[data-staff-rm]'); if (srm) { removeStaffMember(srm.getAttribute('data-staff-rm')); return; }
+      if (e.target.closest('#staff-phones-save')) { savePhones(); return; }
       var un = e.target.closest('[data-unassign]'); if (un) { var pp = un.getAttribute('data-unassign').split('|'); unassignShift(pp[0], pp[1], pp[2]); return; }
       var cand = e.target.closest('[data-cand]'); if (cand) { var cp = cand.getAttribute('data-cand').split('|'); assignShift(cp[0], cp[1], cp[2]); return; }
       if (e.target.closest('#duty-edit')) { orgEdit = true; renderDuty(); return; }

@@ -26,7 +26,8 @@ let mealHits = 0, mealFail = false, dutyPuts = 0, mealPuts = 0, staffPuts = 0, c
 const CONTENT = {};
 // 조직 단일 저장소 — org=null 이면 클라가 내장 시드(ORG)를 쓴다. 저장하면 여기 채워진다.
 const ORGDATA = { org: null, updatedAt: null, by: '' };
-const STAFF = { staff: [{ id: 'st1', name: '김운영', phone: '01012345678' }, { id: 'st2', name: '이배식', phone: '01099998888' }], shifts: { '2026-08-05': { am: ['st1'], pm: ['st2'] } } };
+// 전화 레지스트리는 이름을 키로 쓴다(2b). 근무 후보는 조직 로스터(ORG) 이름에서 오고, 여기엔 전화만.
+const STAFF = { staff: [{ id: '주명림', name: '주명림', phone: '01012345678' }, { id: '장문수', name: '장문수', phone: '01099998888' }], shifts: { '2026-08-05': { am: ['주명림'], pm: ['장문수'] } } };
 const DUTIES = { duties: { supply: { main: '주명림', sub: '장문수', note: '06:00 보급 준비' } }, updatedAt: '2026-07-25T10:00:00Z', by: '심호웅' };
 
 const server = http.createServer((req, res) => {
@@ -428,13 +429,20 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   chk('비관리자: 핵심 문구 인라인 편집 비활성(tx-edit 없음)', await p.evaluate(() => document.querySelectorAll('#view-food .tx-edit').length === 0));
 
   console.log('\n[운영요원 · 쉬프트]');
-  await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(500);
-  chk('운영요원 명단 칩 렌더', await p.evaluate(() => document.querySelectorAll('#staffbox .staffchip').length >= 2));
+  await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(600);
+  chk('운영요원 명단 = 조직 로스터 인원(담당 배정과 같은 원본)', await p.evaluate(() => {
+    var t = document.getElementById('staffbox').textContent;
+    return document.querySelectorAll('#staffbox .staff-roster .staffchip').length >= 5
+      && /주명림/.test(t) && /장문수/.test(t) && /이훈혁/.test(t);   // 조직 인원이 근무 화면에도 그대로
+  }));
   chk('비관리자: 전화 끝 4자리만(전체번호 노출 안 함)', await p.evaluate(() => {
     var t = document.getElementById('staffbox').textContent;
-    return t.indexOf('김운영') >= 0 && t.indexOf('5678') >= 0 && t.indexOf('01012345678') < 0;
+    return t.indexOf('주명림') >= 0 && t.indexOf('5678') >= 0 && t.indexOf('01012345678') < 0;
   }));
-  chk('비관리자: 배정 편집 UI 없음', await p.evaluate(() => document.querySelectorAll('#staffbox .shift-search').length === 0 && !document.getElementById('staff-add-go')));
+  chk('비관리자: 편집 UI 없음(전화 입력·배정 검색 없음)', await p.evaluate(() =>
+    document.querySelectorAll('#staffbox .shift-search').length === 0
+    && document.querySelectorAll('#staffbox [data-phone]').length === 0
+    && !document.getElementById('staff-phones-save')));
   chk('쉬프트 시간 계산(오전05–10·오후11–15·저녁16–21)', await p.evaluate(() => {
     var am = window.__fncBoard.currentShift(new Date('2026-08-05T06:00:00'));
     var pm = window.__fncBoard.currentShift(new Date('2026-08-05T12:00:00'));
@@ -463,27 +471,40 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.evaluate(async () => { var c = document.querySelector('#menubox td.mcell[data-meal="b"]'); c.focus(); c.textContent = '테스트조식'; c.dispatchEvent(new Event('blur', { bubbles: true })); await new Promise((r) => setTimeout(r, 500)); });
   await wait(300);
   chk('메뉴 셀 수정 → 서버(jp-meals) 저장(양방향)', mealPuts > putsBefore, 'PUT ' + (mealPuts - putsBefore));
-  // 관리자 상태의 운영요원 뷰: 전화 전체 + 편집 UI + 추가 저장
-  await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(500);
-  chk('관리자: 전화 전체 표시', await p.evaluate(() => document.getElementById('staffbox').textContent.indexOf('01012345678') >= 0));
-  chk('관리자: 운영요원 추가/배정 UI', await p.evaluate(() => !!document.getElementById('staff-add-go') && document.querySelectorAll('#staffbox .shift-search').length > 0));
+  // 관리자 상태의 운영요원 뷰: 전화는 이름별 입력(전체 표시) + 배정 UI. 이름 추가/삭제는 없음(조직표가 원본).
+  await p.evaluate(() => window.__fncBoard.setView('staff')); await wait(600);
+  chk('관리자: 전화 전체 표시(이름별 입력)', await p.evaluate(() => {
+    var el = document.querySelector('#staffbox [data-phone="주명림"]');
+    return !!el && el.value.indexOf('01012345678') >= 0;
+  }));
+  chk('관리자: 전화 저장·배정 UI(이름 추가폼 없음)', await p.evaluate(() =>
+    !!document.getElementById('staff-phones-save') && document.querySelectorAll('#staffbox .shift-search').length > 0
+    && !document.getElementById('staff-name')));
   const spBefore = staffPuts;
-  await p.evaluate(async () => { document.getElementById('staff-name').value = '박신규'; document.getElementById('staff-phone').value = '01055551234'; document.getElementById('staff-add-go').click(); await new Promise((r) => setTimeout(r, 500)); });
+  await p.evaluate(async () => {
+    var el = document.querySelector('#staffbox [data-phone="이훈혁"]'); el.value = '01055551234';
+    document.getElementById('staff-phones-save').click();
+    await new Promise((r) => setTimeout(r, 500));
+  });
   await wait(300);
-  chk('관리자: 운영요원 추가 → 서버 저장(PUT)', staffPuts > spBefore, 'PUT ' + (staffPuts - spBefore));
-  // 담당 배정: 검색하면 칩 후보가 바로 뜨고(드롭다운 아님) 클릭하면 배정 저장
+  chk('관리자: 전화 입력 → 서버 저장(PUT)', staffPuts > spBefore, 'PUT ' + (staffPuts - spBefore));
+  chk('저장한 전화가 다시 보인다', await p.evaluate(() => {
+    var el = document.querySelector('#staffbox [data-phone="이훈혁"]');
+    return !!el && el.value.indexOf('01055551234') >= 0;
+  }));
+  // 근무 배정: 검색하면 조직 로스터 이름이 칩 후보로 바로 뜨고(드롭다운 아님) 클릭하면 배정 저장
   const spBefore2 = staffPuts;
   const cand = await p.evaluate(async () => {
     var inp = document.querySelector('#staffbox .shift-search'); if (!inp) return { err: 'no-input' };
-    inp.value = '이'; inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.value = '이홍우'; inp.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise((r) => setTimeout(r, 200));
     var cs = inp.parentNode.querySelectorAll('[data-cand]');
-    var n = cs.length; if (n) cs[0].click();
+    var n = cs.length, txt = n ? cs[0].textContent : ''; if (n) cs[0].click();
     await new Promise((r) => setTimeout(r, 500));
-    return { n: n };
+    return { n: n, txt: txt };
   });
   await wait(300);
-  chk('배정: 검색 → 칩 후보 노출(드롭다운 아님)', cand.n >= 1, JSON.stringify(cand));
+  chk('배정: 검색 → 조직 로스터 이름이 칩 후보로 노출', cand.n >= 1 && /이홍우/.test(cand.txt), JSON.stringify(cand));
   chk('배정: 후보 칩 클릭 → 서버 저장(PUT)', staffPuts > spBefore2, 'PUT ' + (staffPuts - spBefore2));
   // 핵심 안내 문구 인라인 편집(override 저장) — 관리자만
   await p.evaluate(() => window.__fncBoard.setView('food')); await wait(400);
