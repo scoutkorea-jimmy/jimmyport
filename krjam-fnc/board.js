@@ -88,8 +88,8 @@
   function writeHeader() { var f = fncSession(); if (f) return { Authorization: 'Bearer ' + f.token }; var s = session(); return s ? { Authorization: 'Bearer ' + s.token } : {}; }
   function renderAdminBtn() {
     var b = $('fnc-admin-btn'); if (!b) return;
-    if (fncSession()) { b.textContent = '관리자 ✓'; b.classList.add('on'); b.setAttribute('aria-label', '관리자 로그아웃'); }
-    else { b.textContent = '관리자'; b.classList.remove('on'); b.setAttribute('aria-label', '관리자 로그인'); }
+    if (fncSession()) { b.textContent = '로그아웃'; b.classList.add('on'); b.setAttribute('aria-label', '로그아웃'); }
+    else { b.textContent = '로그인'; b.classList.remove('on'); b.setAttribute('aria-label', '로그인'); }
   }
   function openLogin() { var m = $('fnc-login'); if (!m) return; m.hidden = false; $('fl-err').hidden = true; $('fl-id').value = ''; $('fl-pw').value = ''; setTimeout(function () { var el = $('fl-id'); if (el) el.focus(); }, 30); }
   function closeLogin() { var m = $('fnc-login'); if (m) m.hidden = true; }
@@ -102,7 +102,7 @@
         if (j && j.ok && j.token) {
           // 30분 타임아웃 — 서버 토큰이 더 길어도 클라에서 30분 뒤 만료시킨다(공용 PC 대비).
           try { localStorage.setItem('krjam-fnc:admin', JSON.stringify({ token: j.token, exp: Date.now() + 1800000, name: '급식 관리자' })); } catch (e) {}
-          closeLogin(); renderAdminBtn(); setView(cur || 'home', false); toast('관리자로 로그인되었습니다 (30분 후 자동 로그아웃)');
+          closeLogin(); renderAdminBtn(); setView(cur || 'home', false); toast('로그인되었습니다 (30분 후 자동 로그아웃)');
         } else { loginErr('아이디 또는 비밀번호가 올바르지 않습니다.'); }
       }).catch(function () { loginErr('로그인 중 오류가 발생했습니다.'); });
   }
@@ -833,10 +833,10 @@
       '<div class="dutynow-people">' + (onNow.length ? onNow.map(function (n) { return '<span class="staffchip">' + esc(staffLabel(n)) + '</span>'; }).join('') : '<span class="muted">' + (staffData ? '배정된 근무자가 없습니다' : '운영요원 정보를 불러오는 중…') + '</span>') + '</div>' +
       '<div class="dutynow-menu"><b>오늘 식사(운영요원)</b>' + menuHtml + '</div>';
   }
-  function viewStaff() { return '<section class="sec"><h2 class="sec-h">운영요원 · 쉬프트 배정</h2><div class="card" id="staffbox"><p class="muted">불러오는 중…</p></div></section>'; }
+  function viewStaff() { return '<section class="sec"><h2 class="sec-h">운영요원 · 쉬프트 배정</h2><div id="staffbox"><div class="card"><p class="muted">불러오는 중…</p></div></div></section>'; }
   function renderStaffView() {
     var box = $('staffbox'); if (!box) return;
-    if (!staffData) { box.innerHTML = '<p class="muted">운영요원 정보를 불러오지 못했습니다.</p><button class="btn sm" id="staff-retry">다시 불러오기</button>'; return; }
+    if (!staffData) { box.innerHTML = '<div class="card"><p class="muted">운영요원 정보를 불러오지 못했습니다.</p><button class="btn sm" id="staff-retry">다시 불러오기</button></div>'; return; }
     var admin = isAdmin(), pm = phoneMap(), names = rosterNames();
     var roster;
     if (!names.length) {
@@ -859,10 +859,17 @@
           return '<td>' + (chips || (admin ? '' : '<span class="muted">—</span>')) + picker + '</td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>';
-    box.innerHTML = '<h3>운영요원 명단' + (admin ? ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 이름은 담당 배정에서, 전화는 여기서</span>' : ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 전화 전체는 관리자만 (평소 끝 4자리)</span>') + '</h3>' +
-      '<div class="staff-roster' + (admin ? ' editing' : '') + '">' + roster + '</div>' + phoneSave +
-      '<h3 style="margin-top:18px">쉬프트 배정 <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 오전 05–10 · 오후 11–15 · 저녁 16–21</span></h3>' + cal +
-      (admin ? '' : '<p class="muted" style="margin-top:10px">배정 편집은 <b>관리자</b> 로그인 후 가능합니다.</p>');
+    box.innerHTML =
+      // 1) 쉬프트 배정 (위)
+      '<div class="card">' +
+        '<h3>쉬프트 배정 <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 오전 05–10 · 오후 11–15 · 저녁 16–21</span></h3>' + cal +
+        (admin ? '' : '<p class="muted" style="margin-top:10px">배정 편집은 로그인 후 가능합니다.</p>') +
+      '</div>' +
+      // 2) 운영요원 정보 (아래) — 이름은 담당 배정(조직표)이 원본, 전화만 여기서
+      '<div class="card" style="margin-top:14px">' +
+        '<h3>운영요원 정보' + (admin ? ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 이름은 담당 배정에서, 전화는 여기서</span>' : ' <span class="muted" style="font-weight:400;font-size:var(--fs-1)">— 전화 전체는 관리자만 (평소 끝 4자리)</span>') + '</h3>' +
+        '<div class="staff-roster' + (admin ? ' editing' : '') + '">' + roster + '</div>' + phoneSave +
+      '</div>';
   }
   // 전화 레지스트리 저장(이름→전화, 빈 값은 제외). 이름은 조직표가 원본이라 여기서 추가/삭제하지 않는다.
   function savePhones() {
@@ -1154,7 +1161,7 @@
   function tick() {
     // 30분 만료 등으로 관리자 상태가 바뀌면 버튼·화면을 다시 그려 편집 권한을 회수한다.
     var a = !!fncSession();
-    if (lastAdmin !== null && a !== lastAdmin) { renderAdminBtn(); setView(cur || 'home', false); if (!a) toast('관리자 세션이 만료되어 로그아웃되었습니다'); }
+    if (lastAdmin !== null && a !== lastAdmin) { renderAdminBtn(); setView(cur || 'home', false); if (!a) toast('세션이 만료되어 로그아웃되었습니다'); }
     lastAdmin = a;
     if (cur === 'home') { renderHero(); renderMealNow(); renderDutyNow(); }
     if (cur === 'food') renderMealTable();
@@ -1166,7 +1173,7 @@
     buildNav();
     renderAdminBtn();
     document.addEventListener('click', function (e) {
-      if (e.target.closest('#fnc-admin-btn')) { if (fncSession()) { if (confirm('관리자에서 로그아웃할까요?')) logoutAdmin(); } else openLogin(); return; }
+      if (e.target.closest('#fnc-admin-btn')) { if (fncSession()) { if (confirm('로그아웃할까요?')) logoutAdmin(); } else openLogin(); return; }
       if (e.target.closest('[data-open-login]')) { openLogin(); return; }
       if (e.target.closest('#fl-cancel')) { closeLogin(); return; }
       if (e.target.closest('#fl-go')) { submitLogin(); return; }

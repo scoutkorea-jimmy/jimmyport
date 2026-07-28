@@ -453,7 +453,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   console.log('\n[급식 관리자 로그인]');
   const beforeLogin = await p.evaluate(() => ({ admin: window.__fncBoard.isAdmin(), btn: document.getElementById('fnc-admin-btn').textContent.trim(), modalHidden: document.getElementById('fnc-login').hidden }));
-  chk('초기 비로그인(관리자 아님 · 모달 숨김)', beforeLogin.admin === false && beforeLogin.btn === '관리자' && beforeLogin.modalHidden === true, JSON.stringify(beforeLogin));
+  chk('초기 비로그인(버튼 "로그인" · 모달 숨김)', beforeLogin.admin === false && beforeLogin.btn === '로그인' && beforeLogin.modalHidden === true, JSON.stringify(beforeLogin));
   await p.click('#fnc-admin-btn'); await wait(80);
   chk('관리자 버튼 → 로그인 모달 열림', await p.evaluate(() => document.getElementById('fnc-login').hidden === false));
   await p.evaluate(() => { document.getElementById('fl-id').value = 'foodservice'; document.getElementById('fl-pw').value = 'nope'; });
@@ -462,7 +462,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   await p.evaluate(() => { document.getElementById('fl-id').value = 'foodservice'; document.getElementById('fl-pw').value = '20260803'; });
   await p.click('#fl-go'); await wait(500);
   const afterLogin = await p.evaluate(() => ({ admin: window.__fncBoard.isAdmin(), btn: document.getElementById('fnc-admin-btn').textContent.trim(), modalHidden: document.getElementById('fnc-login').hidden, tok: !!JSON.parse(localStorage.getItem('krjam-fnc:admin') || 'null') }));
-  chk('foodservice 로그인 성공(관리자 · 모달 닫힘 · 토큰 저장)', afterLogin.admin === true && /관리자 ✓/.test(afterLogin.btn) && afterLogin.modalHidden === true && afterLogin.tok === true, JSON.stringify(afterLogin));
+  chk('foodservice 로그인 성공(버튼 "로그아웃" · 모달 닫힘 · 토큰 저장)', afterLogin.admin === true && afterLogin.btn === '로그아웃' && afterLogin.modalHidden === true && afterLogin.tok === true, JSON.stringify(afterLogin));
   // 로그인 상태 → 식사 메뉴 인라인 편집 + 서버 저장(양방향)
   await p.evaluate(() => window.__fncBoard.setView('menu')); await wait(400);
   const editable = await p.evaluate(() => document.querySelectorAll('#menubox td.mcell[contenteditable]').length);
