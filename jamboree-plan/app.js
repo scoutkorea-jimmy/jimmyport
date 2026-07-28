@@ -2661,6 +2661,7 @@ function renderTTModal(){
     : '<div class="hintmini">연락처는 최대 3명까지 연결할 수 있습니다.</div>';
   var conSection = conRows + conPicker;
   b.innerHTML=
+    '<div class="evfld"><label>제목</label><input id="tt-f-title" type="text" class="evinput" value="'+esc(ttDraft.title)+'" placeholder="예: 개영식 / 모듈 프로그램"></div>'+
     '<div class="evfld"><label>종류 — 클릭해 선택 · 입력 후 Enter로 추가 · ✕로 삭제</label><div class="chipset" id="tt-catset">'+
       ttCats().map(function(c){var on=ttDraft.cat===c[0];return '<span class="csel'+(on?' on':'')+'" data-c="'+esc(c[0])+'" style="'+(on?('background:'+c[1]+';border-color:'+c[1]+';color:#fff'):'')+'"><input type="color" class="ccolor" data-c="'+esc(c[0])+'" value="'+esc(c[1])+'" title="색상 변경">'+esc(c[0])+'<button type="button" class="cx" data-c="'+esc(c[0])+'" title="종류 삭제" aria-label="삭제">'+icon('x',11)+'</button></span>';}).join('')+
       '<input type="text" class="cinput" id="tt-catinput" placeholder="+ 종류 입력">'+
@@ -2677,10 +2678,9 @@ function renderTTModal(){
     '<div class="evfld"><label>반복 — 같은 일정을 추가할 다른 날짜 선택(선택)</label><div class="evkinds" id="tt-rep">'+
       JAM_DAYS.map(function(d){var dd=ymd(d[0]);var on=(ttDraft._repeat||[]).indexOf(d[0])>=0;var base=d[0]===ttDraft.day;return '<button type="button" class="evkind rep'+(on?' on':'')+'" data-d="'+d[0]+'"'+(base?' disabled title="기준 날짜"':'')+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>8/'+dd.getDate()+'<span class="repwd">('+WDS[dd.getDay()]+')</span>'+(base?' 기준':'')+'</button>';}).join('')+
     '</div></div>'+
-    '<div class="evfld"><label>제목</label><input id="tt-f-title" type="text" class="evinput" value="'+esc(ttDraft.title)+'" placeholder="예: 개영식 / 모듈 프로그램"></div>'+
-    '<div class="evfld"><label class="nccheck"><input type="checkbox" id="tt-f-nocover"'+(ttDraft.noCover?' checked':'')+'><span><b>취재 불필요</b> — 홍보부가 취재하지 않는 일정. 체크하면 일정표에서 흐리게 표시됩니다.</span></label></div>'+
     '<div class="evfld"><label>장소</label><input id="tt-f-place" type="text" class="evinput" value="'+esc(ttDraft.place)+'" placeholder="예: 메인 스타디움"></div>'+
     '<div class="evfld"><label>현장 지도 구역 (선택) — 지정하면 <b>현장 위치 지도</b>의 일정표 연동에서 정확히 표시됩니다</label><select id="tt-f-zone" class="evinput">'+zoneOptions(ttDraft.zone)+'</select></div>'+
+    '<div class="evfld"><label class="nccheck"><input type="checkbox" id="tt-f-nocover"'+(ttDraft.noCover?' checked':'')+'><span><b>취재 불필요</b> — 홍보부가 취재하지 않는 일정. 체크하면 일정표에서 흐리게 표시됩니다.</span></label></div>'+
     '<div class="evfld"><label>담당 인원 (배치) — 지정하면 인원·배치에 자동 반영</label><div class="evkinds" id="tt-asg">'+asgHtml+'</div></div>'+
     '<div class="evfld"><label>관련 취재 연락처 (최대 3명) — 이름을 선택하면 직함·전화가 자동으로 표시됩니다 (동명이인은 직함으로 검색)</label><div id="tt-con">'+conSection+'</div></div>'+
     '<div class="evfld"><label>메모 · 촬영 포인트</label><textarea id="tt-f-memo" class="evinput" rows="2">'+esc(ttDraft.memo)+'</textarea></div>'+
