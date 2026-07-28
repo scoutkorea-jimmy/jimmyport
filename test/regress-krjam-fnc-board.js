@@ -147,6 +147,19 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   chk('화면 12개 정의', views.length === 12 && views[0] === 'home', views.join(','));
   chk('좌측 내비 12개 · 모바일 탭 5개', await p.evaluate(() =>
     document.querySelectorAll('#sidenav .navitem').length === 12 && document.querySelectorAll('#tabbar .tabbtn').length === 5));
+  chk('내비 아이콘은 이모지 아닌 인라인 SVG(톤 통일)', await p.evaluate(() => {
+    var svgs = document.querySelectorAll('#sidenav .navitem .ni-ic svg');
+    if (svgs.length !== 12) return false;
+    // 이모지 잔존 여부 — .ni-ic 안에 SVG 외 문자가 없어야 한다
+    var emoji = [].some.call(document.querySelectorAll('#sidenav .navitem .ni-ic'), function (s) { return (s.textContent || '').trim().length > 0; });
+    var stroke = [].every.call(svgs, function (s) { return s.getAttribute('stroke') === 'currentColor'; });
+    return !emoji && stroke;
+  }));
+  chk('사이드 헤더선과 상단바 밑선 정렬(±1px)', await p.evaluate(() => {
+    var a = document.querySelector('.sidebrand').getBoundingClientRect().bottom;
+    var b = document.querySelector('.top').getBoundingClientRect().bottom;
+    return Math.abs(a - b) <= 1;
+  }), await p.evaluate(() => Math.round(document.querySelector('.sidebrand').getBoundingClientRect().bottom) + ' vs ' + Math.round(document.querySelector('.top').getBoundingClientRect().bottom)));
   chk('상단바 날씨 표시(기온)', await p.evaluate(() => /\d+°/.test(document.getElementById('fnc-wx').textContent)), await p.evaluate(() => document.getElementById('fnc-wx').textContent.trim()));
   const empties = [];
   for (const v of views) {

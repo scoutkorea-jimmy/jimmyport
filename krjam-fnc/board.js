@@ -122,20 +122,40 @@
   /* ── 화면 정의 ─────────────────────────────────────────────── */
   // short: 모바일 하단 탭 라벨. 긴 이름은 두 줄로 접혀 탭이 흔들린다.
   var VIEWS = [
-    { id: 'home',    ic: '◎', label: '대시보드',   short: '홈',     grp: '' },
-    { id: 'food',    ic: '🍽', label: '급식 운영',   short: '급식',   grp: '현장에서 바로' },
-    { id: 'menu',    ic: '☰', label: '식사 메뉴',   short: '메뉴',   grp: '현장에서 바로' },
-    { id: 'fac',     ic: '☕', label: '편의시설',    short: '편의',   grp: '현장에서 바로' },
-    { id: 'duty',    ic: '👤', label: '담당 배정',   short: '담당',   grp: '운영' },
-    { id: 'staff',   ic: '🧑‍🍳', label: '운영요원 근무', short: '근무', grp: '운영' },
-    { id: 'org',     ic: '▣', label: '본부 · 조직',  short: '조직',   grp: '운영' },
-    { id: 'sched',   ic: '▤', label: '업무 일정',    short: '일정',   grp: '운영' },
-    { id: 'inout',   ic: '⇄', label: '입영 · 퇴영',  short: '입퇴영', grp: '준비' },
-    { id: 'ist',     ic: '✓', label: '운영요원 안내', short: '요원',   grp: '준비' },
-    { id: 'gallery', ic: '🖼', label: '도표 모음',    short: '도표',   grp: '자료' },
-    { id: 'book',    ic: '📖', label: '자료 원문',    short: '원문',   grp: '자료' },
+    { id: 'home',    ic: 'home',    label: '대시보드',    short: '홈',     grp: '' },
+    { id: 'food',    ic: 'food',    label: '급식 현황',   short: '급식',   grp: '현장에서 바로' },
+    { id: 'menu',    ic: 'menu',    label: '식단표',      short: '식단',   grp: '현장에서 바로' },
+    { id: 'fac',     ic: 'fac',     label: '편의시설',    short: '편의',   grp: '현장에서 바로' },
+    { id: 'duty',    ic: 'duty',    label: '담당 배정',   short: '담당',   grp: '운영' },
+    { id: 'staff',   ic: 'staff',   label: '근무 편성',   short: '근무',   grp: '운영' },
+    { id: 'org',     ic: 'org',     label: '본부 조직',   short: '조직',   grp: '운영' },
+    { id: 'sched',   ic: 'sched',   label: '운영 일정',   short: '일정',   grp: '운영' },
+    { id: 'inout',   ic: 'inout',   label: '입영 · 퇴영', short: '입퇴영', grp: '준비' },
+    { id: 'ist',     ic: 'ist',     label: '요원 길잡이', short: '길잡이', grp: '준비' },
+    { id: 'gallery', ic: 'gallery', label: '도표 모음',   short: '도표',   grp: '자료' },
+    { id: 'book',    ic: 'book',    label: '자료 원문',   short: '원문',   grp: '자료' },
   ];
   var TABS = ['home', 'food', 'menu', 'duty', 'ist'];
+
+  /* ── 아이콘 (Lucide/Feather 계열 인라인 SVG · 이모지 대신 톤 통일) ──
+     상단바 아이콘과 같은 stroke 스타일을 쓴다(currentColor · 둥근 끝). */
+  var ICONS = {
+    home:    '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+    food:    '<path d="M3 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6a2 2 0 0 0 2 2h3zm0 0v7"/>',
+    menu:    '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+    fac:     '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+    duty:    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    staff:   '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    org:     '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/>',
+    sched:   '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    inout:   '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    ist:     '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    gallery: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+    book:    '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'
+  };
+  function svgIcon(name) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+  }
 
   /* ── 원문 도표 ──────────────────────────────────────────────
      조직도·배치도·흐름도·식권·일정표는 글로 옮기면 오히려 못 읽는다. 원문 그림을 그 자리에 놓고
@@ -476,10 +496,8 @@
   function viewMenu() {
     return '' +
       '<section class="sec">' +
-        '<h2 class="sec-h">식사 메뉴' +
-          '<a class="src" href="/krjam-planning" target="_blank" rel="noopener">홍보부 보드에서 수정 →</a>' +
-        '</h2>' +
-        '<p class="lead">홍보부 운영보드의 <b>식사 메뉴</b>와 <b>같은 자료</b>를 보여 줍니다. 메뉴를 고치면 양쪽에 함께 반영됩니다.</p>' +
+        '<h2 class="sec-h">식사 메뉴</h2>' +
+        '<p class="lead">급식본부에서 관리하는 <b>식사 메뉴</b>입니다. 입력한 내용은 <b>홍보부 보드에도 함께 공유</b>되니, 저장 전 한 번 더 확인해 주세요.</p>' +
         '<div class="card" id="menubox">불러오는 중…</div>' +
       '</section>';
   }
@@ -907,8 +925,8 @@
       }).join('') + '</tr>';
     }).join('');
     box.innerHTML = '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px">' + seg +
-      (edit ? '<span class="chip info" style="margin-left:auto">관리자 · 셀을 눌러 수정(홍보부와 실시간 공유)</span>' : '') + '</div>' +
-      (any ? '' : '<p class="muted">아직 등록된 메뉴가 없습니다. ' + (edit ? '아래 표의 칸을 눌러 입력하면' : '홍보부 운영보드 또는 급식 관리자가 입력하면') + ' 양쪽에 바로 반영됩니다.</p>') +
+      (edit ? '<span class="chip info" style="margin-left:auto">관리자 · 셀을 눌러 수정 (홍보부에도 공유되니 확인)</span>' : '') + '</div>' +
+      (any ? '' : '<p class="muted">아직 등록된 메뉴가 없습니다. ' + (edit ? '아래 표의 칸을 눌러 입력하면' : '급식 관리자가 입력하면') + ' 홍보부 보드에도 함께 공유됩니다.</p>') +
       '<div class="tblwrap"><table class="tbl menutbl' + (edit ? ' editable' : '') + '"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       (menuGroup === 'staff' ? '<p class="muted" style="margin-top:10px">조식 고정메뉴: 그린샐러드&amp;드레싱 · 식빵&amp;모닝빵&amp;딸기잼 · 우유(흰·딸기·초코) / 중식·석식: 제철과일 제공</p>' : '');
     if (edit) {
@@ -1092,12 +1110,12 @@
     var grp = null, out = '';
     VIEWS.forEach(function (v) {
       if (v.grp !== grp) { grp = v.grp; if (grp) out += '<div class="sidegrp">' + esc(grp) + '</div>'; }
-      out += '<button type="button" class="navitem" data-nav="' + v.id + '"><span class="ni-ic">' + v.ic + '</span>' + esc(v.label) + '</button>';
+      out += '<button type="button" class="navitem" data-nav="' + v.id + '"><span class="ni-ic">' + svgIcon(v.ic) + '</span>' + esc(v.label) + '</button>';
     });
     $('sidenav').innerHTML = out;
     $('tabbar').innerHTML = TABS.map(function (id) {
       var v = VIEWS.filter(function (x) { return x.id === id; })[0];
-      return '<button type="button" class="tabbtn" data-nav="' + id + '" aria-label="' + esc(v.label) + '"><span>' + v.ic + '</span>' + esc(v.short || v.label) + '</button>';
+      return '<button type="button" class="tabbtn" data-nav="' + id + '" aria-label="' + esc(v.label) + '"><span>' + svgIcon(v.ic) + '</span>' + esc(v.short || v.label) + '</button>';
     }).join('');
   }
 
