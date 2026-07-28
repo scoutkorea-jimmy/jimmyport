@@ -98,6 +98,105 @@ chk('없는 스냅샷은 404(조용히 덮어쓰지 않는다)', r.s, 404);
 chk('되돌리기가 감사 기록에 남는다',
   JSON.parse(KV.get('log') || '[]').some((x) => x.action === 'jp.restore'), true);
 
+/* ── 목록 조회는 병렬로 읽는다 (v0.9.287) ────────────────────────────────────
+ * 사용자: "기사 불러오는게 화가 날 정도로 오래걸리네."
+ * 원인은 `for (const k of res.keys) { await SCOUT_KV.get(k.name) }` — 레코드 1건당 왕복 1회를
+ * **줄 세워** 기다렸다. 기사가 쌓일수록 정직하게 느려진다.
+ * ⚠️ 시간(ms)으로 검사하면 기계 상태에 따라 흔들린다(플레이키 = 결함). 대신 가짜 KV 가
+ *    **동시에 떠 있던 get 개수**를 세게 해서, 순차로 되돌아가면 반드시 깨지게 만든다. */
+console.log('\n[목록 조회 — 병렬 KV 읽기]');
+const mkKV = (prefix, n) => {
+  const map = new Map();
+  for (let i = 0; i < n; i++) {
+    const id = 'r' + String(i).padStart(3, '0');
+    map.set(prefix + id, JSON.stringify({ id, title: 't' + i, createdAt: '2026-07-28T00:00:0' + (i % 10) + 'Z', staff: true }));
+  }
+  let inFlight = 0, peak = 0, gets = 0;
+  return {
+    peak: () => peak, gets: () => gets,
+    env: {
+      TOTP_SECRET: 'test-secret-for-regression',
+      SCOUT_KV: {
+        list: async ({ prefix: p }) => ({ keys: [...map.keys()].filter((k) => k.startsWith(p)).map((name) => ({ name })), list_complete: true }),
+        get: async (k) => {
+          if (!String(k).startsWith(prefix)) return null;      // 세션 키 등은 계측에서 제외
+          inFlight++; gets++; peak = peak > inFlight ? peak : inFlight;
+          await new Promise((r) => setTimeout(r, 3));
+          inFlight--;
+          return map.has(k) ? map.get(k) : null;
+        },
+        put: async () => {},
+        delete: async () => {},
+      },
+    },
+  };
+};
+const N = 30;
+const ENDPOINTS = [
+  ['jp-news', 'jpn:', 'articles'],
+  ['jp-assets', 'jpa:', 'assets'],
+  ['jp-press', 'jpp:', 'press'],
+  ['jp-tips', 'jpt:', 'tips'],
+];
+for (const [mod, prefix, key] of ENDPOINTS) {
+  const h = mkKV(prefix, N);
+  const tok = (await issueMemberSession(h.env, { username: 'kim', name: '김기자', staff: true, master: true })).token;
+  const m = await import('../functions/api/' + mod + '.js');
+  const r = await m.onRequestGet({ request: new Request('https://x/api/' + mod, { headers: { Authorization: 'Bearer ' + tok } }), env: h.env });
+  const j = await r.json();
+  chk(mod + ': ' + N + '건을 모두 읽는다', (j[key] || []).length, N);
+  chk(mod + ': 순차가 아니라 병렬로 읽는다(동시 get 최대 ' + h.peak() + ')', h.peak() >= 10, true);
+}
+
+/* 목록 응답 무게 (v0.9.287) — history 에는 판마다 본문·사진이 통째로 들어 있다(레코드 1건 최대 1.5MB).
+   목록에 그대로 실으면 기사 수 × 판 수 만큼의 본문이 매번 브라우저로 내려간다. 화면의 '버전 기록'
+   목록은 v·제목·작성자·시각만 쓰므로 목록에서는 본문을 빼고, 옛 판을 실제로 열 때 ?id= 로 받는다. */
+console.log('\n[기사 목록 — 옛 판 본문은 빼고 보낸다]');
+{
+  const map = new Map();
+  map.set('jpn:a1', JSON.stringify({
+    id: 'a1', title: '개영식', body: '<p>현재 본문</p>', createdAt: '2026-07-01T10:00:00Z', version: 2,
+    history: [
+      { v: 1, title: '개영식(초안)', body: '<p>첫 판 본문</p>', images: ['/api/image?id=x'], at: '2026-07-01T10:00:00Z', by: 'kim', byName: '김기자' },
+      { v: 2, title: '개영식', body: '<p>현재 본문</p>', images: [], at: '2026-07-02T10:00:00Z', by: 'kim', byName: '김기자' },
+    ],
+  }));
+  const env2 = { TOTP_SECRET: 'test-secret-for-regression', SCOUT_KV: {
+    list: async ({ prefix }) => ({ keys: [...map.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
+    get: async (k) => (map.has(k) ? map.get(k) : null), put: async () => {}, delete: async () => {},
+  } };
+  const t = (await issueMemberSession(env2, { username: 'kim', name: '김기자', staff: true })).token;
+  const nm = await import('../functions/api/jp-news.js');
+  const call = async (q) => (await (await nm.onRequestGet({ request: new Request('https://x/api/jp-news' + q, { headers: { Authorization: 'Bearer ' + t } }), env: env2 })).json());
+
+  const list = await call('');
+  const h = list.articles[0].history;
+  chk('목록에도 버전 기록은 남는다(판 수)', h.length, 2);
+  chk('목록의 옛 판에는 본문이 없다', h.every((x) => x.body === undefined), true);
+  chk('목록의 옛 판에는 사진도 없다', h.every((x) => x.images === undefined), true);
+  chk('버전 목록에 필요한 것은 남는다(v·제목·작성자·시각)',
+    !!(h[0].v && h[0].title && h[0].byName && h[0].at), true);
+  chk('현재 판 본문은 목록에 그대로 있다(목록 화면이 본문을 쓴다)', list.articles[0].body, '<p>현재 본문</p>');
+
+  const one = await call('?id=a1');
+  chk('한 건 조회는 옛 판 본문까지 준다', one.article.history[0].body, '<p>첫 판 본문</p>');
+  chk('한 건 조회는 옛 판 사진까지 준다', (one.article.history[0].images || []).length, 1);
+  const miss = await nm.onRequestGet({ request: new Request('https://x/api/jp-news?id=nope', { headers: { Authorization: 'Bearer ' + t } }), env: env2 });
+  chk('없는 기사는 404', miss.status, 404);
+  const noAuth = await nm.onRequestGet({ request: new Request('https://x/api/jp-news?id=a1'), env: env2 });
+  chk('한 건 조회도 로그인 필수', noAuth.status, 401);
+}
+
+/* 병렬로 읽으면 담기는 순서가 매번 다르다 → 정렬이 동점을 안 가르면 새로고침마다 목록이 뒤바뀐다. */
+const h2 = mkKV('jpn:', N);
+const tok2 = (await issueMemberSession(h2.env, { username: 'kim', name: '김기자', staff: true })).token;
+const news = await import('../functions/api/jp-news.js');
+const reqNews = () => news.onRequestGet({ request: new Request('https://x/api/jp-news', { headers: { Authorization: 'Bearer ' + tok2 } }), env: h2.env })
+  .then((r) => r.json()).then((j) => (j.articles || []).map((a) => a.id).join(','));
+const o1 = await reqNews(), o2 = await reqNews();
+chk('두 번 불러도 목록 순서가 같다(동점 id 로 고정)', o1 === o2, true);
+chk('최신순 정렬은 유지된다', o1.split(',')[0], 'r009');
+
 const ok = R.filter(Boolean).length;
 console.log('=== ' + ok + '/' + R.length + ' PASS ===');
 process.exit(ok === R.length ? 0 : 1);

@@ -389,8 +389,9 @@ section{margin-top:34px}
 .boardbar .seg button:hover{color:var(--accent-ink)}
 .boardbar .seg button.on{background:var(--accent);color:#fff;font-weight:700}
 /* 파이프라인: 컬럼 수가 4(일반)~5(홍보부: 인박스 포함)로 가변 → auto-flow 로 균등 분할 */
-#mealtbl .mealdate{white-space:nowrap;font-weight:700;color:var(--ink)}
-#mealtbl .mealdate .wd{color:var(--muted);font-weight:500;font-size:var(--fs-1)}
+/* 행=조식/중식/석식, 열=날짜 (v0.9.287) — 날짜는 머리행, 끼니는 행 머리 */
+#mealtbl thead .wd{color:var(--muted);font-weight:500;font-size:var(--fs-1)}
+#mealtbl th.mealrowh{white-space:nowrap;font-weight:700;color:var(--ink);text-align:left;vertical-align:top}
 #mealtbl td.mk{vertical-align:top;line-height:1.55}
 #mealtbl td.mealcell{white-space:pre-wrap;min-width:150px;font-size:var(--fs-1)}
 #meal-note{margin:0 0 12px}
@@ -702,6 +703,10 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
   .datatable tbody td::before{content:attr(data-label);flex:0 0 78px;color:var(--muted);font-weight:700;font-size:var(--fs-1);white-space:nowrap;padding-top:2px}
   .datatable tbody td:not([data-label])::before{display:none}
   .datatable tbody td.mk{flex:1;min-width:0;word-break:keep-all}
+  /* 식사 메뉴는 카드 하나 = 끼니 하나(조식/중식/석식), 그 안에 날짜별 칸이 온다.
+     행 머리(th)를 카드 제목처럼 세운다 — 안 그러면 표 머리처럼 옆으로 붙어 읽히지 않는다. */
+  #mealtbl tbody tr>th.mealrowh{display:block;width:auto;padding:6px 11px 8px;
+    border-bottom:1px solid var(--line);margin-bottom:4px;font-size:var(--fs-2)}
   .datatable tbody td input,.datatable tbody td select,.datatable tbody td>div{flex:1;width:auto;min-width:0}
   .datatable tbody td .rm{margin-left:auto;flex:0 0 auto}
   .datatable tbody td.empty-note{display:block}
@@ -990,7 +995,13 @@ td.mk:empty::before{content:"입력…";color:var(--faint)}
   .orgtag{flex:0 1 auto;min-width:0;font-size:var(--fs-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .vertag{flex:0 0 auto}
   .whoami,.syncbar .btn,.syncbar .st{flex:0 0 auto}
-  .progress .pbar{flex-basis:130px}
+  /* 진행바가 클릭할 때마다 아래위로 흔들리던 문제 (v0.9.287) —
+     라벨('콘텐츠 완료 3/47 (6%) · 진행 시작 5 · 회의 9건')은 카드를 누를 때마다 숫자가 바뀌고,
+     9→10 처럼 자릿수가 늘면 좁은 화면에서 **1줄에서 2줄로 접힌다**. 그러면 행 높이가 커지고
+     `align-items:center` 가 바를 다시 가운데로 옮긴다 → 바가 10px 남짓 아래로 밀린다(실측).
+     좁은 화면에서는 바를 제 줄에 올려, 라벨이 몇 줄이 되든 바 위치가 변하지 않게 한다. */
+  .progress{flex-direction:column;align-items:stretch;gap:7px}
+  .progress .pbar{flex:0 0 auto;width:100%;max-width:none}
   header.top{gap:14px;padding:20px 0 18px} .emblem{width:60px;height:60px}
   h1{font-size:var(--fs-6)}
   .vtab{flex:0 0 auto;justify-content:center;white-space:nowrap;padding:9px 13px}

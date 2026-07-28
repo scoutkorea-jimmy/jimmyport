@@ -8,7 +8,7 @@
  *                   scheduled: {kind:'tt'|'slot', ref, date, time},  // 홍보부가 잡은 일정 링크
  *                   ip, createdAt, triagedBy, triagedAt}
  */
-import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog, bannedTerms, matchBanned } from "./_lib.js";
+import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog, bannedTerms, matchBanned, listRecords, byNewest } from "./_lib.js";
 
 const PREFIX = "jpt:";
 const KEY = (id) => PREFIX + id;
@@ -45,13 +45,9 @@ export async function onRequestGet({ request, env }) {
   const who = await memberOrAdmin(request, env);
   // 제보 레코드엔 제보자 실명·전화·마스킹 IP 가 들어 있다 → 홍보부(staff)/관리자만 열람
   if (!who || !who.staff) return json({ ok: false, error: "forbidden" }, 403);
-  const tips = []; let cursor;
-  do {
-    const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });
-    for (const k of res.keys) { const raw = await env.SCOUT_KV.get(k.name); if (raw) { try { tips.push(JSON.parse(raw)); } catch {} } }
-    cursor = res.list_complete ? null : res.cursor;
-  } while (cursor);
-  tips.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  // ⚠️ 1건당 순차 KV get 이던 것을 병렬로(listRecords) — 레코드가 쌓일수록 느려지던 원인.
+  const tips = await listRecords(env, PREFIX);
+  tips.sort(byNewest);
   return json({ ok: true, tips });
 }
 

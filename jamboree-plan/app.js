@@ -1998,13 +1998,24 @@ function renderMeals(){
   if(note){ var nt=MEAL_NOTE[mealGroup]||''; note.textContent=nt; note.style.display=nt?'':'none'; }
   var tb=document.getElementById('mealbody'); if(!tb) return; tb.innerHTML='';
   var g=mealsData()[mealGroup]||{};
-  MEAL_DAYS.forEach(function(d){
-    var row=g[d]||{}, wd=WD[new Date(d+'T00:00:00').getDay()];
+  /* 행=조식/중식/석식, 열=날짜 (v0.9.287).
+     급식보드(/krjam-fnc)가 v0.9.271 에 이 방향으로 바뀌었는데 홍보부는 반대였다.
+     **같은 자료(jp:meals)를 두 화면이 서로 다른 방향으로 보여 주면** 옮겨 적을 때 실수가 난다.
+     한 끼를 일주일치로 나란히 보는 쪽이 식단을 짤 때도 비교하기 쉽다. */
+  var th=document.getElementById('mealhead');
+  if(th) th.innerHTML='<tr><th style="width:92px">구분</th>'+MEAL_DAYS.map(function(d){
+    var wd=WD[new Date(d+'T00:00:00').getDay()];
+    return '<th>'+d.slice(5).replace('-','/')+' <span class="wd">('+wd+')</span></th>';
+  }).join('')+'</tr>';
+  MEAL_COLS.forEach(function(c){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td class="mealdate">'+d.slice(5).replace('-','/')+' <span class="wd">('+wd+')</span></td>'+
-      MEAL_COLS.map(function(c){ return '<td class="mk mealcell" contenteditable data-c="'+c[0]+'">'+esc(row[c[0]]||'')+'</td>'; }).join('');
+    tr.innerHTML='<th scope="row" class="mealrowh">'+c[1]+'</th>'+
+      MEAL_DAYS.map(function(d){
+        return '<td class="mk mealcell" contenteditable data-d="'+d+'" data-c="'+c[0]+'">'+esc((g[d]||{})[c[0]]||'')+'</td>';
+      }).join('');
     tr.querySelectorAll('td.mk').forEach(function(td){ td.addEventListener('blur',function(){
-      var data=mealsData(); if(!data[mealGroup][d]) data[mealGroup][d]={};
+      var data=mealsData(), d=td.dataset.d;
+      if(!data[mealGroup][d]) data[mealGroup][d]={};
       data[mealGroup][d][td.dataset.c]=clipField('meals', td.dataset.c, (td.innerText||'').replace(/\n{2,}/g,'\n').replace(/^\n+|\n+$/g,'').trim());
       saveMeals();
     }); });
@@ -3980,6 +3991,23 @@ function loadNews(){
   fetch('/api/jp-news',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); return null; } return r.json(); }).then(function(j){ newsItems=(j&&j.articles)||[]; newsLoaded=true; notiPing(); if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); })
     .catch(function(){ newsLoaded=true; if(curViewMode==='news') renderNews(); else if(curViewMode==='dashboard') renderDashboard(); });
 }
+/* 옛 판 본문 받아오기 (v0.9.287)
+   목록 응답의 history 에는 판마다 v·제목·작성자·시각만 들어 있다(본문·사진은 빠져 있다) —
+   기사 수 × 판 수 만큼의 본문을 매번 내려받던 것이 화면이 느린 원인이었다.
+   옛 판을 실제로 열 때만 그 기사 한 건을 통째로 받아 채운다. 기사당 한 번만 받는다. */
+var newsFull={};
+function ensureNewsDetail(id){
+  if(!id || newsFull[id]) return Promise.resolve();
+  newsFull[id]=true;                                  // 중복 요청 방지 — 실패하면 되돌린다
+  return fetch('/api/jp-news?id='+encodeURIComponent(id),{headers:authHeader()})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){
+      if(!(j&&j.ok&&j.article)){ newsFull[id]=false; return; }
+      for(var i=0;i<newsItems.length;i++){ if(newsItems[i].id===id){ newsItems[i]=j.article; break; } }
+      if(newsView===id) renderNewsView();
+    })
+    .catch(function(){ newsFull[id]=false; });
+}
 function canEditNews(a){ return Auth.isAdmin() || (Auth.username && a.author===Auth.username); }
 // 퍼블리싱·카드뉴스 가공 토글 권한 = 작성자 · 홍보부 · 관리자
 function canFlagNews(a){ return Auth.isAdmin() || Auth.isStaff() || (Auth.username && a.author===Auth.username); }
@@ -4188,7 +4216,10 @@ function renderNewsVerView(){
       '<button type="button" class="btn xs ghost" data-nv-vclose="1">현재 판으로</button></div>'+
     '<div class="nvv-t">'+esc(sn.title||'(제목 없음)')+'</div>'+
     (sn.subtitle?('<div class="nv-sub">'+esc(sn.subtitle)+'</div>'):'')+
-    (sn.body?('<div class="news-text">'+newsBodyHtml(sn.body)+'</div>'):'<div class="news-text muted">본문 없음</div>')+
+    /* body 가 아예 없으면(undefined) 아직 안 받아온 것이고, 빈 문자열이면 진짜로 본문이 없던 판이다.
+       둘을 같은 문구로 보여 주면 "옛 판 본문이 사라졌다"로 읽힌다. */
+    (sn.body?('<div class="news-text">'+newsBodyHtml(sn.body)+'</div>')
+      :(sn.body===undefined?'<div class="news-text muted">본문 불러오는 중…</div>':'<div class="news-text muted">본문 없음</div>'))+
     (imgs?('<div class="nv-imgs">'+imgs+'</div>'):'')+
     (tags?('<div class="news-tags">'+tags+'</div>'):'');
 }
@@ -5386,8 +5417,10 @@ function init(){
     var dl=e.target.closest('[data-news-del]'); if(dl){ deleteNews(dl.getAttribute('data-news-del')); return; }
     var tc=e.target.closest('[data-news-tocard]'); if(tc){ articleToCardnews(tc.getAttribute('data-news-tocard')); return; }
     var nv=e.target.closest('[data-news-view]'); if(nv){ openNewsView(nv.getAttribute('data-news-view')); return; }
-    var nh=e.target.closest('[data-nv-hist]'); if(nh){ var hid=nh.getAttribute('data-nv-hist'); newsVerOpen[hid]=!newsVerOpen[hid]; renderNewsView(); return; }
-    var nvv=e.target.closest('[data-nv-ver]'); if(nvv){ newsVerShow=+nvv.getAttribute('data-nv-ver'); renderNewsView(); return; }
+    // 버전 기록을 펼치는 순간 그 기사 본문 전체를 미리 받아 둔다 → 판을 눌렀을 때 기다리지 않는다
+    var nh=e.target.closest('[data-nv-hist]'); if(nh){ var hid=nh.getAttribute('data-nv-hist'); newsVerOpen[hid]=!newsVerOpen[hid]; renderNewsView(); if(newsVerOpen[hid]) ensureNewsDetail(hid); return; }
+    // 옛 판 본문은 목록에 없다 — 눌렀을 때 받아 채운다(받는 동안에도 화면은 먼저 반응한다)
+    var nvv=e.target.closest('[data-nv-ver]'); if(nvv){ newsVerShow=+nvv.getAttribute('data-nv-ver'); renderNewsView(); ensureNewsDetail(newsView); return; }
     var nvc=e.target.closest('[data-nv-vclose]'); if(nvc){ newsVerShow=null; renderNewsView(); return; }
     var npg=e.target.closest('[data-nv-photog]'); if(npg){ setNewsPhotographer(npg.getAttribute('data-nv-photog')); return; }
     var nrp=e.target.closest('[data-nv-reporter]'); if(nrp){ setNewsReporter(nrp.getAttribute('data-nv-reporter')); return; }

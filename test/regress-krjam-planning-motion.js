@@ -218,6 +218,35 @@ const SEED = function () {
     return getComputedStyle(s).opacity === '1' && document.querySelectorAll('.side-item').length > 5;
   }));
 
+  /* ── 진행바가 클릭할 때마다 흔들리지 않는가 (v0.9.287) ────────────────────
+     사용자: "클릭하면 진행바 같은게 살짝 틀어진다."
+     라벨('콘텐츠 완료 3/47 (6%) · 진행 시작 5 · 회의 9건')은 카드를 누를 때마다 숫자가 바뀐다.
+     9→10 처럼 자릿수가 늘면 좁은 화면에서 1줄→2줄로 접히고, 행이 커지면서
+     align-items:center 가 바를 다시 가운데로 옮겨 **바가 10px 남짓 아래로 밀렸다**(실측).
+     ⚠️ 눈으로는 "살짝"이라 놓치기 쉽다 → 라벨을 짧은 것/긴 것으로 바꿔 가며 **좌표를 직접 잰다**. */
+  console.log('\n[진행바 — 라벨이 길어져도 움직이지 않는다]');
+  const SHORT_L = '콘텐츠 완료 3/47 (6%) · 진행 시작 5 · 회의 9건';
+  const LONG_L = '콘텐츠 완료 128/147 (100%) · 진행 시작 128 · 회의 128건';
+  const pb = await b.newPage();
+  pb.on('pageerror', (e) => errors.push(e.message));
+  for (const w of [1440, 1024, 768, 680, 600, 430, 390, 360]) {
+    await pb.setViewport({ width: w, height: 900 });
+    await pb.goto(`${base}/krjam-planning`, { waitUntil: 'networkidle2' });
+    await wait(300);
+    const d = await pb.evaluate((S, L) => {
+      const bar = document.querySelector('.progress .pbar');
+      const txt = document.getElementById('ptext');
+      const row = document.querySelector('.progress');
+      if (!bar || !txt || !row) return null;
+      const snap = (t) => { txt.textContent = t; const r = bar.getBoundingClientRect();
+        return { top: r.top, left: r.left, rowH: row.getBoundingClientRect().height }; };
+      const a = snap(S), z = snap(L);
+      return { top: Math.abs(z.top - a.top), left: Math.abs(z.left - a.left), rowH: Math.abs(z.rowH - a.rowH) };
+    }, SHORT_L, LONG_L);
+    chk(`${w}px — 라벨이 길어져도 진행바가 제자리`, !!d && d.top < 0.5 && d.left < 0.5 && d.rowH < 0.5,
+      d ? `top Δ${d.top.toFixed(1)} left Δ${d.left.toFixed(1)} 행높이 Δ${d.rowH.toFixed(1)}` : 'no element');
+  }
+
   console.log('\n[콘솔]');
   chk('콘솔 에러 0', errors.length === 0, errors.slice(0, 3).join(' | '));
 

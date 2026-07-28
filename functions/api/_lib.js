@@ -251,6 +251,36 @@ export function matchBanned(terms, text) {
   return null;
 }
 
+/* prefix 로 시작하는 KV 레코드를 전부 읽어 배열로 돌려준다. (v0.9.287)
+ *
+ * ⚠️ **반드시 병렬로 읽는다.** 예전엔 네 곳(기사·자료실·보도자료·소식제보)이 전부
+ *    `for (const k of res.keys) { await env.SCOUT_KV.get(k.name) }` 로 **한 건씩 순차** 읽었다.
+ *    KV get 은 매번 왕복이라 레코드가 N 개면 N 번을 줄 세워 기다린다 — 기사가 쌓일수록
+ *    화면이 그만큼 느려졌다(사용자: "화가 날 정도로 오래 걸린다"). 병렬로 바꾸면 N 번이 사실상 1 번이 된다.
+ *    홍보부 보드 GET(jamboree-plan)은 원래부터 이렇게 하고 있었다 — 나머지가 안 따라간 것뿐이다.
+ * ⚠️ 병렬이라 **읽어 담기는 순서가 매번 다르다** → 정렬은 호출부가 반드시 해야 한다(byNewest 사용).
+ */
+export async function listRecords(env, prefix) {
+  let cursor, names = [];
+  do {
+    const res = await env.SCOUT_KV.list({ prefix, cursor });
+    names = names.concat(res.keys.map((k) => k.name));
+    cursor = res.list_complete ? null : res.cursor;
+  } while (cursor);
+  const out = [];
+  await Promise.all(names.map(async (name) => {
+    const raw = await env.SCOUT_KV.get(name);
+    if (raw) { try { out.push(JSON.parse(raw)); } catch {} }
+  }));
+  return out;
+}
+
+/* 최신순 정렬. createdAt 이 같을 때 id 로 한 번 더 갈라 **순서를 고정**한다 —
+   병렬로 읽으면 담기는 순서가 매번 달라서, 동점을 안 가르면 새로고침마다 목록이 뒤바뀐다. */
+export const byNewest = (a, b) =>
+  String((b && b.createdAt) || "").localeCompare(String((a && a.createdAt) || "")) ||
+  String((a && a.id) || "").localeCompare(String((b && b.id) || ""));
+
 export async function getArr(env, key) {
   try { const raw = await env.SCOUT_KV.get(key); return raw ? JSON.parse(raw) : []; }
   catch { return []; }

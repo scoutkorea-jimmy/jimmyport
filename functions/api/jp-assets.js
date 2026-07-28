@@ -9,7 +9,7 @@
  *     텍스트 "jpa:<id>" = {id,kind:'text',name,category,body(HTML),tags,author,authorName,createdAt,updatedAt}
  *     body 는 리치텍스트 HTML — 표시 시 클라이언트가 sanitizeHtml 로 정화(저장은 원문).
  */
-import { json, memberOrAdmin, newId, clientIp, appendLog } from "./_lib.js";
+import { json, memberOrAdmin, newId, clientIp, appendLog, listRecords, byNewest } from "./_lib.js";
 
 const PREFIX = "jpa:";
 const KEY = (id) => PREFIX + id;
@@ -25,13 +25,9 @@ async function readAsset(env, id) {
 export async function onRequestGet({ request, env }) {
   // 자료실은 내부 자료(문서·텍스트 공지·참고자료)라 로그인(회원 세션) 필수. 비로그인 목록 노출 차단.
   if (!(await memberOrAdmin(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
-  const assets = []; let cursor;
-  do {
-    const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });
-    for (const k of res.keys) { const raw = await env.SCOUT_KV.get(k.name); if (raw) { try { assets.push(JSON.parse(raw)); } catch {} } }
-    cursor = res.list_complete ? null : res.cursor;
-  } while (cursor);
-  assets.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  // ⚠️ 1건당 순차 KV get 이던 것을 병렬로(listRecords) — 레코드가 쌓일수록 느려지던 원인.
+  const assets = await listRecords(env, PREFIX);
+  assets.sort(byNewest);
   return json({ ok: true, assets });
 }
 

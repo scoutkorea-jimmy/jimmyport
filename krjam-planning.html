@@ -430,9 +430,8 @@
     <p class="note" id="meal-note" style="display:none"></p>
     <div class="tblscroll">
       <table id="mealtbl" class="datatable">
-        <thead><tr>
-          <th style="width:132px">날짜</th><th>조식</th><th>중식</th><th>석식</th>
-        </tr></thead>
+        <!-- 행=조식/중식/석식, 열=날짜 (v0.9.287) — 머리행은 날짜라 renderMeals 가 그린다 -->
+        <thead id="mealhead"></thead>
         <tbody id="mealbody"></tbody>
       </table>
     </div>
@@ -711,7 +710,7 @@
 <script src="jamboree-plan/upload.js?v=0.9.283"></script>
 <!-- library.js: 자료실 도메인(목록·미리보기·업로드·삭제) -->
 <script src="jamboree-plan/library.js?v=0.9.283"></script>
-<script src="jamboree-plan/app.js?v=0.9.286"></script>
+<script src="jamboree-plan/app.js?v=0.9.287"></script>
 <script src="version-watch.js?v=0.9.283"></script>
 </body>
 </html>

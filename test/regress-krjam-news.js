@@ -62,7 +62,16 @@ const SEED = function (news, role) {
       }
       window.__save = bb; return J({ ok: true, item: bb });
     }
-    if (u.startsWith('/api/jp-news')) return J({ ok: true, articles: news });
+    /* 서버와 같은 모양으로 흉내낸다 (v0.9.287): 목록의 history 에는 본문이 없고,
+       ?id= 로 한 건을 받을 때만 옛 판 본문까지 온다. 목록이 무거워 화면이 느리던 것을 고친 것. */
+    if (u.startsWith('/api/jp-news?id=')) {
+      const wantId = decodeURIComponent(u.split('id=')[1]);
+      const full = news.filter((x) => x.id === wantId)[0];
+      window.__detailFetched = (window.__detailFetched || 0) + 1;
+      return full ? J({ ok: true, article: full }) : J({ ok: false, error: 'not_found' });
+    }
+    if (u.startsWith('/api/jp-news')) return J({ ok: true, articles: news.map((a) => Object.assign({}, a,
+      a.history ? { history: a.history.map((h) => ({ v: h.v, at: h.at, by: h.by, byName: h.byName, title: h.title })) } : {})) });
     if (u.startsWith('/api/jp-noti')) { if (window.__notiFail) return Promise.resolve(new Response('err', { status: 500 }));
       if (o && o.method === 'POST') { window.__notiRead = true; return J({ ok: true, items: window.__notiSrv || [], readAt: new Date().toISOString() }); }
       return J({ ok: true, items: window.__notiSrv || [], readAt: '' }); }
@@ -418,12 +427,15 @@ async function boardPage(b, base, role) {
     const h = document.querySelector('[data-nv-hist]');
     return !!h && /버전 기록 3판/.test(h.textContent) && !document.querySelector('.nvh-list');
   }));
+  /* v0.9.287 — 목록 응답이 판마다 본문을 싣고 있어 기사가 쌓일수록 화면이 느려졌다.
+     목록에는 v·제목·작성자·시각만, 본문은 옛 판을 실제로 열 때만 받아 온다. */
   chk('기록을 펴면 최신 판이 위 · 현재 판 표시', await p.evaluate(async () => {
     document.querySelector('[data-nv-hist]').click(); await new Promise((r) => setTimeout(r, 250));
     const rows = [...document.querySelectorAll('.nvh-row')];
     return rows.length === 3 && rows[0].querySelector('.nvh-v').textContent === 'V3'
       && /현재/.test(rows[0].textContent) && rows[2].querySelector('.nvh-v').textContent === 'V1';
   }));
+  chk('기록을 펴면 그때 본문을 받아 온다(한 번만)', await p.evaluate(() => (window.__detailFetched || 0) >= 1));
   chk('옛 판을 고르면 그 판의 내용을 읽는다', await p.evaluate(async () => {
     document.querySelector('[data-nv-ver="1"]').click(); await new Promise((r) => setTimeout(r, 250));
     const w = document.getElementById('nv-verview');

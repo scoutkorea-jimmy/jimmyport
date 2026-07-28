@@ -11,7 +11,7 @@
  * body 는 리치텍스트 HTML — 표시 시 클라이언트가 sanitizeHtml 로 정화(저장은 원문).
  * KV: "jpp:<id>" = {id,title,body,date,contact,outlets,status,attachments[],author,authorName,createdAt,updatedAt,ip}
  */
-import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog } from "./_lib.js";
+import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog, listRecords, byNewest } from "./_lib.js";
 
 const PREFIX = "jpp:";
 const KEY = (id) => PREFIX + id;
@@ -44,13 +44,9 @@ async function readPress(env, id) {
 export async function onRequestGet({ request, env }) {
   const who = await memberOrAdmin(request, env);
   if (!who || !who.staff) return json({ ok: false, error: "forbidden" }, 403);   // 공식 보도자료 — 홍보부/관리자만
-  const press = []; let cursor;
-  do {
-    const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });
-    for (const k of res.keys) { const raw = await env.SCOUT_KV.get(k.name); if (raw) { try { press.push(JSON.parse(raw)); } catch {} } }
-    cursor = res.list_complete ? null : res.cursor;
-  } while (cursor);
-  press.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  // ⚠️ 1건당 순차 KV get 이던 것을 병렬로(listRecords) — 레코드가 쌓일수록 느려지던 원인.
+  const press = await listRecords(env, PREFIX);
+  press.sort(byNewest);
   for (const p of press) p.status = cleanStatus(p.status);   // 읽을 때만 승격 — KV 는 건드리지 않는다
   return json({ ok: true, press });
 }

@@ -329,9 +329,24 @@ const SEED = () => {
   const ml = await page.evaluate(() => ({
     rows: document.querySelectorAll('#mealbody tr').length,
     seg: [...document.querySelectorAll('#meal-groupseg button')].map((b) => b.textContent + (b.classList.contains('on') ? '*' : '')),
-    cells: document.querySelectorAll('#mealbody td.mk[contenteditable]').length }));
-  chk('식사 메뉴 7일(8/3~8/9) × 3끼', ml.rows === 7 && ml.cells === 21, ml.rows + '행 · ' + ml.cells + '칸');
+    cells: document.querySelectorAll('#mealbody td.mk[contenteditable]').length,
+    heads: document.querySelectorAll('#mealhead th').length,
+    rowh: [...document.querySelectorAll('#mealbody th.mealrowh')].map((t) => t.textContent).join(','),
+    head1: (document.querySelector('#mealhead th:nth-child(2)') || {}).textContent }));
+  // v0.9.287 행↔열 반전: 행=조식·중식·석식(3), 칸=3끼×7일(21). 급식보드와 같은 방향.
+  chk('식사 메뉴 3끼(행) × 7일(8/3~8/9)', ml.rows === 3 && ml.cells === 21 && ml.heads === 8, ml.rows + '행 · ' + ml.cells + '칸 · 머리 ' + ml.heads);
   chk('식사 3그룹 토글(대원 일반식·특별식·운영요원)', ml.seg.length === 3 && ml.seg[0] === '대원 일반식*', ml.seg.join(' '));
+  chk('행 머리는 조식·중식·석식 순', ml.rowh, '조식,중식,석식');
+  chk('머리행 첫 날짜는 8/03 (구분 다음 칸)', /8\/03/.test(ml.head1 || ''), ml.head1);
+  chk('저장은 그 칸의 날짜·끼니로 간다(행/열이 바뀌어도 값이 어긋나지 않는다)', await page.evaluate(() => {
+    const td = document.querySelector('#mealbody td.mk[data-d="2026-08-06"][data-c="l"]');
+    if (!td) return 'no cell';
+    td.innerText = '반전검사메뉴';
+    td.dispatchEvent(new Event('blur'));
+    const v = ((mealsData()[mealGroup] || {})['2026-08-06'] || {}).l;
+    return v === '반전검사메뉴' ? true : ('저장값=' + v);
+  }), '');
+
   // 참가자 일반식(crew_n) 이미지 기준 재구성(2026-07-27) — 원본 대조 고정
   const meal = await page.evaluate(() => {
     const cn = defaultMeals().crew_n;

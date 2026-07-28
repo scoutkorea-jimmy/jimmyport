@@ -35,7 +35,7 @@
  *     body 는 리치텍스트 HTML — 표시 시 클라이언트가 sanitizeHtml 로 정화(저장은 원문).
  *     (prefix list로 전체 조회 — jamboree-plan.js slot 패턴과 동일)
  */
-import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog } from "./_lib.js";
+import { json, memberOrAdmin, newId, clientIp, maskIp, appendLog, listRecords, byNewest } from "./_lib.js";
 import { fanoutComment } from "./jp-noti.js";
 
 const PREFIX = "jpn:";
@@ -136,22 +136,46 @@ const deriveVersion = (rec) => {
   return rec;
 };
 
+// 읽을 때만 유도하는 기본값 채우기 — KV 는 건드리지 않는다(구 레코드 호환).
+const hydrate = (a) => {
+  a.stage = cleanStage(a.stage, a);
+  if (!Array.isArray(a.tags)) a.tags = [];
+  if (typeof a.subtitle !== "string") a.subtitle = "";
+  if (typeof a.photographer !== "string") a.photographer = "";
+  if (typeof a.reporter !== "string") a.reporter = "";
+  if (!Array.isArray(a.depts)) a.depts = [];
+  a.priority = cleanPriority(a.priority);
+  a.en = cleanEn(a.en);
+  return deriveVersion(a);
+};
+
+/* 목록용으로 history 를 **가볍게** 만든다 (v0.9.287).
+   ⚠️ history 에는 판마다 본문·사진이 통째로 들어 있다(레코드 1건이 최대 1.5MB). 목록에 그대로 실으면
+      기사 수 × 판 수 만큼의 본문이 매번 브라우저로 내려간다 — 화면이 느린 두 번째 이유였다.
+   화면의 '버전 기록' 목록은 v · 제목 · 작성자 · 시각만 쓴다(renderNewsHistory). 옛 판의 **본문**은
+   사용자가 그 판을 실제로 열 때만 필요하므로, 그때 `GET ?id=` 로 한 건만 받아 간다. */
+const lightHistory = (a) => {
+  if (!Array.isArray(a.history)) return a;
+  a.history = a.history.map((h) => ({ v: h.v, at: h.at, by: h.by, byName: h.byName, title: h.title }));
+  return a;
+};
+
 export async function onRequestGet({ request, env }) {
   // 내부 보드 기사 — 로그인(회원 세션) 필수. 비로그인 목록 노출 차단(홍보부 전용은 아니고 회원 전체 열람).
   if (!(await memberOrAdmin(request, env))) return json({ ok: false, error: "unauthorized" }, 401);
-  const articles = [];
-  let cursor;
-  do {
-    const res = await env.SCOUT_KV.list({ prefix: PREFIX, cursor });
-    for (const k of res.keys) {
-      const raw = await env.SCOUT_KV.get(k.name);
-      if (raw) { try { articles.push(JSON.parse(raw)); } catch {} }
-    }
-    cursor = res.list_complete ? null : res.cursor;
-  } while (cursor);
-  articles.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-  // 구 레코드(stage 없음)를 읽을 때만 유도한다 — KV 는 건드리지 않는다
-  for (const a of articles) { a.stage = cleanStage(a.stage, a); if (!Array.isArray(a.tags)) a.tags = []; if (typeof a.subtitle !== "string") a.subtitle = ""; if (typeof a.photographer !== "string") a.photographer = ""; if (typeof a.reporter !== "string") a.reporter = ""; if (!Array.isArray(a.depts)) a.depts = []; a.priority = cleanPriority(a.priority); a.en = cleanEn(a.en); deriveVersion(a); }
+
+  // 한 건 조회 — 옛 판 본문까지 통째로. 목록에서 뺀 것을 필요할 때 여기서 받아 간다.
+  const one = new URL(request.url).searchParams.get("id");
+  if (one) {
+    const rec = await readArticle(env, one);
+    if (!rec) return json({ ok: false, error: "not_found" }, 404);
+    return json({ ok: true, article: hydrate(rec) });
+  }
+
+  // ⚠️ 기사 1건당 순차 KV get 이던 것을 병렬로(listRecords). 기사가 쌓일수록 화면이 느려지던 원인.
+  const articles = await listRecords(env, PREFIX);
+  articles.sort(byNewest);
+  for (const a of articles) lightHistory(hydrate(a));
   return json({ ok: true, articles });
 }
 
