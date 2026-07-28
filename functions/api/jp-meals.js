@@ -1,15 +1,17 @@
-/* 식사 메뉴 읽기 전용 (v0.9.253)
+/* 식사 메뉴 (v0.9.283)
  *
- *  GET /api/jp-meals → { ok, meals, updatedAt }
+ *  GET /api/jp-meals → { ok, meals, updatedAt }                         (공개)
+ *  PUT /api/jp-meals { group, date, meal, value }                        (memberOrAdmin ∥ fncAdmin)
+ *      급식보드에서 관리자가 셀 단위 인라인 편집 → 셀 하나만 read-modify-write(비파괴).
  *
  * 홍보부 운영보드(/krjam-planning)의 '식사 메뉴'와 급식편의본부 안내(/krjam-fnc)가
- * **같은 데이터를 본다**. 원본은 하나뿐 — KV "jp:meals" 이고, 쓰기는 지금까지처럼
- * /api/jamboree-plan 한 곳에서만 한다(두 곳에서 쓰면 서로 덮어쓴다).
+ * **같은 데이터를 본다**. 원본은 하나뿐 — KV "jp:meals". 홍보부는 /api/jamboree-plan 으로
+ * 통째 저장하고, 급식보드는 이 PUT 으로 셀 단위만 고친다(양방향, 같은 KV).
  *
  * ⚠️ 이 엔드포인트는 **로그인 없이 읽을 수 있다.** /krjam-fnc 는 로그인 없는 안내 화면이라
  *    그렇게 하지 않으면 메뉴를 보여 줄 수 없다. 대신 **메뉴 텍스트만** 내보낸다 —
  *    /api/jamboree-plan 이 로그인 뒤에 있는 이유(연락처·인원 실명)는 여기에 담기지 않는다.
- * ⚠️ 쓰기 경로 없음(GET 전용). 운영 KV 파괴적 쓰기 금지 규칙과 같은 방향이다.
+ * ⚠️ PUT 은 셀 단위 RMW(다른 칸 미덮어씀)만 허용 — 통째 덮어쓰기 금지(운영 KV 파괴적 쓰기 방지).
  */
 import { json, memberOrAdmin, fncAdmin } from "./_lib.js";
 
