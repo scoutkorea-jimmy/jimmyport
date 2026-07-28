@@ -394,6 +394,14 @@ body,button,input,select,textarea{word-break:keep-all; overflow-wrap:break-word}
 .shifttbl th .sh-t{display:block;font-weight:500;font-size:var(--fs-1);color:var(--muted)}
 .shifttbl td{vertical-align:top;min-width:120px}
 .shift-add{display:block;margin-top:5px;min-height:34px;font:inherit;font-size:var(--fs-1);border:1px dashed var(--line);border-radius:var(--r-1);background:var(--surface);color:var(--muted);padding:0 6px}
+/* 되돌리기 목록 — 저장 직전 상태를 고르는 줄. .btn 이 이미 40px 이라 터치 타깃은 확보된다.
+   좁은 화면에서는 시각/설명이 먼저 접히고 버튼은 끝에 남는다(버튼이 잘리면 되돌릴 수가 없다). */
+.snaplist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.snaprow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-1);padding:6px 10px}
+.snaprow .nm{font-weight:700;font-size:var(--fs-1)}
+.snaprow .muted{font-size:var(--fs-1)}
+.snaprow .btn{margin-left:auto}
 .dutynow-shift{margin-bottom:8px}
 .dutynow-people{display:flex;flex-wrap:wrap;margin-bottom:10px;min-height:26px}
 .dutynow-menu{border-top:1px solid var(--line);padding-top:9px;font-size:var(--fs-1)}

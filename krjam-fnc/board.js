@@ -63,6 +63,8 @@
      ⚠️ 키를 바꾸면 서버도 같이 바꿔야 한다. 안 그러면 저장은 되는 듯 보이고 값만 사라진다. */
   // 담당 배정 = 조직 로스터(ORG)의 단일 원본. 서버(jp-fnc-org)에서 불러와 ORG 를 덮어쓴다.
   var orgLoaded = false, orgMeta = { updatedAt: null, by: '' }, orgEdit = false, orgFail = false;
+  // 되돌리기 — 덮어쓰기 직전 상태 목록(관리자만). 보호를 다 걸어도 사람은 실수하므로 돌아갈 길을 화면에 둔다.
+  var orgSnaps = null, orgSnapOpen = false;
 
   /* 배정은 홍보부 보드 세션이 있으면 할 수 있다 — 같은 도메인이라 그 세션을 그대로 쓴다.
      (로그인 화면을 하나 더 만들면 비밀번호가 하나 더 생긴다.) */
@@ -771,21 +773,29 @@
   var staffData = null;
   function staffHeader() { var f = fncSession(); return f ? { Authorization: 'Bearer ' + f.token } : {}; }   // 관리자면 전체번호 수신
   var staffVer = '';        // 불러온 시점의 버전 — 저장할 때 그대로 보내 충돌을 잡는다
+  /* ⚠️ 지금 들고 있는 명단이 **관리자 응답**인지(전화 전체) 마스킹 응답인지(끝 4자리).
+     비관리자 응답을 들고 저장하면 전원의 번호가 끝 4자리로 잘린다 — 저장 전에 반드시 확인한다.
+     (서버도 같은 사고를 되돌리지만, 애초에 보내지 않는 게 맞다.) */
+  var staffAdminData = false;
   function loadStaff() {
     return fetch('/api/jp-fnc-staff', { headers: staffHeader() }).then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j && j.ok) { staffData = { staff: j.staff || [], shifts: j.shifts || {} }; staffVer = j.updatedAt || ''; } return j; })
+      .then(function (j) {
+        if (j && j.ok) { staffData = { staff: j.staff || [], shifts: j.shifts || {} }; staffVer = j.updatedAt || ''; staffAdminData = !!j.admin; }
+        return j;
+      })
       .catch(function () { return null; });
   }
   /* ⚠️ 인원·쉬프트는 통째로 저장된다. 불러오지 못한 상태에서 저장하면 남의 데이터를 지운다 →
      불러오기 전에는 저장하지 않는다. 그 사이 다른 관리자가 저장했으면 서버가 409 로 막고
      최신본을 돌려준다 — 화면을 최신으로 바꾸고 사용자에게 알린다(조용히 덮어쓰지 않는다). */
-  function saveStaff() {
+  function saveStaff(confirmShrink) {
     if (!staffData) { toast('명단을 아직 불러오지 못했습니다 — 새로고침 후 다시 시도해 주세요'); return Promise.resolve(); }
     var body = {
       staff: (staffData.staff || []).map(function (s) { return { id: s.id, name: s.name, phone: s.phone != null ? s.phone : '' }; }),
       shifts: staffData.shifts || {},
       baseVer: staffVer,
       confirmEmpty: true,   // staff 는 이제 '선택적 전화 레지스트리'라 빈 값도 정상(인원 원본은 조직표). 잠금·스냅샷으로 보호.
+      confirmShrink: confirmShrink === true,   // 절반 미만으로 줄면 서버가 한 번 막는다 — 확인 후에만 통과
     };
     return fetch('/api/jp-fnc-staff', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()), body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
@@ -798,6 +808,14 @@
           return;
         }
         if (x.s === 409 && j && j.error === 'empty_guard') { toast(j.message || '빈 목록은 저장하지 않았습니다'); return; }
+        /* 부분 전멸 — 저장하지 않고 사람에게 묻는다. 실수면 여기서 멈추고, 의도한 정리면 한 번 더 확인해 통과. */
+        if (x.s === 409 && j && j.error === 'shrink_guard') {
+          var ok = window.confirm('연락처가 ' + j.had + '건에서 ' + j.now + '건으로 줄어듭니다.\n의도한 정리가 맞습니까?\n\n(실수라면 취소하세요 — 지금 취소하면 아무것도 지워지지 않습니다.)');
+          if (ok) return saveStaff(true);
+          loadStaff().then(renderStaffView);   // 화면을 서버 값으로 되돌린다
+          toast('저장하지 않았습니다');
+          return;
+        }
         if (j && j.ok) {
           staffData = { staff: j.staff || [], shifts: j.shifts || {} }; staffVer = j.updatedAt || '';
           renderStaffView(); renderDutyNow(); toast('저장됨');
@@ -874,6 +892,14 @@
   // 전화 레지스트리 저장(이름→전화, 빈 값은 제외). 이름은 조직표가 원본이라 여기서 추가/삭제하지 않는다.
   function savePhones() {
     if (!staffData) return;
+    /* ⚠️ 마스킹된 명단(끝 4자리)을 들고 저장하면 **전원의 번호가 4자리로 잘린다**.
+       화면 입력칸은 phoneMap() 값으로 채워지는데, 비관리자 응답이면 그게 끝 4자리다.
+       재조회가 아직 안 끝났거나 실패한 상태에서 누르면 그대로 저장돼 원본이 사라진다 → 막는다. */
+    if (!staffAdminData) {
+      toast('연락처를 아직 불러오지 못했습니다 — 잠시 후 다시 시도해 주세요');
+      loadStaff().then(renderStaffView);
+      return;
+    }
     var reg = [];
     [].forEach.call(document.querySelectorAll('[data-phone]'), function (el) {
       var name = el.getAttribute('data-phone'), ph = (el.value || '').replace(/[^0-9]/g, '');
@@ -1025,14 +1051,14 @@
     var tools = can
       ? (orgEdit
           ? '<button class="btn sm solid" id="duty-save">저장</button> <button class="btn sm ghost" id="duty-cancel">취소</button>'
-          : '<button class="btn sm" id="duty-edit">조직 편집</button>')
+          : '<button class="btn sm" id="duty-edit">조직 편집</button> <button class="btn sm ghost" id="duty-undo" aria-expanded="' + (orgSnapOpen ? 'true' : 'false') + '">되돌리기</button>')
       : '<span class="muted" style="font-size:var(--fs-1)">부서·팀·인원은 관리자만 편집할 수 있습니다. </span><button type="button" class="btn sm" data-open-login>급식 관리자로 로그인</button>';
     box.innerHTML = '<div class="card">' +
       '<div class="dutybar">' + headline +
         (orgMeta.updatedAt ? '<span class="muted" style="font-size:var(--fs-1)">마지막 수정 ' + esc(fmtWhen(orgMeta.updatedAt)) + (orgMeta.by ? ' · ' + esc(orgMeta.by) : '') + '</span>' : '') +
         '<span class="spacer"></span>' + tools + '</div>' +
       '<div class="tblwrap"><table class="tbl dutytbl orgtbl"><thead><tr><th>부서 · 부장</th><th>팀 · 팀장</th><th>팀원</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div></div>';
+      '<tbody>' + rows + '</tbody></table></div></div>' + orgSnapPanel();
   }
   function fmtWhen(iso) {
     try { var d = new Date(iso); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
@@ -1052,13 +1078,56 @@
     });
     return { head: head, depts: depts };
   }
-  function saveDuty() {
+  /* ── 조직표 되돌리기 ────────────────────────────────────────
+     서버는 덮어쓰기 직전 상태를 최근 10개(30일) 보관한다. 목록에서 한 시점을 고르면 그 상태로
+     복구하고, **복구 직전 상태도 다시 스냅샷으로 남는다** — 되돌리기를 되돌릴 수 있어야 한다. */
+  function toggleOrgSnaps() {
+    orgSnapOpen = !orgSnapOpen;
+    if (!orgSnapOpen) { renderDuty(); return; }
+    fetch('/api/jp-fnc-org?snapshots=1', { headers: staffHeader() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { orgSnaps = (j && j.ok) ? (j.snapshots || []) : []; renderDuty(); })
+      .catch(function () { orgSnaps = []; renderDuty(); });
+  }
+  function restoreOrg(at) {
+    if (!window.confirm('이 시점의 조직표로 되돌립니다.\n지금 내용은 다시 되돌릴 수 있게 보관됩니다.\n\n진행할까요?')) return;
+    fetch('/api/jp-fnc-org', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()),
+      body: JSON.stringify({ restore: at }) })
+      .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.j && res.j.ok) {
+          ORG = res.j.org; orgMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
+          orgSnapOpen = false; orgSnaps = null; orgEdit = false;
+          renderDuty(); if (staffData) renderStaffView();
+          toast('조직표를 되돌렸습니다');
+          return;
+        }
+        toast(res.s === 401 ? '관리자 세션이 만료됐습니다' : '되돌리지 못했습니다');
+      })
+      .catch(function () { toast('네트워크 오류'); });
+  }
+  function orgSnapPanel() {
+    if (!orgSnapOpen) return '';
+    if (orgSnaps === null) return '<div class="card" style="margin-top:12px"><p class="muted">불러오는 중…</p></div>';
+    if (!orgSnaps.length) {
+      return '<div class="card" style="margin-top:12px"><p class="muted">보관된 이전 상태가 없습니다. ' +
+        '조직표를 저장하면 그 직전 상태가 여기에 최대 10개(30일) 쌓입니다.</p></div>';
+    }
+    return '<div class="card" style="margin-top:12px"><h3>이전 상태로 되돌리기</h3>' +
+      '<p class="muted" style="font-size:var(--fs-1)">저장 직전 상태를 최근 10개까지 보관합니다. 되돌려도 지금 내용은 다시 보관되니 안전합니다.</p>' +
+      '<div class="snaplist">' + orgSnaps.map(function (s) {
+        return '<div class="snaprow"><span class="nm">' + esc(fmtWhen(s.at)) + '</span>' +
+          '<span class="muted">인원 ' + (s.count || 0) + '명' + (s.by ? ' · ' + esc(s.by) : '') + '</span>' +
+          '<button type="button" class="btn sm" data-restore="' + esc(s.at) + '">이 시점으로</button></div>';
+      }).join('') + '</div></div>';
+  }
+  function saveDuty(confirmShrink) {
     if (!orgLoaded && orgFail) { toast('조직표를 아직 불러오지 못했습니다. 새로고침해 주세요.'); return; }
     var next = collectOrg();
     var btn = $('duty-save'); if (btn) { btn.disabled = true; btn.textContent = '저장 중…'; }
     var reset = function () { if (btn) { btn.disabled = false; btn.textContent = '저장'; } };
     fetch('/api/jp-fnc-org', { method: 'PUT', headers: Object.assign({ 'content-type': 'application/json' }, staffHeader()),
-      body: JSON.stringify({ org: next, baseVer: (orgMeta && orgMeta.updatedAt) || '' }) })
+      body: JSON.stringify({ org: next, baseVer: (orgMeta && orgMeta.updatedAt) || '', confirmShrink: confirmShrink === true }) })
       .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
       .then(function (res) {
         if (res.s === 401) { toast('관리자 세션이 만료됐습니다. 다시 로그인해 주세요.'); reset(); return; }
@@ -1069,6 +1138,15 @@
           return;
         }
         if (res.s === 409 && res.j && res.j.error === 'empty_guard') { reset(); toast(res.j.message || '빈 조직표는 저장하지 않았습니다.'); return; }
+        /* 부분 전멸 — 부서가 남아 있어도 팀·팀원이 대량으로 사라지는 저장은 여기서 멈춘다.
+           서버는 아직 아무것도 지우지 않았다. 사람이 확인해야 통과한다. */
+        if (res.s === 409 && res.j && res.j.error === 'shrink_guard') {
+          reset();
+          if (window.confirm('조직표 인원이 ' + res.j.had + '명에서 ' + res.j.now + '명으로 줄어듭니다.\n의도한 정리가 맞습니까?\n\n[취소] 하면 아무것도 바뀌지 않습니다.')) { saveDuty(true); return; }
+          orgEdit = false; loadOrg().then(renderDuty);
+          toast('저장하지 않았습니다');
+          return;
+        }
         if (res.j && res.j.ok) {
           if (res.j.org) ORG = res.j.org; orgMeta = { updatedAt: res.j.updatedAt, by: res.j.by };
           orgEdit = false; renderDuty();
@@ -1190,6 +1268,8 @@
       if (e.target.closest('#duty-edit')) { orgEdit = true; renderDuty(); return; }
       if (e.target.closest('#duty-cancel')) { orgEdit = false; loadOrg().then(renderDuty); return; }
       if (e.target.closest('#duty-save')) { saveDuty(); return; }
+      if (e.target.closest('#duty-undo')) { toggleOrgSnaps(); return; }
+      var rs = e.target.closest('[data-restore]'); if (rs) { restoreOrg(rs.getAttribute('data-restore')); return; }
       var f = e.target.closest('[data-fig]'); if (f) { openLb(+f.getAttribute('data-fig')); return; }
       if (e.target.closest('#lb-x')) { closeLb(); return; }
       if (e.target.closest('#lb-prev')) { stepLb(-1); return; }

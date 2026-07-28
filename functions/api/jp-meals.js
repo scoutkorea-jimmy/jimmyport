@@ -65,13 +65,28 @@ export async function onRequestPut({ request, env }) {
   if (MEAL_GROUPS.indexOf(group) < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(date) || ["b", "l", "d"].indexOf(meal) < 0)
     return json({ ok: false, error: "bad request" }, 400);
   const value = String(b.value == null ? "" : b.value).slice(0, 400);
-  let cur = {}, author = "";
-  try { const raw = await env.SCOUT_KV.get(KEY); if (raw) { const p = JSON.parse(raw); cur = p.meals || {}; author = String(p.author || ""); } } catch {}
-  const meals = pickMeals(cur);                       // 형태 정규화
-  if (!meals[group]) meals[group] = {};
-  if (!meals[group][date]) meals[group][date] = { b: "", l: "", d: "" };
-  meals[group][date][meal] = value;
+  let rec = {}, cur = {};
+  try { const raw = await env.SCOUT_KV.get(KEY); if (raw) { const p = JSON.parse(raw); if (p && typeof p === "object") { rec = p; cur = p.meals && typeof p.meals === "object" ? p.meals : {}; } } } catch {}
+
+  /* ⚠️ 예전엔 pickMeals(cur) 로 **정규화한 결과**를 통째로 다시 저장했다. 그러면 이 API 가 모르는
+     그룹(구버전 crew 등)이나 31일을 넘는 날짜가 셀 하나 고칠 때마다 조용히 사라진다.
+     "셀 단위 비파괴 RMW" 라고 적어 놨으면 실제로도 그래야 한다 → 저장된 구조를 그대로 두고
+     **건드리는 칸만** 바꾼다. 레코드의 다른 필드(author/client 등)도 보존한다. */
+  const meals = Object.assign({}, cur);
+  const g = Object.assign({}, meals[group] && typeof meals[group] === "object" ? meals[group] : {});
+  const day = Object.assign({ b: "", l: "", d: "" }, g[date] && typeof g[date] === "object" ? g[date] : {});
+  day[meal] = value;
+  g[date] = day;
+  meals[group] = g;
+
+  /* ⚠️ **홍보부 통짜 저장이 이 편집을 조용히 덮어쓰던 경로를 막는다.**
+     /api/jamboree-plan 은 conflictByOther(baseVer, storedVer, storedAuthor, author, storedClient, client)
+     로 "내가 불러온 뒤 남이 바꿨나"를 판정해 바뀌었으면 병합한다. 그런데 예전 이 PUT 은
+     **저장돼 있던 author 를 그대로 다시 써 넣고** client 는 아예 지웠다. 그래서 홍보부 화면에는
+     '아무도 안 바꾼 것'으로 보였고, 급식보드에서 고친 메뉴가 홍보부의 다음 저장 한 번에 사라졌다.
+     실제 작성자와 편집 맥락(fnc-board)을 남겨야 홍보부가 충돌을 알아채고 병합한다. */
   const updatedAt = new Date().toISOString();
-  await env.SCOUT_KV.put(KEY, JSON.stringify({ meals, updatedAt, author }));
-  return json({ ok: true, meals, updatedAt });
+  const author = String(who.name || who.username || "급식 관리자").slice(0, 40);
+  await env.SCOUT_KV.put(KEY, JSON.stringify(Object.assign({}, rec, { meals, updatedAt, author, client: "fnc-board" })));
+  return json({ ok: true, meals: pickMeals(meals), updatedAt });
 }

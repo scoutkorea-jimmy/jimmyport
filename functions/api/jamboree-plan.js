@@ -10,6 +10,7 @@
  *  - DELETE /api/jamboree-plan?slotKey=…  → 카드 KV 삭제(완전 제거)
  */
 import { json, jsonCacheable, cacheMatch, cachePut, cachePurge, clientIp, maskIp, appendLog, memberOrAdmin } from "./_lib.js";
+import { snapPush, snapList, snapFind, shrankTooMuch, countOf, GuardError } from "./_save-guard.js";
 
 const PREFIX = "jp:s:";
 const SLOT = (k) => PREFIX + k;
@@ -27,6 +28,15 @@ const DIVISIONS = "jp:divisions";
 const PROTOCOL = "jp:protocol";
 const MAPPOS = "jp:mappos";
 const SHOOTS = "jp:shoots";
+
+/* 도메인 이름 → KV 키. 되돌리기(restoreDomain)·스냅샷 조회가 쓴다.
+   ⚠️ 새 도메인을 추가하면 여기에도 넣어야 그 도메인을 되돌릴 수 있다(빠뜨리면 보호만 있고 복구가 없다).
+   슬롯(jp:s:*)은 키가 동적이라 여기 없다 — 슬롯은 원래 통짜 저장이 아니라 개별 저장이다. */
+const DOMAIN_KEY = {
+  marketing: MKT, meals: MEALS, shootlist: SHOOTLIST, types: TYPES, events: EVENTS,
+  timetable: TIMETABLE, roster: ROSTER, ttcats: TTCATS, offtimes: OFFTIMES,
+  contacts: CONTACTS, divisions: DIVISIONS, protocol: PROTOCOL, mappos: MAPPOS, shoots: SHOOTS,
+};
 
 function cleanMapPos(o) {
   o = o && typeof o === "object" ? o : {};
@@ -304,7 +314,7 @@ export function conflictByOther(baseVer, storedVer, storedAuthor, author, stored
 // 도메인 저장 — 버전 가드 후 통짜 교체 또는 병합. 반환 {value, merged}. extra=추가 필드(roster.teams 등).
 // W = { now, author, client } — 한 PUT 안의 모든 도메인이 공유하는 쓰기 맥락.
 async function saveDomain(env, KEY, field, cleaned, baseVer, kind, W, cap, extra) {
-  const { now, author, client } = W;
+  const { now, author, client, confirmShrink } = W;
   let stored = null, storedVer = null, storedAuthor = null, storedClient = null;
   const raw = await env.SCOUT_KV.get(KEY);
   if (raw) { try { const p = JSON.parse(raw); stored = p[field]; storedVer = p.updatedAt || null; storedAuthor = p.author || null; storedClient = p.client || null; } catch {} }
@@ -314,6 +324,22 @@ async function saveDomain(env, KEY, field, cleaned, baseVer, kind, W, cap, extra
     merged = true;
     if (kind !== "obj" && cap && Array.isArray(value) && value.length > cap) value = value.slice(0, cap);
   }
+
+  /* ⚠️ **부분 전멸 가드**(v0.9.286) — 여기까지의 보호(낙관적 잠금·병합)는 "누가 먼저 바꿨나"만 본다.
+     혼자 쓰는 중에 항목이 대량으로 사라지는 저장(화면이 덜 그려진 상태, 실수로 전체 선택 삭제,
+     복원 실패 후 빈 배열 저장)은 충돌이 아니라서 그대로 통과했다. 절반 미만으로 줄면 멈춘다.
+     의도한 정리라면 클라가 confirmShrink 로 다시 보낸다 — 그때는 **되돌릴 스냅샷을 남기고** 저장한다.
+     ⚠️ 스냅샷은 이 '대량 삭제' 순간에만 남긴다. 매 저장마다 남기면 KV 쓰기가 두 배가 되고,
+        정작 필요한 건 사고가 난 그 직전 상태 하나다. */
+  const hadN = countOf(stored), nowN = countOf(value);
+  if (shrankTooMuch(hadN, nowN)) {
+    if (confirmShrink !== true) {
+      throw new GuardError({ error: "shrink_guard", key: field, had: hadN, now: nowN,
+        message: field + " 항목이 " + hadN + "개에서 " + nowN + "개로 줄어듭니다. 의도한 삭제가 맞는지 확인해 주세요." });
+    }
+    await snapPush(env, KEY + ":snap", { at: now, by: author || "", field, value: stored });
+  }
+
   const wrap = Object.assign({ [field]: value, updatedAt: now, author, client }, extra || {});
   await env.SCOUT_KV.put(KEY, JSON.stringify(wrap));
   return { value, merged };
@@ -324,6 +350,17 @@ export async function onRequestGet(ctx) {
   // 내부 운영 보드 — 연락처(전화·이메일)·인원 실명이 담기므로 로그인(회원 세션) 필수.
   // 캐시 조회보다 먼저 검사해야 무인증 요청이 캐시 히트로 새지 않는다.
   if (!(await memberOrAdmin(ctx.request, env))) return json({ error: "unauthorized" }, 401);
+
+  /* 되돌릴 지점 목록 — GET ?snapshots=<도메인>. 대량 삭제 직전 상태만 쌓이므로 보통 비어 있고,
+     사고가 났을 때만 항목이 있다. 캐시 조회 앞에 둔다(질의가 붙은 요청은 보드 GET 이 아니다). */
+  const snapQ = new URL(ctx.request.url).searchParams.get("snapshots");
+  if (snapQ) {
+    const K = DOMAIN_KEY[snapQ];
+    if (!K) return json({ ok: false, error: "unknown_domain" }, 400);
+    const snaps = await snapList(env, K + ":snap");
+    return json({ ok: true, key: snapQ, snapshots: snaps.map((x) => ({ at: x.at, by: x.by, count: countOf(x.value) })) });
+  }
+
   const hit = await cacheMatch(ctx.request);  // the board GET takes no query params → one cache key
   if (hit) return privateJson(hit.body);
   let cursor, names = [];
@@ -384,7 +421,14 @@ export async function onRequestPut(ctx) {
   // 과거 "작성자 이름 기반·토큰 없음" 설계(§16.5)의 잔재 — 개별 로그인 도입(v0.9.103) 후에도
   // 쓰기가 무인증이라 비로그인 상태로 보드 전체를 덮어쓸 수 있었다. 회원 세션 필수로 전환.
   if (!(await memberOrAdmin(ctx.request, ctx.env))) return json({ error: "unauthorized" }, 401);
-  const resp = await putImpl(ctx);
+  let resp;
+  /* 부분 전멸 가드는 저장 한복판(saveDomain)에서 걸린다 — 15개 호출부마다 검사를 붙이면
+     한 곳을 빠뜨리고 그 도메인만 무방비가 된다. 예외 하나로 올려 여기서 409 로 바꾼다. */
+  try { resp = await putImpl(ctx); }
+  catch (e) {
+    if (e instanceof GuardError) return json(Object.assign({ ok: false }, e.payload), 409);
+    throw e;
+  }
   cachePurge(ctx, "/api/jamboree-plan");  // edits show on the next load (within the GET TTL)
   return resp;
 }
@@ -397,10 +441,29 @@ async function putImpl(ctx) {
   const ip = maskIp(clientIp(request));
   // 편집 창 id — 같은 사람이 PC·휴대폰(또는 두 탭)에서 열어 둔 경우를 구분해 병합 판정에 쓴다.
   const client = (body.client || "").toString().slice(0, 60);
-  const W = { now, author, client };   // 이 PUT 안의 모든 도메인이 공유하는 쓰기 맥락
+  // confirmShrink = 사람이 "그 대량 삭제 맞다"고 한 번 더 확인한 저장(부분 전멸 가드 통과용)
+  const W = { now, author, client, confirmShrink: body.confirmShrink === true };   // 이 PUT 안의 모든 도메인이 공유하는 쓰기 맥락
 
   // 마케팅 저장
   const BV = (body.baseVer && typeof body.baseVer === "object") ? body.baseVer : {};
+
+  /* 되돌리기 — 대량 삭제 직전 상태로 그 도메인만 복구한다(다른 도메인은 건드리지 않는다).
+     PUT { restoreDomain:"roster", at:"<스냅샷 시각>" } */
+  if (body.restoreDomain) {
+    const field = String(body.restoreDomain);
+    const KEY = DOMAIN_KEY[field];
+    if (!KEY) return json({ ok: false, error: "unknown_domain" }, 400);
+    const hit = await snapFind(env, KEY + ":snap", body.at);
+    if (!hit) return json({ ok: false, error: "snapshot_not_found" }, 404);
+    let prev = null;
+    const raw0 = await env.SCOUT_KV.get(KEY);
+    if (raw0) { try { prev = JSON.parse(raw0); } catch {} }
+    if (prev) await snapPush(env, KEY + ":snap", { at: now, by: author, field, value: prev[field] });
+    const wrap = Object.assign({}, prev || {}, { [field]: hit.value, updatedAt: now, author, client });
+    await env.SCOUT_KV.put(KEY, JSON.stringify(wrap));
+    await appendLog(env, { ts: now, action: "jp.restore", key: field, count: countOf(hit.value), ip: clientIp(request) });
+    return json({ ok: true, updatedAt: now, key: field, restored: hit.at, value: hit.value });
+  }
 
   if (Array.isArray(body.marketing)) {
     const r = await saveDomain(env, MKT, "marketing", body.marketing.slice(0, 300), BV.marketing, "arr", W, 300);

@@ -10,10 +10,10 @@
  * ⚠️ 쓰기는 급식 관리자(admin/admin, /api/jp-fnc-auth 토큰)만.
  */
 import { json, fncAdmin, appendLog, clientIp } from "./_lib.js";
+import { snapPush, snapList, snapFind, shrankTooMuch } from "./_save-guard.js";
 
 const KEY = "jp:fnc-staff";
 const SNAP_KEY = "jp:fnc-staff:snap";   // 되돌리기용 직전 상태 보관
-const SNAP_MAX = 10;
 const SHIFTS = ["am", "pm", "eve"];
 
 const digits = (v) => String(v == null ? "" : v).replace(/[^0-9]/g, "").slice(0, 11);
@@ -77,9 +77,27 @@ export async function onRequestGet({ request, env }) {
 /* 스냅샷 조회·복구 — 실수로 지웠을 때 되돌리는 길. 관리자만.
    GET  /api/jp-fnc-staff?snapshots=1 → { snapshots: [{at, by, count}] }
    PUT  { restore: "<at>" }           → 그 시점으로 되돌린다(되돌리기 직전 상태도 다시 스냅샷) */
-async function readSnaps(env) {
-  try { const raw = await env.SCOUT_KV.get(SNAP_KEY); if (raw) { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } } catch {}
-  return [];
+const readSnaps = (env) => snapList(env, SNAP_KEY);
+
+/* ⚠️ **마스킹된 전화가 원본을 덮어쓰는 사고를 막는다.**
+   비관리자 GET 은 전화를 끝 4자리(phone4)만 내보낸다. 화면이 그 응답을 들고 있는 동안
+   (로그인 직후 재조회 실패·재조회 완료 전 저장 등) 연락처를 저장하면 **전원의 번호가
+   끝 4자리로 잘려 영구 저장된다** — 개수도 그대로라 잠금·전멸 가드에 걸리지 않는다.
+   그래서 서버에서 되돌린다: 저장된 번호가 9자리 이상인데 들어온 값이 그 번호의 끝 4자리와
+   같으면 **화면이 마스크만 보고 있었다는 뜻**이므로 저장된 원본을 그대로 유지한다.
+   진짜로 지우려면 빈 값을 보내면 된다(빈 값은 여기서 건드리지 않는다). */
+export function keepMaskedPhones(prevStaff, nextStaff) {
+  const prev = {};
+  for (const s of Array.isArray(prevStaff) ? prevStaff : []) {
+    if (s && s.name) prev[s.name] = digits(s.phone);
+  }
+  let kept = 0;
+  for (const s of nextStaff) {
+    const was = prev[s.name];
+    if (!was || was.length < 9) continue;
+    if (s.phone && s.phone.length <= 4 && was.slice(-4) === s.phone) { s.phone = was; kept++; }
+  }
+  return kept;
 }
 
 export async function onRequestPut({ request, env }) {
@@ -97,11 +115,8 @@ export async function onRequestPut({ request, env }) {
     try { const raw = await env.SCOUT_KV.get(KEY); if (raw) cur0 = JSON.parse(raw); } catch {}
     const at = new Date().toISOString();
     if (cur0) {
-      try {
-        const list = await readSnaps(env);
-        list.unshift({ at, by: String(who.name || "급식 관리자").slice(0, 40), staff: cur0.staff || [], shifts: cur0.shifts || {} });
-        await env.SCOUT_KV.put(SNAP_KEY, JSON.stringify(list.slice(0, SNAP_MAX)), { expirationTtl: 30 * 86400 });
-      } catch {}
+      await snapPush(env, SNAP_KEY, { at, by: String(who.name || "급식 관리자").slice(0, 40),
+        staff: cur0.staff || [], shifts: cur0.shifts || {} });
     }
     await env.SCOUT_KV.put(KEY, JSON.stringify({ staff: hit.staff || [], shifts: hit.shifts || {}, updatedAt: at, by: String(who.name || "급식 관리자").slice(0, 40) }));
     try { await appendLog(env, { ts: at, action: "fnc.staff.restore", count: (hit.staff || []).length, ip: clientIp(request) }); } catch {}
@@ -124,10 +139,22 @@ export async function onRequestPut({ request, env }) {
   const staff = cleanStaff(b.staff), shifts = cleanShifts(b.shifts);
   /* ⚠️ 저장된 인원이 있는데 빈 목록이 올라오면 사고다(불러오기 실패 후 저장 등).
      지우려면 confirmEmpty:true 를 명시해야 한다 — 실수로 전원이 사라지지 않게. */
-  const had = ((cur && cur.staff) || []).length;
+  const prevStaff = (cur && cur.staff) || [];
+  const had = prevStaff.length;
   if (had > 0 && staff.length === 0 && b.confirmEmpty !== true) {
     return json({ ok: false, error: "empty_guard", had: had,
       message: "저장된 인원이 " + had + "명인데 빈 목록이 올라왔습니다. 의도한 삭제라면 confirmEmpty 를 보내세요." }, 409);
+  }
+
+  // 마스킹(끝 4자리)만 보고 있던 화면이 원본 번호를 잘라 덮어쓰지 못하게 되돌린다.
+  const keptMasked = keepMaskedPhones(prevStaff, staff);
+
+  /* ⚠️ **부분 전멸 가드** — empty_guard 는 딱 0 일 때만 막는다. 40명 → 3명 처럼 일부만 남는
+     사고(화면이 덜 그려진 상태에서 저장 등)는 개수가 0 이 아니라 그대로 통과한다.
+     절반 미만으로 줄면 여기서 멈추고, 의도한 정리면 confirmShrink 로 한 번 더 눌러 통과시킨다. */
+  if (shrankTooMuch(had, staff.length) && b.confirmShrink !== true) {
+    return json({ ok: false, error: "shrink_guard", had: had, now: staff.length,
+      message: "저장된 인원이 " + had + "명인데 " + staff.length + "명만 올라왔습니다. 의도한 정리라면 다시 저장해 주세요." }, 409);
   }
 
   const updatedAt = new Date().toISOString();
@@ -135,16 +162,10 @@ export async function onRequestPut({ request, env }) {
   /* 덮어쓰기 전에 직전 상태를 스냅샷으로 남긴다(최근 10개, 30일).
      보호를 다 걸어도 사람이 실수로 지울 수 있다 — 되돌릴 방법이 있어야 '안정적'이다. */
   if (cur) {
-    try {
-      let snaps = [];
-      const raw = await env.SCOUT_KV.get(SNAP_KEY);
-      if (raw) { const p2 = JSON.parse(raw); if (Array.isArray(p2)) snaps = p2; }
-      snaps.unshift({ at: updatedAt, by: String(who.name || "급식 관리자").slice(0, 40),
-        staff: cur.staff || [], shifts: cur.shifts || {} });
-      await env.SCOUT_KV.put(SNAP_KEY, JSON.stringify(snaps.slice(0, SNAP_MAX)), { expirationTtl: 30 * 86400 });
-    } catch {}
+    await snapPush(env, SNAP_KEY, { at: updatedAt, by: String(who.name || "급식 관리자").slice(0, 40),
+      staff: cur.staff || [], shifts: cur.shifts || {} });
   }
   await env.SCOUT_KV.put(KEY, JSON.stringify({ staff, shifts, updatedAt, by: String(who.name || "급식 관리자").slice(0, 40) }));
-  try { await appendLog(env, { ts: updatedAt, action: "fnc.staff.save", count: staff.length, ip: clientIp(request) }); } catch {}
+  try { await appendLog(env, { ts: updatedAt, action: "fnc.staff.save", count: staff.length, keptMasked, ip: clientIp(request) }); } catch {}
   return json({ ok: true, staff, shifts, updatedAt, by: String(who.name || "급식 관리자"), admin: true });
 }

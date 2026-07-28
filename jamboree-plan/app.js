@@ -801,18 +801,25 @@ var netCount=0;
 function netBusy(d){ netCount=Math.max(0,netCount+d);
   document.documentElement.classList.toggle('net-busy', netCount>0); }
 
-function sendDomainPut(bodyFn, okMsg){
+function sendDomainPut(bodyFn, okMsg, confirmShrink){
   var body=resolveBody(bodyFn), doms=bodyDomains(body), key=doms.join('+')||'misc';
   netBusy(1);
+  var extra={author:authorVal(), client:CLIENT_ID, baseVer:pickBaseVer(body)};
+  if(confirmShrink===true) extra.confirmShrink=true;   // 사람이 "그 대량 삭제 맞다"고 확인한 저장
   return fetch('/api/jamboree-plan',{method:'PUT',headers:authJsonHeaders(),
-    body:JSON.stringify(Object.assign({author:authorVal(), client:CLIENT_ID, baseVer:pickBaseVer(body)}, body))})
+    body:JSON.stringify(Object.assign(extra, body))})
     .then(function(r){
       if(r.status===401){ authExpired(); throw new Error('unauthorized'); }   // 재로그인 후 재시도가 살려 낸다
+      /* ⚠️ 409(부분 전멸 가드)는 **네트워크 실패가 아니다**. 여기서 throw 하면 대기 큐에 들어가
+         15초마다 영원히 재시도하고, 사람은 왜 안 저장되는지 모른 채 화면만 '저장 대기'로 남는다.
+         저장을 멈춘 이유를 사람에게 묻는다 — 실수면 여기서 끝, 의도면 확인 후 한 번 더 보낸다. */
+      if(r.status===409) return r.json().then(function(j){ return {__guard:j||{}}; }, function(){ return {__guard:{}}; });
       if(!r.ok) throw new Error('http '+r.status);
       return r.json();
     })
     .then(function(j){
       if(!j) throw new Error('empty');
+      if(j.__guard){ delete domPending[key]; return onShrinkGuard(j.__guard, bodyFn, okMsg); }
       delete domPending[key];
       var merged=onPutResponse(j);
       setSaveSt(merged?'변경 병합됨':(okMsg||'저장됨'), true);
@@ -825,6 +832,23 @@ function sendDomainPut(bodyFn, okMsg){
     })
     .then(function(v){ netBusy(-1); return v; });   // 성공/실패 모두 여기를 지난다(위 catch 가 이미 삼켰다)
 }
+/* 부분 전멸 가드에 걸린 저장 — 서버는 **아무것도 지우지 않은 상태**로 멈춰 있다.
+ * 여기서 조용히 재시도하거나 조용히 포기하면 둘 다 나쁘다(전자는 사고를 저지르고, 후자는
+ * 사람이 저장된 줄 안다). 그래서 무엇이 몇 개에서 몇 개로 줄어드는지 보여 주고 사람이 정한다. */
+function onShrinkGuard(g, bodyFn, okMsg){
+  if(!g || g.error!=='shrink_guard'){ setSaveSt('저장하지 못했습니다 — 다시 시도해 주세요'); return null; }
+  var what=DOMAIN_LABEL[g.key]||g.key||'항목';
+  var ok=window.confirm(what+' 이(가) '+g.had+'개에서 '+g.now+'개로 줄어듭니다.\n의도한 삭제가 맞습니까?\n\n'+
+    '[취소] 하면 아무것도 지우지 않고 서버 내용을 다시 불러옵니다.');
+  if(ok) return sendDomainPut(bodyFn, okMsg, true);
+  loadBoard();                                  // 화면이 '지워진 상태'로 남지 않게 서버 값으로 되돌린다
+  setSaveSt('저장하지 않았습니다 — 서버 내용을 다시 불러왔습니다');
+  return null;
+}
+// 사람이 읽을 도메인 이름 — 가드 문구에 'roster 항목이' 대신 '인원이' 라고 나오게.
+var DOMAIN_LABEL={ marketing:'마케팅 항목', meals:'식사 메뉴', shootlist:'촬영 필요 목록', types:'콘텐츠 종류',
+  events:'행사', timetable:'일정표 항목', roster:'인원', ttcats:'일정 분류', offtimes:'오프타임',
+  contacts:'연락처', divisions:'분단', protocol:'의전 항목', mappos:'배치', shoots:'촬영 상세' };
 var retryBusy=false;
 function retryPendingSaves(){
   var keys=Object.keys(domPending);

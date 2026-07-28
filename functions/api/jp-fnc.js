@@ -11,9 +11,15 @@
  * ⚠️ 업무키는 서버 화이트리스트(DUTY_KEYS)로 막는다 — 목록에 없는 키는 조용히 버린다.
  *    (없는 키를 받아 주면 화면에 안 보이는 값이 쌓이고, 그게 '저장됐는데 안 보인다'가 된다.)
  */
-import { json, memberOrAdmin } from "./_lib.js";
+import { json, memberOrAdmin, appendLog, clientIp } from "./_lib.js";
+import { snapPush, shrankTooMuch } from "./_save-guard.js";
 
 const KEY = "jp:fnc";
+const SNAP_KEY = "jp:fnc:snap";
+
+/* ⚠️ v0.9.280 부터 급식보드 화면은 이 엔드포인트를 쓰지 않는다(담당 배정 = 조직표 jp-fnc-org).
+   그런데 PUT 은 여전히 **홍보부 회원 세션이면 누구나** 배정을 통째로 덮어쓸 수 있다.
+   화면에서 안 쓴다고 방치하면 옛 탭·옛 캐시가 저장하는 순간 조용히 지워진다 → 같은 보호를 건다. */
 
 /* 배정 대상 — 화면(krjam-fnc/board.js DUTIES)과 같은 순서·같은 키여야 한다. */
 export const DUTY_KEYS = [
@@ -77,12 +83,21 @@ export async function onRequestPut({ request, env }) {
       message: "그 사이 다른 사람이 저장했습니다. 최신 배정을 불러왔습니다." }, 409);
   }
   const had = Object.keys(cur.duties || {}).length;
-  if (had > 0 && Object.keys(duties).length === 0 && body.confirmEmpty !== true) {
+  const now = Object.keys(duties).length;
+  if (had > 0 && now === 0 && body.confirmEmpty !== true) {
     return json({ ok: false, error: "empty_guard", had,
       message: "배정 " + had + "건이 있는데 빈 배정이 올라왔습니다." }, 409);
   }
+  // 부분 전멸 — 절반 미만으로 줄면 멈춘다(전멸이 아니면 empty_guard 는 통과해 버린다).
+  if (shrankTooMuch(had, now) && body.confirmShrink !== true) {
+    return json({ ok: false, error: "shrink_guard", had, now,
+      message: "배정이 " + had + "건에서 " + now + "건으로 줄어듭니다. 의도한 정리라면 다시 저장해 주세요." }, 409);
+  }
 
-  const rec = { duties, updatedAt: new Date().toISOString(), by: String(who.name || who.username || "").slice(0, 40) };
-  await env.SCOUT_KV.put(KEY, JSON.stringify(rec));
-  return json({ ok: true, duties: rec.duties, updatedAt: rec.updatedAt, by: rec.by });
+  const by = String(who.name || who.username || "").slice(0, 40);
+  const updatedAt = new Date().toISOString();
+  if (had > 0) await snapPush(env, SNAP_KEY, { at: updatedAt, by, duties: cur.duties });   // 덮어쓰기 직전 상태
+  await env.SCOUT_KV.put(KEY, JSON.stringify({ duties, updatedAt, by }));
+  try { await appendLog(env, { ts: updatedAt, action: "fnc.duty.save", count: now, ip: clientIp(request) }); } catch {}
+  return json({ ok: true, duties, updatedAt, by });
 }

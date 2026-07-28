@@ -20,14 +20,20 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 let STAFF = { staff: [{ id: 's1', name: '주명림', phone: '010-1111-2222' }], shifts: { '2026-08-03': { am: ['s1'] } }, updatedAt: '2026-07-28T01:00:00Z', by: '급식 관리자' };
 let CONTENT = { overrides: {} };
 let failContent = false, failMeals = false;
+/* maskedStaff = 비관리자 응답(전화 끝 4자리만)을 화면이 들고 있는 상태를 만든다.
+   그 상태에서 연락처를 저장하면 전원의 번호가 4자리로 잘린다 — 화면이 아예 보내지 않아야 한다. */
+let maskedStaff = false, staffPuts = 0;
+let ORGSNAPS = [{ at: '2026-07-28T02:00:00Z', by: '급식 관리자', count: 11 }];
 const server = http.createServer((req, res) => {
   const p = decodeURIComponent(req.url.split('?')[0]);
   const J = (o, code) => { res.writeHead(code || 200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (p === '/api/hit') { res.writeHead(204); return res.end(); }
   if (p === '/api/jp-fnc-auth') { return J({ ok: true, token: 'FT', exp: Date.now() + 9e6 }); }
+  if (p === '/api/jp-fnc-org' && /snapshots=/.test(req.url)) return J({ ok: true, snapshots: ORGSNAPS });
   if (p === '/api/jp-fnc-staff') {
     if (req.method === 'PUT') { let b = ''; req.on('data', (c) => { b += c; });
       req.on('end', () => {
+        staffPuts++;
         let x = {}; try { x = JSON.parse(b); } catch {}
         if (STAFF.updatedAt && x.baseVer !== STAFF.updatedAt) return J(Object.assign({ ok: false, error: 'conflict' }, STAFF), 409);
         if ((STAFF.staff || []).length > 0 && (x.staff || []).length === 0 && x.confirmEmpty !== true)
@@ -35,6 +41,11 @@ const server = http.createServer((req, res) => {
         STAFF = { staff: x.staff || [], shifts: x.shifts || {}, updatedAt: new Date().toISOString(), by: '급식 관리자' };
         return J(Object.assign({ ok: true, admin: true }, STAFF));
       }); return; }
+    if (maskedStaff) {
+      // 비관리자 응답 — 전체번호 대신 끝 4자리(phone4), admin:false
+      return J({ ok: true, admin: false, updatedAt: STAFF.updatedAt, by: STAFF.by, shifts: STAFF.shifts,
+        staff: (STAFF.staff || []).map((s) => ({ id: s.id, name: s.name, phone4: String(s.phone || '').replace(/[^0-9]/g, '').slice(-4) })) });
+    }
     return J(Object.assign({ ok: true, admin: true }, STAFF));
   }
   if (p === '/api/jp-fnc-content') {
@@ -136,6 +147,93 @@ const login = async (page) => page.evaluate(() => {
   chk('배정: 최신 버전이면 저장된다', d.status === 200 && (await d.json()).duties.hall1.sub === '장문수');
   chk('배정: 인증 없이는 저장 못한다', (await duty.onRequestPut({ request: rq('PUT', { duties: {} }), env: fenv })).status === 401);
 
+  /* ── 마스킹된 전화가 원본을 덮어쓰는 사고 (v0.9.286) ────────────────────────
+     비관리자 GET 은 전화를 끝 4자리만 준다. 화면이 그 응답을 들고 있는 동안 연락처를 저장하면
+     전원의 번호가 4자리로 잘려 저장된다 — 개수가 그대로라 잠금·전멸 가드에 안 걸린다. */
+  console.log('\n[전화 마스킹 절단]');
+  chk('단위: 끝4자리로 온 값은 저장된 원본을 유지한다', (() => {
+    const next = [{ id: 'a', name: '주명림', phone: '2222' }];
+    api.keepMaskedPhones([{ id: 'a', name: '주명림', phone: '01011112222' }], next);
+    return next[0].phone === '01011112222';
+  })());
+  chk('단위: 진짜 다른 번호는 그대로 바뀐다', (() => {
+    const next = [{ id: 'a', name: '주명림', phone: '01099998888' }];
+    api.keepMaskedPhones([{ id: 'a', name: '주명림', phone: '01011112222' }], next);
+    return next[0].phone === '01099998888';
+  })());
+  chk('단위: 빈 값(의도한 삭제)은 막지 않는다', (() => {
+    const next = [{ id: 'a', name: '주명림', phone: '' }];
+    api.keepMaskedPhones([{ id: 'a', name: '주명림', phone: '01011112222' }], next);
+    return next[0].phone === '';
+  })());
+
+  const sPut = async (body) => { const r = await api.onRequestPut({ request: rq('PUT', body, HDR), env: fenv }); return { s: r.status, j: await r.json() }; };
+  let sv = await sPut({ staff: [{ id: 'a', name: '주명림', phone: '01011112222' }], shifts: {}, baseVer: back.updatedAt });
+  chk('실제 모듈: 전화가 저장된다', sv.j.staff[0].phone === '01011112222');
+  sv = await sPut({ staff: [{ id: 'a', name: '주명림', phone: '2222' }], shifts: {}, baseVer: sv.j.updatedAt });
+  chk('실제 모듈: 마스킹 값 저장이 원본을 지우지 않는다', sv.j.staff[0].phone === '01011112222', sv.j.staff[0].phone);
+
+  /* 부분 전멸 — empty_guard 는 딱 0 일 때만 막는다. 일부만 남는 저장이 더 흔한 사고다. */
+  console.log('\n[부분 전멸 가드]');
+  const many = Array.from({ length: 10 }, (_, i) => ({ id: 'p' + i, name: '요원' + i, phone: '0101111000' + (i % 10) }));
+  sv = await sPut({ staff: many, shifts: {}, baseVer: sv.j.updatedAt });
+  chk('인원 10명 저장', sv.j.staff.length === 10);
+  const verMany = sv.j.updatedAt;
+  sv = await sPut({ staff: many.slice(0, 2), shifts: {}, baseVer: verMany, confirmEmpty: true });
+  chk('10명 → 2명은 409 로 멈춘다(confirmEmpty 로도 못 지나간다)', sv.s === 409 && sv.j.error === 'shrink_guard');
+  let gg = await api.onRequestGet({ request: new Request('https://x/api/jp-fnc-staff', { headers: HDR }), env: fenv });
+  chk('막힌 저장은 아무도 지우지 않았다', (await gg.json()).staff.length === 10);
+  sv = await sPut({ staff: many.slice(0, 2), shifts: {}, baseVer: verMany, confirmEmpty: true, confirmShrink: true });
+  chk('사람이 확인하면 통과한다', sv.s === 200 && sv.j.staff.length === 2);
+
+  /* ── 조직표 = 인적 데이터의 단일 원본. 되돌릴 길이 없으면 실수 한 번이 영구 손실이다. */
+  console.log('\n[조직표 — 가드·스냅샷·되돌리기]');
+  const org = await import('../functions/api/jp-fnc-org.js');
+  const oPut = async (body) => { const r = await org.onRequestPut({ request: rq('PUT', body, HDR), env: fenv }); return { s: r.status, j: await r.json() }; };
+  const bigOrg = { head: '심호웅', depts: [{ name: '급식부', chief: '부장A', teams: [
+    { name: '1팀', lead: '팀장A', members: ['가', '나', '다', '라'] },
+    { name: '2팀', lead: '팀장B', members: ['마', '바', '사'] }] }] };
+  let og = await oPut({ org: bigOrg, baseVer: '' });
+  chk('조직표 첫 저장', og.s === 200 && org.orgHeadcount(og.j.org) === 11, String(org.orgHeadcount(og.j.org)));
+  const orgVer = og.j.updatedAt;
+  og = await oPut({ org: { head: '심호웅', depts: [{ name: '급식부', chief: '', teams: [] }] }, baseVer: orgVer });
+  chk('팀·팀원이 통째로 사라지는 저장은 409(부서가 남아 empty_guard 는 통과한다)', og.s === 409 && og.j.error === 'shrink_guard');
+  og = await org.onRequestGet({ request: new Request('https://x/api/jp-fnc-org'), env: fenv });
+  chk('막힌 저장 뒤에도 조직표가 그대로다', org.orgHeadcount((await og.json()).org) === 11);
+  og = await oPut({ org: { head: '심호웅', depts: [{ name: '급식부', chief: '', teams: [] }] }, baseVer: orgVer, confirmShrink: true });
+  chk('확인하면 정리된다', og.s === 200 && org.orgHeadcount(og.j.org) === 1);
+  og = await org.onRequestGet({ request: new Request('https://x/api/jp-fnc-org?snapshots=1', { headers: HDR }), env: fenv });
+  const oSnaps = (await og.json()).snapshots || [];
+  chk('덮어쓰기 직전 조직표가 보관된다', oSnaps.length >= 1 && oSnaps[0].count === 11, JSON.stringify(oSnaps[0] || {}));
+  og = await org.onRequestGet({ request: new Request('https://x/api/jp-fnc-org?snapshots=1'), env: fenv });
+  chk('조직표 스냅샷은 관리자만 본다', og.status === 401);
+  og = await oPut({ restore: oSnaps[0].at });
+  chk('조직표를 그 시점으로 되돌린다', og.s === 200 && org.orgHeadcount(og.j.org) === 11);
+  og = await oPut({ restore: '없는시각' });
+  chk('없는 스냅샷은 404(조용히 덮어쓰지 않는다)', og.s === 404);
+  chk('조직표 저장·복구가 감사 기록에 남는다', (() => {
+    const l = JSON.parse(KV.get('log') || '[]');
+    return l.some((x) => x.action === 'fnc.org.save') && l.some((x) => x.action === 'fnc.org.restore');
+  })());
+
+  /* ── 식사 메뉴는 홍보부 보드와 **같은 KV** 를 본다. 셀 하나 고칠 때 나머지를 건드리면 안 된다. */
+  console.log('\n[식사 메뉴 — 비파괴 RMW]');
+  KV.set('jp:meals', JSON.stringify({ meals: {
+    staff: { '2026-08-03': { b: '조식', l: '중식', d: '석식' } },
+    crew: { '2026-08-03': { b: '구버전그룹', l: '', d: '' } },   // 이 API 가 모르는 그룹
+  }, updatedAt: '2026-07-28T00:00:00Z', author: '김기자', client: 'planning-tab' }));
+  const meals = await import('../functions/api/jp-meals.js');
+  const mr = await meals.onRequestPut({ request: rq('PUT', { group: 'staff', date: '2026-08-03', meal: 'b', value: '새 조식' }, HDR), env: fenv });
+  chk('셀 편집이 200', mr.status === 200);
+  const stored = JSON.parse(KV.get('jp:meals'));
+  chk('고친 칸만 바뀐다', stored.meals.staff['2026-08-03'].b === '새 조식');
+  chk('같은 날 다른 끼니는 그대로', stored.meals.staff['2026-08-03'].l === '중식' && stored.meals.staff['2026-08-03'].d === '석식');
+  chk('이 API 가 모르는 그룹(crew)도 사라지지 않는다', !!(stored.meals.crew && stored.meals.crew['2026-08-03'].b === '구버전그룹'));
+  /* 예전엔 저장돼 있던 author 를 그대로 다시 써 넣어, 홍보부 화면엔 '아무도 안 바꿈'으로 보였다
+     → 홍보부가 다음에 통짜 저장하면 급식보드에서 고친 메뉴가 조용히 사라졌다. */
+  chk('실제 작성자를 기록한다(홍보부가 충돌을 알아채고 병합하게)', stored.author !== '김기자', stored.author);
+  chk('편집 맥락(client)을 남긴다', stored.client === 'fnc-board', String(stored.client));
+
   console.log('\n[서버 — 동시 저장]');
   chk('서버가 baseVer 로 충돌을 막는다', /baseVer/.test(fs.readFileSync(path.join(ROOT, 'functions/api/jp-fnc-staff.js'), 'utf8')));
   chk('빈 목록 덮어쓰기 안전장치', /empty_guard/.test(fs.readFileSync(path.join(ROOT, 'functions/api/jp-fnc-staff.js'), 'utf8')));
@@ -188,6 +286,39 @@ const login = async (page) => page.evaluate(() => {
   }));
   failContent = false;
   chk('되돌릴 원문을 요소에 보관한다', await p.evaluate(() => !!document.querySelector('[data-orig]')));
+
+  /* ── 마스킹 상태에서의 연락처 저장 (v0.9.286) ────────────────────────────
+     로그인 직후 재조회가 아직 안 끝났거나 실패하면, 화면은 끝 4자리만 든 명단을 그리고 있다.
+     그대로 '연락처 저장'을 누르면 전원의 번호가 4자리로 잘린 채 저장된다(개수는 그대로라
+     잠금·전멸 가드에 안 걸린다). 화면이 **아예 보내지 않아야** 한다. */
+  console.log('\n[화면 — 마스킹 상태에서는 연락처를 저장하지 않는다]');
+  maskedStaff = true;
+  await p.goto(base + '/krjam-fnc', { waitUntil: 'networkidle2' }); await wait(500);
+  await p.evaluate(() => { const n = document.querySelector('[data-nav="staff"]'); if (n) n.click(); });
+  await wait(1200);
+  // 전화가 저장돼 있는 사람의 칸을 본다(대부분은 전화가 없어 빈 칸이다).
+  chk('사고 조건 재현 — 입력칸이 끝 4자리로 채워져 있다', await p.evaluate(() => {
+    const el = document.querySelector('[data-phone="\uc8fc\uba85\ub9bc"]');
+    return !!el && /^\d{4}$/.test(el.value || '');
+  }));
+  const putsBefore = staffPuts;
+  await p.evaluate(() => { const b = document.getElementById('staff-phones-save'); if (b) b.click(); });
+  await wait(800);
+  chk('저장을 눌러도 서버로 보내지 않는다(원본 보존)', staffPuts === putsBefore, 'PUT ' + putsBefore + '→' + staffPuts);
+  maskedStaff = false;
+
+  console.log('\n[화면 — 되돌리기]');
+  await p.goto(base + '/krjam-fnc', { waitUntil: 'networkidle2' }); await wait(500);
+  await p.evaluate(() => { const n = document.querySelector('[data-nav="duty"]'); if (n) n.click(); });
+  await wait(900);
+  chk('관리자에게 되돌리기 버튼이 보인다', await p.evaluate(() => !!document.getElementById('duty-undo')));
+  await p.evaluate(() => { const b = document.getElementById('duty-undo'); if (b) b.click(); });
+  await wait(900);
+  chk('되돌릴 지점 목록이 화면에 뜬다', await p.evaluate(() => document.querySelectorAll('[data-restore]').length > 0));
+  chk('되돌리기 버튼도 40px 이상(터치 타깃)', await p.evaluate(() => {
+    const b = document.querySelector('[data-restore]');
+    return !!b && b.getBoundingClientRect().height >= 40;
+  }));
 
   console.log('\n[콘솔]');
   chk('콘솔 에러 0', errors.length === 0, errors.slice(0, 2).join(' | '));
