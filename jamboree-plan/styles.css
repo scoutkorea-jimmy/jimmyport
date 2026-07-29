@@ -1287,11 +1287,12 @@ html.pw-ok #auth-gate{display:none}
 .pubgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
 .pubcol-h{font-size:var(--fs-1);font-weight:700;color:var(--muted);margin-bottom:6px}
 .pubrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 9px;min-height:var(--h-ctl);border-radius:7px;background:var(--surface-2);margin-bottom:4px;font-size:var(--fs-1);width:100%;border:1px solid transparent;text-align:left;font-family:inherit}
-.pubrow span{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pubrow span{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .pubrow b{flex:0 0 auto;color:var(--ink)}
-.pubrow.due{cursor:pointer;border-color:var(--st-draft)}
+.pubrow.due{cursor:pointer;border-color:var(--st-draft);justify-content:flex-start}
 .pubrow.due:hover{background:#fff}
-.pubrow.due b{font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pubrow.due span{flex:0 0 auto}
+.pubrow.due b{flex:1 1 auto;min-width:0;text-align:left;font-weight:600;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dp-empty{color:var(--muted);font-size:var(--fs-1);padding:14px 2px;text-align:center}
 .dp-list{display:flex;flex-direction:column;gap:6px}
 .dp-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-1);padding:8px 10px;min-height:var(--h-ctl);cursor:pointer;font-family:inherit;font-size:var(--fs-1);color:var(--ink)}

@@ -480,6 +480,19 @@ const SEED = () => {
   console.log('\n[대시보드 · 인원]');
   await go('dashboard');
   chk('대시보드 통계 카드', (await page.$$('#dashboard .statcard, #dashboard .stat')).length > 0 || (await page.$('#dashboard')) !== null);
+  // 마감 임박·미게시 pill: 긴 제목이 테두리 밖으로 넘치지 않고 말줄임, 날짜 span 유지 (v0.9.289 회귀 — 실제 라이브 결함)
+  const dueFit = await page.evaluate(() => {
+    const col = document.createElement('div'); col.className = 'pubcol'; col.style.width = '260px';
+    col.innerHTML = '<button class="pubrow due"><span>8/5 오늘</span><b>잼버리 안내 | 국제 참가자를 위한 잼버리 안내 - 헬프데스크, 기타 등등 아주 긴 제목</b></button>';
+    document.getElementById('dashboard').appendChild(col);
+    const row = col.querySelector('.pubrow.due'), b = col.querySelector('b'), sp = col.querySelector('span');
+    const rowR = row.getBoundingClientRect(), bR = b.getBoundingClientRect();
+    const res = { titleWithinRow: bR.right <= rowR.right + 1, rowNoOverflow: row.scrollWidth <= row.clientWidth + 1,
+      ellipsized: b.scrollWidth > b.clientWidth + 1, dateVisible: sp.getBoundingClientRect().width > 0 };
+    col.remove(); return res;
+  });
+  chk('마감 임박 긴 제목이 pill 밖으로 안 넘침', dueFit.titleWithinRow && dueFit.rowNoOverflow, JSON.stringify(dueFit));
+  chk('마감 임박 제목 말줄임 + 날짜 span 유지', dueFit.ellipsized && dueFit.dateVisible, JSON.stringify(dueFit));
   await go('staff');
   chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
   chk('인원 표 입영 = 날짜+블록 칩 렌더(datetime 아님)', (await page.$$('#rostertbl .arr-cell .arr-day')).length > 0 && (await page.$$('#rostertbl .arr-cell .arrblk')).length >= 3 && (await page.$$('#rostertbl .arr-in')).length === 0, '드롭다운 ' + (await page.$$('#rostertbl .arr-day')).length + ' · 블록칩 ' + (await page.$$('#rostertbl .arrblk')).length);
