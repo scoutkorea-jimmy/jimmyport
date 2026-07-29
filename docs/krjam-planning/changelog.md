@@ -1069,3 +1069,10 @@
   전체 **17종 802건 ×2라운드 ALL GREEN**(두 라운드 결과 완전 동일 = 플레이키 없음).
 - ⚠️ **교훈**: 병렬화 검사를 시간(ms)으로 재면 기계 상태에 따라 흔들린다(플레이키 = 결함). 가짜 KV 가 **동시에 떠 있던 get 개수**를 세게 해
   순차로 되돌아가면 반드시 깨지도록 했다 — 실제로 옛 코드로 되돌려 `동시 get 최대 1` 로 FAIL 하는 것까지 확인했다.
+
+### 16.xx v0.9.289 — 대시보드 '마감 임박·미게시' pill 넘침 수정 (라이브 결함)
+대상: `/krjam-planning`(`jamboree-plan/styles.css`). 사용자가 라이브 점검 중 캡처로 지목: '마감 임박 · 미게시 (3일 내)' 카드에서 제목이 테두리 밖으로 삐져나가고 날짜가 `7/...`로 잘려 정렬이 어긋남.
+- **원인**: `.pubrow`(`display:flex; justify-content:space-between`)에서 `.pubrow b`가 `flex:0 0 auto`(축소 안 됨). `.pubrow.due b`가 `min-width:0`·ellipsis를 줬으나 **`flex`를 재설정하지 않아** 여전히 `flex:0 0 auto` → 긴 제목이 안 줄고 pill 밖으로 넘침. 동시에 `space-between`이 날짜 `<span>`을 0폭으로 눌러 `7/...`로 잘림.
+- **수정**: `.pubrow.due{justify-content:flex-start}` · `.pubrow.due span{flex:0 0 auto}`(날짜 고정) · `.pubrow.due b{flex:1 1 auto;min-width:0;text-align:left;...ellipsis}`(제목이 남은 폭을 채우고 말줄임). 부수적으로 기본 `.pubrow span`에 `min-width:0` 추가 — ellipsis가 실제 동작하도록(긴 채널명/담당자명 방어). 다른 두 열(채널별·담당자별)은 콘텐츠 형태가 달라 손대지 않음.
+- **회귀 고정**: `test/regress-krjam-planning.js` 대시보드 블록에 실측 2건 추가 — 260px 폭 col에 긴 제목 pill을 만들어 (ㄱ) 제목 right ≤ row right(넘침 없음) (ㄴ) `b.scrollWidth>clientWidth`(말줄임 적용) (ㄷ) 날짜 span 폭>0. **이빨 확인**: 옛 CSS 재현 시 `titleWithinRow:false`·`ellipsized:false`로 FAIL, 새 CSS는 통과.
+- 검증: planning **152→154**. 전체 17종 804건 — **R1 전 스위트 그린**. **R2는 16/17 그린 + `regress-krjam-news`가 puppeteer `TargetCloseError: Target closed`(Chrome 타깃 크래시, 체크 40건 PASS 후 브라우저 프로세스 종료)로 실패** — 테스트 로직 실패가 아닌 인프라 크래시(리소스 경합). **news를 격리 재실행 ×2 = 112/112 결정론 통과**로 확인했고, 이번 변경은 planning의 CSS뿐이라 news 렌더링에 닿지 않는다. planning 스위트(변경 영향권)는 R1·R2 둘 다 그린. 라이브 재검증: VERSION 0.9.289 즉시 전파 · `/krjam-planning`·styles.css 200 · styles.css 로컬=라이브 SHA-256 일치. `?v=` styles.css 0.9.283→0.9.289.

@@ -12,7 +12,7 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 2회 연속 통과**한다(2026-07-28 사용자 확정: 3회→2회). 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 152 · nav 19 · server 53 · motion 33 · press 31 · news 112 · jebo 29 · fnc(플립북) 92 · fnc보드 80 · 랜딩 38 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **802건** + 감사 3종 (한 바퀴 약 6분)
+   - `planning 154 · nav 19 · server 53 · motion 33 · press 31 · news 112 · jebo 29 · fnc(플립북) 92 · fnc보드 80 · 랜딩 38 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **804건** + 감사 3종 (한 바퀴 약 6분)
    - 러너 예시(종료코드로 판정 — DoD 2-1): 각 스위트를 `node test/<s>.js > 로그 2>&1` 로 돌리고 **그 직후 `$?`** 를 본다. `| tail` 을 붙이면 tail 의 종료코드를 읽게 된다.
    - **2회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
      (v0.9.244 실제 사례: 장식 애니메이션이 기하 검사를 흔들고 있었다).
@@ -100,6 +100,14 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-29 — [홍보부] 대시보드 '마감 임박·미게시' pill 넘침 수정 (v0.9.289)
+대상: `/krjam-planning`(`jamboree-plan/styles.css`). 상세: [planning §v0.9.289](../docs/krjam-planning/changelog.md). 사용자가 **라이브 점검 중 캡처로 지목**한 실제 결함.
+- 증상: 대시보드 '마감 임박 · 미게시 (3일 내)' 카드에서 제목이 pill 테두리 밖으로 삐져나가고 날짜가 `7/...`로 잘려 행마다 정렬이 어긋남.
+- 원인: `.pubrow`(`justify-content:space-between`)에서 `.pubrow b`가 `flex:0 0 auto`. `.pubrow.due b`가 `min-width:0`·ellipsis를 줬지만 **`flex`를 재설정하지 않아** 여전히 안 줄어듦 → 긴 제목 넘침 + 날짜 span 0폭 압착. **교훈: ellipsis 3종 세트(`overflow/text-overflow/white-space`)만으로는 부족 — flex 자식은 `flex`가 축소를 허용하고 `min-width:0`이어야 실제로 줄어든다.**
+- 조치: `.due`를 `flex-start`로, 날짜 span `flex:0 0 auto`(고정), 제목 `flex:1 1 auto;min-width:0`(말줄임). 기본 `.pubrow span`에도 `min-width:0` 하드닝. 다른 두 열은 콘텐츠 형태가 달라 미변경.
+- 회귀: planning 대시보드에 실측 2건(제목 row 안 · 말줄임 · 날짜 유지) 추가 → **152→154**. **이빨 확인**(옛 CSS 재현 시 `titleWithinRow:false`·`ellipsized:false`로 FAIL). 전체 17종 804건 — **R1 전 스위트 그린**. R2는 `news`가 puppeteer `Target closed` **인프라 크래시**(테스트 로직 아님)로 1건 실패 → news 격리 재실행 ×2 = 112/112 결정론 통과로 확인(변경은 planning CSS뿐, news 무관). planning 스위트는 R1·R2 둘 다 그린.
+- 라이브 재검증: VERSION 0.9.289 즉시 전파 · 라우트 200 · styles.css 로컬=라이브 SHA-256 일치. `?v=` styles.css 0.9.283→0.9.289.
 
 ### 2026-07-29 — [급식본부] 정보 탭 재디자인 ① 디자인 시스템 + 급식 현황 탭 (v0.9.288)
 대상: `/krjam-fnc`(`board.css`·`board.js`). §fnc v0.9.288. (동시 진행된 타 세션 v0.9.286/287=데이터 손실 가드 위에 additive.)
