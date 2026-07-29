@@ -415,72 +415,90 @@
     ].map(function (t) { return '<tr><th>' + t[0] + '</th><td>' + t[1] + '</td></tr>'; }).join('');
 
     return '' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">참가자 식자재 보급 <span class="chip info">1개소 11식</span>' + srcLink(9) + '</h2>' +
+      // 요약 먼저(스캔) — 원문 수치 그대로
+      '<div class="summary">' +
+        '<div class="stat"><div class="k">참가자 식자재</div><div class="v">1개소 <small>· 11식</small></div><div class="sub">8/5 석식 ~ 8/9 조식</div></div>' +
+        '<div class="stat"><div class="k">잼버리 식당</div><div class="v">2개소 <small>· 15식</small></div><div class="sub">최대 250명 동시 식사</div></div>' +
+        '<div class="stat"><div class="k">참가자 인원</div><div class="v">1,098<small>명</small></div><div class="sub">대원 941 + 지도자 157</div></div>' +
+        '<div class="stat"><div class="k">운영요원 · 참관단</div><div class="v">608 / 583<small>명</small></div><div class="sub">운영요원 608 · 컵스카우트 583</div></div>' +
+      '</div>' +
+      // 섹션 인덱스 — 한 페이지 밀도 완화(해시 안 바꾸고 스크롤)
+      '<nav class="toc" aria-label="섹션 바로가기">' +
+        '<a href="#fd-s1" data-scroll="fd-s1">참가자 식자재</a>' +
+        '<a href="#fd-s2" data-scroll="fd-s2">운영요원·참관단</a>' +
+        '<a href="#fd-s3" data-scroll="fd-s3">식사 시간</a>' +
+        '<a href="#fd-s4" data-scroll="fd-s4">식당 운영</a>' +
+        '<a href="#fd-s5" data-scroll="fd-s5">식권 4종</a>' +
+        '<a href="#fd-s6" data-scroll="fd-s6">신선도·위기</a>' +
+        '<a href="#fd-s7" data-scroll="fd-s7">원문 도표</a>' +
+      '</nav>' +
+      '<section class="sec" id="fd-s1">' +
+        '<h2 class="sec-h"><span class="secnum">01</span>참가자 식자재 보급 <span class="chip info">1개소 11식</span>' + srcLink(9) + '</h2>' +
         '<div class="grid g2">' +
-          '<div class="card"><h3>대상 · 기간</h3><dl class="dl">' +
+          '<div class="card"><h3><span class="dot"></span>대상 · 기간</h3><dl class="dl">' +
             '<dt>기간</dt><dd>8. 5.(수) 석식 ~ 8. 9.(일) 조식</dd>' +
             '<dt>장소</dt><dd>잼버리장 내 식자재 보급소</dd>' +
-            '<dt>대상</dt><dd>7개 분단 · 대원 941명 + 지도자 157명 <span class="muted">(인원 변경 가능)</span></dd>' +
+            '<dt>대상</dt><dd>7개 분단 · 대원 <b>941</b>명 + 지도자 <b>157</b>명 <span class="muted">(변경 가능)</span></dd>' +
             '<dt>운영시간</dt><dd>조식·중식 <b>06:00~07:00</b> · 석식 <b>16:00~17:00</b></dd>' +
           '</dl></div>' +
-          '<div class="card"><h3>기본 운영 원칙</h3><ul>' +
-            '<li><b>단일 메뉴 보급</b> — 일자별 확정된 메뉴 1종을 전 참가자에게 일괄 보급</li>' +
-            '<li><b>유닛 단위 수령</b> — 패트롤별 대표자 1~2인이 보급소를 방문해 수량 확인 후 수령</li>' +
-            '<li><b>사용된 식자재 박스 반납 후 수령</b> — 전일 보급 용기 반납 확인 후 당일 인도</li>' +
-            '<li><b>자율 취사</b> — 제공된 식자재 박스와 조리계획서를 기반으로 유닛별 자율 조리</li></ul></div>' +
+          '<div class="card"><h3><span class="dot"></span>기본 운영 원칙</h3><ul class="plist">' +
+            '<li><b>단일 메뉴 보급</b> — 일자별 확정 메뉴 1종을 전 참가자에게 일괄 보급</li>' +
+            '<li><b>유닛 단위 수령</b> — 패트롤 대표 1~2인이 보급소에서 수량 확인 후 수령</li>' +
+            '<li><b>박스 반납 후 수령</b> — 전일 보급 용기 반납 확인 후 당일 인도</li>' +
+            '<li><b>자율 취사</b> — 식자재 박스와 조리계획서로 유닛별 자율 조리</li></ul></div>' +
         '</div>' +
       '</section>' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">운영요원 · 컵스카우트 참관단 <span class="chip info">2개소 15식</span>' + srcLink(12) + '</h2>' +
+      '<section class="sec" id="fd-s2">' +
+        '<h2 class="sec-h"><span class="secnum">02</span>운영요원 · 컵스카우트 참관단 <span class="chip info">2개소 15식</span>' + srcLink(12) + '</h2>' +
         '<div class="grid g2">' +
-          '<div class="card"><h3>운영요원 (7일간)</h3><ul>' +
-            '<li>8. 3.(월) 석식 ~ 8. 9.(일) 조식</li>' +
-            '<li><span class="hi">8/6~8일 중식은 간편식 제공 (식당 이용 불가)</span></li>' +
-            '<li>JPT·IST 494명 + CMT 114명 <span class="muted">(변경 가능)</span></li>' +
-            '<li>장소: 잼버리장 <b>D동</b> 1식당 · 2식당 · 3식당(중식 보급)</li>' +
-            '<li>1·2식당 최대 250명 동시 식사</li></ul></div>' +
-          '<div class="card"><h3>컵스카우트 참관단 (5일간)</h3><ul>' +
-            '<li>8. 5.(월) 석식 ~ 8. 9.(일) 조식</li>' +
-            '<li>1기 8.5(수)~8.7(금) — 대원 257명 + 지도자 42명 (299명)</li>' +
-            '<li>2기 8.7(금)~8.9(일) — 대원 246명 + 지도자 38명 (284명)</li></ul></div>' +
+          '<div class="card"><h3><span class="dot"></span>운영요원 <span class="muted" style="font-weight:700;font-size:var(--fs-1)">7일간</span></h3><dl class="dl">' +
+            '<dt>기간</dt><dd>8. 3.(월) 석식 ~ 8. 9.(일) 조식</dd>' +
+            '<dt>인원</dt><dd>JPT·IST <b>494</b>명 + CMT <b>114</b>명 <span class="muted">(변경 가능)</span></dd>' +
+            '<dt>장소</dt><dd>D동 1·2·3식당 <span class="muted">(3식당 중식 보급)</span></dd>' +
+            '<dt>수용</dt><dd>1·2식당 최대 <b>250명</b> 동시</dd>' +
+          '</dl><div class="note"><span class="i">!</span><span><b>8/6~8일 중식</b>은 간편식 제공 — 식당 이용 불가</span></div></div>' +
+          '<div class="card"><h3><span class="dot"></span>컵스카우트 참관단 <span class="muted" style="font-weight:700;font-size:var(--fs-1)">5일간</span></h3><dl class="dl">' +
+            '<dt>기간</dt><dd>8. 5.(수) 석식 ~ 8. 9.(일) 조식</dd>' +
+            '<dt>1기</dt><dd>8.5(수)~8.7(금) · 대원 257 + 지도자 42 = <b>299명</b></dd>' +
+            '<dt>2기</dt><dd>8.7(금)~8.9(일) · 대원 246 + 지도자 38 = <b>284명</b></dd>' +
+          '</dl><div class="people"><span class="pbadge"><span class="lab">1기</span><span class="n">299</span></span><span class="pbadge"><span class="lab">2기</span><span class="n">284</span></span><span class="pbadge"><span class="lab">합계</span><span class="n">583</span></span></div></div>' +
         '</div>' +
       '</section>' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">식사 시간 · 제공 방식' + srcLink(13) + '</h2>' +
+      '<section class="sec" id="fd-s3">' +
+        '<h2 class="sec-h"><span class="secnum">03</span>식사 시간 · 제공 방식' + srcLink(13) + '</h2>' +
         '<div class="card" id="mealtable"></div>' +
-        '<div class="card" style="margin-top:12px"><p><b>식사 제공 시작은 8/3(월) 석식부터</b>입니다. 8/3 입영일 조식·중식은 개별 해결 후 입영해 주세요.</p></div>' +
+        '<div class="note info" style="margin-top:12px"><span class="i">i</span><span><b>식사 제공 시작은 8/3(월) 석식부터</b>입니다. 8/3 입영일 조식·중식은 개별 해결 후 입영해 주세요.</span></div>' +
       '</section>' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">식당 운영' + srcLink(14) + '</h2>' +
+      '<section class="sec" id="fd-s4">' +
+        '<h2 class="sec-h"><span class="secnum">04</span>식당 운영' + srcLink(14) + '</h2>' +
         '<div class="grid g3">' +
-          '<div class="card"><h3>1식당 (본 식당)</h3><p>최대 <b>200명</b></p><p class="muted">컵스카우트 참관단, 운영요원 및 지원요원 · 배식 인원 상황에 따라 탄력적 운영</p></div>' +
-          '<div class="card"><h3>2식당 (세미나 2)</h3><p>최대 <b>50명</b></p><p class="muted">패스트트랙 이용 또는 운영요원(특별식)</p></div>' +
-          '<div class="card"><h3>3식당 (세미나 1)</h3><p><b>중식 보급 및 보관</b></p></div>' +
+          '<div class="card"><h3><span class="dot"></span>1식당 <span class="muted" style="font-weight:700;font-size:var(--fs-1)">본 식당</span></h3><p style="font-size:var(--fs-4);font-weight:800;margin:0 0 6px">최대 200명</p><p class="muted">컵스카우트 참관단·운영요원·지원요원 · 상황에 따라 탄력 운영</p></div>' +
+          '<div class="card"><h3><span class="dot"></span>2식당 <span class="muted" style="font-weight:700;font-size:var(--fs-1)">세미나 2</span></h3><p style="font-size:var(--fs-4);font-weight:800;margin:0 0 6px">최대 50명</p><p class="muted">패스트트랙 또는 운영요원 특별식</p></div>' +
+          '<div class="card"><h3><span class="dot"></span>3식당 <span class="muted" style="font-weight:700;font-size:var(--fs-1)">세미나 1</span></h3><p style="font-size:var(--fs-4);font-weight:800;margin:0 0 6px">중식 보급·보관</p><p class="muted">중식 전용 보급 지점</p></div>' +
         '</div>' +
-        '<div class="card" style="margin-top:12px"><p><span class="hi">※ 식권 미지참 시 입장 불가</span> · 시간 분리 운영 — 각 본부 및 컵스카우트 참관단이 지정된 시간에 식사합니다.</p></div>' +
+        '<div class="note"><span class="i">!</span><span><b>식권 미지참 시 입장 불가</b> · 시간 분리 운영 — 각 본부·참관단이 지정 시간에 식사</span></div>' +
       '</section>' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">식권 4종' + srcLink(15) + '</h2>' +
+      '<section class="sec" id="fd-s5">' +
+        '<h2 class="sec-h"><span class="secnum">05</span>식권 4종' + srcLink(15) + '</h2>' +
         '<div class="tblwrap"><table class="tbl"><tbody>' + tickets + '</tbody></table></div>' +
       '</section>' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">원문 도표</h2>' + figs([9, 12, 14, 15]) +
-      '</section>' +
-      '<section class="sec">' +
-        '<h2 class="sec-h">신선도 유지 · 위기 대처' + srcLink(10) + '</h2>' +
+      '<section class="sec" id="fd-s6">' +
+        '<h2 class="sec-h"><span class="secnum">06</span>신선도 유지 · 위기 대처' + srcLink(10) + '</h2>' +
         '<div class="grid g2">' +
-          '<div class="card"><h3>신선도 유지 체계 (Cold-Chain)</h3><ul>' +
+          '<div class="card"><h3><span class="dot"></span>신선도 유지 (Cold-Chain)</h3><ul class="plist">' +
             '<li>전 차량 냉장 탑차 운송 및 <b>지급 완료 시까지 현장 대기</b></li>' +
-            '<li>현장 보관: 몽골텐트 내 파레트 적재로 지면 열기 차단 및 직사광선 보호</li></ul></div>' +
-          '<div class="card"><h3>식자재 박스 위기상황 대처</h3>' +
+            '<li>현장 보관: 몽골텐트 내 파레트 적재로 지면 열기 차단·직사광선 보호</li></ul></div>' +
+          '<div class="card"><h3><span class="dot"></span>식자재 박스 위기 대처</h3>' +
             '<div class="tblwrap"><table class="tbl"><thead><tr><th>위기상황</th><th>대처방안</th></tr></thead><tbody>' +
-            '<tr><td>식자재박스 파손 및 식자재 손상</td><td>대체품 또는 식자재박스 현장 교환</td></tr>' +
-            '<tr><td>긴급 대피사항 시</td><td>간편식 긴급 제공 (운영사 협의)</td></tr>' +
-            '<tr><td>식중독 발생 시</td><td>편의시설운영부 공유 및 상황실 신고 (관계기관 협조 요청 등)</td></tr>' +
+            '<tr><td>식자재박스 파손·손상</td><td>대체품 또는 현장 교환</td></tr>' +
+            '<tr><td>긴급 대피 시</td><td>간편식 긴급 제공 (운영사 협의)</td></tr>' +
+            '<tr><td>식중독 발생 시</td><td>편의시설운영부 공유 및 상황실 신고</td></tr>' +
             '</tbody></table></div></div>' +
         '</div>' +
         figs([10, 11]) +
+      '</section>' +
+      '<section class="sec" id="fd-s7">' +
+        '<h2 class="sec-h"><span class="secnum">07</span>원문 도표</h2>' + figs([9, 12, 14, 15]) +
       '</section>';
   }
 
@@ -1253,6 +1271,7 @@
     document.addEventListener('click', function (e) {
       if (e.target.closest('#fnc-admin-btn')) { if (fncSession()) { if (confirm('로그아웃할까요?')) logoutAdmin(); } else openLogin(); return; }
       if (e.target.closest('[data-open-login]')) { openLogin(); return; }
+      var sc = e.target.closest('[data-scroll]'); if (sc) { e.preventDefault(); var st = document.getElementById(sc.getAttribute('data-scroll')); if (st) st.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
       if (e.target.closest('#fl-cancel')) { closeLogin(); return; }
       if (e.target.closest('#fl-go')) { submitLogin(); return; }
       if (e.target.id === 'fnc-login') { closeLogin(); return; }
