@@ -12,7 +12,7 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 2회 연속 통과**한다(2026-07-28 사용자 확정: 3회→2회). 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 175 · nav 19 · server 59 · motion 33 · press 31 · news 112 · jebo 29 · fnc(플립북) 92 · fnc보드 80 · 랜딩 38 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **831건** + 감사 2종(`audit-krjam-planning`·`audit-krjam-fnc`) (한 바퀴 약 6분)
+   - `planning 200 · nav 19 · server 59 · motion 33 · press 31 · news 112 · jebo 29 · fnc(플립북) 92 · fnc보드 80 · 랜딩 38 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **856건** + 감사 2종(`audit-krjam-planning`·`audit-krjam-fnc`) (한 바퀴 약 6분)
    - 러너 예시(종료코드로 판정 — DoD 2-1): 각 스위트를 `node test/<s>.js > 로그 2>&1` 로 돌리고 **그 직후 `$?`** 를 본다. `| tail` 을 붙이면 tail 의 종료코드를 읽게 된다.
    - **2회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
      (v0.9.244 실제 사례: 장식 애니메이션이 기하 검사를 흔들고 있었다).
@@ -49,6 +49,7 @@
 
 ## 🔑 알아둘 비자명 포인트 (`jamboree-plan/app.js` ~4,600줄 단일 파일)
 - **입영 시점**(`roster[].arrive`, "YYYY-MM-DDThh:mm"): R&R 표의 **날짜 드롭다운 + 오전/오후/저녁 세그먼트 칩**으로 입력(블록 시작 09:00/14:00/19:00 저장). ⚠️ **서버 `cleanRoster`(functions/api/jamboree-plan.js)에 필드 화이트리스트가 있다 — roster 에 새 필드를 추가하면 반드시 여기에도 추가**(안 하면 저장 때마다 유실. v0.9.223→229 실제 버그였음).
+- **시각을 읽는 코드는 인자로 받게 만든다** — `ttNowGeometry`·`ttNowSoon` 은 `(오늘, 지금 시각)` 을 인자로 받는다. `new Date()` 를 안에서 부르면 회귀가 불가능해진다. 화면에 '지금'을 찍을 때는 **`h2hhmmFloor`(내림)**, 일정 시각은 `h2hhmm`(반올림) — 섞으면 시계가 30초 앞선다.
 - **일정표 트랙(열)**: `jam`(기본) · `pr`(의전, 읽기전용) · `media`(홍보부) · `cub`+`batch`(컵 1·2기) · `bus`+`dir`(입·퇴영 호차). 일간 뷰에서만 별도 열로 갈라지고 폭은 `ttColW` 가중치(기본값 `ttColWDefaults()`, `bus`만 2). ⚠️ **일정표에 새 필드를 추가하면 `buildCleanTT`(app.js)와 `cleanTT`(functions/api/jamboree-plan.js) 둘 다에 넣어야 산다** — roster.arrive 와 같은 유실 함정. 시드 트랙은 **id 가 트랙을 증명**하도록 만들어(`cub-1-…`·`bus-in-…`) 편집으로 값이 벗겨져도 merge 함수가 복구한다.
 - **배정 가드** `assignBlock(pid,date,sH,eH)` = 입영 전 → 전체 오프(8/9 오후·저녁) → 개별 오프타임 순. 일정표·의전 담당 칩, 현장 배치, 촬영 상세 칩이 전부 이걸 사용. 오프타임 그리드 색: **회색 음영=입영 전(자동)** · **빨강 빗금=전체 오프(GLOBAL_OFF)** · **빨강=수동 오프(편집)** · 흰색=가능.
 - **동시편집 병합**: 서버 `saveDomain` 이 `conflictByOther(baseVer,storedVer,storedAuthor,author)` 로 판정 — **다른 작성자**가 그 사이 바꿨을 때만 병합('다른 사람이 편집 중'). 같은 작성자면 통짜 저장(혼자 오탐 방지).
@@ -101,6 +102,18 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-31 — [홍보부] 일정표 현재 시각 선 + 대시보드 '지금 현장'(진행 중·3시간 내, 열 단위) (v0.9.291)
+대상: `/krjam-planning`(`jamboree-plan/app.js`·`styles.css`, `krjam-planning.html`). 상세: [planning §v0.9.291](../docs/krjam-planning/changelog.md).
+- 일정표: **오늘 열에만** 빨간 가로선 + `HH:MM` 배지. **30초마다 선의 top 만** 옮긴다(그리드 재렌더 X → 드래그 중 블록이 안 튄다). 날짜가 바뀔 때만 통째로 다시 그린다. 오늘이 8/2~8/9 밖이면 선 없음.
+- 대시보드('오늘의 현장' 안): `진행 중` / `앞으로 3시간` 을 **일정표 열(트랙) 단위**로 묶어 표시. 열 순서는 `TT_TRACKS` 와 동일. 갱신은 **분 단위**(1초마다 다시 그리면 누르려던 항목이 사라진다).
+- ⚠️ **현재 시각은 `h2hhmmFloor`(내림)** — 기존 `h2hhmm` 은 반올림이라 14:29:31 을 14:30 으로 보여 준다. '지금'을 찍는 자리에 `h2hhmm` 을 쓰면 시계가 앞선다.
+- ⚠️ **대시보드는 `ttFilter` 를 적용하지 않는다** — 일정표에서 잠깐 끈 열 때문에 현장 상황이 빠지면 안 된다(회귀로 고정).
+- 검증 가능하게 만든 방식: `ttNowGeometry(day,today,nowH,hh)` · `ttNowSoon(today,nowH,winH)` 는 **시계를 읽지 않고 인자만 본다**. 테스트는 `todayISO`·`nowHours` 를 갈아끼워 8/5 14:30 고정 시나리오로 단언한다.
+- 의전 묶음(`같은 시각·장소=한 행사`)을 `protPseudoEvents(day)` 로 추출해 일정표 열과 대시보드가 **같은 함수**를 쓴다. 트랙 색도 `ttTrackColor()` 로 합침.
+- 회귀: planning **175→200** → 전체 17종 **856건**, **2라운드 ALL GREEN**.
+- 라이브 재검증: VERSION 0.9.291 · 라우트 200 · app.js·styles.css·krjam-planning.html 로컬=라이브 SHA-256 일치(**캐시버스터 5회 연속**).
+- ⚠️ **전파 교훈(재확인)**: `/VERSION` 이 바뀐 **뒤에도** 자산은 POP 마다 1분 남짓 옛 바이트를 준다. `until` 로 **연속 일치**가 될 때까지 돌려야 근거가 된다 — 1회 확인은 통과처럼 보일 뿐이다.
 
 ### 2026-07-31 — [홍보부] 잼버리 일정표 '입·퇴영' 호차 트랙 신설 (v0.9.290)
 대상: `/krjam-planning`(`jamboree-plan/app.js`·`styles.css`, `functions/api/jamboree-plan.js`). 상세: [planning §v0.9.290](../docs/krjam-planning/changelog.md).
