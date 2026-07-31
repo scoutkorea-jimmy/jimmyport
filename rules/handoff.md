@@ -12,7 +12,7 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 2회 연속 통과**한다(2026-07-28 사용자 확정: 3회→2회). 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 154 · nav 19 · server 53 · motion 33 · press 31 · news 112 · jebo 29 · fnc(플립북) 92 · fnc보드 80 · 랜딩 38 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **804건** + 감사 3종 (한 바퀴 약 6분)
+   - `planning 175 · nav 19 · server 59 · motion 33 · press 31 · news 112 · jebo 29 · fnc(플립북) 92 · fnc보드 80 · 랜딩 38 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **831건** + 감사 2종(`audit-krjam-planning`·`audit-krjam-fnc`) (한 바퀴 약 6분)
    - 러너 예시(종료코드로 판정 — DoD 2-1): 각 스위트를 `node test/<s>.js > 로그 2>&1` 로 돌리고 **그 직후 `$?`** 를 본다. `| tail` 을 붙이면 tail 의 종료코드를 읽게 된다.
    - **2회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
      (v0.9.244 실제 사례: 장식 애니메이션이 기하 검사를 흔들고 있었다).
@@ -49,6 +49,7 @@
 
 ## 🔑 알아둘 비자명 포인트 (`jamboree-plan/app.js` ~4,600줄 단일 파일)
 - **입영 시점**(`roster[].arrive`, "YYYY-MM-DDThh:mm"): R&R 표의 **날짜 드롭다운 + 오전/오후/저녁 세그먼트 칩**으로 입력(블록 시작 09:00/14:00/19:00 저장). ⚠️ **서버 `cleanRoster`(functions/api/jamboree-plan.js)에 필드 화이트리스트가 있다 — roster 에 새 필드를 추가하면 반드시 여기에도 추가**(안 하면 저장 때마다 유실. v0.9.223→229 실제 버그였음).
+- **일정표 트랙(열)**: `jam`(기본) · `pr`(의전, 읽기전용) · `media`(홍보부) · `cub`+`batch`(컵 1·2기) · `bus`+`dir`(입·퇴영 호차). 일간 뷰에서만 별도 열로 갈라지고 폭은 `ttColW` 가중치(기본값 `ttColWDefaults()`, `bus`만 2). ⚠️ **일정표에 새 필드를 추가하면 `buildCleanTT`(app.js)와 `cleanTT`(functions/api/jamboree-plan.js) 둘 다에 넣어야 산다** — roster.arrive 와 같은 유실 함정. 시드 트랙은 **id 가 트랙을 증명**하도록 만들어(`cub-1-…`·`bus-in-…`) 편집으로 값이 벗겨져도 merge 함수가 복구한다.
 - **배정 가드** `assignBlock(pid,date,sH,eH)` = 입영 전 → 전체 오프(8/9 오후·저녁) → 개별 오프타임 순. 일정표·의전 담당 칩, 현장 배치, 촬영 상세 칩이 전부 이걸 사용. 오프타임 그리드 색: **회색 음영=입영 전(자동)** · **빨강 빗금=전체 오프(GLOBAL_OFF)** · **빨강=수동 오프(편집)** · 흰색=가능.
 - **동시편집 병합**: 서버 `saveDomain` 이 `conflictByOther(baseVer,storedVer,storedAuthor,author)` 로 판정 — **다른 작성자**가 그 사이 바꿨을 때만 병합('다른 사람이 편집 중'). 같은 작성자면 통짜 저장(혼자 오탐 방지).
 - **저장 flush**: 디바운스 저장(`debouncedPut`·카드·마케팅·이벤트)이 flush 레지스트리에 등록. `window.flushPendingSaves()` 가 대기분을 즉시 발사. `version-watch.js` 가 새 배포 감지 시 flush → **5초 뒤 강제 새로고침**(전 페이지 공용).
@@ -100,6 +101,17 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+### 2026-07-31 — [홍보부] 잼버리 일정표 '입·퇴영' 호차 트랙 신설 (v0.9.290)
+대상: `/krjam-planning`(`jamboree-plan/app.js`·`styles.css`, `functions/api/jamboree-plan.js`). 상세: [planning §v0.9.290](../docs/krjam-planning/changelog.md).
+- 요청: 참가단 버스 호차의 입영(8/3~8/5)·퇴영(8/9) 일정을 **별도의 열**로, **입영과 퇴영은 한 열**로.
+- 조치: 컵·홍보부와 같은 **독립 트랙**(`track='bus'`, 라벨 `입·퇴영`) 신설. 방향은 새 필드 `dir('in'|'out')` + 블록 태그(입영/퇴영)로 구분 — 열은 하나. 시드 16건(입영 9·퇴영 7), 안정 id `bus-<in|out>-MMDD-HHMM-<슬러그>`, 블록 30분 고정(원문에 시각만 있음).
+- ⚠️ **`dir` 은 화이트리스트 두 곳에 넣었다**(클라 `buildCleanTT` + 서버 `cleanTT`). 하나만 빠져도 저장 때마다 유실 — `roster.arrive` 와 같은 함정. 서버 `cleanTT` 를 `export` 해 순수함수 회귀로 못 박음.
+- 기본 열 비중 `bus:2`(`ttColWDefaults()`): 8/9 퇴영이 09:00~09:50 에 10분 간격 5대 → 30분 블록이 전부 겹쳐 **레인 3개**로 갈라진다. 비중 1이면 호차명도 안 들어간다.
+- 원문 표기 정정 3건(사용자 확정): 우크라이타→우크라이나 · 8/4 B호차 대만 중복 제거 · `12호차`는 원문 유지(J호차 여부 확인 필요 → 항목 메모).
+- 회귀: planning **154→175** · planning-server **53→59** → 전체 17종 **831건**, **2라운드 ALL GREEN**.
+- 라이브 재검증: VERSION 0.9.290 · 라우트 200 · app.js·styles.css·krjam-planning.html 로컬=라이브 SHA-256 일치. `?v=` app.js 0.9.287→0.9.290 · styles.css 0.9.289→0.9.290.
+- ⚠️ **엣지 캐시 함정**: 배포 직후 `curl -sL /krjam-planning` 이 옛 `?v=` 를 물고 왔는데 **같은 호출의 SHA-256 은 새 것과 일치**했다(호출마다 다른 POP). 라이브 자산 검증은 `Cache-Control: no-cache` + 쿼리 캐시버스터로 **여러 번** 확인할 것 — `/VERSION` 만 보면 자산 캐시를 놓친다.
 
 ### 2026-07-29 — [홍보부] 대시보드 '마감 임박·미게시' pill 넘침 수정 (v0.9.289)
 대상: `/krjam-planning`(`jamboree-plan/styles.css`). 상세: [planning §v0.9.289](../docs/krjam-planning/changelog.md). 사용자가 **라이브 점검 중 캡처로 지목**한 실제 결함.
