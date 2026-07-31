@@ -418,6 +418,125 @@ const SEED = () => {
   chk('입·퇴영은 촬영 리스트에 올라가지 않는다',
     await page.evaluate(() => !shootListData().some((r) => /^tt:bus-/.test(r.ttId || ''))), '');
 
+  /* 현재 시각 인디케이터 (v0.9.291) — 실제 시계에 기대면 검증이 안 되므로
+   * 순수함수(ttNowGeometry)와, todayISO/nowHours 를 갈아끼운 렌더 둘 다 못 박는다.
+   * 테스트가 도는 오늘(그리드 8/2~8/9 밖)에는 **선이 없어야** 한다는 것도 함께 검사한다. */
+  console.log('\n[일정표 현재 시각 인디케이터]');
+  const nowGeo = await page.evaluate(() => ({
+    other: ttNowGeometry('2026-08-06', '2026-08-05', 14.5, 96),
+    hit: ttNowGeometry('2026-08-05', '2026-08-05', 14.5, 96),
+    mid: ttNowGeometry('2026-08-05', '2026-08-05', 9.25, 96),
+    over: ttNowGeometry('2026-08-05', '2026-08-05', 24.5, 96),
+    none: ttNowGeometry('', '2026-08-05', 14.5, 96),
+    period: ttNowGeometry('2026-08-05', '2026-08-05', 14.5, 60),
+    // '지금'은 내림이어야 한다 — 14:29:31 을 14:30 으로 보여 주면 시계가 앞선다(h2hhmm 은 반올림)
+    floorLab: ttNowGeometry('2026-08-05', '2026-08-05', 14 + 29 / 60 + 31 / 3600, 96).label,
+    roundLab: h2hhmm(14 + 29 / 60 + 31 / 3600),
+  }));
+  chk('오늘이 아닌 열에는 선이 없다', nowGeo.other === null && nowGeo.none === null, JSON.stringify(nowGeo.other));
+  chk('오늘 열 14:30 → top=1392px · 라벨 14:30', nowGeo.hit && nowGeo.hit.top === 1392 && nowGeo.hit.label === '14:30', JSON.stringify(nowGeo.hit));
+  chk('09:15 → top=888px · 라벨 09:15(분 단위)', nowGeo.mid && nowGeo.mid.top === 888 && nowGeo.mid.label === '09:15', JSON.stringify(nowGeo.mid));
+  chk('그리드 시간 범위 밖이면 없다', nowGeo.over === null, JSON.stringify(nowGeo.over));
+  chk('전체기간 뷰(60px/시간)는 같은 시각도 top=870px', nowGeo.period && nowGeo.period.top === 870, JSON.stringify(nowGeo.period));
+  chk('현재 시각은 내림 — 14:29:31 은 14:29 (반올림이면 14:30)', nowGeo.floorLab === '14:29' && nowGeo.roundLab === '14:30', nowGeo.floorLab + ' vs 반올림 ' + nowGeo.roundLab);
+
+  const nowLine = await page.evaluate(() => {
+    const realToday = todayISO, realNow = nowHours;
+    const off = { lines: document.querySelectorAll('.ttg-now').length };   // 오늘이 그리드 밖 → 0이어야
+    todayISO = () => '2026-08-05'; nowHours = () => 14.5;
+    renderTimetable();
+    const el = document.querySelector('.ttg-now');
+    const day = { n: document.querySelectorAll('.ttg-now').length, top: el && el.style.top,
+      lab: el && el.querySelector('.ttg-now-lab').textContent,
+      pe: el && getComputedStyle(el).pointerEvents,
+      z: el && +getComputedStyle(el).zIndex,
+      evZ: +getComputedStyle(document.querySelector('.ttg-ev')).zIndex };
+    // 선만 옮긴다 — 그리드를 다시 그리지 않고 tick 만으로 위치·라벨이 갱신돼야 한다
+    const gridBefore = document.getElementById('tt-grid').firstElementChild;
+    nowHours = () => 15.0;
+    const moved = tickTTNow();
+    const after = { top: document.querySelector('.ttg-now').style.top,
+      lab: document.querySelector('.ttg-now-lab').textContent, moved,
+      sameGrid: document.getElementById('tt-grid').firstElementChild === gridBefore };
+    // 전체기간 뷰 — 8일 중 오늘 열에만
+    const b = [...document.querySelectorAll('#tt-modeseg button')].find((x) => /전체/.test(x.textContent)); b.click();
+    const period = { n: document.querySelectorAll('.ttg-now').length,
+      col: (document.querySelector('.ttg-now') || {}).parentElement.getAttribute('data-day') };
+    [...document.querySelectorAll('#tt-modeseg button')].find((x) => /일간/.test(x.textContent)).click();
+    todayISO = realToday; nowHours = realNow;
+    renderTimetable();
+    const restored = document.querySelectorAll('.ttg-now').length;
+    return { off, day, after, period, restored };
+  });
+  chk('오늘이 그리드(8/2~8/9) 밖이면 선을 그리지 않는다', nowLine.off.lines === 0 && nowLine.restored === 0, '부팅 ' + nowLine.off.lines + ' · 복원 ' + nowLine.restored);
+  chk('오늘 열에 선 1개 · top=1392px · 라벨 14:30', nowLine.day.n === 1 && nowLine.day.top === '1392px' && nowLine.day.lab === '14:30', JSON.stringify(nowLine.day));
+  chk('선은 블록 위 · 클릭은 통과(pointer-events:none)', nowLine.day.pe === 'none' && nowLine.day.z > nowLine.day.evZ, 'pe=' + nowLine.day.pe + ' z=' + nowLine.day.z + '>' + nowLine.day.evZ);
+  chk('tick 이 그리드 재렌더 없이 선만 옮긴다', nowLine.after.top === '1440px' && nowLine.after.lab === '15:00' && nowLine.after.moved === 1 && nowLine.after.sameGrid, JSON.stringify(nowLine.after));
+  chk('전체기간 뷰 — 오늘(8/5) 열 하나에만', nowLine.period.n === 1 && nowLine.period.col === '2026-08-05', JSON.stringify(nowLine.period));
+
+  /* 대시보드 '지금 현장' (v0.9.291) — 진행 중 · 앞으로 3시간을 **열(트랙) 단위**로.
+   * 8/5 14:30 기준 고정 시나리오: 진행 중 = 컵 1기 등록(14:00–15:00) 하나,
+   * 3시간 내 = 컵 과정활동 15:00 · 홍보부 16:30·17:30 · 입·퇴영 I·12호차 17:30 = 5건. */
+  console.log('\n[대시보드 — 지금 진행 중 · 3시간 내 (열 단위)]');
+  const ns = await page.evaluate(() => {
+    const r = ttNowSoon('2026-08-05', 14.5, 3);
+    const g = (x) => x.map((t) => t.key + ':' + t.items.length).join(',');
+    // 보기 필터를 꺼도 대시보드 결과는 그대로여야 한다(현장 상황이 화면 설정에 좌우되면 안 됨)
+    const keep = JSON.parse(JSON.stringify(ttFilter));
+    ttFilter.bus = false; ttFilter.media = false;
+    const filtered = ttNowSoon('2026-08-05', 14.5, 3);
+    Object.assign(ttFilter, keep);
+    return {
+      nLive: r.nLive, nSoon: r.nSoon, live: g(r.live), soon: g(r.soon),
+      liveTitle: r.live[0] && r.live[0].items[0].title,
+      filteredSoon: filtered.nSoon,
+      // 경계: 창 끝에 정확히 걸치는 17:30 호차는 포함, 창이 1분만 좁아지면 제외
+      edgeIn: ttNowSoon('2026-08-05', 14.5, 3).soon.some((t) => t.key === 'bus'),
+      edgeOut: ttNowSoon('2026-08-05', 14.5, 3 - 1 / 60).soon.some((t) => t.key === 'bus'),
+      // 끝나는 순간은 '진행 중'이 아니다 — 14:00~14:30 호차는 14:30 에 빠진다
+      busEnded: ttNowSoon('2026-08-05', 14.5, 3).live.some((t) => t.key === 'bus'),
+      busLive: ttNowSoon('2026-08-05', 14.4, 3).live.some((t) => t.key === 'bus'),
+      // 의전(pr)도 열 하나로 들어온다 — usr-pr1 은 8/5 20:00
+      prLive: ttNowSoon('2026-08-05', 20.5, 3).live.some((t) => t.key === 'pr'),
+      gaps: [humanGap(0.75), humanGap(2.3), humanGap(1), humanGap(0)],
+    };
+  });
+  chk('8/5 14:30 — 진행 중 1건(컵 1기 등록·입소식)', ns.nLive === 1 && ns.live === 'cub1:1' && /입소식/.test(ns.liveTitle), ns.live + ' / ' + ns.liveTitle);
+  chk('3시간 내 5건이 열 단위로 묶인다(홍보부2·컵1·입퇴영2)', ns.nSoon === 5 && ns.soon === 'media:2,cub1:1,bus:2', ns.soon);
+  chk('열 순서는 일정표와 같다(잼버리→의전→홍보부→컵→입·퇴영)', ns.soon.indexOf('media') < ns.soon.indexOf('cub1') && ns.soon.indexOf('cub1') < ns.soon.indexOf('bus'), ns.soon);
+  chk('보기 필터를 꺼도 현장 목록은 그대로', ns.filteredSoon === 5, ns.filteredSoon + '건');
+  chk('창 경계 — 정확히 +3시간은 포함 · 1분 지나면 제외', ns.edgeIn && !ns.edgeOut, 'in=' + ns.edgeIn + ' out=' + ns.edgeOut);
+  chk('끝나는 순간은 진행 중이 아니다(호차 14:00~14:30)', !ns.busEnded && ns.busLive, 'at14:30=' + ns.busEnded + ' at14:24=' + ns.busLive);
+  chk('의전도 한 열로 들어온다', ns.prLive, '');
+  chk('남은 시간 표기(45분 · 2시간 18분 · 1시간 · 곧)', ns.gaps.join('|') === '45분|2시간 18분|1시간|곧', ns.gaps.join('|'));
+
+  await go('dashboard');
+  const nsUI = await page.evaluate(() => {
+    const realToday = todayISO, realNow = nowHours;
+    const outside = { empty: (document.querySelector('#dash-now .dp-empty') || {}).textContent || '' };
+    todayISO = () => '2026-08-05'; nowHours = () => 14.5;
+    renderDashboard();
+    const box = document.getElementById('dash-now');
+    const res = {
+      clock: (box.querySelector('.now-clock') || {}).textContent,
+      tracks: [...box.querySelectorAll('.ntk')].map((x) => x.textContent),
+      items: box.querySelectorAll('.nowitem').length,
+      liveLeft: (box.querySelector('.nowsec .now-left.on') || {}).textContent,
+      soonWin: (box.querySelector('.nowsec-win') || {}).textContent,
+      busTag: [...box.querySelectorAll('.nowtag')].map((x) => x.textContent),
+      clickable: box.querySelectorAll('.nowitem[data-ttid]').length,
+    };
+    todayISO = realToday; nowHours = realNow;
+    renderDashboard();
+    return { outside, res, afterEmpty: (document.querySelector('#dash-now .dp-empty') || {}).textContent || '' };
+  });
+  chk('지금 현장 패널 — 14:30 기준 표기', nsUI.res.clock === '14:30 기준', nsUI.res.clock);
+  chk('열 배지 렌더(컵 1기 · 홍보부 · 입·퇴영)', nsUI.res.tracks.join(',') === '컵 1기,홍보부,컵 1기,입·퇴영', nsUI.res.tracks.join(','));
+  chk('항목 6건(진행 1 + 3시간 내 5) · 클릭 가능', nsUI.res.items === 6 && nsUI.res.clickable === 6, nsUI.res.items + '건 / 클릭 ' + nsUI.res.clickable);
+  chk('진행 중은 남은 시간, 3시간 창은 시각 범위 표기', nsUI.res.liveLeft === '30분 남음' && nsUI.res.soonWin === '14:30~17:30', nsUI.res.liveLeft + ' · ' + nsUI.res.soonWin);
+  chk('입·퇴영 항목에 방향 태그', nsUI.res.busTag.length === 2 && nsUI.res.busTag.every((t) => t === '입영'), nsUI.res.busTag.join(','));
+  chk('잼버리 기간 밖이면 안내 문구를 보여 준다', /잼버리 기간이 되면/.test(nsUI.afterEmpty), nsUI.afterEmpty.slice(0, 30));
+
   console.log('\n[식사 메뉴]');
   await go('meals');
   const ml = await page.evaluate(() => ({

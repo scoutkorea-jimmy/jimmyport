@@ -1308,6 +1308,38 @@ html.pw-ok #auth-gate{display:none}
 .dp-more{display:block;width:100%;margin-top:10px;background:none;border:1px dashed var(--line);border-radius:var(--r-1);padding:7px;min-height:var(--h-ctl);font-family:inherit;font-size:var(--fs-1);color:var(--accent-ink);cursor:pointer}
 .dp-more:hover{background:var(--accent-soft);border-color:var(--accent)}
 .dp-empty.ok{color:var(--st-ready);font-weight:600}
+.dp-subh{font-size:var(--fs-1);font-weight:700;color:var(--muted);margin:14px 0 7px}
+
+/* ===== 대시보드 '지금 현장' — 진행 중 · 앞으로 3시간, 열(트랙) 단위 (v0.9.291) ===== */
+.dashnow{border:1px solid var(--line-2);border-radius:var(--r-1);background:var(--surface-2);padding:10px;margin-bottom:4px}
+.nowhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:9px}
+.now-clock{font-size:var(--fs-3);font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.now-sub{font-size:var(--fs-2);color:var(--muted)}
+.nowsec+.nowsec{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
+.nowsec-h{display:flex;align-items:center;gap:6px;font-size:var(--fs-3);font-weight:800;color:var(--muted);margin-bottom:7px}
+.nowsec-h b{color:var(--ink)}
+.nowsec-h.live{color:var(--danger)}
+.nowsec-h.live b{color:var(--danger)}
+.nowdot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex:0 0 auto}
+.nowsec-win{margin-left:auto;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.nowtrack+.nowtrack{margin-top:9px}
+.ntk-h{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.ntk{color:#fff;font-size:var(--fs-1);font-weight:800;border-radius:var(--pill);padding:1px 9px}
+.ntk-n{font-size:var(--fs-1);color:var(--muted);font-weight:600}
+.nowitem{margin-bottom:5px}
+.nowitem:last-child{margin-bottom:0}
+.nowtag{display:inline-block;background:var(--line);color:var(--ink-2);font-size:var(--fs-1);font-weight:800;border-radius:var(--pill);padding:0 6px;margin-right:2px}
+/* 남은/남을 시간 — 진행 중만 강조(빨강), 예정은 조용한 회색 */
+.now-left{flex:0 0 auto;font-size:var(--fs-2);font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.now-left.on{color:var(--danger)}
+@media(max-width:560px){
+  .nowitem{flex-wrap:wrap}
+  .now-left{width:100%;text-align:right}
+}
+
+/* 일정표 현재 시각 인디케이터 — 오늘 열에만. 블록(z-index 1) 위, 구분선(6) 아래. 클릭은 통과시킨다. */
+.ttg-now{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--danger);z-index:5;pointer-events:none}
+.ttg-now-lab{position:absolute;left:2px;top:-11px;background:var(--danger);color:#fff;font-size:var(--fs-2);font-weight:800;line-height:1.6;padding:0 7px;border-radius:var(--pill);font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(22,32,26,.28)}
 /* B. 실시간 D-day 배너 */
 .dash-dday{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:linear-gradient(100deg,var(--accent),var(--accent-ink));color:#fff;border-radius:var(--r-2);padding:16px 20px;box-shadow:var(--sh-2)}
 .dd-lab{font-size:var(--fs-1);font-weight:600;opacity:.85;display:block}

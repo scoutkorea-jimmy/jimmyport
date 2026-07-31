@@ -1087,7 +1087,18 @@ function renderClock(){
 /* 대시보드 실시간 D-day 카운트다운 */
 var dashClockTimer=null;
 function ddayCountdownHTML(){ var diff=EVENT_DT-new Date(); if(diff<=0) return '<b>D-DAY</b> · 개영!'; var d=Math.floor(diff/86400000),h=Math.floor(diff%86400000/3600000),m=Math.floor(diff%3600000/60000),sc=Math.floor(diff%60000/1000); return 'D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>'; }
-function startDashClock(){ stopDashClock(); dashClockTimer=setInterval(function(){ var el=document.getElementById('dash-dday-t'); if(!el){ stopDashClock(); return; } el.innerHTML=ddayCountdownHTML(); }, 1000); }
+/* D-day 는 1초마다, '지금 현장' 목록은 **분이 바뀔 때만** 다시 그린다 —
+ * 1초마다 목록을 갈아끼우면 누르려던 항목이 손끝에서 사라진다(클릭 유실). */
+var dashNowMin='';
+function startDashClock(){
+  stopDashClock(); dashNowMin='';
+  dashClockTimer=setInterval(function(){
+    var el=document.getElementById('dash-dday-t'); if(!el){ stopDashClock(); return; }
+    el.innerHTML=ddayCountdownHTML();
+    var mm=h2hhmmFloor(nowHours());
+    if(mm!==dashNowMin){ dashNowMin=mm; renderDashNow(); }
+  }, 1000);
+}
 function stopDashClock(){ if(dashClockTimer){ clearInterval(dashClockTimer); dashClockTimer=null; } }
 /* 승인 대기 회원 수(관리자) — 대시보드 액션 큐용, 1회 캐시 */
 var dashMembersPending=null;
@@ -2380,8 +2391,7 @@ function renderTTFilter(){
   box.innerHTML='<span class="ttf-lab">보기</span>'+
     '<button type="button" class="ttfchip all'+(allOn?' on':'')+'" data-ttf="__all">전체</button>'+
     TT_TRACKS.map(function(t){ var on=ttTrackOn(t[0]);
-      var sw=t[0]==='pr'?'#C89A3E':t[0]==='media'?mediaColor():t[0]==='bus'?busColor():t[0]==='cub1'?cubColor(1):t[0]==='cub2'?cubColor(2):'#2F5D4A';
-      return '<button type="button" class="ttfchip'+(on?' on':'')+'" data-ttf="'+t[0]+'"><span class="sw" style="background:'+sw+'"></span>'+esc(t[1])+'</button>';
+      return '<button type="button" class="ttfchip'+(on?' on':'')+'" data-ttf="'+t[0]+'"><span class="sw" style="background:'+ttTrackColor(t[0])+'"></span>'+esc(t[1])+'</button>';
     }).join('');
 }
 function renderTTControls(){
@@ -2536,25 +2546,68 @@ function ttSplitUp(){
   ttSplit=null; document.body.classList.remove('tt-colresize'); saveTtColW(); renderTimetable();
 }
 
+/* ===== 현재 시각 인디케이터 (v0.9.291) =====
+ * 오늘 날짜 열에만 빨간 선을 긋고 왼쪽에 HH:MM 을 붙인다. 계산(순수)과 그리기를 갈라 둔 이유:
+ * 실제 시각에 기대면 회귀에서 검증할 수 없다 — 아래 함수에 (오늘, 지금 시각)을 주입해 못 박는다.
+ * 그리드는 8/2~8/9 라 **그 밖의 날에는 선이 없다**(오늘이 열에 없으면 null). */
+/* '지금'은 반올림하면 안 된다 — h2hhmm 은 반올림이라 14:29:31 을 14:30 으로 보여 준다(시계가 앞선다).
+ * 일정 시각(15분 스냅)과 달리 현재 시각은 **내림**이 맞다. */
+function h2hhmmFloor(h){ var tot=Math.floor(h*60+1e-9); return pad2(Math.floor(tot/60))+':'+pad2(tot%60); }
+function ttNowGeometry(dayISO, todayIso, nowH, hh){
+  if(!dayISO || dayISO!==todayIso) return null;
+  if(nowH<TT_HS || nowH>TT_HE) return null;
+  return { top:(nowH-TT_HS)*hh, label:h2hhmmFloor(nowH) };
+}
+function nowHours(){ var d=new Date(); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600; }
+function ttNowHtml(dayISO, hh){
+  var g=ttNowGeometry(dayISO, todayISO(), nowHours(), hh);
+  if(!g) return '';
+  return '<div class="ttg-now" data-nowday="'+esc(dayISO)+'" style="top:'+g.top+'px" aria-hidden="true">'+
+    '<span class="ttg-now-lab">'+esc(g.label)+'</span></div>';
+}
+/* 30초마다 선만 옮긴다 — 그리드를 통째로 다시 그리면 드래그 중인 블록이 튄다. */
+var ttClockTimer=null, ttClockDay='';
+function stopTTClock(){ if(ttClockTimer){ clearInterval(ttClockTimer); ttClockTimer=null; } }
+function tickTTNow(){
+  var today=todayISO(), nowH=nowHours(), n=0;
+  document.querySelectorAll('.ttg-now').forEach(function(el){
+    var g=ttNowGeometry(el.getAttribute('data-nowday'), today, nowH, TT_HH);
+    if(!g){ el.remove(); return; }
+    el.style.top=g.top+'px';
+    var lab=el.querySelector('.ttg-now-lab'); if(lab) lab.textContent=g.label; n++;
+  });
+  return n;
+}
+function startTTClock(){
+  stopTTClock(); ttClockDay=todayISO();
+  ttClockTimer=setInterval(function(){
+    if(!document.getElementById('tt-grid') || curViewMode!=='timetable'){ stopTTClock(); return; }
+    if(document.hidden) return;
+    // 자정을 넘기면 선이 다른 열로 가야 한다 → 그때만 통째로 다시 그린다
+    if(todayISO()!==ttClockDay){ ttClockDay=todayISO(); renderTimetable(); return; }
+    tickTTNow();
+  }, 30000);
+}
+/* 의전 pseudo-이벤트 — 같은 시각·장소를 한 행사로 묶는다(참여자는 people 로 모음).
+ * 일정표 열과 대시보드 '지금 현장'이 **같은 묶음**을 써야 두 화면이 어긋나지 않아 함수로 뺐다. */
+function protPseudoEvents(day){
+  var raw=protocolList().filter(function(p){ return p.date===day && t2h(p.time)!=null; });
+  var pmap={}, pord=[];
+  raw.forEach(function(p){ var pk=JSON.stringify([p.time||'', p.place||'']);
+    if(!pmap[pk]){ pmap[pk]={time:p.time, endTime:p.endTime, activity:'', place:p.place, people:[], ids:[]}; pord.push(pk); }
+    pmap[pk].people.push(p); pmap[pk].ids.push(p.id); if(!pmap[pk].endTime&&p.endTime) pmap[pk].endTime=p.endTime;
+  });
+  return pord.map(function(pk){ var g=pmap[pk], sh=t2h(g.time); g.activity=protGroupName(g.people);
+    return {id:'pr:'+g.ids[0], start:g.time, end:(g.endTime&&t2h(g.endTime)!=null)?g.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:g}; });
+}
 function ttColumnHtml(d, dayView, hh){
   var items=ttList().filter(function(t){ return t.day===d[0] && t2h(t.start)!=null && ttTrackOn(ttTrackOfItem(t)); });
   var jam=items.filter(function(t){ return t.track!=='cub' && t.track!=='media' && t.track!=='bus'; });   // 잼버리 일정
   var media=items.filter(function(t){ return t.track==='media'; });   // 홍보부(사진 셀렉·SNS 포스팅)
   var cub=items.filter(function(t){ return t.track==='cub'; });    // 컵 참관단(1·2기)
   var bus=items.filter(function(t){ return t.track==='bus'; });    // 입·퇴영 호차(입영·퇴영 한 열)
-  // 의전 pseudo-이벤트 — 같은 활동+시각은 한 블록으로 묶고 참여자를 구분(대회장)+이름으로. (종료 미입력 시 +30분)
-  var prs=[];
-  if(ttTrackOn('pr')){
-    var prRaw=protocolList().filter(function(p){ return p.date===d[0] && t2h(p.time)!=null; });
-    var pmap={}, pord=[];
-    // 같은 시각·장소 = 같은 행사로 묶는다(활동 문구 차이 무시). 대표 이름은 아래서 최단 활동명으로.
-    prRaw.forEach(function(p){ var pk=JSON.stringify([p.time||'', p.place||'']);
-      if(!pmap[pk]){ pmap[pk]={time:p.time, endTime:p.endTime, activity:'', place:p.place, people:[], ids:[]}; pord.push(pk); }
-      pmap[pk].people.push(p); pmap[pk].ids.push(p.id); if(!pmap[pk].endTime&&p.endTime) pmap[pk].endTime=p.endTime;
-    });
-    prs=pord.map(function(pk){ var g=pmap[pk], sh=t2h(g.time); g.activity=protGroupName(g.people);
-      return {id:'pr:'+g.ids[0], start:g.time, end:(g.endTime&&t2h(g.endTime)!=null)?g.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:g}; });
-  }
+  // 의전 pseudo-이벤트 — 같은 활동+시각은 한 블록으로(protPseudoEvents). 참여자는 구분(대회장)+이름으로.
+  var prs = ttTrackOn('pr') ? protPseudoEvents(d[0]) : [];
   var body;
   if(dayView && (prs.length || cub.length || media.length || bus.length)){
     var tracks=[{key:'jam', lab:'잼버리 일정', cls:'', items:jam}];
@@ -2576,7 +2629,7 @@ function ttColumnHtml(d, dayView, hh){
   } else {
     body=ttBlocksHtml(jam.concat(prs, media, cub, bus), {off:0, span:100, hh:hh}, dayView);
   }
-  return '<div class="ttg-col" data-day="'+d[0]+'">'+ttCellsHtml(d[0], hh)+body+'</div>';
+  return '<div class="ttg-col" data-day="'+d[0]+'">'+ttCellsHtml(d[0], hh)+body+ttNowHtml(d[0], hh)+'</div>';
 }
 /* ===== 중복 일정 점검 (v0.9.213) =====
  * 사용자가 "중복으로 데이터가 잘못 들어간 것 같다"고 했는데 보드 데이터는 서버에 있어(로그인 필요) 내가 못 본다.
@@ -2682,6 +2735,7 @@ function renderTimetable(){
   box.innerHTML=ttHeadHtml(days)+'<div class="ttg-body">'+ttHoursHtml(TT_HH)+
     days.map(function(d){ return ttColumnHtml(d, dayView, TT_HH); }).join('')+'</div>';
   wireTimetableGrid(box);
+  startTTClock();   // 현재 시각 선을 30초마다 옮긴다(그리드는 다시 안 그림)
 }
 /* 시간 입력: 시/분 숫자 입력(드롭다운 대신) */
 function ttTimeFields(prefix, val){ var h=t2h(val); var hh=h!=null?Math.floor(h):9; var mm=h!=null?Math.round((h-Math.floor(h))*60):0; return '<span class="evtimegrp"><input type="number" class="evtime" id="'+prefix+'h" min="0" max="23" value="'+hh+'" inputmode="numeric" aria-label="시"><span class="evcolon">:</span><input type="number" class="evtime" id="'+prefix+'m" min="0" max="59" step="5" value="'+mm+'" inputmode="numeric" aria-label="분"></span>'; }
@@ -5205,6 +5259,88 @@ function renderWeatherModal(){
 }
 
 /* ===== dashboard ===== */
+/* ===== 대시보드 '지금 현장' — 진행 중 · 앞으로 3시간 (v0.9.291) =====
+ * 일정표의 모든 트랙 + 의전을 합쳐 **열(트랙) 단위로 묶어** 보여 준다(사용자 지시).
+ * 계산은 (오늘, 지금 시각)을 인자로 받는 순수함수 — 실제 시계에 기대면 회귀로 검증할 수 없다.
+ * 보기 필터(ttFilter)는 **적용하지 않는다**: 일정표 화면에서 잠깐 끈 열 때문에 현장 상황이 빠지면 안 된다. */
+var DASH_SOON_H=3;   // '앞으로 N시간' 창
+function ttTrackIndex(k){ for(var i=0;i<TT_TRACKS.length;i++) if(TT_TRACKS[i][0]===k) return i; return 99; }
+function ttTrackLabel(k){ var i=ttTrackIndex(k); return i<TT_TRACKS.length?TT_TRACKS[i][1]:k; }
+function ttTrackColor(k){ return k==='pr'?'#C89A3E':k==='media'?mediaColor():k==='bus'?busColor():k==='cub1'?cubColor(1):k==='cub2'?cubColor(2):'#2F5D4A'; }
+function ttNowRows(todayIso){
+  var rows=[];
+  ttList().forEach(function(t){
+    if(t.day!==todayIso) return;
+    var s=t2h(t.start); if(s==null) return;
+    var e=t2h(t.end); if(e==null||e<=s) e=s+0.5;
+    rows.push({id:t.id, kind:'tt', track:ttTrackOfItem(t), s:s, e:e, start:t.start||h2hhmm(s), end:h2hhmm(e),
+      title:(t.title||'').trim()||'(제목 없음)', place:(t.place||'').trim(),
+      tag:(t.track==='bus'?BUS_DIR_LABEL[busDirOf(t)]:'')});
+  });
+  protPseudoEvents(todayIso).forEach(function(p){
+    var s=t2h(p.start), e=t2h(p.end); if(s==null) return; if(e==null||e<=s) e=s+0.5;
+    rows.push({id:p.id, kind:'pr', track:'pr', s:s, e:e, start:p.start, end:p.end,
+      title:(p._pr.activity||'').trim()||'의전', place:(p._pr.place||'').trim(), tag:''});
+  });
+  return rows;
+}
+function ttGroupByTrack(list){
+  var by={}, out=[];
+  list.slice().sort(function(a,b){ return a.s-b.s || (a.title<b.title?-1:a.title>b.title?1:0); }).forEach(function(r){
+    if(!by[r.track]){ by[r.track]={key:r.track, lab:ttTrackLabel(r.track), color:ttTrackColor(r.track), items:[]}; out.push(by[r.track]); }
+    by[r.track].items.push(r);
+  });
+  return out.sort(function(a,b){ return ttTrackIndex(a.key)-ttTrackIndex(b.key); });   // 열 순서는 일정표와 같게
+}
+function ttNowSoon(todayIso, nowH, winH){
+  var rows=ttNowRows(todayIso);
+  var live=rows.filter(function(r){ return r.s<=nowH && nowH<r.e; });
+  var soon=rows.filter(function(r){ return r.s>nowH && r.s<=nowH+winH; });
+  return { live:ttGroupByTrack(live), soon:ttGroupByTrack(soon), nLive:live.length, nSoon:soon.length };
+}
+// 0.75 → '45분' · 2.3 → '2시간 18분' (0 분이면 '곧')
+function humanGap(h){
+  var m=Math.round(h*60); if(m<=0) return '곧';
+  if(m<60) return m+'분';
+  var hh=Math.floor(m/60), mm=m%60; return hh+'시간'+(mm?(' '+mm+'분'):'');
+}
+function dashNowItemHtml(r, nowH, mode){
+  var when = mode==='live' ? (humanGap(r.e-nowH)+' 남음') : (humanGap(r.s-nowH)+' 뒤');
+  return '<button class="dp-item nowitem" '+(r.kind==='pr'?'data-goto="protocol"':('data-ttid="'+esc(r.id)+'"'))+'>'+
+    '<span class="dp-d">'+esc(r.start)+'~'+esc(r.end)+'</span>'+
+    '<span class="dp-t">'+(r.tag?('<span class="nowtag">'+esc(r.tag)+'</span> '):'')+esc(r.title)+
+      (r.place?(' <span class="dp-place">· '+esc(r.place)+'</span>'):'')+'</span>'+
+    '<span class="now-left'+(mode==='live'?' on':'')+'">'+esc(when)+'</span></button>';
+}
+function dashNowSectionHtml(groups, nowH, mode, emptyMsg){
+  if(!groups.length) return '<div class="dp-empty">'+emptyMsg+'</div>';
+  return groups.map(function(g){
+    return '<div class="nowtrack">'+
+      '<div class="ntk-h"><span class="ntk" style="background:'+g.color+'">'+esc(g.lab)+'</span><span class="ntk-n">'+g.items.length+'건</span></div>'+
+      g.items.map(function(r){ return dashNowItemHtml(r, nowH, mode); }).join('')+'</div>';
+  }).join('');
+}
+function renderDashNow(){
+  var box=document.getElementById('dash-now'); if(!box) return;
+  var today=todayISO(), nowH=nowHours();
+  var before=(today<'2026-08-02'), inJam=(!before && today<='2026-08-09');
+  var r=ttNowSoon(today, nowH, DASH_SOON_H);
+  var when = inJam ? ('오늘 8/'+ymd(today).getDate()) : before ? '잼버리 기간(8/2~8/9) 전' : '잼버리 기간 종료';
+  var html='<div class="nowhead"><span class="now-clock">'+esc(h2hhmmFloor(nowH))+' 기준</span>'+
+    '<span class="now-sub">'+esc(when)+'</span></div>';
+  html+='<div class="nowsec"><div class="nowsec-h live"><span class="nowdot"></span>진행 중 <b>'+r.nLive+'</b></div>'+
+    dashNowSectionHtml(r.live, nowH, 'live',
+      before?'잼버리 기간이 되면 진행 중인 일정이 여기에 실시간으로 표시됩니다.':'지금 진행 중인 일정이 없습니다.')+'</div>';
+  html+='<div class="nowsec"><div class="nowsec-h soon">앞으로 '+DASH_SOON_H+'시간 <b>'+r.nSoon+'</b>'+
+    '<span class="nowsec-win">'+esc(h2hhmmFloor(nowH))+'~'+esc(h2hhmmFloor(Math.min(24, nowH+DASH_SOON_H)))+'</span></div>'+
+    dashNowSectionHtml(r.soon, nowH, 'soon',
+      inJam?('앞으로 '+DASH_SOON_H+'시간 안에 시작하는 일정이 없습니다.'):'—')+'</div>';
+  box.innerHTML=html;
+  // 목록을 갈아끼웠으니 이 블록의 클릭은 여기서 다시 건다(대시보드 전체 배선과 같은 규칙)
+  box.querySelectorAll('.dp-item[data-ttid]').forEach(function(b){ b.onclick=function(){ openTT(b.getAttribute('data-ttid')); }; });
+  box.querySelectorAll('[data-goto]').forEach(function(b){ b.onclick=function(){ setView(b.getAttribute('data-goto')); }; });
+}
+
 function renderDashboard(){
   loadWeather();
   var box=document.getElementById('dash-stats'); if(!box) return;
@@ -5328,6 +5464,9 @@ function renderDashboard(){
   html+='<div class="fieldrow"><button class="fieldstat" data-goto="timetable"><b>'+todayTT.length+'</b><span>오늘 시간 일정</span></button>'+
     '<button class="fieldstat" data-goto="sitemap"><b>'+placedNow+'</b><span>현장 배치 인원</span></button>'+
     '<button class="fieldstat" data-goto="sitemap"><b>'+openShoots.length+'</b><span>미완료 촬영 요청</span></button></div>';
+  // 지금 진행 중 · 앞으로 3시간 (열 단위) — 내용은 renderDashNow 가 채우고 분마다 갱신한다
+  html+='<div id="dash-now" class="dashnow"></div>';
+  html+='<div class="dp-subh">오늘 전체</div>';
   if(todayTT.length){ html+='<div class="dp-list">'+todayTT.slice(0,5).map(function(t){ return '<button class="dp-item" data-ttid="'+esc(t.id)+'"><span class="dp-d">'+esc(t.start||'')+(t.end?('~'+t.end):'')+'</span><span class="dp-t">'+esc(t.title||'(제목 없음)')+(t.place?(' <span class="dp-place">· '+esc(t.place)+'</span>'):'')+'</span></button>'; }).join('')+'</div>'; }
   else { html+='<div class="dp-empty">오늘 등록된 시간 일정이 없습니다.</div>'; }
   html+='</div>';
@@ -5370,6 +5509,7 @@ function renderDashboard(){
   html+='</div>';
 
   box.innerHTML=html;
+  renderDashNow();   // '지금 현장' 채우기 — 이후 갱신은 startDashClock 이 분 단위로
   startDashClock();
   box.querySelectorAll('.dp-item[data-sk],.pubrow[data-sk]').forEach(function(b){ b.onclick=function(){ var date=b.getAttribute('data-date'); var rec=byDate[date]; var s=rec?findSlot(rec, b.getAttribute('data-sk')):null; if(s) openSlot(date,s); }; });
   box.querySelectorAll('.dp-item[data-eid]').forEach(function(b){ b.onclick=function(){ openEvent(b.getAttribute('data-eid')); }; });
@@ -5385,6 +5525,7 @@ function setView(v){
   if(!Auth.canSee(v)) v='dashboard';   // 관리 탭은 홍보부 유형/관리자만
   curViewMode=v;
   if(v!=='dashboard') stopDashClock();
+  if(v!=='timetable') stopTTClock();
   var db=document.getElementById('dashboard'); if(db) db.style.display = v==='dashboard'?'':'none';
   var nw=document.getElementById('news'); if(nw) nw.style.display = v==='news'?'':'none';
   document.getElementById('calendar').style.display  = v==='calendar'?'':'none';
