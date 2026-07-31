@@ -170,7 +170,7 @@ function cleanOff(o) {
 }
 
 function cleanName(s, fb) { return (s || "").toString().trim().slice(0, 80) || fb; }
-function cleanTT(e) {
+export function cleanTT(e) {   // export=테스트용(track/dir 등 트랙 필드 보존 회귀 방지)
   e = e && typeof e === "object" ? e : {};
   const assignees = Array.isArray(e.assignees)
     ? e.assignees.slice(0, 30).map((x) => (x || "").toString().slice(0, 40)).filter(Boolean)
@@ -201,6 +201,8 @@ function cleanTT(e) {
     tipId: (e.tipId || "").toString().slice(0, 40),   // 소식 제보에서 만들어진 취재 일정이면 그 제보 id
     track: (e.track || "").toString().slice(0, 16),   // 'cub'=컵 참관단 트랙(잼버리 일정·의전과 별도 열)
     batch: (e.batch === 2 || e.batch === "2") ? 2 : (e.batch === 1 || e.batch === "1") ? 1 : 0,  // 컵 참관단 기수(1·2)
+    dir: (e.dir === "in" || e.dir === "out") ? e.dir : "",   // 'bus' 트랙 방향(입영/퇴영) — 한 열에 같이 두고 태그로 구분
+
     noCover: !!e.noCover,                              // 취재 불필요 — 일정표에서 흐리게 표시
   };
 }

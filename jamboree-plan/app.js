@@ -272,10 +272,12 @@ function cubColor(b){ return darkenToContrast(CUB_BATCH_COLOR[(b===2||b==='2')?2
 // 일정표 트랙 필터 — 잼버리 일정 · 의전 일정 · 컵 1기 · 컵 2기 (전체기간·일간 공통 적용)
 var MEDIA_COLOR='#7A3FA0';   // 홍보부 트랙 색(잼버리 초록·의전 금·컵 청/적갈과 구분)
 function mediaColor(){ return darkenToContrast(MEDIA_COLOR); }   // 흰 글씨 대비 보정
-var TT_TRACKS=[['jam','잼버리 일정'],['pr','의전 일정'],['media','홍보부'],['cub1','컵 1기'],['cub2','컵 2기']];
-var ttFilter={jam:true,pr:true,media:true,cub1:true,cub2:true};
+var BUS_COLOR='#9B3B57';     // 입·퇴영 트랙 색(위 넷과 색상환에서 떨어진 자홍 계열)
+function busColor(){ return darkenToContrast(BUS_COLOR); }   // 흰 글씨 대비 보정
+var TT_TRACKS=[['jam','잼버리 일정'],['pr','의전 일정'],['media','홍보부'],['cub1','컵 1기'],['cub2','컵 2기'],['bus','입·퇴영']];
+var ttFilter={jam:true,pr:true,media:true,cub1:true,cub2:true,bus:true};
 try{ var _tf=JSON.parse(localStorage.getItem('jamboree-plan:tt-filter')||'null'); if(_tf) TT_TRACKS.forEach(function(t){ ttFilter[t[0]]=(_tf[t[0]]!==false); }); }catch(e){}
-function ttTrackOfItem(t){ return t.track==='media' ? 'media' : t.track==='cub' ? ((t.batch===2||t.batch==='2')?'cub2':'cub1') : 'jam'; }
+function ttTrackOfItem(t){ return t.track==='bus' ? 'bus' : t.track==='media' ? 'media' : t.track==='cub' ? ((t.batch===2||t.batch==='2')?'cub2':'cub1') : 'jam'; }
 function ttTrackOn(k){ return ttFilter[k]!==false; }
 function saveTtFilter(){ try{ localStorage.setItem('jamboree-plan:tt-filter', JSON.stringify(ttFilter)); }catch(e){} }
 function cubObserverSeeds(){
@@ -438,6 +440,69 @@ function migrateMediaMoveMeetings(){
   try{ localStorage.setItem('jamboree-plan:media-move-mtg','1'); }catch(e){}
   if(moved){ saveTimetable(); console.info('[홍보부 트랙] 홍보부 회의 '+moved+'건 이동'); }
   return moved;
+}
+/* ===== 입·퇴영 호차 트랙(2026-07-31 사용자 제공) =====
+ * 참가단 버스의 입영(8/3~8/5)·퇴영(8/9)을 일정표의 독립 열(track='bus')로 관리한다.
+ * **입영과 퇴영을 한 열에** 두는 것이 사용자 지시라 트랙은 하나만 두고, 방향은 dir('in'|'out')으로
+ * 구분해 블록 안 태그(입영/퇴영)로 보여 준다 — 열이 갈리면 같은 호차의 왕복을 나란히 못 본다.
+ * 원문에 출발·도착 '시각'만 있어 블록 길이는 30분 고정(사용자 확정). 드래그로 언제든 조절된다.
+ * 안정 id: bus-<in|out>-MMDD-HHMM-<호차 slug>. id 가 스스로 트랙·방향을 증명하므로, 편집으로 값이
+ * 벗겨져도 mergeBusTrack 이 되살린다(컵 트랙에서 실제로 겪은 track 유실 패턴을 미리 막는다). */
+var BUS_CAT='입·퇴영';
+var BUS_DIR_LABEL={in:'입영', out:'퇴영'};
+var BUS_LEN=0.5;                                  // 블록 길이(시간) — 시각만 주어져 30분 고정
+function busDirOf(t){ return t.dir==='out' ? 'out' : 'in'; }
+function busTrackSeeds(){
+  function it(dir,day,s,bus,nations,memo){
+    return {id:'bus-'+dir+'-'+day.slice(5).replace('-','')+'-'+s.replace(':','')+'-'+bus.replace(/[^A-Za-z0-9]/g,'').toLowerCase(),
+      track:'bus', dir:dir, day:day, start:s, end:h2hhmm(Math.min(24, t2h(s)+BUS_LEN)),
+      title:bus+' — '+nations, place:'', cat:BUS_CAT,
+      assignees:[], contacts:[], rundown:[], memo:memo||'', noCover:false};
+  }
+  return [
+    // ── 입영 ── 8/3
+    it('in','2026-08-03','17:30','A호차','아태직원 · 뉴질랜드 · 방글라데시 · 마카오'),
+    // 8/4
+    it('in','2026-08-04','17:30','B호차','대만 · 슬로베니아 · 홍콩','원문 「대만, 슬로베니아, 홍콩, 대만」에서 중복된 대만 1건 정리'),
+    it('in','2026-08-04','17:30','C·D호차','대만 · 푸른섬'),
+    // 8/5
+    it('in','2026-08-05','14:00','E호차','말레이시아(걸스카우트) · 말레이시아'),
+    it('in','2026-08-05','14:00','F호차','말레이시아 · 홍콩'),
+    it('in','2026-08-05','14:00','G호차','방글라데시'),
+    it('in','2026-08-05','14:00','H호차','싱가포르 · 필리핀'),
+    it('in','2026-08-05','17:30','I호차','말레이시아 · 스리랑카'),
+    it('in','2026-08-05','17:30','12호차','마카오 · 태국','원문 표기 그대로. 앞 호차가 A~I 라 J호차 여부 확인 필요'),
+    // ── 퇴영 ── 8/9
+    it('out','2026-08-09','06:00','A호차','뉴질랜드 · 마카오'),
+    it('out','2026-08-09','08:00','F호차','방글라데시'),
+    it('out','2026-08-09','09:00','B호차','태국 · 싱가포르 · 아태직원'),
+    it('out','2026-08-09','09:10','C호차','말레이시아(걸스카우트) · 일본 · 네덜란드 · 우크라이나','원문 「우크라이타」 → 우크라이나로 표기 정정'),
+    it('out','2026-08-09','09:20','D·E호차','대만연맹'),
+    it('out','2026-08-09','09:40','G호차','말레이시아'),
+    it('out','2026-08-09','09:50','H호차','말레이시아 · 슬로베니아 · 필리핀 · 홍콩')
+  ];
+}
+/* 시드 주입 — 신규 트랙이라 새 보드·기존 저장 보드 모두 대상. localStorage 로 브라우저당 1회
+ * (사용자가 개별 삭제한 호차를 매 로드마다 되살리지 않기 위해). id 기준이라 멱등.
+ * track/dir 되살리기는 '파손 수리'라 플래그와 무관하게 매번 돈다(멱등). */
+function mergeBusTrack(){
+  var fixed=0;
+  ttList().forEach(function(t){
+    var m=/^bus-(in|out)-\d{4}-\d{4}-/.exec(t.id||''); if(!m) return;
+    if(t.track!=='bus'){ t.track='bus'; fixed++; }
+    if(t.dir!==m[1]){ t.dir=m[1]; fixed++; }
+  });
+  var added=0, seeded=false;
+  try{ seeded=!!localStorage.getItem('jamboree-plan:bus-track'); }catch(e){}
+  if(!seeded){
+    var have={}; ttList().forEach(function(t){ have[t.id]=1; });
+    busTrackSeeds().forEach(function(s){ if(!have[s.id]){ ttList().push(s); added++; } });
+    try{ localStorage.setItem('jamboree-plan:bus-track','1'); }catch(e){}
+  }
+  if(added||fixed) saveTimetable();
+  if(added) console.info('[입·퇴영 트랙] 호차 일정 '+added+'건 주입');
+  if(fixed) console.info('[복구] 입·퇴영 track/dir '+fixed+'건 되살림');
+  return added;
 }
 
 /* ===== 홍보부 인원 R&R + 배치표 ===== */
@@ -2146,7 +2211,7 @@ function mergeShootlistFromTimetable(){
   var list=shootListData(), byTt={}; list.forEach(function(r){ if(r.ttId) byTt[r.ttId]=r; });
   var changed=false;
   ttList().forEach(function(t){
-    if(t.track==='cub') return;                     // 컵 참관단은 별도(과정활동 목록에 이미 포함)
+    if(t.track==='cub'||t.track==='bus') return;    // 컵 참관단(과정활동 목록에 이미 포함) · 입·퇴영 호차는 취재 대상이 아니다
     if(SHOOT_CAL_CATS.indexOf(t.cat)<0) return;     // 개·폐영식·프로그램·행사만
     if(!(t.title||'').trim()) return;
     if(t.noCover && !byTt['tt:'+t.id]) return;      // '취재 불필요'로 표시한 일정은 새로 만들지 않는다(지운 행이 되살아나던 문제)
@@ -2315,7 +2380,7 @@ function renderTTFilter(){
   box.innerHTML='<span class="ttf-lab">보기</span>'+
     '<button type="button" class="ttfchip all'+(allOn?' on':'')+'" data-ttf="__all">전체</button>'+
     TT_TRACKS.map(function(t){ var on=ttTrackOn(t[0]);
-      var sw=t[0]==='pr'?'#C89A3E':t[0]==='media'?mediaColor():t[0]==='cub1'?cubColor(1):t[0]==='cub2'?cubColor(2):'#2F5D4A';
+      var sw=t[0]==='pr'?'#C89A3E':t[0]==='media'?mediaColor():t[0]==='bus'?busColor():t[0]==='cub1'?cubColor(1):t[0]==='cub2'?cubColor(2):'#2F5D4A';
       return '<button type="button" class="ttfchip'+(on?' on':'')+'" data-ttf="'+t[0]+'"><span class="sw" style="background:'+sw+'"></span>'+esc(t[1])+'</button>';
     }).join('');
 }
@@ -2381,9 +2446,13 @@ function ttProtocolBlockHtml(g, geo, dayView){
 function ttEventBlockHtml(t, geo, dayView){
   var who=ttAssignees(t).map(personLabel);
   var cons=ttContacts(t).map(function(c){ return contactLabel(c)+(c.phone?(' '+c.phone):''); });
-  var isCub=t.track==='cub', isMedia=t.track==='media', bg=isMedia?mediaColor():isCub?cubColor(t.batch):ttCatColor(t.cat);
-  var cubTag=isCub?('<span class="cubtag">'+esc(CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1])+'</span> '):'';
-  return '<div class="ttg-ev'+(dayView?' big':'')+(t.noCover?' nocover':'')+(isCub?' cub':'')+'" data-id="'+esc(t.id)+'" title="'+esc((isCub?('컵 '+CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1]+' · '):'')+ttBlockTooltip(t,who,cons))+'" style="'+ttGeoStyle(geo)+';background:'+bg+'">'+
+  var isCub=t.track==='cub', isMedia=t.track==='media', isBus=t.track==='bus';
+  var bg=isBus?busColor():isMedia?mediaColor():isCub?cubColor(t.batch):ttCatColor(t.cat);
+  // 입·퇴영은 한 열이라 방향(입영/퇴영)을 컵 기수와 같은 태그로 구분한다
+  var cubTag=isBus?('<span class="cubtag">'+esc(BUS_DIR_LABEL[busDirOf(t)])+'</span> ')
+            :isCub?('<span class="cubtag">'+esc(CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1])+'</span> '):'';
+  var pre=isBus?(BUS_DIR_LABEL[busDirOf(t)]+' · '):isCub?('컵 '+CUB_BATCH_LABEL[(t.batch===2||t.batch==='2')?2:1]+' · '):'';
+  return '<div class="ttg-ev'+(dayView?' big':'')+(t.noCover?' nocover':'')+(isCub?' cub':'')+(isBus?' bus':'')+'" data-id="'+esc(t.id)+'" title="'+esc(pre+ttBlockTooltip(t,who,cons))+'" style="'+ttGeoStyle(geo)+';background:'+bg+'">'+
     '<div class="ttg-rz top" data-id="'+esc(t.id)+'" title="시작 시간 조절"></div>'+
     '<button class="ttg-cov'+(t.noCover?' on':'')+'" data-cov="'+esc(t.id)+'" title="'+(t.noCover?'취재 불필요 해제':'취재 불필요로 표시')+'" aria-label="취재 불필요 토글" aria-pressed="'+(t.noCover?'true':'false')+'">'+icon('edit',11)+'</button>'+
     '<button class="ttg-del" data-id="'+esc(t.id)+'" title="이 일정 삭제" aria-label="일정 삭제">'+icon('x',12)+'</button>'+
@@ -2425,11 +2494,14 @@ function ttCellsHtml(day, hh){
  * 개인 화면 설정이라 서버가 아니라 localStorage(ttmode/ttday/ttfilter 와 같은 취급). */
 var TT_COL_MIN=0.28;   // 가중치 하한 — 한 열을 0 으로 만들어 못 되돌리는 상황 방지
 var ttDayTracks=[];
-var ttColW=(function(){ try{ var o=JSON.parse(localStorage.getItem('jamboree-plan:ttcolw')||'null');
-  if(o&&typeof o==='object') return {jam:+o.jam||1, pr:+o.pr||1, cub:+o.cub||1}; }catch(e){} return {jam:1,pr:1,cub:1}; })();
+/* 입·퇴영 기본 비중이 2인 이유: 8/9 퇴영이 09:00~09:50 사이에 10분 간격으로 5대가 몰려 30분 블록이
+ * 전부 겹친다 → 그 열만 레인 5개로 쪼개진다. 1이면 호차명도 안 들어간다. 사용자가 끌면 그 값이 이긴다. */
+function ttColWDefaults(){ return {jam:1, pr:1, cub:1, bus:2}; }
+var ttColW=(function(){ var d=ttColWDefaults(); try{ var o=JSON.parse(localStorage.getItem('jamboree-plan:ttcolw')||'null');
+  if(o&&typeof o==='object'){ Object.keys(d).forEach(function(k){ d[k]=+o[k]||d[k]; }); } }catch(e){} return d; })();
 function ttColWeight(k){ var w=+ttColW[k]; return (isFinite(w)&&w>=TT_COL_MIN)?w:1; }
 function saveTtColW(){ try{ localStorage.setItem('jamboree-plan:ttcolw', JSON.stringify(ttColW)); }catch(e){} }
-function resetTtColW(){ ttColW={jam:1,pr:1,cub:1}; saveTtColW(); renderTimetable(); toast('열 너비를 균등하게 되돌렸습니다.'); }
+function resetTtColW(){ ttColW=ttColWDefaults(); saveTtColW(); renderTimetable(); toast('열 너비를 기본값으로 되돌렸습니다.'); }
 /* 구분선 드래그 — 인접한 두 트랙의 가중치만 주고받는다(합이 일정해 다른 열은 안 움직인다).
  * 리스너를 document 에 다는 이유: 드래그 중 renderTimetable 이 구분선 DOM 을 새로 만들어
  * 요소에 붙인 핸들러·포인터 캡처가 끊기기 때문(기존 블록 드래그와 같은 방식). */
@@ -2466,9 +2538,10 @@ function ttSplitUp(){
 
 function ttColumnHtml(d, dayView, hh){
   var items=ttList().filter(function(t){ return t.day===d[0] && t2h(t.start)!=null && ttTrackOn(ttTrackOfItem(t)); });
-  var jam=items.filter(function(t){ return t.track!=='cub' && t.track!=='media'; });   // 잼버리 일정
+  var jam=items.filter(function(t){ return t.track!=='cub' && t.track!=='media' && t.track!=='bus'; });   // 잼버리 일정
   var media=items.filter(function(t){ return t.track==='media'; });   // 홍보부(사진 셀렉·SNS 포스팅)
   var cub=items.filter(function(t){ return t.track==='cub'; });    // 컵 참관단(1·2기)
+  var bus=items.filter(function(t){ return t.track==='bus'; });    // 입·퇴영 호차(입영·퇴영 한 열)
   // 의전 pseudo-이벤트 — 같은 활동+시각은 한 블록으로 묶고 참여자를 구분(대회장)+이름으로. (종료 미입력 시 +30분)
   var prs=[];
   if(ttTrackOn('pr')){
@@ -2483,11 +2556,12 @@ function ttColumnHtml(d, dayView, hh){
       return {id:'pr:'+g.ids[0], start:g.time, end:(g.endTime&&t2h(g.endTime)!=null)?g.endTime:h2hhmm(Math.min(24,sh+0.5)), _pr:g}; });
   }
   var body;
-  if(dayView && (prs.length || cub.length || media.length)){
+  if(dayView && (prs.length || cub.length || media.length || bus.length)){
     var tracks=[{key:'jam', lab:'잼버리 일정', cls:'', items:jam}];
     if(prs.length) tracks.push({key:'pr', lab:'의전 일정', cls:'gl-pr', items:prs});
     if(media.length) tracks.push({key:'media', lab:'홍보부', cls:'gl-media', items:media});
     if(cub.length) tracks.push({key:'cub', lab:'컵 참관단', cls:'gl-cub', items:cub});
+    if(bus.length) tracks.push({key:'bus', lab:'입·퇴영', cls:'gl-bus', items:bus});
     ttDayTracks=tracks.map(function(t){ return t.key; });   // 구분선 드래그가 어느 두 트랙을 조절할지 알아야 한다
     // 폭은 균등이 아니라 사용자가 끈 비중(ttColW)대로. 트랙이 1~3개로 달라지므로 고정 %가 아니라 가중치로 둔다.
     var n=tracks.length, gap=2, avail=100-(n-1)*gap;
@@ -2500,7 +2574,7 @@ function ttColumnHtml(d, dayView, hh){
         ttBlocksHtml(tk.items, {off:cur, span:span, hh:hh}, dayView);
     }).join('');
   } else {
-    body=ttBlocksHtml(jam.concat(prs, media, cub), {off:0, span:100, hh:hh}, dayView);
+    body=ttBlocksHtml(jam.concat(prs, media, cub, bus), {off:0, span:100, hh:hh}, dayView);
   }
   return '<div class="ttg-col" data-day="'+d[0]+'">'+ttCellsHtml(d[0], hh)+body+'</div>';
 }
@@ -2590,7 +2664,7 @@ function wireTimetableGrid(box){
   // 트랙 구분선 — 좌우로 끌어 열 너비 조절
   box.querySelectorAll('.ttg-vsplit[data-sp]').forEach(function(el){
     el.addEventListener('pointerdown', function(e){ ttSplitDown(e, +el.dataset.sp); });
-    el.addEventListener('dblclick', function(e){ e.stopPropagation(); resetTtColW(); });   // 더블클릭 = 균등 복귀
+    el.addEventListener('dblclick', function(e){ e.stopPropagation(); resetTtColW(); });   // 더블클릭 = 기본 비중 복귀
   });
   // 의전 블록 클릭 = 촬영 담당 지정(일정표에서 배정하다가 의전 탭까지 가지 않게). 상세 편집은 모달의 '의전 탭에서 편집'.
   box.querySelectorAll('.ttg-pr[data-pid]').forEach(function(el){ el.onclick=function(e){ e.stopPropagation(); openProtAssign(el.dataset.pid); }; });
@@ -2712,8 +2786,9 @@ function renderTTModal(){
       '<input type="text" class="cinput" id="tt-catinput" placeholder="+ 종류 입력">'+
     '</div></div>'+
     '<div class="evfld"><label>트랙 — 이 일정이 표시될 열</label><div class="evkinds" id="tt-track">'+
-      [['','잼버리 일정'],['media','홍보부'],['cub1','컵 참관단 1기'],['cub2','컵 참관단 2기']].map(function(t){
-        var cur=ttDraft.track==='media'?'media':ttDraft.track==='cub'?('cub'+((ttDraft.batch===2||ttDraft.batch==='2')?2:1)):'';
+      [['','잼버리 일정'],['media','홍보부'],['cub1','컵 참관단 1기'],['cub2','컵 참관단 2기'],['busin','입영 (입·퇴영)'],['busout','퇴영 (입·퇴영)']].map(function(t){
+        // 입영·퇴영은 열이 하나(bus)라 버튼만 둘로 나눠 방향(dir)을 고른다
+        var cur=ttDraft.track==='bus'?('bus'+busDirOf(ttDraft)):ttDraft.track==='media'?'media':ttDraft.track==='cub'?('cub'+((ttDraft.batch===2||ttDraft.batch==='2')?2:1)):'';
         var on=cur===t[0];
         return '<button type="button" class="evkind trk'+(on?' on':'')+'" data-trk="'+t[0]+'"'+(on?' style="background:var(--accent);border-color:var(--accent);color:#fff"':'')+'>'+esc(t[1])+'</button>';
       }).join('')+
@@ -2780,7 +2855,11 @@ function renderTTModal(){
   ['tt-eh','tt-em'].forEach(function(idd){ var el=b.querySelector('#'+idd); if(el) el.addEventListener('input',syncEnd); });
   b.querySelectorAll('#tt-rep .rep').forEach(function(bt){ if(bt.disabled) return; bt.onclick=function(){ if(!ttDraft._repeat) ttDraft._repeat=[]; var dd=bt.dataset.d; var i=ttDraft._repeat.indexOf(dd); if(i>=0) ttDraft._repeat.splice(i,1); else ttDraft._repeat.push(dd); renderTTModal(); }; });
   var trkSet=b.querySelector('#tt-track'); if(trkSet) trkSet.addEventListener('click',function(e){ var btn=e.target.closest('[data-trk]'); if(!btn) return; var v=btn.getAttribute('data-trk');
-    if(v==='cub1'){ ttDraft.track='cub'; ttDraft.batch=1; } else if(v==='cub2'){ ttDraft.track='cub'; ttDraft.batch=2; } else if(v==='media'){ ttDraft.track='media'; ttDraft.batch=0; } else { ttDraft.track=''; ttDraft.batch=0; }
+    if(v==='cub1'){ ttDraft.track='cub'; ttDraft.batch=1; ttDraft.dir=''; }
+    else if(v==='cub2'){ ttDraft.track='cub'; ttDraft.batch=2; ttDraft.dir=''; }
+    else if(v==='media'){ ttDraft.track='media'; ttDraft.batch=0; ttDraft.dir=''; }
+    else if(v==='busin'||v==='busout'){ ttDraft.track='bus'; ttDraft.batch=0; ttDraft.dir=(v==='busin'?'in':'out'); }
+    else { ttDraft.track=''; ttDraft.batch=0; ttDraft.dir=''; }
     trkSet.querySelectorAll('.trk').forEach(function(x){ x.classList.remove('on'); x.removeAttribute('style'); });
     btn.classList.add('on'); btn.setAttribute('style','background:var(--accent);border-color:var(--accent);color:#fff'); });
   b.querySelector('#tt-f-title').oninput=function(){ ttDraft.title=clipField('timetable','title',this.value); };
@@ -2803,7 +2882,7 @@ function afterTimetableChange(){
 /* --- 데이터 변경만 담당 (저장·렌더·알림은 호출부 책임) --- */
 function setTtNoCover(id, on){ var t=ttById(id); if(!t) return null; t.noCover=!!on; return t; }
 function removeTt(id){ state.timetable=ttList().filter(function(t){ return t.id!==id; }); }
-function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', zone:ttDraft.zone||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', tipId:ttDraft.tipId||'', track:ttDraft.track||'', batch:ttDraft.batch||0, noCover:!!ttDraft.noCover, rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
+function buildCleanTT(){ return {id:ttDraft.id, day:ttDraft.day, start:ttDraft.start, end:ttDraft.end, title:ttDraft.title.trim(), place:ttDraft.place||'', zone:ttDraft.zone||'', cat:ttDraft.cat, assignees:(ttDraft.assignees||[]).slice(), contacts:(ttDraft.contacts||[]).slice(), memo:ttDraft.memo||'', series:ttDraft.series||'', tipId:ttDraft.tipId||'', track:ttDraft.track||'', batch:ttDraft.batch||0, dir:(ttDraft.track==='bus'?busDirOf(ttDraft):''), noCover:!!ttDraft.noCover, rundown:(ttDraft.rundown||[]).filter(function(r){return (r.time||r.title||r.note);}).map(function(r){return {time:r.time||'',title:r.title||'',note:r.note||''};})}; }
 /* 취재 불필요 — 그리드 블록에서 바로 토글(여러 건을 빠르게 표시하려고 모달 없이) */
 function toggleNoCover(id){
   var t=setTtNoCover(id, !((ttById(id)||{}).noCover));
@@ -5347,7 +5426,7 @@ function setView(v){
 function loadBoard(){
   netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); migrateMealsStaff(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeBusTrack(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); migrateMealsStaff(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
     .then(function(){ netBusy(-1); });

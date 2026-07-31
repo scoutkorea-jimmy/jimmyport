@@ -2,7 +2,7 @@
  * 실행: node test/regress-krjam-planning-server.js
  * 동시편집 병합('다른 사람이 편집 중')은 실제로 다른 작성자가 그 사이 바꿨을 때만 일어나야 한다
  * (혼자·같은 사람의 레이스/캐시로 baseVer 만 옛것인 경우 = 오탐 → 병합 금지). */
-import { conflictByOther, cleanRoster } from '../functions/api/jamboree-plan.js';
+import { conflictByOther, cleanRoster, cleanTT } from '../functions/api/jamboree-plan.js';
 import { shrankTooMuch, countOf } from '../functions/api/_save-guard.js';
 import { issueMemberSession } from '../functions/api/_lib.js';
 
@@ -32,6 +32,16 @@ console.log('\n[roster 저장 정리 — cleanRoster]');
 chk('입영(arrive) 필드 보존(저장마다 유실 방지)', cleanRoster({ id: 'r1', name: '김', arrive: '2026-08-05T09:00' }).arrive, '2026-08-05T09:00');
 chk('입영 없으면 빈 문자열(폭발 안 함)', cleanRoster({ id: 'r1', name: '김' }).arrive, '');
 chk('기존 필드(name·team) 유지', cleanRoster({ id: 'r1', name: '김', team: 't1' }).name + '/' + cleanRoster({ id: 'r1', team: 't1' }).team, '김/t1');
+
+/* 일정표 저장 정리 — 화이트리스트라 새 필드를 빠뜨리면 저장할 때마다 조용히 유실된다(roster.arrive 가 실제로 그랬다).
+ * 입·퇴영 트랙은 dir('in'|'out')이 없으면 입영/퇴영 구분이 통째로 사라진다 → 여기서 못 박는다. */
+console.log('\n[일정표 저장 정리 — cleanTT]');
+chk('입·퇴영 track 보존', cleanTT({ id: 'b1', track: 'bus', dir: 'out' }).track, 'bus');
+chk('입·퇴영 dir=out 보존(저장마다 유실 방지)', cleanTT({ id: 'b1', track: 'bus', dir: 'out' }).dir, 'out');
+chk('입·퇴영 dir=in 보존', cleanTT({ id: 'b1', track: 'bus', dir: 'in' }).dir, 'in');
+chk('dir 없으면 빈 문자열', cleanTT({ id: 't1', track: '' }).dir, '');
+chk('dir 값이 이상하면 빈 문자열(임의값 저장 안 함)', cleanTT({ id: 't1', dir: '퇴영' }).dir, '');
+chk('컵 트랙 track/batch 는 그대로', cleanTT({ id: 'c1', track: 'cub', batch: 2 }).track + '/' + cleanTT({ id: 'c1', track: 'cub', batch: 2 }).batch, 'cub/2');
 
 /* ── 부분 전멸 가드 (v0.9.286) ────────────────────────────────────────────────
  * 여기까지의 보호(낙관적 잠금·병합)는 "누가 먼저 바꿨나"만 본다. 혼자 편집하는 중에 항목이

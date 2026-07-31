@@ -324,6 +324,100 @@ const SEED = () => {
   chk('홍보부 회의 → 홍보부 트랙 이동(프로그램은 유지·멱등)', mmove.moved === 1 && mmove.hbTrack === 'media' && mmove.progTrack === 'jam' && mmove.again === 0, JSON.stringify({ m: mmove.moved, hb: mmove.hbTrack, prog: mmove.progTrack, again: mmove.again }));
   chk('편집 모달 트랙 선택에 홍보부 옵션', mmove.trkOpts.indexOf('홍보부') >= 0, mmove.trkOpts.join('|'));
 
+  /* 입·퇴영 호차 트랙 (v0.9.290) — 입영·퇴영을 **한 열**에 두고 방향은 dir + 태그로 구분한다(사용자 지시).
+   * 여기서 못 박는 것: 시드 내용/개수, 30분 블록, 일간뷰 별도 열, dir 저장(화이트리스트), track/dir 복구. */
+  console.log('\n[입·퇴영 호차 트랙]');
+  const bus = await page.evaluate(() => {
+    const seeds = busTrackSeeds();
+    const byId = (id) => seeds.find((s) => s.id === id);
+    const dur = seeds.map((s) => (t2h(s.end) - t2h(s.start)).toFixed(2));
+    return {
+      n: seeds.length,
+      allBus: seeds.every((s) => s.track === 'bus'),
+      idOk: seeds.every((s) => /^bus-(in|out)-\d{4}-\d{4}-/.test(s.id)),
+      uniq: new Set(seeds.map((s) => s.id)).size,
+      ins: seeds.filter((s) => s.dir === 'in').length,
+      outs: seeds.filter((s) => s.dir === 'out').length,
+      days: [...new Set(seeds.map((s) => s.day))].sort().join(','),
+      allHalfHour: dur.every((d) => d === '0.50'),
+      inTracks: TT_TRACKS.some((t) => t[0] === 'bus' && t[1] === '입·퇴영'),
+      // 표기 정정 3건(사용자 확정)
+      ukr: (byId('bus-out-0809-0910-c') || {}).title || '',
+      twn: (byId('bus-in-0804-1730-b') || {}).title || '',
+      bus12: (byId('bus-in-0805-1730-12') || {}).title || '',
+      firstOut: (byId('bus-out-0809-0600-a') || {}).title || '',
+    };
+  });
+  chk('입·퇴영 시드 16건(입영 9 · 퇴영 7) · track=bus · id 규칙 · 중복 없음',
+    bus.n === 16 && bus.ins === 9 && bus.outs === 7 && bus.allBus && bus.idOk && bus.uniq === 16,
+    bus.n + '건(입' + bus.ins + '/퇴' + bus.outs + ') uniq=' + bus.uniq);
+  chk('입영 8/3·8/4·8/5 · 퇴영 8/9', bus.days === '2026-08-03,2026-08-04,2026-08-05,2026-08-09', bus.days);
+  chk('블록 길이 30분 고정(시각만 주어짐)', bus.allHalfHour, '');
+  chk('트랙 목록에 입·퇴영 등록(입영/퇴영 한 열)', bus.inTracks, '');
+  chk('표기 정정 — 우크라이타 → 우크라이나', /우크라이나/.test(bus.ukr) && !/우크라이타/.test(bus.ukr), bus.ukr);
+  chk('표기 정정 — 8/4 B호차 대만 중복 제거', bus.twn === 'B호차 — 대만 · 슬로베니아 · 홍콩', bus.twn);
+  chk('12호차는 원문 표기 유지', /^12호차 — /.test(bus.bus12), bus.bus12);
+  chk('8/9 첫 퇴영 = 06:00 A호차', bus.firstOut === 'A호차 — 뉴질랜드 · 마카오', bus.firstOut);
+
+  // 일간뷰 8/5 — 입·퇴영이 잼버리/컵과 구분된 별도 열로 뜨는가
+  const busv = await page.evaluate(() => ({
+    labs: [...document.querySelectorAll('.ttg-col .ttg-grouplab')].map((x) => x.textContent),
+    blocks: [...document.querySelectorAll('.ttg-ev[data-id]')].filter((x) => /^bus-/.test(x.getAttribute('data-id'))).length,
+    tags: [...document.querySelectorAll('.ttg-ev.bus .cubtag')].map((x) => x.textContent),
+    legend: [...document.querySelectorAll('.ttfchip')].map((x) => x.textContent),
+    busBg: (document.querySelector('.ttg-ev.bus') && getComputedStyle(document.querySelector('.ttg-ev.bus')).backgroundColor) || '',
+  }));
+  chk('일간뷰 8/5 — 입·퇴영 별도 열 + 호차 6건', busv.labs.includes('입·퇴영') && busv.blocks === 6, busv.labs.join('|') + ' / ' + busv.blocks + '건');
+  chk('블록에 방향 태그(입영)', busv.tags.length === 6 && busv.tags.every((t) => t === '입영'), busv.tags.join(','));
+  chk('보기 필터에 입·퇴영 칩', busv.legend.some((t) => /입·퇴영/.test(t)), busv.legend.join('·'));
+  chk('입·퇴영 색 = 컵 1기(청)와 다름', busv.busBg && !/63, 111, 168/.test(busv.busBg), busv.busBg);
+
+  // 8/9 — 09:00~09:50 에 5대가 몰린다. 전부 그려지고 레인으로 갈라져야 한다(겹쳐 가려지면 안 됨).
+  const bus9 = await page.evaluate(() => {
+    ttDay = '2026-08-09'; renderTimetable();
+    const els = [...document.querySelectorAll('.ttg-ev[data-id]')].filter((x) => /^bus-out-/.test(x.getAttribute('data-id')));
+    const lefts = new Set(els.map((x) => x.style.left));
+    const pos = new Set(els.map((x) => x.style.top + '|' + x.style.left));
+    return { n: els.length, lanes: lefts.size, pos: pos.size, tags: [...new Set([...document.querySelectorAll('.ttg-ev.bus .cubtag')].map((x) => x.textContent))] };
+  });
+  chk('8/9 퇴영 7건 전부 렌더', bus9.n === 7, bus9.n + '건');
+  // 09:00·09:10·09:20·09:40·09:50 이 30분씩 겹친다 → 겹침 뭉치가 레인 3개로 갈라져야 한 대도 가려지지 않는다.
+  chk('겹치는 호차는 레인으로 갈라진다(가려짐 없음)', bus9.lanes === 3 && bus9.pos === 7, '레인 ' + bus9.lanes + ' · 좌표 ' + bus9.pos + '/7');
+  chk('8/9 블록 태그 = 퇴영', bus9.tags.length === 1 && bus9.tags[0] === '퇴영', bus9.tags.join(','));
+
+  // 편집 모달 — 입영/퇴영 버튼으로 track='bus' + dir 저장. dir 은 서버 화이트리스트에도 있어야 산다.
+  const busm = await page.evaluate(() => {
+    openTT('bus-out-0809-0600-a');
+    const opts = [...document.querySelectorAll('#tt-track [data-trk]')].map((b) => b.textContent);
+    const onNow = (document.querySelector('#tt-track .trk.on') || {}).textContent || '';
+    const inBtn = [...document.querySelectorAll('#tt-track [data-trk]')].find((b) => b.getAttribute('data-trk') === 'busin');
+    inBtn.click();
+    const clean = buildCleanTT();
+    document.getElementById('tt-cancel').click();
+    return { opts, onNow, track: clean.track, dir: clean.dir };
+  });
+  chk('모달 트랙 옵션에 입영·퇴영(열은 하나)', busm.opts.filter((t) => /입·퇴영/.test(t)).length === 2, busm.opts.join('|'));
+  chk('퇴영 항목 열면 퇴영 버튼이 켜져 있다', /퇴영/.test(busm.onNow), busm.onNow);
+  chk('입영으로 바꾸면 track=bus · dir=in 으로 저장된다', busm.track === 'bus' && busm.dir === 'in', busm.track + '/' + busm.dir);
+
+  // track/dir 이 편집으로 벗겨져도 id 가 증거 → 복구(컵 트랙에서 겪은 유실 패턴)
+  const busfix = await page.evaluate(() => {
+    const t = ttById('bus-out-0809-0900-b');
+    t.track = ''; t.dir = '';
+    const fixedRun = mergeBusTrack();
+    const after = ttById('bus-out-0809-0900-b');
+    const again = mergeBusTrack();
+    const total = ttList().filter((x) => /^bus-/.test(x.id)).length;
+    ttDay = '2026-08-05'; renderTimetable();
+    return { track: after.track, dir: after.dir, fixedRun, again, total };
+  });
+  chk('track/dir 이 벗겨져도 id 로 되살린다', busfix.track === 'bus' && busfix.dir === 'out', busfix.track + '/' + busfix.dir);
+  chk('시드 재주입 없음(멱등 · 브라우저당 1회)', busfix.fixedRun === 0 && busfix.again === 0 && busfix.total === 16, JSON.stringify(busfix));
+
+  // 취재 리스트는 호차를 잡지 않는다(취재 대상이 아님)
+  chk('입·퇴영은 촬영 리스트에 올라가지 않는다',
+    await page.evaluate(() => !shootListData().some((r) => /^tt:bus-/.test(r.ttId || ''))), '');
+
   console.log('\n[식사 메뉴]');
   await go('meals');
   const ml = await page.evaluate(() => ({
