@@ -19,3 +19,8 @@
 - 사용자: 공개 페이지를 온사이트 제보가 아니라 **제16회 한국잼버리 소식**을 모으는 창구로 — **잼버리 시작 전부터** 참가자 관련 특별 소식·사연을 미리 제보.
 - 공개 페이지(`krjam-jebo.html`) 카피 교체(ko/en): 제목 ‘잼버리 소식 제보 / Share Jamboree News’, 리드(행사 전 특별 소식·사연 강조), 내용 placeholder, 위치→‘관련 위치(선택)’, `<title>`/OG. 필드·동의·전화 필수 등 구조는 §16.49b 유지.
 - 인박스(planning): 탭 ‘현장 제보’→‘소식 제보’, 섹션 ‘잼버리 소식 제보’, 안내문·모달 제목·기사화/자료화 라벨 reword(내부 id `tips` 불변). 검증: `node --check`+헤드리스(제목 KO/EN·관련 위치·콘솔 0)+라이브 title 확인.
+
+### 16.xx v0.9.292 — 관련 위치(구역) 목록을 배치도 2026-07-23 최종본에 맞춤
+- 공개 제보 페이지의 구역 드롭다운은 홍보부 보드(`app.js` `ZONES`)와 **같은 key** 를 쓴다 — 제보의 `zone` 값을 그 화면이 그대로 읽기 때문이다. 배치도를 갈아끼우면 **양쪽을 같이** 고쳐야 한다.
+- 신설 `p5` 과정5 · `p7` 과정7 · `safety` 안전본부 · `park` 주차장 / 폐지 `staffpark`·`buspark` / 라벨 정정 `stage` 대집회장(Grand Assembly Ground) · `food` 급식편의본부(Catering & Amenities HQ) · `gym` 과정6 활동장·체육관(Program Field 6 · Gym).
+- 회귀: 개수를 박아 둔 `구역 30개` 검사를 **`ZONES.length` 기준**으로 바꾸고, 신설·폐지 key 와 정정 라벨을 단언으로 못 박았다(**29→32건**). 상세는 [planning §v0.9.292](../krjam-planning/changelog.md).
