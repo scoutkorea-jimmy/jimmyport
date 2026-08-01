@@ -90,7 +90,15 @@ const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  P
   await page.click('#more'); await new Promise((r) => setTimeout(r, 200));
   const opened = await page.evaluate(() => ({ hidden: document.getElementById('sec-opt').hidden, aria: document.getElementById('more').getAttribute('aria-expanded'), zones: document.querySelectorAll('#f-zone option').length }));
   chk('더 알려주기 → 펼침 (aria 반영)', opened.hidden === false && opened.aria === 'true');
-  chk('구역 30개 (선택 안 함 + 29)', opened.zones === 30, opened.zones + '개');
+  // 구역 목록은 홍보부 보드(app.js ZONES)와 같은 key 를 쓴다 — 숫자를 박아 두면 배치도가 바뀔 때마다 여기서 걸린다.
+  // 개수는 ZONES 를 그대로 세고, '배치도가 바뀌면 같이 바뀌어야 하는 것'은 key 로 못 박는다(v0.9.292).
+  const zjb = await page.evaluate(() => ({ n: ZONES.length, keys: ZONES.map((z) => z[0]),
+    labels: Object.fromEntries(ZONES.map((z) => [z[0], z[1]])) }));
+  chk('구역 옵션 = ZONES 전부 + 선택 안 함', opened.zones === zjb.n + 1, opened.zones + '개 / ZONES ' + zjb.n);
+  chk('배치도 최종본 반영 — 과정5·과정7·안전본부·주차장 있음', ['p5', 'p7', 'safety', 'park'].every((k) => zjb.keys.includes(k)), zjb.keys.join(','));
+  chk('폐지 구역(운영요원·버스 주차장) 없음', !zjb.keys.includes('staffpark') && !zjb.keys.includes('buspark'));
+  chk('라벨 정정(대집회장 · 급식편의본부 · 과정6)', zjb.labels.stage === '대집회장' && zjb.labels.food === '급식편의본부' && /과정6/.test(zjb.labels.gym),
+    [zjb.labels.stage, zjb.labels.food, zjb.labels.gym].join(' · '));
   await page.evaluate(() => { document.getElementById('f-text').value = 'x'; document.getElementById('f-name').value = '김'; document.getElementById('f-phone').value = '010';
     document.getElementById('f-org').value = '평화숲분단'; document.getElementById('f-zone').value = 'food';
     document.getElementById('f-date').value = '2026-08-05'; document.getElementById('f-hh').value = '9'; document.getElementById('f-mm').value = '5';

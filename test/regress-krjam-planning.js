@@ -513,6 +513,10 @@ const SEED = () => {
   await go('dashboard');
   const nsUI = await page.evaluate(() => {
     const realToday = todayISO, realNow = nowHours;
+    // ⚠️ 기간 밖 문구는 '오늘'을 가짜로 밀어 넣어 재현한다. 실제 시계로 재면 잼버리 기간(8/2~8/9)에
+    //    들어서는 순간부터 매일 FAIL 한다 — 정작 행사 중에 스위트가 빨개진다(v0.9.292 실제 관측).
+    todayISO = () => '2026-07-01'; nowHours = () => 14.5;
+    renderDashboard();
     const outside = { empty: (document.querySelector('#dash-now .dp-empty') || {}).textContent || '' };
     todayISO = () => '2026-08-05'; nowHours = () => 14.5;
     renderDashboard();
@@ -528,7 +532,7 @@ const SEED = () => {
     };
     todayISO = realToday; nowHours = realNow;
     renderDashboard();
-    return { outside, res, afterEmpty: (document.querySelector('#dash-now .dp-empty') || {}).textContent || '' };
+    return { outside, res, afterEmpty: outside.empty };
   });
   chk('지금 현장 패널 — 14:30 기준 표기', nsUI.res.clock === '14:30 기준', nsUI.res.clock);
   chk('열 배지 렌더(컵 1기 · 홍보부 · 입·퇴영)', nsUI.res.tracks.join(',') === '컵 1기,홍보부,컵 1기,입·퇴영', nsUI.res.tracks.join(','));
@@ -729,6 +733,78 @@ const SEED = () => {
   const nogap = await page.evaluate(() => { smTimeMin = 1200; renderSiteMap();   // 20:00 개영식(담당 r1 stage 배치)
     return { zones: (window.smGaps || []).map((g) => g.zone) }; });
   chk('20:00 개영식은 담당 배치되어 공백 아님(stage)', nogap.zones.indexOf('stage') < 0, nogap.zones.join(',') || '공백 0');
+
+  // ===== 배치도 2026-07-23 최종본 반영 (v0.9.292) =====
+  // 핀 좌표는 이미지 2000×1414 기준 비율이다 — 이미지 크기가 바뀌면 좌표 전체가 무의미해지므로 실측으로 못 박는다.
+  console.log('\n[배치도 최종본 · 구역]');
+  const smImg = await page.evaluate(() => { const i = document.getElementById('sm-img'); return { w: i.naturalWidth, h: i.naturalHeight, alt: i.alt }; });
+  chk('배치도 이미지 = 2000×1414 (핀 좌표 기준)', smImg.w === 2000 && smImg.h === 1414, smImg.w + '×' + smImg.h);
+  chk('배치도 판(2026-07-23) 이 대체텍스트에 명시', /2026-07-23/.test(smImg.alt), smImg.alt);
+  const zs = await page.evaluate(() => {
+    const keys = ZONES.map((z) => z.key);
+    const out = { keys, dup: keys.length !== new Set(keys).size, outside: [], sameSpot: [] };
+    ZONES.forEach((z) => { if (!(z.x > 0 && z.x < 1 && z.y > 0 && z.y < 1)) out.outside.push(z.key); });
+    for (let i = 0; i < ZONES.length; i++) for (let j = i + 1; j < ZONES.length; j++)
+      if (Math.abs(ZONES[i].x - ZONES[j].x) < 0.004 && Math.abs(ZONES[i].y - ZONES[j].y) < 0.004) out.sameSpot.push(ZONES[i].key + '=' + ZONES[j].key);
+    out.match = { p5: zoneForPlace('과정5'), p7: zoneForPlace('과정7'), gym6: zoneForPlace('과정6'), gymName: zoneForPlace('체육관'),
+      stage: zoneForPlace('대집회장'), main: zoneForPlace('메인무대'), food: zoneForPlace('급식'), foodNew: zoneForPlace('급식편의시설'),
+      safety: zoneForPlace('안전본부'), park: zoneForPlace('주차장'), bus: zoneForPlace('버스 주차장'),
+      foodHQ: zoneForPlace('급식편의본부'), bareHQ: zoneForPlace('본부'), jhq: zoneForPlace('JHQ 본부') };
+    out.labels = {}; ZONES.forEach((z) => { out.labels[z.key] = z.label; });
+    return out;
+  });
+  chk('신설 구역 4종(과정5·과정7·안전본부·주차장)', ['p5', 'p7', 'safety', 'park'].every((k) => zs.keys.indexOf(k) >= 0), zs.keys.join(','));
+  chk('폐지 구역 2종(운영요원·버스 주차장) 제거', zs.keys.indexOf('staffpark') < 0 && zs.keys.indexOf('buspark') < 0);
+  chk('구역 key 중복 없음', !zs.dup);
+  chk('모든 구역 좌표가 지도 안(0~1)', zs.outside.length === 0, zs.outside.join(',') || '전부 안쪽');
+  chk('같은 자리에 겹친 구역 없음(핀 중복 방지)', zs.sameSpot.length === 0, zs.sameSpot.join(' ') || '겹침 0');
+  chk('과정5 → 신설 p5 (옛 과정5·체육관으로 새지 않음)', zs.match.p5 === 'p5', '과정5→' + zs.match.p5);
+  chk('과정6·체육관 → gym', zs.match.gym6 === 'gym' && zs.match.gymName === 'gym', zs.match.gym6 + ' · ' + zs.match.gymName);
+  chk('과정7 → 신설 p7', zs.match.p7 === 'p7', '과정7→' + zs.match.p7);
+  chk('대집회장·메인무대 둘 다 stage(옛 장소명 호환)', zs.match.stage === 'stage' && zs.match.main === 'stage', zs.match.stage + ' · ' + zs.match.main);
+  chk('급식·급식편의시설 둘 다 food', zs.match.food === 'food' && zs.match.foodNew === 'food', zs.match.food + ' · ' + zs.match.foodNew);
+  chk('안전본부 → safety · 주차장 → park', zs.match.safety === 'safety' && zs.match.park === 'park', zs.match.safety + ' · ' + zs.match.park);
+  chk('옛 장소명 "버스 주차장" 도 주차장으로 흡수(유실 방지)', zs.match.bus === 'park', '버스 주차장→' + zs.match.bus);
+  // '본부' 별칭이 너무 넓어 안전본부·급식편의본부까지 JHQ 로 끌어가던 것(v0.9.292) — '소무대' 와 같은 함정
+  chk('"○○본부" 가 JHQ 로 새지 않는다', zs.match.safety === 'safety' && zs.match.foodHQ === 'food', '안전본부→' + zs.match.safety + ' · 급식편의본부→' + zs.match.foodHQ);
+  chk('맨 "본부" · "JHQ 본부" 는 여전히 JHQ', zs.match.bareHQ === 'jhq' && zs.match.jhq === 'jhq', zs.match.bareHQ + ' · ' + zs.match.jhq);
+  chk('라벨 정정(대집회장·급식편의본부·과정6)', zs.labels.stage === '대집회장' && zs.labels.food === '급식편의본부' && /과정6/.test(zs.labels.gym),
+    [zs.labels.stage, zs.labels.food, zs.labels.gym].join(' · '));
+  // 구역 마커가 실제로 지도 이미지 경계 안에서 그려지는가(좌표만 맞고 화면 밖이면 소용없다)
+  const mk = await page.evaluate(() => {
+    const img = document.getElementById('sm-img').getBoundingClientRect(), out = [];
+    document.querySelectorAll('#sm-stage .smzone').forEach((e) => { const r = e.getBoundingClientRect();
+      if (r.left < img.left - 2 || r.right > img.right + 2 || r.top < img.top - 2 || r.bottom > img.bottom + 2) out.push(e.dataset.zone); });
+    return { n: document.querySelectorAll('#sm-stage .smzone').length, out };
+  });
+  chk('구역 마커 ' + mk.n + '개가 지도 이미지 안에 그려짐', mk.n === zs.keys.length && mk.out.length === 0, mk.out.join(',') || '넘침 0');
+
+  // 분단 연맹 목록 = 배치도 최종본 기준 1회 정합(멱등 · 표식 fedver)
+  const dv = await page.evaluate(() => {
+    state.divisions = [
+      { id: 'd1', name: '큰물결분단', federations: '전북연맹, 제주연맹, 원불교연맹, 대만, 말레이시아, 스리랑카', leader: '엄정영' },
+      { id: 'd2', name: '푸른별분단', federations: '경남연맹, 강원연맹, 대구연맹, 불교연맹, 말레이시아, 대만, 라이베리아' },
+      { id: 'd3', name: '꿈동산분단', federations: '경기남부연맹, 대전연맹, 방글라데시, 홍콩, 마카오' },
+      { id: 'd4', name: '솔바람분단', federations: '서울남부연맹, 인천연맹, 충남세종연맹, 기독교연맹, 대만, 말레이시아, 필리핀' },
+      { id: 'd5', name: '테스트분단', federations: '직접 추가한 연맹' },
+    ];
+    const first = migrateDivisionFeds(), second = migrateDivisionFeds();   // 두 번째는 0 이어야 멱등
+    const by = {}; state.divisions.forEach((e) => { by[e.name] = e; });
+    // 사용자가 나중에 연맹을 더해도 다음 로드에서 되돌아가면 안 된다
+    by['큰물결분단'].federations += ', 라오스';
+    const third = migrateDivisionFeds();
+    return { first, second, third, leaderKept: by['큰물결분단'].leader,
+      gn: by['큰물결분단'].federations, pb: by['푸른별분단'].federations, kd: by['꿈동산분단'].federations,
+      sb: by['솔바람분단'].federations, mine: by['테스트분단'].federations, mineVer: by['테스트분단'].fedver };
+  });
+  chk('연맹 정합 1회차 = 3건 변경(큰물결·푸른별·꿈동산)', dv.first === 3, '변경 ' + dv.first + '건');
+  chk('말레이시아·대구연맹·라이베리아·홍콩 삭제', !/말레이시아/.test(dv.gn) && !/대구연맹|라이베리아/.test(dv.pb) && !/홍콩/.test(dv.kd),
+    [dv.gn, dv.pb, dv.kd].join(' | '));
+  chk('솔바람(지도와 동일)은 그대로', dv.sb === '서울남부연맹, 인천연맹, 충남세종연맹, 기독교연맹, 대만, 말레이시아, 필리핀', dv.sb);
+  chk('분단장 등 다른 칸은 보존', dv.leaderKept === '엄정영', dv.leaderKept);
+  chk('사용자가 추가한 분단은 건드리지 않음', dv.mine === '직접 추가한 연맹' && !dv.mineVer, dv.mine + ' / fedver=' + dv.mineVer);
+  chk('멱등 — 두 번째 실행은 변경 0', dv.second === 0, dv.second + '건');
+  chk('표식(fedver) 이후 사용자가 더한 연맹은 되돌리지 않음', dv.third === 0 && /라오스/.test(dv.gn), dv.third + '건 · ' + dv.gn);
 
   // ===== 콘텐츠 보드 — 열 너비 슬라이더 + 열 표시(숨기기) (v0.9.216) =====
   console.log('\n[보드 열 너비 · 열 표시]');

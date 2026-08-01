@@ -3216,25 +3216,33 @@ function renderContacts(){
 }
 
 /* ===== 현장 위치 지도 (site map) — 홍보부 인원 위치 (수동 배치 + 일정표 연동) ===== */
-/* 좌표(x,y)는 배치도 이미지(2000×1414) 기준 비율(0~1). al=장소명 자동매칭 별칭 */
+/* 좌표(x,y)는 배치도 이미지(2000×1414) 기준 비율(0~1). al=장소명 자동매칭 별칭
+   배치도 기준본: 2026-07-23 시설물자관리본부 최종본(원본 KakaoTalk_Photo_2026-08-02-00-13-17.png).
+   ⚠️ 배치도를 갈아끼우면 아래 좌표도 같이 재실측할 것 — 이미지만 바꾸면 핀이 엉뚱한 곳을 가리킨다. */
 var ZONES=[
   // 본부 · 시설
-  {key:'jhq',label:'JHQ 본부',grp:'본부·시설',x:0.416,y:0.373,al:['jhq','본부','미디어','홍보','상황실','회의']},
+  // ⚠️ 별칭에서 '본부' 제거(v0.9.292): 부분문자열 매칭이라 '안전본부'·'급식편의본부'까지 JHQ 로 끌어갔다.
+  //    맨 장소명 '본부' 는 라벨('JHQ 본부')이 그대로 잡아 주므로 매칭은 잃지 않는다. '소무대' 때와 같은 함정.
+  {key:'jhq',label:'JHQ 본부',grp:'본부·시설',x:0.416,y:0.373,al:['jhq','미디어','홍보','상황실','회의']},
   {key:'exhibit',label:'전시·행사장',grp:'본부·시설',x:0.374,y:0.460,al:['전시','행사장','문화']},
   // ⚠️ 별칭에서 '무대' 제거(v0.9.212): 부분문자열 매칭이라 '소무대'까지 메인무대로 끌어갔다.
   // 소무대는 배치도상 위치를 몰라 아직 구역이 없다 — 잘못된 곳에 사람을 표시하느니 구역을 비워 둔다.
-  {key:'stage',label:'메인무대',grp:'본부·시설',x:0.505,y:0.792,al:['메인','메인스테이지','스타디움','스테이지','개영','폐영','어워드','페스티벌']},
-  {key:'food',label:'급식',grp:'본부·시설',x:0.345,y:0.642,al:['급식','식사','배식','중식','석식','조식']},
+  {key:'stage',label:'대집회장',grp:'본부·시설',x:0.505,y:0.792,al:['메인','메인무대','메인스테이지','스타디움','스테이지','개영','폐영','어워드','페스티벌','대집회']},
+  {key:'food',label:'급식편의본부',grp:'본부·시설',x:0.345,y:0.642,al:['급식','식사','배식','중식','석식','조식','편의시설']},
   {key:'camp',label:'대회장·야영장',grp:'본부·시설',x:0.456,y:0.362,al:['대회장','야영장','설영','서브캠프']},
   {key:'p1',label:'과정1 활동장',grp:'본부·시설',x:0.318,y:0.368,al:['과정1']},
   {key:'p2',label:'과정2 활동장',grp:'본부·시설',x:0.325,y:0.449,al:['과정2','과정활동']},
   {key:'p3',label:'과정3 활동장',grp:'본부·시설',x:0.363,y:0.382,al:['과정3']},
   {key:'p4',label:'과정4 활동장',grp:'본부·시설',x:0.616,y:0.177,al:['과정4']},
-  {key:'gym',label:'과정5·체육관',grp:'본부·시설',x:0.438,y:0.840,al:['과정5','체육관']},
+  {key:'p5',label:'과정5 활동장',grp:'본부·시설',x:0.606,y:0.568,al:['과정5']},
+  // 과정6 과 체육관은 배치도상 같은 건물(파란 다각형 하나에 라벨 둘) — 구역을 나누면 핀이 같은 자리에 겹친다.
+  {key:'gym',label:'과정6 활동장·체육관',grp:'본부·시설',x:0.438,y:0.840,al:['과정6','체육관']},
+  {key:'p7',label:'과정7 활동장',grp:'본부·시설',x:0.080,y:0.919,al:['과정7']},
+  {key:'safety',label:'안전본부',grp:'본부·시설',x:0.171,y:0.547,al:['안전본부','안전']},
   {key:'supply',label:'물자보급장소',grp:'본부·시설',x:0.246,y:0.376,al:['물자','보급']},
   {key:'cubs',label:'컵스카우트 숙소',grp:'본부·시설',x:0.196,y:0.424,al:['컵스']},
-  {key:'staffpark',label:'운영요원 주차장',grp:'본부·시설',x:0.486,y:0.207,al:['운영요원주차']},
-  {key:'buspark',label:'버스 주차장',grp:'본부·시설',x:0.536,y:0.171,al:['버스']},
+  // v0.9.292: 2026-07-23 배치도에서 운영요원·버스 주차장 구분이 사라지고 P(주차장) 한 곳만 남았다.
+  {key:'park',label:'주차장',grp:'본부·시설',x:0.489,y:0.252,al:['주차','버스','운영요원주차']},
   {key:'admin',label:'관리사무소',grp:'본부·시설',x:0.235,y:0.624,al:['관리사무소']},
   {key:'hospital',label:'잼버리병원',grp:'본부·시설',x:0.173,y:0.461,al:['병원','의료','구호']},
   {key:'staffhouse',label:'운영요원 숙소',grp:'본부·시설',x:0.581,y:0.433,al:['운영요원숙소','숙소']},
@@ -3475,15 +3483,45 @@ function exportJSON(){
 }
 
 /* ===== 분단 명단 (divisions) ===== */
+/* 연맹 목록 정본 = 2026-07-23 시설물자관리본부 배치도 최종본(사용자 확정 2026-08-02).
+ * FED_VER 는 그 정본을 한 번만 덮어쓰기 위한 표식이다 — migrateDivisionFeds() 참조. */
+var FED_VER='2026-07-23';
+var FED_0723={
+  '평화숲분단':'서울북부연맹, 경기북부연맹, 부산연맹, 일본, 스리랑카',
+  '어울림분단':'가톨릭연맹, 대만, 싱가포르',
+  '푸른별분단':'경남연맹, 강원연맹, 불교연맹, 말레이시아, 대만',
+  '솔바람분단':'서울남부연맹, 인천연맹, 충남세종연맹, 기독교연맹, 대만, 말레이시아, 필리핀',
+  '큰물결분단':'전북연맹, 제주연맹, 원불교연맹, 대만, 스리랑카',
+  '빛누리분단':'광주연맹, 충북연맹, 전남연맹, 태국, 싱가포르, 스리랑카',
+  '꿈동산분단':'경기남부연맹, 대전연맹, 방글라데시, 마카오'
+};
 function defaultDivisions(){ return [
-  {id:mkid(),name:'평화숲분단',region:'서울북부',federations:'서울북부연맹, 경기북부연맹, 부산연맹, 일본, 스리랑카, 말레이시아',leader:'엄철용',ops:'송중현',safety:'허삼흥',support:'조형호'},
-  {id:mkid(),name:'어울림분단',region:'가톨릭',federations:'가톨릭연맹, 대만, 싱가포르',leader:'구형수',ops:'방중현',safety:'김지현',support:'김수연'},
-  {id:mkid(),name:'푸른별분단',region:'',federations:'경남연맹, 강원연맹, 대구연맹, 불교연맹, 말레이시아, 대만, 라이베리아',leader:'',ops:'',safety:'',support:''},
-  {id:mkid(),name:'솔바람분단',region:'서울남부',federations:'서울남부연맹, 인천연맹, 충남세종연맹, 기독교연맹, 대만, 말레이시아, 필리핀',leader:'안승휘',ops:'',safety:'',support:''},
-  {id:mkid(),name:'큰물결분단',region:'전북',federations:'전북연맹, 제주연맹, 원불교연맹, 대만, 말레이시아, 스리랑카',leader:'엄정영',ops:'박철',safety:'김인',support:'전혁준'},
-  {id:mkid(),name:'빛누리분단',region:'광주',federations:'광주연맹, 충북연맹, 전남연맹, 태국, 싱가포르, 스리랑카',leader:'이승용',ops:'박선주',safety:'한진혁',support:'유창훈'},
-  {id:mkid(),name:'꿈동산분단',region:'경기남부',federations:'경기남부연맹, 대전연맹, 방글라데시, 홍콩, 마카오',leader:'이성수',ops:'박혜정',safety:'주락형',support:'김홍기'}
+  {id:mkid(),name:'평화숲분단',region:'서울북부',federations:FED_0723['평화숲분단'],fedver:FED_VER,leader:'엄철용',ops:'송중현',safety:'허삼흥',support:'조형호'},
+  {id:mkid(),name:'어울림분단',region:'가톨릭',federations:FED_0723['어울림분단'],fedver:FED_VER,leader:'구형수',ops:'방중현',safety:'김지현',support:'김수연'},
+  {id:mkid(),name:'푸른별분단',region:'',federations:FED_0723['푸른별분단'],fedver:FED_VER,leader:'',ops:'',safety:'',support:''},
+  {id:mkid(),name:'솔바람분단',region:'서울남부',federations:FED_0723['솔바람분단'],fedver:FED_VER,leader:'안승휘',ops:'',safety:'',support:''},
+  {id:mkid(),name:'큰물결분단',region:'전북',federations:FED_0723['큰물결분단'],fedver:FED_VER,leader:'엄정영',ops:'박철',safety:'김인',support:'전혁준'},
+  {id:mkid(),name:'빛누리분단',region:'광주',federations:FED_0723['빛누리분단'],fedver:FED_VER,leader:'이승용',ops:'박선주',safety:'한진혁',support:'유창훈'},
+  {id:mkid(),name:'꿈동산분단',region:'경기남부',federations:FED_0723['꿈동산분단'],fedver:FED_VER,leader:'이성수',ops:'박혜정',safety:'주락형',support:'김홍기'}
 ]; }
+/* 이미 저장된 보드의 연맹 목록을 배치도 최종본 기준으로 1회 정합(사용자 확정 — 지도가 정본).
+ * 지워지는 것: 큰물결·평화숲의 말레이시아 · 푸른별의 대구연맹/라이베리아 · 꿈동산의 홍콩.
+ * ⚠️ 멱등 가드는 분단마다 찍는 fedver 표식이다. '지도에 없는 연맹이 있으면 지운다'로 만들면
+ *    사용자가 나중에 직접 더한 연맹까지 매 로드마다 다시 지워 버린다(= 조용한 데이터 유실).
+ * ⚠️ fedver 는 서버 cleanDivision 화이트리스트에도 있어야 한다 — 없으면 저장 때마다 표식이 날아가
+ *    같은 마이그레이션이 영원히 반복된다(roster.arrive 와 같은 함정). */
+function migrateDivisionFeds(){
+  if(!domainStored('divisions')) return 0;      // 저장된 적 없는 보드 = 시드가 이미 최종본. 시드를 되살려 저장하지 않는다.
+  var L=divisionList(), touched=0, changed=0;
+  L.forEach(function(e){
+    if(!e || e.fedver===FED_VER) return;
+    var f=FED_0723[e.name]; if(!f) return;      // 사용자가 추가한 분단은 건드리지 않는다
+    e.fedver=FED_VER; touched++;
+    if(e.federations!==f){ e.federations=f; changed++; }
+  });
+  if(touched){ saveDivisions(); console.info('[마이그레이션] 분단 연맹 목록 배치도('+FED_VER+') 기준 정합 — 표식 '+touched+'건 · 실제 변경 '+changed+'건'); }
+  return changed;
+}
 function divisionList(){
   if(!state.divisions) state.divisions=defaultDivisions();
   var defs=null;   // 구버전(연맹목록 없음) 데이터에 이름으로 연맹목록 백필
@@ -5567,7 +5605,7 @@ function setView(v){
 function loadBoard(){
   netBusy(1);
   fetch('/api/jamboree-plan',{headers:authHeader()}).then(function(r){ if(r.status===401){ authExpired(); throw new Error('401'); } return r.json(); }).then(function(j){
-    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeBusTrack(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); migrateMealsStaff(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
+    applyServer(j); mergeSeedMeetings(); dedupeTimetableById(); mergeCubObservers(); migrateCubSchedule(); migrateCubReporterKSY(); mergeMediaTrack(); migrateMediaMoveMeetings(); mergeBusTrack(); mergeSuperstarJ(); upgradeProtocol(); upgradeMeals(); migrateMealsCrewN(); migrateMealsStaff(); migrateDivisionFeds(); upgradeShootList(); mergeShootlistGates(); mergeShootlistFromTimetable(); mergeShootlistFromProtocol(); saveLocal(); renderAll();
     setSt('자동 저장 · 서버 동기화됨',true);
   }).catch(function(){ setSt('로컬 편집 중 (서버 연결 안 됨)'); })
     .then(function(){ netBusy(-1); });

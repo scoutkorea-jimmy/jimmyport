@@ -2,7 +2,7 @@
  * 실행: node test/regress-krjam-planning-server.js
  * 동시편집 병합('다른 사람이 편집 중')은 실제로 다른 작성자가 그 사이 바꿨을 때만 일어나야 한다
  * (혼자·같은 사람의 레이스/캐시로 baseVer 만 옛것인 경우 = 오탐 → 병합 금지). */
-import { conflictByOther, cleanRoster, cleanTT } from '../functions/api/jamboree-plan.js';
+import { conflictByOther, cleanRoster, cleanTT, cleanDivision } from '../functions/api/jamboree-plan.js';
 import { shrankTooMuch, countOf } from '../functions/api/_save-guard.js';
 import { issueMemberSession } from '../functions/api/_lib.js';
 
@@ -42,6 +42,14 @@ chk('입·퇴영 dir=in 보존', cleanTT({ id: 'b1', track: 'bus', dir: 'in' }).
 chk('dir 없으면 빈 문자열', cleanTT({ id: 't1', track: '' }).dir, '');
 chk('dir 값이 이상하면 빈 문자열(임의값 저장 안 함)', cleanTT({ id: 't1', dir: '퇴영' }).dir, '');
 chk('컵 트랙 track/batch 는 그대로', cleanTT({ id: 'c1', track: 'cub', batch: 2 }).track + '/' + cleanTT({ id: 'c1', track: 'cub', batch: 2 }).batch, 'cub/2');
+
+/* 분단 명단 저장 정리 — fedver 는 '연맹 목록을 배치도 판으로 이미 맞췄다'는 표식이다(v0.9.292).
+ * 화이트리스트에서 빠지면 저장할 때마다 표식이 날아가 같은 마이그레이션이 매 로드마다 반복된다
+ * → 사용자가 나중에 더한 연맹이 로드할 때마다 조용히 지워진다. */
+console.log('\n[분단 명단 저장 정리 — cleanDivision]');
+chk('연맹 정본 표식 fedver 보존', cleanDivision({ id: 'd1', name: '큰물결분단', fedver: '2026-07-23' }).fedver, '2026-07-23');
+chk('fedver 없으면 빈 문자열(폭발 안 함)', cleanDivision({ id: 'd1', name: '큰물결분단' }).fedver, '');
+chk('연맹 목록·분단장 등 기존 필드 유지', cleanDivision({ id: 'd1', name: '큰물결분단', federations: '전북연맹, 대만', leader: '엄정영' }).federations + '/' + cleanDivision({ id: 'd1', leader: '엄정영' }).leader, '전북연맹, 대만/엄정영');
 
 /* ── 부분 전멸 가드 (v0.9.286) ────────────────────────────────────────────────
  * 여기까지의 보호(낙관적 잠금·병합)는 "누가 먼저 바꿨나"만 본다. 혼자 편집하는 중에 항목이

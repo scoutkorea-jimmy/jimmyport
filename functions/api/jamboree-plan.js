@@ -67,13 +67,15 @@ function cleanShoot(e) {
   };
 }
 
-function cleanDivision(e) {
+export function cleanDivision(e) {   // export=테스트용(fedver 표식 보존 회귀 방지)
   e = e && typeof e === "object" ? e : {};
   return {
     id: (e.id || "").toString().slice(0, 40),
     name: (e.name || "").toString().slice(0, 60),
     region: (e.region || "").toString().slice(0, 60),
     federations: (e.federations || "").toString().slice(0, 400),
+    // 연맹 목록 정본 표식(배치도 판) — 빠지면 클라 마이그레이션이 매 로드마다 반복된다.
+    fedver: (e.fedver || "").toString().slice(0, 20),
     leader: (e.leader || "").toString().slice(0, 60),
     ops: (e.ops || "").toString().slice(0, 60),
     safety: (e.safety || "").toString().slice(0, 60),
