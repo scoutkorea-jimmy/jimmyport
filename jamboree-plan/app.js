@@ -1073,28 +1073,52 @@ function renderHeader(){
   loadWeather();   // 컨텍스트 바 날씨 — 모든 화면에서 보인다(현장 운영 정보)
   renderClock();
 }
-// 개영식 = 2026-08-05 20:00 (KST). 시·분·초 라이브 카운트다운.
-var EVENT_DT = new Date(2026,7,5,20,0,0);
+/* 개영식 카운트다운 (v0.9.294) — 계산은 공용 모듈 `/countdown.js`(window.KJCountdown) 가 한다.
+ * 같은 카운트다운이 네 화면(랜딩·홍보부·급식본부·제보)에 필요해서, 복사해 두면 개영 시각이
+ * 바뀔 때 세 곳만 고치는 사고가 난다(CLAUDE.md: 스파게티 복제 금지).
+ * ⚠️ 예전 `new Date(2026,7,5,20,0,0)` 은 **브라우저 타임존 기준**이라 해외에서 보면 시각이 어긋났다.
+ *    공용 모듈은 KST 고정 오프셋(+09:00)으로 못 박는다.
+ * ⚠️ **2026-08-09 12:00 이후에는 아예 보여 주지 않는다**(사용자 확정) — 그전에는 개영식이 지나도
+ *    'D-DAY · 개영!' 이 행사 끝나고도 계속 남아 있었다. */
+function cdState(now){
+  return (window.KJCountdown ? window.KJCountdown.state(now)
+                             : { phase:'over', visible:false, text:'' });
+}
 function renderClock(){
   var cl=document.getElementById('m-clock'), sub=document.getElementById('m-clocksub'); if(!cl) return;
-  var diff=EVENT_DT-new Date();
-  if(diff<=0){ cl.textContent='D-DAY · 개영!'; sub.textContent='개영식 2026-08-05 20:00 시작'; return; }
-  var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000), m=Math.floor(diff%3600000/60000), sc=Math.floor(diff%60000/1000);
-  cl.innerHTML='D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>';
+  var st=cdState(new Date());
+  var box=cl.closest ? cl.closest('.clock') : null;   // 상단바 시계 묶음 — 종료 후엔 통째로 비운다
+  if(!st.visible){                       // 행사 종료 — 자리를 비운다
+    cl.textContent=''; if(sub){ sub.textContent=''; sub.title=''; }
+    if(box) box.hidden=true; else { cl.hidden=true; if(sub) sub.hidden=true; }
+    return;
+  }
+  if(box) box.hidden=false; else { cl.hidden=false; if(sub) sub.hidden=false; }
+  if(st.phase==='during'){ cl.textContent='D-DAY · 개영!'; if(sub){ sub.textContent='개영식 2026-08-05 20:00 시작'; sub.title=''; } return; }
+  cl.innerHTML=(st.days>0?('D-'+st.days+' '):'')+'<span class="hms">'+pad2(st.hh)+':'+pad2(st.mm)+':'+pad2(st.ss)+'</span>';
   sub.textContent='개영식까지';   // 컨텍스트 바 한 줄 유지 — 전체 일시는 아래 title 로
   sub.title='개영식 2026-08-05(수) 20:00';
 }
 /* 대시보드 실시간 D-day 카운트다운 */
 var dashClockTimer=null;
-function ddayCountdownHTML(){ var diff=EVENT_DT-new Date(); if(diff<=0) return '<b>D-DAY</b> · 개영!'; var d=Math.floor(diff/86400000),h=Math.floor(diff%86400000/3600000),m=Math.floor(diff%3600000/60000),sc=Math.floor(diff%60000/1000); return 'D-'+d+' <span class="hms">'+pad2(h)+':'+pad2(m)+':'+pad2(sc)+'</span>'; }
+function ddayCountdownHTML(){
+  var st=cdState(new Date());
+  if(!st.visible) return '';
+  if(st.phase==='during') return '<b>D-DAY</b> · 개영!';
+  return (st.days>0?('D-'+st.days+' '):'')+'<span class="hms">'+pad2(st.hh)+':'+pad2(st.mm)+':'+pad2(st.ss)+'</span>';
+}
 /* D-day 는 1초마다, '지금 현장' 목록은 **분이 바뀔 때만** 다시 그린다 —
- * 1초마다 목록을 갈아끼우면 누르려던 항목이 손끝에서 사라진다(클릭 유실). */
+ * 1초마다 목록을 갈아끼우면 누르려던 항목이 손끝에서 사라진다(클릭 유실).
+ * ⚠️ **두 일은 서로 붙어 있으면 안 된다**(v0.9.294). 예전엔 `dash-dday-t` 가 없으면 타이머를 통째로
+ *    멈췄는데, 8/9 12:00 이후 카운트다운 배너를 빼자 **'지금 현장' 갱신까지 같이 죽었다.**
+ *    카운트다운은 있을 때만 쓰고, 분 단위 갱신은 배너와 무관하게 계속 돈다. */
 var dashNowMin='';
 function startDashClock(){
   stopDashClock(); dashNowMin='';
   dashClockTimer=setInterval(function(){
-    var el=document.getElementById('dash-dday-t'); if(!el){ stopDashClock(); return; }
-    el.innerHTML=ddayCountdownHTML();
+    if(!document.getElementById('dash-now') && !document.getElementById('dash-dday-t')){ stopDashClock(); return; }   // 대시보드를 떠났다
+    var el=document.getElementById('dash-dday-t');
+    if(el) el.innerHTML=ddayCountdownHTML();
     var mm=h2hhmmFloor(nowHours());
     if(mm!==dashNowMin){ dashNowMin=mm; renderDashNow(); }
   }, 1000);
@@ -5440,8 +5464,14 @@ function renderDashboard(){
   var html='';
 
   // ===== B. 실시간 D-day 배너 =====
-  html+='<div class="dash-dday"><div class="dd-left"><span class="dd-lab">개영식까지</span><span class="dd-big" id="dash-dday-t">'+ddayCountdownHTML()+'</span></div>'+
-    '<div class="dd-right"><span class="dd-note">이번 주 남은 콘텐츠 <b>'+weekLeft+'건</b>'+(overdue?(' · <span class="dd-over">마감 지남 '+overdue+'건</span>'):'')+'</span><span class="dd-sub">2026-08-05(수) 20:00 · 강원 고성</span></div></div>';
+  /* ⚠️ 2026-08-09 12:00 이후에는 배너를 아예 그리지 않는다(사용자 확정) — 예전엔 개영식이 지나도
+     'D-DAY · 개영!' 이 행사 끝난 뒤까지 대시보드 맨 위를 차지했다. 대신 그 아래 내용이 위로 올라온다.
+     ⚠️ 남은 콘텐츠·마감 지남 수치는 배너에만 있던 것이 아니라 아래 액션 큐가 따로 보여 준다 —
+        배너를 빼도 정보를 잃지 않는다. */
+  if(cdState(new Date()).visible){
+    html+='<div class="dash-dday"><div class="dd-left"><span class="dd-lab">개영식까지</span><span class="dd-big" id="dash-dday-t">'+ddayCountdownHTML()+'</span></div>'+
+      '<div class="dd-right"><span class="dd-note">이번 주 남은 콘텐츠 <b>'+weekLeft+'건</b>'+(overdue?(' · <span class="dd-over">마감 지남 '+overdue+'건</span>'):'')+'</span><span class="dd-sub">2026-08-05(수) 20:00 · 강원 고성</span></div></div>';
+  }
 
   // ===== A. 지금 처리할 일 (액션 큐) =====
   var acts=[];

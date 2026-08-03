@@ -235,6 +235,49 @@ async function contrastOf(page, sel) {
     [...document.querySelectorAll('.reveal')].every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98)
     && document.querySelectorAll('.card').length === 5));
 
+  /* 개영식 카운트다운 (v0.9.294) — 경계값은 공용 모듈 검사가 정본이고, 여기서는 **이 화면에
+     제대로 그려지는가**를 본다. ⚠️ 2026-08-09 12:00 이후에는 통째로 숨긴다(사용자 확정) →
+     실제 시각을 기다리지 않고 시계를 갈아끼워 지금 재현한다. */
+  console.log('\n[개영식 카운트다운]');
+  chk('카운트다운이 보인다', await p.evaluate(() => {
+    const b = document.getElementById('cd-box');
+    return !!b && !b.hidden && getComputedStyle(b).display !== 'none';
+  }));
+  chk('라벨에 개영식이 적혀 있다', await p.evaluate(() =>
+    /개영식까지/.test((document.querySelector('#cd-box .cd-lab') || {}).textContent || '')));
+  chk('값이 D-형식 또는 D-DAY', await p.evaluate(() => {
+    const t = (document.getElementById('cd-v') || {}).textContent || '';
+    return /^(D-\d+ )?\d{2}:\d{2}:\d{2}$/.test(t) || /D-DAY/.test(t);
+  }), await p.evaluate(() => (document.getElementById('cd-v') || {}).textContent));
+  chk('초 단위로 흐른다', await p.evaluate(async () => {
+    const v = () => (document.getElementById('cd-v') || {}).textContent;
+    const t0 = v();
+    await new Promise((r) => setTimeout(r, 2200));
+    return !!t0 && t0 !== v();
+  }));
+  chk('글자 13px 이상 · 대비 확보용 크기', await p.evaluate(() => {
+    const s = getComputedStyle(document.getElementById('cd-v'));
+    const l = getComputedStyle(document.querySelector('#cd-box .cd-lab'));
+    return parseFloat(s.fontSize) >= 13 && parseFloat(l.fontSize) >= 13;
+  }));
+  chk('가로 넘침 없음', await p.evaluate(() =>
+    document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1));
+  {
+    // 시계를 8/9 12:00 이후로 밀고 새 탭에서 다시 연다(모듈은 로드 시점에 판단한다)
+    const over = await b.newPage();
+    await over.evaluateOnNewDocument(() => {
+      const _D = Date, FIXED = new _D('2026-08-09T12:00:01+09:00').getTime();
+      window.Date = class extends _D { constructor(...a) { if (!a.length) super(FIXED); else super(...a); } static now() { return FIXED; } };
+    });
+    await over.goto(`${base}/`, { waitUntil: 'networkidle2' });
+    await new Promise((r) => setTimeout(r, 300));
+    chk('행사 종료(8/9 12:00) 이후에는 사라진다', await over.evaluate(() => {
+      const el = document.getElementById('cd-box');
+      return !!el && (el.hidden === true || getComputedStyle(el).display === 'none');
+    }));
+    await over.close();
+  }
+
   console.log('\n[콘솔]');
   chk('콘솔 에러 0', errors.length === 0, errors.slice(0, 3).join(' | '));
 

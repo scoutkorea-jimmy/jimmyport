@@ -12,7 +12,7 @@
   --r-1:9px; --r-2:14px; --r-3:18px; --pill:999px;
   --sh-1:0 1px 2px rgba(27,23,35,.06); --sh-2:0 6px 18px rgba(27,23,35,.09); --sh-3:0 18px 44px rgba(27,23,35,.16);
   --side-w:248px; --top-h:64px;
-  --fs-1:13px; --fs-2:14.5px; --fs-3:17px; --fs-4:21px; --fs-5:27px;
+  --fs-1:13px; --fs-2:14.5px; --fs-3:17px; --fs-4:21px; --fs-5:27px; --fs-6:38px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -175,18 +175,22 @@ a{color:var(--accent-ink)}
 .pbadge .lab{font-size:var(--fs-1); font-weight:700; color:var(--muted)}
 .pbadge .n{font-size:var(--fs-3); font-weight:800; letter-spacing:-.01em; font-variant-numeric:tabular-nums}
 
-/* 대시보드 상단 — 카운트다운 */
-.hero{
-  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:20px;
-}
+/* 대시보드 상단 — 개영식 카운트다운 (v0.9.294: 3종 카드 → 개영식 단일)
+   행사의 공식 시작은 개영식이다. 예전 3열 배치는 이미 지난 '입영' 이 첫 칸을 차지해
+   정작 중요한 값이 가운데로 밀렸다. 한 칸을 다 써서 크게 보여 준다.
+   ⚠️ 2026-08-09 12:00 이후에는 board.js 가 이 영역을 hidden 으로 만든다. */
+.hero{ margin-bottom:20px }
+.hero[hidden]{display:none}
 .dcard{
-  position:relative; overflow:hidden; padding:16px 18px; border-radius:var(--r-2);
+  position:relative; overflow:hidden; padding:20px 22px; border-radius:var(--r-2);
   background:var(--surface); border:1px solid var(--line); box-shadow:var(--sh-1);
 }
 .dcard.now{border-color:var(--accent); background:var(--accent-soft-2)}
 .dcard .dl1{font-size:var(--fs-1); font-weight:800; color:var(--muted)}
-.dcard .dv{font-size:var(--fs-5); font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:var(--accent-ink)}
-.dcard .dl2{font-size:var(--fs-1); color:var(--muted)}
+.dcard .dv{font-size:var(--fs-6); font-weight:800; letter-spacing:-.02em; font-variant-numeric:tabular-nums; color:var(--accent-ink); line-height:1.15; margin:2px 0 4px}
+.dcard .dl2{font-size:var(--fs-2); font-weight:700; color:var(--ink)}
+/* 입·퇴영 — 정보는 남기되 자리를 뺏지 않는다 */
+.dcard .dl3{margin-top:6px; padding-top:8px; border-top:1px solid var(--line); font-size:var(--fs-1); color:var(--muted)}
 .dcard.past .dv{color:var(--faint)}
 
 /* 식사 시간표 — 지금 운영 중 표시 */
@@ -278,7 +282,9 @@ a{color:var(--accent-ink)}
   .wrap{margin-left:0}
   .menubtn{display:inline-flex}
   .main{padding:16px 14px 96px}
-  .hero{grid-template-columns:1fr}
+  /* 좁은 화면에서 'D-2 00:00:00' 이 카드 밖으로 나가지 않게 한 단계 줄인다(360px 실측) */
+  .dcard{padding:16px 16px}
+  .dcard .dv{font-size:var(--fs-5)}
   .g2,.g3,.g4{grid-template-columns:1fr}
   .summary{grid-template-columns:1fr 1fr}
   .org .row{grid-template-columns:1fr 1fr}
@@ -387,7 +393,6 @@ a{color:var(--accent-ink)}
   .grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
   .figrow{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
   .figgrid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
-  .hero{gap:16px}
 }
 
 /* ── 줄바꿈 규칙 (v0.9.264, 사용자 지시) ──

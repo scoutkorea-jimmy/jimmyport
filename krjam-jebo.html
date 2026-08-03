@@ -54,6 +54,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-hei
 .hero h1{font-size:26px;line-height:1.28;font-weight:800;letter-spacing:-.03em;margin:0 0 8px;text-wrap:balance}
 .hero p{font-size:15px;color:var(--ink-2);margin:0;text-wrap:pretty}
 .hero b{color:var(--accent-ink);font-weight:700}
+/* 개영식 카운트다운 (v0.9.294) — 계산·숨김 판단은 공용 /countdown.js.
+   ⚠️ 2026-08-09 12:00 이후에는 스크립트가 hidden 으로 만든다(사용자 확정). */
+.cd{display:inline-flex;align-items:center;gap:10px;margin:14px 0 0;padding:10px 16px;
+  border-radius:var(--pill);border:1px solid var(--line);background:var(--surface-3)}
+.cd[hidden]{display:none}
+.cd .cd-lab{font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.cd .cd-v{font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--accent-ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* ── 섹션 ── 카드 하나 = 할 일 하나 */
 .sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:18px 16px;margin-bottom:12px}
@@ -170,6 +178,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-hei
   <div class="hero">
     <h1 id="t-title"></h1>
     <p id="t-lead"></p>
+    <!-- 개영식 카운트다운 — 2026-08-09 12:00 이후에는 스크립트가 숨긴다 -->
+    <div class="cd" id="cd-box" hidden>
+      <span class="cd-lab" id="cd-lab"></span>
+      <span class="cd-v" id="cd-v" role="timer" aria-live="off"></span>
+    </div>
   </div>
 
   <form id="form" autocomplete="on" novalidate>
@@ -258,12 +271,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);line-hei
   </div>
 </div>
 
+<script src="/countdown.js?v=0.9.294"></script>
 <script>
 var T={
   ko:{
     org:'제16회 한국잼버리 · 홍보부', title:'잼버리 소식,<br>먼저 알려주세요',
     lead:'준비하며 생긴 <b>특별한 소식이나 사연</b>을 보내주세요. 홍보부가 모아 카드뉴스·기사로 만듭니다. <b>잼버리 시작 전부터</b> 언제든 환영해요.',
     hNews:'어떤 소식인가요?', hMe:'연락처', need:'필수',
+    cdLab:'개영식까지', cdOpen:'개영식 8/5(수) 20:00',
     text:'소식 내용', textPh:'잼버리 준비 이야기, 참가자 사연, 자랑거리 등 자유롭게 적어주세요.',
     photo:'사진', photoSub:'최대 10장', photoAdd:'사진 추가',
     photoHint:'사진 또는 내용 중 하나는 꼭 넣어주세요. 원본 화질에 가깝게 전송됩니다.',
@@ -283,6 +298,7 @@ var T={
     org:'16th Korea National Jamboree · Media Team', title:'Share your<br>Jamboree news',
     lead:'Send us the <b>special news or stories</b> from your Jamboree journey. The Media Team turns them into cards & articles. Welcome <b>even before the Jamboree begins</b>.',
     hNews:'What is your news?', hMe:'Contact', need:'Required',
+    cdLab:'Opening Ceremony in', cdOpen:'Opening Ceremony Aug 5, 20:00',
     text:'Your news', textPh:'Preparation stories, participant tales, things to share — anything is welcome.',
     photo:'Photos', photoSub:'up to 10', photoAdd:'Add photo',
     photoHint:'Please include at least a photo or a message. Photos are sent in near-original quality.',
@@ -333,6 +349,7 @@ function applyLang(){
   zs.innerHTML='<option value="">'+t.zoneNone+'</option>'+ZONES.map(function(z){ return '<option value="'+z[0]+'">'+z[li]+'</option>'; }).join('');
   zs.value=cur;
   renderSlots();
+  renderCountdown();   // 라벨·숫자 문구가 언어를 따라간다
   // 열려 있던 오류 문구도 새 언어로
   document.querySelectorAll('.f.bad .fe').forEach(function(el){ var k=el.dataset.k; if(k) el.textContent=t.err[k]||t.err.generic; });
   var e=$('err'); if(e.classList.contains('show')&&e.dataset.k) e.textContent=t.err[e.dataset.k]||t.err.generic;
@@ -432,6 +449,22 @@ $('again').onclick=function(){
   $('more').setAttribute('aria-expanded','false'); $('sec-opt').hidden=true;
   $('done').style.display='none'; $('form').style.display=''; window.scrollTo(0,0);
 };
+
+/* 개영식 카운트다운 — 계산·숨김 판단은 전부 공용 /countdown.js 가 한다.
+   ⚠️ 1초 타이머는 **하나만** 돈다. applyLang() 이 불릴 때마다 mount 를 다시 걸면 타이머가 쌓여
+      언어를 몇 번 바꾸면 초가 여러 번 갱신된다 — 라벨만 다시 쓰고 타이머는 한 번만 건다. */
+var cdStop=null;
+function renderCountdown(){
+  var box=$('cd-box'), v=$('cd-v'), lab=$('cd-lab');
+  if(!box||!v||!window.KJCountdown) return;
+  var st=window.KJCountdown.state(new Date());
+  if(!st.visible){ box.hidden=true; if(cdStop){ cdStop(); cdStop=null; } return; }   // 행사 종료 — 숨김
+  box.hidden=false;
+  if(lab) lab.textContent=T[LANG].cdLab;
+  box.title=T[LANG].cdOpen;
+  if(cdStop) cdStop();                                          // 언어가 바뀌었으면 옛 타이머부터 끈다
+  cdStop=window.KJCountdown.mount(v,{box:box,lang:LANG});        // mount 가 즉시 한 번 그리고 1초마다 갱신
+}
 applyLang();
 </script>
 </body>

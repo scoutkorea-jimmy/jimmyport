@@ -710,6 +710,49 @@ const SEED = () => {
   });
   chk('마감 임박 긴 제목이 pill 밖으로 안 넘침', dueFit.titleWithinRow && dueFit.rowNoOverflow, JSON.stringify(dueFit));
   chk('마감 임박 제목 말줄임 + 날짜 span 유지', dueFit.ellipsized && dueFit.dateVisible, JSON.stringify(dueFit));
+
+  /* 개영식 카운트다운 (v0.9.294) — 계산은 공용 `/countdown.js` 로 옮겼다(네 화면 공용).
+     경계값 자체는 `regress-krjam-planning-server.js` 가 정본이고, 여기서는 이 화면 배선을 본다.
+     ⚠️ 사용자 확정: **2026-08-09 12:00 이후에는 배너·상단 시계를 아예 보여 주지 않는다.**
+        예전엔 개영식이 지나도 'D-DAY · 개영!' 이 행사 끝난 뒤까지 대시보드 맨 위를 차지했다. */
+  console.log('\n[개영식 카운트다운]');
+  chk('공용 모듈이 실려 있다', await page.evaluate(() => !!window.KJCountdown));
+  chk('개영 기준이 8/5 20:00 KST', await page.evaluate(() =>
+    window.KJCountdown && window.KJCountdown.OPEN_ISO === '2026-08-05T20:00:00+09:00'));
+  chk('대시보드 D-day 배너가 있다', await page.evaluate(() => !!document.getElementById('dash-dday-t')));
+  chk('배너 값이 D-형식 또는 D-DAY', await page.evaluate(() => {
+    const t = (document.getElementById('dash-dday-t') || {}).textContent || '';
+    return /^(D-\d+ )?\d{2}:\d{2}:\d{2}$/.test(t.trim()) || /D-DAY/.test(t);
+  }), await page.evaluate(() => ((document.getElementById('dash-dday-t') || {}).textContent || '').trim()));
+  chk('상단 시계도 같은 기준으로 찍힌다', await page.evaluate(() => {
+    const t = (document.getElementById('m-clock') || {}).textContent || '';
+    return /\d{2}:\d{2}:\d{2}/.test(t) || /D-DAY/.test(t);
+  }));
+  // 시계를 8/9 12:00 이후로 밀면 배너가 사라져야 한다(렌더 함수를 직접 다시 부른다)
+  const cdOver = await page.evaluate(() => {
+    const real = window.Date;
+    try {
+      const FIXED = new real('2026-08-09T12:00:01+09:00').getTime();
+      window.Date = class extends real { constructor(...a) { if (!a.length) super(FIXED); else super(...a); } static now() { return FIXED; } };
+      renderDashboard(); renderClock();
+      const clock = document.getElementById('m-clock');
+      return { banner: !!document.getElementById('dash-dday-t'),
+        clockText: (clock || {}).textContent || '',
+        clockBoxHidden: !!(clock && clock.closest('.clock') && clock.closest('.clock').hidden) };
+    } finally { window.Date = real; renderDashboard(); renderClock(); }
+  });
+  chk('행사 종료 후 대시보드 배너가 사라진다', cdOver.banner === false, '배너 존재=' + cdOver.banner);
+  chk('행사 종료 후 상단 시계도 비운다', cdOver.clockText === '' && cdOver.clockBoxHidden === true,
+    JSON.stringify(cdOver.clockText) + ' / 숨김=' + cdOver.clockBoxHidden);
+  chk('원복하면 배너가 다시 나온다', await page.evaluate(() => !!document.getElementById('dash-dday-t')));
+  /* ⚠️ **'지금 현장' 갱신이 카운트다운 타이머에 얹혀 있었다**(v0.9.294). 배너를 없애자
+     `dash-dday-t` 가 사라지고 타이머가 통째로 멈춰 현장 목록까지 죽었다 — 둘을 떼어 놨다. */
+  chk('배너가 없어도 "지금 현장" 갱신 타이머는 산다', await page.evaluate(() => {
+    const el = document.getElementById('dash-dday-t');
+    if (el) el.remove();                       // 배너만 없앤 상태를 만든다
+    startDashClock();
+    return new Promise((res) => setTimeout(() => res(!!dashClockTimer), 1500));
+  }));
   await go('staff');
   chk('홍보부 인원 표 렌더', (await page.$$('#rostertbl tr')).length > 1, (await page.$$('#rostertbl tr')).length + '행');
   chk('인원 표 입영 = 날짜+블록 칩 렌더(datetime 아님)', (await page.$$('#rostertbl .arr-cell .arr-day')).length > 0 && (await page.$$('#rostertbl .arr-cell .arrblk')).length >= 3 && (await page.$$('#rostertbl .arr-in')).length === 0, '드롭다운 ' + (await page.$$('#rostertbl .arr-day')).length + ' · 블록칩 ' + (await page.$$('#rostertbl .arrblk')).length);

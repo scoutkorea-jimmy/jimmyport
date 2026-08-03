@@ -15,10 +15,16 @@
   var BOOK = '/krjam-fnc-book';
 
   /* ── 원본 자료 (PDF 31쪽에서 옮김) ───────────────────────────── */
+  /* ⚠️ 카운트다운의 기준 시각은 여기가 아니라 공용 모듈 `/countdown.js` 가 정본이다(v0.9.294).
+     네 화면이 같은 개영 시각을 쓰므로 한 곳에서만 고칠 수 있어야 한다.
+     여기 남은 값은 **화면에 적어 주는 안내 문구**용이다. */
   var EVENT = {
     inDate: '2026-08-03T14:00:00+09:00',
     openDate: '2026-08-05T20:00:00+09:00',
     outDate: '2026-08-09T11:00:00+09:00',
+    openLabel: '8/5(수) 20:00 · 대집회장',
+    inLabel: '입영 8/3(월) 14:00',
+    outLabel: '퇴영 8/9(일) 11:00',
   };
 
   var ORG = {
@@ -693,35 +699,28 @@
                  gallery: viewGallery, book: viewBook };
 
   /* ── 살아 있는 부분 ────────────────────────────────────────── */
-  /* 카운트다운 3종의 표시값을 계산한다 — **시계를 읽지 않고 인자만 본다**(currentShift 와 같은 방식).
-     ⚠️ 안에서 new Date() 를 부르면 회귀가 실제 시각에 끌려간다: 입영(8/3 14:00)이 지난 8/3 부터
-        첫 카드가 '지났음' 으로 굳어, "초 단위로 흐른다" 검사가 **행사 내내 빨개진다**(v0.9.293 실제 사고).
-        v0.9.292 의 '잼버리 기간 밖' 검사와 똑같은 함정이라, 이번엔 계산을 순수함수로 떼어
-        고정 시각으로 못 박을 수 있게 했다. */
-  function countdownCards(now) {
-    var items = [
-      { l: '입영', d: new Date(EVENT.inDate), s: '8/3(월) 14:00' },
-      { l: '개영식', d: new Date(EVENT.openDate), s: '8/5(수) 20:00' },
-      { l: '퇴영', d: new Date(EVENT.outDate), s: '8/9(일) 11:00' },
-    ];
-    return items.map(function (it) {
-      var ms = it.d - now, past = ms <= 0, v;
-      if (past) v = '지났음';
-      else {
-        var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
-            m = Math.floor(s % 3600 / 60), ss = s % 60;
-        v = d > 0 ? ('D-' + d + ' ' + pad2(h) + ':' + pad2(m) + ':' + pad2(ss))
-                  : (pad2(h) + ':' + pad2(m) + ':' + pad2(ss));
-      }
-      return { l: it.l, s: it.s, v: v, past: past, soon: !past && ms < 86400000 };
-    });
+  /* 개영식(8/5 20:00) 하나만 큰 카운트다운으로 보여 준다 (v0.9.294, 사용자 확정).
+     예전에는 입영·개영식·퇴영 3종 카드였는데, 입영은 8/3 에 지나 **첫 칸이 '지났음' 으로 굳어**
+     정작 중요한 개영식이 가운데로 밀렸다. 행사의 공식 시작은 개영식이므로 그걸 기준으로 세운다.
+     입영·퇴영 시각은 아래 작은 안내 줄로 남긴다(정보는 잃지 않되 자리를 뺏지 않는다).
+     ⚠️ 계산은 공용 모듈 `/countdown.js`(window.KJCountdown) 가 한다 — 같은 계산이 네 화면에
+        필요해서, 복사해 두면 개영 시각이 바뀔 때 세 곳만 고치는 사고가 난다.
+     ⚠️ 2026-08-09 12:00 이후에는 카운트다운 자체를 숨긴다(사용자 확정). */
+  function heroState(now) {
+    return (window.KJCountdown ? window.KJCountdown.state(now) : { phase: 'over', visible: false, text: '' });
   }
   function renderHero() {
     var box = $('hero'); if (!box) return;
-    box.innerHTML = countdownCards(new Date()).map(function (c) {
-      return '<div class="dcard' + (c.past ? ' past' : (c.soon ? ' now' : '')) + '">' +
-        '<div class="dl1">' + esc(c.l) + '까지</div><div class="dv">' + esc(c.v) + '</div><div class="dl2">' + esc(c.s) + '</div></div>';
-    }).join('');
+    var st = heroState(new Date());
+    if (!st.visible) { box.hidden = true; box.innerHTML = ''; return; }   // 행사 종료 — 자리를 비운다
+    box.hidden = false;
+    box.innerHTML =
+      '<div class="dcard' + (st.phase === 'during' ? ' now' : '') + '">' +
+        '<div class="dl1">개영식까지</div>' +
+        '<div class="dv" id="hero-cd">' + esc(st.text) + '</div>' +
+        '<div class="dl2">' + esc(EVENT.openLabel) + '</div>' +
+        '<div class="dl3">' + esc(EVENT.inLabel) + ' · ' + esc(EVENT.outLabel) + '</div>' +
+      '</div>';
   }
 
   function mealStatus(now) {
@@ -1329,7 +1328,7 @@
     loadWeather();
     loadContent().then(function () { applyContent($('view-' + cur)); });
     try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift,
-      countdownCards: countdownCards,   // 회귀가 고정 시각으로 카운트다운을 못 박는다(실제 시계 의존 제거)
+      heroState: heroState, renderHero: renderHero,   // 회귀가 고정 시각으로 카운트다운을 못 박는다(실제 시계 의존 제거)
       loadOrg: loadOrg, peopleList: peopleList, getOrg: function () { return ORG; },
       // 회귀가 '다른 사람이 먼저 저장한 상황'을 만들 수 있게 열어 둔다(화면에서는 쓰지 않는다)
       setOrgVer: function (v) { orgMeta = { updatedAt: v, by: (orgMeta && orgMeta.by) || '' }; } }; } catch (e) {}
