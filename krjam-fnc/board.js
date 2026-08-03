@@ -693,17 +693,19 @@
                  gallery: viewGallery, book: viewBook };
 
   /* ── 살아 있는 부분 ────────────────────────────────────────── */
-  function renderHero() {
-    var box = $('hero'); if (!box) return;
-    var now = new Date();
+  /* 카운트다운 3종의 표시값을 계산한다 — **시계를 읽지 않고 인자만 본다**(currentShift 와 같은 방식).
+     ⚠️ 안에서 new Date() 를 부르면 회귀가 실제 시각에 끌려간다: 입영(8/3 14:00)이 지난 8/3 부터
+        첫 카드가 '지났음' 으로 굳어, "초 단위로 흐른다" 검사가 **행사 내내 빨개진다**(v0.9.293 실제 사고).
+        v0.9.292 의 '잼버리 기간 밖' 검사와 똑같은 함정이라, 이번엔 계산을 순수함수로 떼어
+        고정 시각으로 못 박을 수 있게 했다. */
+  function countdownCards(now) {
     var items = [
       { l: '입영', d: new Date(EVENT.inDate), s: '8/3(월) 14:00' },
       { l: '개영식', d: new Date(EVENT.openDate), s: '8/5(수) 20:00' },
       { l: '퇴영', d: new Date(EVENT.outDate), s: '8/9(일) 11:00' },
     ];
-    box.innerHTML = items.map(function (it) {
-      var ms = it.d - now, past = ms <= 0;
-      var v;
+    return items.map(function (it) {
+      var ms = it.d - now, past = ms <= 0, v;
       if (past) v = '지났음';
       else {
         var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
@@ -711,9 +713,14 @@
         v = d > 0 ? ('D-' + d + ' ' + pad2(h) + ':' + pad2(m) + ':' + pad2(ss))
                   : (pad2(h) + ':' + pad2(m) + ':' + pad2(ss));
       }
-      var soon = !past && (it.d - now) < 86400000;
-      return '<div class="dcard' + (past ? ' past' : (soon ? ' now' : '')) + '">' +
-        '<div class="dl1">' + esc(it.l) + '까지</div><div class="dv">' + esc(v) + '</div><div class="dl2">' + esc(it.s) + '</div></div>';
+      return { l: it.l, s: it.s, v: v, past: past, soon: !past && ms < 86400000 };
+    });
+  }
+  function renderHero() {
+    var box = $('hero'); if (!box) return;
+    box.innerHTML = countdownCards(new Date()).map(function (c) {
+      return '<div class="dcard' + (c.past ? ' past' : (c.soon ? ' now' : '')) + '">' +
+        '<div class="dl1">' + esc(c.l) + '까지</div><div class="dv">' + esc(c.v) + '</div><div class="dl2">' + esc(c.s) + '</div></div>';
     }).join('');
   }
 
@@ -1322,6 +1329,7 @@
     loadWeather();
     loadContent().then(function () { applyContent($('view-' + cur)); });
     try { window.__fncBoard = { setView: setView, VIEWS: VIEWS, ver: VER, isAdmin: isAdmin, fncSession: fncSession, renderAdminBtn: renderAdminBtn, loadStaff: loadStaff, currentShift: currentShift,
+      countdownCards: countdownCards,   // 회귀가 고정 시각으로 카운트다운을 못 박는다(실제 시계 의존 제거)
       loadOrg: loadOrg, peopleList: peopleList, getOrg: function () { return ORG; },
       // 회귀가 '다른 사람이 먼저 저장한 상황'을 만들 수 있게 열어 둔다(화면에서는 쓰지 않는다)
       setOrgVer: function (v) { orgMeta = { updatedAt: v, by: (orgMeta && orgMeta.by) || '' }; } }; } catch (e) {}

@@ -357,11 +357,43 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   console.log('\n[살아 있는 부분]');
   await p.evaluate(() => window.__fncBoard.setView('home')); await wait(500);
-  chk('카운트다운 3종이 초 단위로 흐른다', await p.evaluate(async () => {
-    const t0 = document.querySelector('#hero .dv').textContent;
+  /* ⚠️ 예전 검사는 `#hero .dv`(=첫 카드 '입영')가 2초 뒤 바뀌는지만 봤다. 입영은 8/3 14:00 이라
+     **8/3 부터 '지났음' 으로 굳는다** → 정작 행사 8일 내내 이 검사가 빨개진다(실제로 8/4 에 터졌다).
+     v0.9.292 의 '잼버리 기간 밖' 검사와 같은 함정이라, 이번엔 두 갈래로 못 박는다:
+       (1) 고정 시각 — countdownCards(now) 를 직접 불러 '지났음/D-형식/임박' 을 단언(시계 무관·영구 유효)
+       (2) 실제 시계 — 아직 안 지난 카드는 흐르고, 지난 카드는 '지났음' 이어야 한다 */
+  const cdFixed = await p.evaluate(() => {
+    const at = (iso) => window.__fncBoard.countdownCards(new Date(iso));
+    const before = at('2026-08-01T09:00:00+09:00');   // 입영 전 — 셋 다 남아 있음
+    // ⚠️ 8/4 20:00 은 개영식까지 **정확히 24시간** 이라 soon(<24h)이 false 다 — 경계를 피해 11시간 앞으로 잡는다.
+    const mid = at('2026-08-05T09:00:00+09:00');      // 입영만 지남 · 개영식 11시간 뒤(임박)
+    const after = at('2026-08-10T09:00:00+09:00');    // 셋 다 지남
+    return {
+      n: before.length,
+      beforeV: before.map((c) => c.v),
+      beforePast: before.map((c) => c.past),
+      midV: mid.map((c) => c.v),
+      midSoon: mid.map((c) => c.soon),
+      afterV: after.map((c) => c.v),
+    };
+  });
+  chk('카운트다운 계산이 시계를 안 읽는다 — 고정 시각 3종', cdFixed.n === 3);
+  chk('입영 전: 셋 다 D-형식으로 남아 있다',
+    cdFixed.beforePast.every((x) => x === false) && cdFixed.beforeV.every((v) => /^D-\d+ \d{2}:\d{2}:\d{2}$/.test(v)),
+    cdFixed.beforeV.join(' · '));
+  chk('입영 지난 뒤: 입영만 "지났음" · 개영식은 24시간 내 임박(D 없이 HH:MM:SS)',
+    cdFixed.midV[0] === '지났음' && cdFixed.midSoon[1] === true && cdFixed.midV[1] === '11:00:00' && /^D-4 /.test(cdFixed.midV[2]),
+    cdFixed.midV.join(' · '));
+  chk('행사 끝난 뒤: 셋 다 "지났음"(빈칸·NaN 아님)',
+    cdFixed.afterV.every((v) => v === '지났음'), cdFixed.afterV.join(' · '));
+  chk('카운트다운 3종이 초 단위로 흐른다(안 지난 카드)', await p.evaluate(async () => {
+    const dv = () => [...document.querySelectorAll('#hero .dcard')].map((c) => c.querySelector('.dv').textContent);
+    const past = window.__fncBoard.countdownCards(new Date()).map((c) => c.past);
+    const t0 = dv();
     await new Promise((r) => setTimeout(r, 2200));   // 1초 tick + CPU 경합 여유(플레이키 방지)
-    const t1 = document.querySelector('#hero .dv').textContent;
-    return document.querySelectorAll('#hero .dcard').length === 3 && t0 !== t1;
+    const t1 = dv();
+    if (t0.length !== 3) return false;
+    return t0.every((v, i) => past[i] ? (v === '지났음' && t1[i] === '지났음') : (v !== t1[i]));
   }));
   chk('식사 운영 상태를 지금 시각으로 계산한다', await p.evaluate(() => {
     const rows = [...document.querySelectorAll('#mealnow .meal')];

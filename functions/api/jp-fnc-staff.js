@@ -7,7 +7,8 @@
  * KV "jp:fnc-staff" = { staff:[{id,name,phone}], shifts:{ "YYYY-MM-DD": { am:[id], pm:[id], eve:[id] } }, updatedAt, by }
  *
  * ⚠️ 개인정보(전화 전체)는 **관리자에게만** 내보낸다 — 비관리자 응답엔 전체번호를 절대 담지 않는다(끝 4자리만).
- * ⚠️ 쓰기는 급식 관리자(admin/admin, /api/jp-fnc-auth 토큰)만.
+ * ⚠️ 쓰기는 급식 관리자(/api/jp-fnc-auth 토큰)만. 계정은 그 파일이 정본이다 — 여기에 적으면 어긋난다
+ *    (실제로 v0.9.283 에 계정이 바뀌었는데 이 주석만 admin/admin 으로 남아 있었다).
  */
 import { json, fncAdmin, appendLog, clientIp } from "./_lib.js";
 import { snapPush, snapList, snapFind, shrankTooMuch } from "./_save-guard.js";

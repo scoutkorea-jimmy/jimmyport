@@ -1,5 +1,5 @@
 /* 첨부 이미지 저장/제공 (Cloudflare KV)
- * POST /api/image  → body = 이미지 바이트, header content-type. 최대 5MB.
+ * POST /api/image  → body = 이미지 바이트, header content-type. 최대 10MB(아래 MAX 가 정본).
  *                    KV에 img:<id> 로 저장, { url: "/api/image?id=<id>" } 반환.
  * GET  /api/image?id=...  → 이미지 바이트 + content-type (장기 캐시)
  * (다운스케일하는 댓글/잼버리 앱은 1~2MB 미만이라 한도 상향 영향 없음. D-count 승인 후 원본 사진 최대 5MB.) */

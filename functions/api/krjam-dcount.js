@@ -78,6 +78,19 @@ function publicApp(rec) {
   };
 }
 
+/* 관리자 목록에 실어 보내는 신청 레코드 (v0.9.293)
+ * ⚠️ **비밀번호 자료(salt·hash)는 절대 내보내지 않는다.** 예전엔 KV 레코드를 통째로 실어 보내
+ *    관리자 응답에 PBKDF2 salt·hash 가 그대로 들어갔다. 신청 비밀번호는 **전화 끝 4자리**라
+ *    경우의 수가 1만 뿐이고, hash 를 손에 넣으면 오프라인에서 전부 맞춰 볼 수 있다
+ *    (= 남의 신청을 조회·수정·철회할 수 있게 된다).
+ * ⚠️ 관리자 화면은 이 둘을 **쓰지도 않는다**(app.jsx 는 contact·ip·approvedBy 만 본다) —
+ *    쓰지 않는 비밀을 내보내고 있었던 것이다. 화이트리스트로 못 박아 필드가 늘어도 새지 않게 한다. */
+function adminApp(rec) {
+  rec = rec && typeof rec === "object" ? rec : {};
+  const { salt, hash, ...rest } = rec;   // eslint-disable-line no-unused-vars
+  return rest;
+}
+
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const slots = await buildSlots(env);
@@ -87,9 +100,15 @@ export async function onRequestGet({ request, env }) {
 
   if (url.searchParams.get("admin")) {
     if (!(await requireAdmin(request, env))) return json({ error: "unauthorized" }, 401);
-    const apps = [];
-    for (const e of index) { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) { try { apps.push(JSON.parse(raw)); } catch {} } }
-    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps, dclog: await getArr(env, DCLOG), visits: parseInt((await env.SCOUT_KV.get(VISITS)) || "0", 10) || 0 });
+    /* ⚠️ 병렬로 읽는다 — 예전엔 신청 건마다 KV 왕복을 줄 세워 기다렸다(v0.9.287 목록 4종과 같은 패턴).
+       ⚠️ 병렬은 담기는 순서가 매번 다르다 → index 순서를 그대로 유지하도록 map 으로 자리를 고정한다. */
+    const apps = (await Promise.all(index.map(async (e) => {
+      const raw = await env.SCOUT_KV.get(APP(e.applicationNo));
+      if (!raw) return null;
+      try { return adminApp(JSON.parse(raw)); } catch { return null; }   // salt·hash 는 빼고 보낸다
+    }))).filter(Boolean);
+    const [dclog, visitsRaw] = await Promise.all([getArr(env, DCLOG), env.SCOUT_KV.get(VISITS)]);
+    return json({ eventDate: EVENT_DATE, today: t, slots, masterStyle, applications: apps, dclog, visits: parseInt(visitsRaw || "0", 10) || 0 });
   }
 
   const occ = {};
@@ -103,12 +122,12 @@ export async function onRequestGet({ request, env }) {
   });
   // 승인(확정)된 디데이 카드 — krjam-planning 캘린더 연동용 공개 목록(게시용 카드+사진이라 공개 안전).
   // 홍보부가 SNS 카드뉴스를 준비하도록 사진·문구 포함.
-  const approved = [];
-  for (const e of index) {
-    if (e.status !== "승인") continue;
-    let rec = null; try { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) rec = JSON.parse(raw); } catch {}
-    approved.push({ targetDate: e.targetDate, dNumber: e.dNumber, name: e.name || "", teaser: rec ? (rec.teaser || "") : "", org: rec ? (rec.org || "") : "", photos: rec ? (rec.photos || []) : [] });
-  }
+  // ⚠️ 여기도 병렬. 순서는 index 순서를 그대로 쓴다(map 이 자리를 고정하므로 병렬이어도 안 뒤바뀐다).
+  const approved = await Promise.all(index.filter((e) => e.status === "승인").map(async (e) => {
+    let rec = null;
+    try { const raw = await env.SCOUT_KV.get(APP(e.applicationNo)); if (raw) rec = JSON.parse(raw); } catch {}
+    return { targetDate: e.targetDate, dNumber: e.dNumber, name: e.name || "", teaser: rec ? (rec.teaser || "") : "", org: rec ? (rec.org || "") : "", photos: rec ? (rec.photos || []) : [] };
+  }));
   return json({ eventDate: EVENT_DATE, today: t, slots: out, masterStyle, approved });
 }
 

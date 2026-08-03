@@ -215,6 +215,127 @@ const o1 = await reqNews(), o2 = await reqNews();
 chk('두 번 불러도 목록 순서가 같다(동점 id 로 고정)', o1 === o2, true);
 chk('최신순 정렬은 유지된다', o1.split(',')[0], 'r009');
 
+/* ── 보드 GET 자체의 병렬 읽기 (v0.9.293) ──────────────────────────────────────
+ * v0.9.287 은 목록 4종(기사·자료실·보도자료·제보)만 병렬로 고쳤고, **정작 가장 자주 열리는
+ * 보드 GET 본체**는 14개 도메인 키를 `await rd(...)` 로 한 줄씩 줄 세워 읽고 있었다.
+ * 슬롯 루프만 Promise.all 이라 "보드는 원래 병렬"로 보였던 것이 함정이었다.
+ * ⚠️ 여기도 시간(ms)이 아니라 **동시에 떠 있던 get 개수**로 잰다 — 순차로 되돌리면 반드시 깨진다. */
+console.log('\n[보드 GET — 도메인 키를 병렬로 읽는다]');
+{
+  const DOMAINS = ['jp:marketing', 'jp:meals', 'jp:shootlist', 'jp:types', 'jp:events', 'jp:timetable',
+    'jp:roster', 'jp:ttcats', 'jp:offtimes', 'jp:contacts', 'jp:divisions', 'jp:protocol', 'jp:mappos', 'jp:shoots'];
+  const map = new Map();
+  DOMAINS.forEach((k, i) => {
+    const field = k.slice(3);
+    map.set(k, JSON.stringify({ [field]: [{ id: field + '-1' }], updatedAt: '2026-08-04T0' + (i % 10) + ':00:00Z', author: '김기자' }));
+  });
+  map.set('jp:s:2026-08-05#a', JSON.stringify({ edit: { title: 'x' } }));
+  map.set('jp:roster', JSON.stringify({ roster: [{ id: 'r1', name: '김' }], teams: { t1: '1팀' }, updatedAt: '2026-08-04T09:00:00Z' }));
+
+  let inFlight = 0, peak = 0;
+  const env = { TOTP_SECRET: 'test-secret-for-regression', SCOUT_KV: {
+    list: async ({ prefix }) => ({ keys: [...map.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
+    get: async (k) => {
+      if (!String(k).startsWith('jp:')) return null;          // 세션 키 등은 계측에서 제외
+      inFlight++; peak = peak > inFlight ? peak : inFlight;
+      await new Promise((r) => setTimeout(r, 3));
+      inFlight--;
+      return map.has(k) ? map.get(k) : null;
+    },
+    put: async () => {}, delete: async () => {},
+  } };
+  const tok = (await issueMemberSession(env, { username: 'kim', name: '김기자', staff: true })).token;
+  const jp = await import('../functions/api/jamboree-plan.js');
+  const ctx = { env, request: new Request('https://x/api/jamboree-plan', { headers: { Authorization: 'Bearer ' + tok } }), waitUntil: () => {} };
+  const res = await jp.onRequestGet(ctx);
+  const j = await res.json();
+
+  chk('보드 GET 200', res.status, 200);
+  chk('도메인 키를 순차가 아니라 병렬로 읽는다(동시 get 최대 ' + peak + ')', peak >= 10, true);
+  // 병렬로 바꿔도 내려주는 내용은 그대로여야 한다 — 값·버전·roster/teams 분리 보관까지 확인
+  chk('모든 도메인 값이 담긴다', DOMAINS.every((k) => j[k.slice(3)] != null), true);
+  chk('roster 와 teams 가 따로 담긴다', (j.roster || []).length === 1 && j.teams && j.teams.t1 === '1팀', true);
+  chk('도메인 버전(versions)이 전부 실린다', DOMAINS.every((k) => !!j.versions[k.slice(3)]), true);
+  chk('슬롯도 함께 실린다', !!(j.slots && j.slots['2026-08-05#a']), true);
+  chk('무인증 보드 GET 은 401', (await jp.onRequestGet({ env, request: new Request('https://x/api/jamboree-plan'), waitUntil: () => {} })).status, 401);
+}
+
+/* ── 구역 목록 정합성: 홍보부 보드 ↔ 소식 제보 (v0.9.293) ─────────────────────
+ * ZONES 는 `jamboree-plan/app.js`(핀 좌표 포함)와 `krjam-jebo.html`(제보 드롭다운)에 **같은 key 로
+ * 복제**돼 있다. 한쪽만 고치면 제보의 zone 이 보드에서 미아가 되는데 **화면은 양쪽 다 멀쩡해 보인다**.
+ * 지금까지 두 스위트가 각자 '기대하는 값'(p5·safety 있음 등)만 따로 확인했다 — 그래서 한쪽에만
+ * 구역을 더하거나 라벨을 바꾸면 두 스위트 모두 통과한다. 여기서 **두 파일을 직접 맞대어** 못 박는다.
+ * 브라우저가 필요 없는 검사라 이 순수함수 스위트에 둔다. */
+console.log('\n[구역 목록 — 보드와 제보가 같은가]');
+{
+  const fs = await import('node:fs');
+  // ⚠️ 실행 위치가 아니라 **이 파일 기준**으로 찾는다 — CWD 에 기대면 다른 데서 돌릴 때 조용히 빈 값이 된다.
+  const root = new URL('../', import.meta.url);
+  const src = (rel) => fs.readFileSync(new URL(rel, root), 'utf8');
+  const cut = (s, from) => { const i = s.indexOf(from); return i < 0 ? '' : s.slice(i, s.indexOf('];', i)); };
+  const planSrc = cut(src('jamboree-plan/app.js'), 'var ZONES=[');
+  const jeboSrc = cut(src('krjam-jebo.html'), 'var ZONES=[');
+  const plan = [...planSrc.matchAll(/key:'([^']+)',label:'([^']+)'/g)].map((m) => [m[1], m[2]]);
+  const jebo = [...jeboSrc.matchAll(/\['([^']+)','([^']+)'/g)].map((m) => [m[1], m[2]]);
+
+  chk('두 파일에서 ZONES 를 읽어 왔다', plan.length > 20 && jebo.length > 20, true);
+  const pk = plan.map((z) => z[0]), jk = jebo.map((z) => z[0]);
+  const onlyPlan = pk.filter((k) => !jk.includes(k)), onlyJebo = jk.filter((k) => !pk.includes(k));
+  chk('보드에만 있는 구역 없음' + (onlyPlan.length ? ' — ' + onlyPlan.join(',') : ''), onlyPlan.length, 0);
+  chk('제보에만 있는 구역 없음' + (onlyJebo.length ? ' — ' + onlyJebo.join(',') : ''), onlyJebo.length, 0);
+  chk('구역 개수가 같다', pk.length === jk.length, true);
+  const pl = Object.fromEntries(plan), jl = Object.fromEntries(jebo);
+  const labDiff = pk.filter((k) => jl[k] !== undefined && pl[k] !== jl[k]);
+  chk('한글 라벨이 같다' + (labDiff.length ? ' — ' + labDiff.map((k) => k + ':' + pl[k] + '≠' + jl[k]).join(' ') : ''), labDiff.length, 0);
+  chk('순서까지 같다(드롭다운과 지도 범례가 어긋나지 않게)', pk.join(',') === jk.join(','), true);
+}
+
+/* ── D-Count 관리자 응답에 비밀번호 자료가 새지 않는가 (v0.9.293) ─────────────
+ * 신청 비밀번호는 **전화 끝 4자리**(경우의 수 1만)다. 관리자 목록이 KV 레코드를 통째로 실어
+ * salt·hash 를 내보내고 있었고, 그 응답은 **공유 비밀번호 한 개로 열린다**. hash 를 얻으면
+ * 오프라인으로 전부 맞춰 볼 수 있어 남의 신청을 조회·수정·철회할 수 있다.
+ * 화면은 이 둘을 쓰지도 않았다 → 안 쓰는 비밀을 내보내던 것. 여기서 못 박는다. */
+console.log('\n[D-Count 관리자 목록 — 비밀번호 자료 비노출]');
+{
+  const dcIndex = [{ applicationNo: '김참가', targetDate: '2026-07-30', dNumber: 6, name: '김참가', status: '승인' }];
+  const dcRec = { applicationNo: '김참가', salt: 'U0FMVA==', hash: 'SEFTSA==', targetDate: '2026-07-30', dNumber: 6,
+    name: '김참가', contact: '010-1234-5678', org: '서울연맹', teaser: '기대돼요', status: '승인',
+    consents: { a: true }, ip: '1.2.3.4', approvedBy: 'admin', photos: [], createdAt: '2026-07-01T00:00:00Z' };
+  const store = new Map([
+    ['dcount:index', JSON.stringify(dcIndex)],
+    ['dcount:app:김참가', JSON.stringify(dcRec)],
+    ['dcount:closed', JSON.stringify([])],
+  ]);
+  const env = { TOTP_SECRET: 'test-secret-for-regression', CC_PASS: 'test-shared-pass', SCOUT_KV: {
+    list: async ({ prefix }) => ({ keys: [...store.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
+    get: async (k) => (store.has(k) ? store.get(k) : null), put: async () => {}, delete: async () => {},
+  } };
+  const dc = await import('../functions/api/krjam-dcount.js');
+  const adminGet = (pass) => dc.onRequestGet({ env, request: new Request('https://x/api/krjam-dcount?admin=1',
+    pass ? { headers: { 'X-CC-Pass': pass } } : undefined) });
+
+  chk('무인증 관리자 조회는 401', (await adminGet(null)).status, 401);
+  chk('틀린 공유 비밀번호는 401', (await adminGet('nope')).status, 401);
+  const r = await adminGet('test-shared-pass');
+  chk('맞는 공유 비밀번호는 200', r.status, 200);
+  const j = await r.json();
+  const app0 = (j.applications || [])[0] || {};
+  chk('신청 건이 실린다', (j.applications || []).length, 1);
+  chk('salt 가 응답에 없다', 'salt' in app0, false);
+  chk('hash 가 응답에 없다', 'hash' in app0, false);
+  // 화면이 실제로 쓰는 필드는 그대로 있어야 한다 — 지우려다 관리자 화면을 깨면 안 된다
+  chk('관리자 화면이 쓰는 필드는 남는다(name·contact·ip·approvedBy·status)',
+    app0.name === '김참가' && app0.contact === '010-1234-5678' && app0.ip === '1.2.3.4' &&
+    app0.approvedBy === 'admin' && app0.status === '승인', true);
+
+  // 공개(비관리자) 응답에도 개인정보가 새면 안 된다 — 승인 카드는 게시용 정보만
+  const pub = await (await dc.onRequestGet({ env, request: new Request('https://x/api/krjam-dcount') })).json();
+  const ap0 = (pub.approved || [])[0] || {};
+  chk('공개 응답에 신청 원본(applications)이 없다', 'applications' in pub, false);
+  chk('공개 승인 카드에 전화·salt·hash 가 없다', !('contact' in ap0) && !('salt' in ap0) && !('hash' in ap0), true);
+  chk('공개 승인 카드는 게시용 정보만 준다', ap0.dNumber === 6 && ap0.teaser === '기대돼요', true);
+}
+
 const ok = R.filter(Boolean).length;
 console.log('=== ' + ok + '/' + R.length + ' PASS ===');
 process.exit(ok === R.length ? 0 : 1);

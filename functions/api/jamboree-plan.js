@@ -390,24 +390,35 @@ export async function onRequestGet(ctx) {
     catch { return null; }
   };
 
-  const marketing = await rd(MKT, "marketing", "marketing");
-  const types = await rd(TYPES, "types", "types");
-  const events = await rd(EVENTS, "events", "events");
-  const timetable = await rd(TIMETABLE, "timetable", "timetable");
-
+  /* ⚠️ **반드시 병렬로 읽는다.** 예전엔 이 15개를 `await rd(...)` 로 한 줄씩 줄 세워 읽었다 —
+     KV get 은 매번 왕복이라 보드를 한 번 열 때마다 왕복 15번을 순서대로 기다렸다.
+     기사·자료실·보도자료·제보 목록에서 같은 패턴을 고친 게 v0.9.287(`listRecords`)인데,
+     정작 **가장 자주 열리는 보드 GET 본체가 안 따라와 있었다**(위 슬롯 루프만 Promise.all).
+     캐시는 30초 TTL 이고 저장할 때마다 purge 되므로, 편집 중에는 사실상 매 로드가 이 경로다.
+     ⚠️ 병렬이라 versions[] 에 담기는 순서가 매번 다르다 — 키로 쓰므로 순서에 의존하지 않는다.
+        payload 의 필드 순서도 아래 객체 리터럴이 고정한다. */
   let roster = null, teams = null;
-  const rraw = await env.SCOUT_KV.get(ROSTER);
-  if (rraw) { try { const rj = JSON.parse(rraw); roster = rj.roster; teams = rj.teams || null; versions.roster = rj.updatedAt || null; } catch {} }
-
-  const ttcats = await rd(TTCATS, "ttcats", "ttcats");
-  const offtimes = await rd(OFFTIMES, "offtimes", "offtimes");
-  const contacts = await rd(CONTACTS, "contacts", "contacts");
-  const divisions = await rd(DIVISIONS, "divisions", "divisions");
-  const protocol = await rd(PROTOCOL, "protocol", "protocol");
-  const mappos = await rd(MAPPOS, "mappos", "mappos");
-  const shoots = await rd(SHOOTS, "shoots", "shoots");
-  const meals = await rd(MEALS, "meals", "meals");
-  const shootlist = await rd(SHOOTLIST, "shootlist", "shootlist");
+  const readRoster = async () => {
+    const rraw = await env.SCOUT_KV.get(ROSTER);
+    if (rraw) { try { const rj = JSON.parse(rraw); roster = rj.roster; teams = rj.teams || null; versions.roster = rj.updatedAt || null; } catch {} }
+  };
+  const [marketing, types, events, timetable, ttcats, offtimes, contacts,
+         divisions, protocol, mappos, shoots, meals, shootlist] = await Promise.all([
+    rd(MKT, "marketing", "marketing"),
+    rd(TYPES, "types", "types"),
+    rd(EVENTS, "events", "events"),
+    rd(TIMETABLE, "timetable", "timetable"),
+    rd(TTCATS, "ttcats", "ttcats"),
+    rd(OFFTIMES, "offtimes", "offtimes"),
+    rd(CONTACTS, "contacts", "contacts"),
+    rd(DIVISIONS, "divisions", "divisions"),
+    rd(PROTOCOL, "protocol", "protocol"),
+    rd(MAPPOS, "mappos", "mappos"),
+    rd(SHOOTS, "shoots", "shoots"),
+    rd(MEALS, "meals", "meals"),
+    rd(SHOOTLIST, "shootlist", "shootlist"),
+    readRoster(),
+  ]);
 
   const payload = { slots, marketing, meals, shootlist, types, events, timetable, roster, teams, ttcats, offtimes, contacts, divisions, protocol, mappos, shoots, versions };
   // 엣지 캐시(Workers caches.default)에는 캐시 가능한 사본을 넣어 KV 읽기를 아끼고(30초, 쓰기 시 purge),
