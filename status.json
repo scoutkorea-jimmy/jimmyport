@@ -1,9 +1,9 @@
 {
-  "version": "0.9.295",
-  "commit": "9f51bba",
-  "commitSubject": "docs(v0.9.294): record shared opening-ceremony countdown (2 rounds green, 959 checks)",
-  "commitAt": "2026-08-04T04:54:00+09:00",
-  "deployedAt": "2026-08-14T11:53:19.005Z",
+  "version": "0.9.296",
+  "commit": "f363a84",
+  "commitSubject": "feat(v0.9.295): retire cardnews / d-count / food-service; add service-ended notice",
+  "commitAt": "2026-08-14T20:53:38+09:00",
+  "deployedAt": "2026-08-14T12:02:49.942Z",
   "verification": {
     "at": "2026-08-03T19:54:00.100Z",
     "rounds": [

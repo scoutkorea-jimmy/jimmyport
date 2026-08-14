@@ -60,6 +60,19 @@ const CASES = [
     chk('살아 있는 화면이 쓰는 공유 자산은 그대로다', lost.length === 0, lost.join(', '));
   }
 
+  console.log('\n[지운 것이 실제로 404 가 되는가]');
+  {
+    /* 🔴 v0.9.295 배포 후 실측: 지운 자산·API 가 **404 가 아니라 랜딩 HTML 200** 이었다.
+       Cloudflare Pages 는 `404.html` 이 없으면 **못 찾은 경로에 index.html 을 200 으로** 준다
+       (`/nonexistent-xyz` 도 같았다 = 이번 삭제 탓이 아닌 원래 동작).
+       그대로 두면 '지웠는데 지워지지 않은 것처럼' 보이고, 옛 클라이언트가 JSON 대신 HTML 을 받는다.
+       ⚠️ 이 사이트는 경로 기반 클라이언트 라우팅을 쓰지 않으므로(해시만) 404.html 이 안전하다. */
+    chk('404.html 이 있다(Pages catch-all 을 끈다)', has('404.html'));
+    const f404 = has('404.html') ? rd('404.html') : '';
+    chk('404 화면이 도구 모음으로 돌아가는 길을 준다', /href="\/"/.test(f404));
+    chk('404 화면도 공유 엠블럼을 쓴다(경로 살아 있음 확인)', /jamboree\/assets\/logo\.png/.test(f404));
+  }
+
   console.log('\n[살아 있는 화면 — 죽은 링크가 남지 않았다]');
   {
     // ⚠️ 홍보부 app.js 의 콘텐츠 유형 'dcount'(D-count 카드뉴스 종류)는 서비스와 무관하다.

@@ -19,7 +19,7 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.jsx': 'text/jsx
 // v0.9.295 — 카드뉴스·디데이·급식본부는 종료. 그 자리에 종료 안내 화면(/service-ended)이 선다.
 const ROUTES = { '/': '/index.html', '/tour': '/tour/index.html',
   '/krjam-jebo': '/krjam-jebo.html', '/privacy': '/privacy.html',
-  '/krjam-planning': '/krjam-planning.html', '/service-ended': '/service-ended.html' };
+  '/krjam-planning': '/krjam-planning.html', '/service-ended': '/service-ended.html', '/404': '/404.html' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (ROUTES[p]) p = ROUTES[p];
@@ -40,7 +40,7 @@ const EXCEPT = {
   '/tour': { fontSel: ['.leaflet-marker-icon', '.leaflet-control-attribution', '.leaflet-tooltip'] },
 };
 
-const PAGES = ['/', '/tour', '/krjam-jebo', '/privacy', '/krjam-planning', '/service-ended'];
+const PAGES = ['/', '/tour', '/krjam-jebo', '/privacy', '/krjam-planning', '/service-ended', '/404'];
 const VIEWPORTS = [['모바일', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
                    ['PC', { width: 1440, height: 900 }]];
 
