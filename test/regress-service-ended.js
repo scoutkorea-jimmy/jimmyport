@@ -39,6 +39,11 @@ const GONE_FILES = [
 ];
 /* 종료했어도 **남아 있어야** 하는 것 — 살아 있는 화면이 쓰는 공유 자산 */
 const KEPT_FILES = ['jamboree/assets/logo.png', 'jamboree/assets/og-planning.png', 'countdown.js', 'functions/api/jp-meals.js', 'functions/api/image.js'];
+/* 문의처 — 종료한 서비스는 이 주소 하나로만 연락이 닿는다.
+   ⚠️ 주소를 바꿀 때 한 곳만 고치면 **죽은 주소가 남는다**. 여기와 개인정보 처리방침을 함께 잰다. */
+const CONTACT = 'scoutkorea@kakao.com';
+const CONTACT_FILES = ['service-ended.html', 'privacy.html'];
+
 /* 종료 안내가 이름을 갈아 끼우는 키 → 화면에 떠야 하는 말 */
 const CASES = [
   ['cardnews', '카드뉴스 제작기'],
@@ -91,6 +96,21 @@ const CASES = [
     chk('랜딩·홍보부·제보·운영현황에 종료 서비스로 가는 길이 없다', bad.length === 0, bad.join(' | '));
     chk('유입 집계 화이트리스트에서도 빠졌다',
       !/krjam-cardnews|krjam-dcount|krjam-fnc/.test(rd('functions/api/hit.js').split('export const ROUTES')[1].split(']')[0]));
+  }
+
+  console.log('\n[문의처]');
+  {
+    const stale = [];
+    CONTACT_FILES.forEach((f) => {
+      const src = rd(f);
+      // 지금 주소가 아닌 메일 주소가 남아 있으면 죽은 연락처다
+      (src.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi) || []).forEach((m) => {
+        if (m.toLowerCase() !== CONTACT) stale.push(f + ' → ' + m);
+      });
+    });
+    chk('종료 안내·개인정보 처리방침에 옛 문의처가 남아 있지 않다', stale.length === 0, [...new Set(stale)].join(' | '));
+    chk('종료 안내의 문의 버튼이 현재 주소로 간다',
+      new RegExp('href="mailto:' + CONTACT + '"').test(rd('service-ended.html')));
   }
 
   console.log('\n[_redirects — 뿌려진 주소가 안내 화면으로 간다]');

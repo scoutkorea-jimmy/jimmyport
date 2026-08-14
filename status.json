@@ -1,9 +1,9 @@
 {
-  "version": "0.9.297",
-  "commit": "fda55c6",
-  "commitSubject": "docs: back up retired-service KV locally; add year-end purge script",
-  "commitAt": "2026-08-14T21:24:37+09:00",
-  "deployedAt": "2026-08-14T12:50:05.881Z",
+  "version": "0.9.298",
+  "commit": "1178e4e",
+  "commitSubject": "refactor(v0.9.297): quiet the landing - strip decoration, rebuild its regression",
+  "commitAt": "2026-08-14T21:53:26+09:00",
+  "deployedAt": "2026-08-14T13:04:48.107Z",
   "verification": {
     "at": "2026-08-03T19:54:00.100Z",
     "rounds": [

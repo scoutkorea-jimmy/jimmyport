@@ -37,6 +37,19 @@ const BACKUP = process.argv.slice(2).filter((a) => !a.startsWith('--'))[0]
 const ARCHIVE = path.join(path.dirname(BACKUP), 'KRJAM16-종료서비스-아카이브-20260814');
 
 const wrangler = (args) => execFileSync('npx', ['wrangler', ...args], { encoding: 'utf8', maxBuffer: 1 << 28 });
+/* ⚠️ 이 스크립트는 **몇 달 뒤에** 실행된다. 그때 클라우드플레어 토큰이 만료돼 있거나 API 가
+   일시적으로 실패하면, 손대지 않은 stack trace 를 토하며 죽는다(실제로 겪었다).
+   그러면 사용자는 '뭐가 잘못됐는지'도 '지워졌는지 아닌지'도 알 수 없다. 사람 말로 멈춘다. */
+const wranglerSafe = (args, what) => {
+  try { return wrangler(args); }
+  catch (e) {
+    const msg = String((e && (e.stderr || e.message)) || e);
+    if (/Authentication error|10000|not logged in|login/i.test(msg)) {
+      die(`${what} 중 클라우드플레어 인증에 실패했습니다.\n  → \`npx wrangler login\` 으로 다시 로그인한 뒤 실행하세요.`);
+    }
+    die(`${what} 중 클라우드플레어 API 가 실패했습니다.\n  ${msg.split('\n').filter(Boolean).slice(0, 3).join('\n  ')}`);
+  }
+};
 const safe = (n) => n.replace(/[/\\:]/g, '__');
 const die = (msg) => { console.error('\n중단: ' + msg + '\n(아무것도 지우지 않았습니다.)'); process.exit(1); };
 
@@ -49,10 +62,18 @@ function classify(key) {
 }
 
 console.log(`백업 폴더: ${BACKUP}`);
-if (!fs.existsSync(BACKUP)) die('백업 폴더가 없습니다. 백업 없이는 지울 수 없습니다.');
+if (!fs.existsSync(BACKUP)) {
+  die('백업 폴더가 없습니다. 백업 없이는 지울 수 없습니다.\n'
+    + '  Legacy 폴더를 옮기셨다면 위치를 인자로 주세요. 예:\n'
+    + '  node scripts/purge-retired-kv.js "/Volumes/<디스크>/.../Legacy/서버백업-KV-20260814"\n'
+    + '  (외장에 두셨다면 **디스크를 먼저 꽂아** 마운트된 상태여야 합니다.)');
+}
 
 console.log('KV 키 목록을 읽는 중…');
-const allKeys = JSON.parse(wrangler(['kv', 'key', 'list', `--namespace-id=${NS}`, '--remote'])).map((k) => k.name);
+const listRaw = wranglerSafe(['kv', 'key', 'list', `--namespace-id=${NS}`, '--remote'], 'KV 키 목록 읽기');
+let allKeys;
+try { allKeys = JSON.parse(listRaw).map((k) => k.name); }
+catch (e) { die('KV 키 목록을 JSON 으로 읽지 못했습니다(wrangler 출력 형식이 바뀌었을 수 있습니다).'); }
 console.log(`  전체 ${allKeys.length}개`);
 
 const targets = allKeys.map((k) => [k, classify(k)]).filter(([, g]) => g);
