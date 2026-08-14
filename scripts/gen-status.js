@@ -56,6 +56,16 @@ function readRuns(dir) {
 }
 
 const runs = readRuns(process.argv[2]);
+/* 🔴 **조용한 폴백이 사고를 만든다.** 로그 폴더를 안 넘기면 직전 검증 기록이 그대로 남는데,
+   그게 화면(/admin 운영 현황)에는 **이번 배포의 검증 결과처럼** 보인다.
+   실제로 v0.9.295~300 내내 2026-08-03 기록(959건 · 이미 삭제된 급식본부 스위트 포함)이
+   그대로 실려 나갔다. 이제 폴백할 때마다 크게 알린다.
+   쓰는 법: 회귀 로그를 `<dir>/r1-<스위트>.log`·`r2-<스위트>.log` 로 모아 인자로 넘긴다. */
+if (!runs) {
+  console.warn('⚠️  회귀 로그 폴더를 받지 못했습니다 — **직전 검증 기록을 그대로 둡니다.**');
+  console.warn('    지금 돌린 회귀 결과를 실으려면: node scripts/gen-status.js <로그폴더>');
+  console.warn('    (로그 파일명은 r1-<스위트>.log · r2-<스위트>.log 형식이어야 합니다.)');
+}
 let prev = {};
 try { prev = JSON.parse(fs.readFileSync(OUT, 'utf8')); } catch {}
 

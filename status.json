@@ -1,24 +1,18 @@
 {
   "version": "0.9.300",
-  "commit": "efff061",
-  "commitSubject": "refactor(v0.9.299): tidy the folder tree - entries stay at root, assets move in",
-  "commitAt": "2026-08-14T22:23:14+09:00",
-  "deployedAt": "2026-08-14T13:39:04.087Z",
+  "commit": "15dfadc",
+  "commitSubject": "docs(v0.9.300): kill the /tour favicon 404; add rules/failures.md",
+  "commitAt": "2026-08-14T22:47:55+09:00",
+  "deployedAt": "2026-08-14T13:55:35.756Z",
   "verification": {
-    "at": "2026-08-03T19:54:00.100Z",
+    "at": "2026-08-14T13:55:35.756Z",
     "rounds": [
       {
         "round": 1,
-        "checks": 959,
+        "checks": 738,
         "fails": 0,
         "failures": [],
         "items": [
-          {
-            "name": "audit-krjam-fnc",
-            "pass": null,
-            "total": null,
-            "fails": 0
-          },
           {
             "name": "audit-krjam-planning",
             "pass": null,
@@ -33,32 +27,14 @@
           },
           {
             "name": "regress-a11y-sweep",
-            "pass": 36,
-            "total": 36,
+            "pass": 28,
+            "total": 28,
             "fails": 0
           },
           {
             "name": "regress-admin",
-            "pass": 42,
-            "total": 42,
-            "fails": 0
-          },
-          {
-            "name": "regress-fnc-stability",
-            "pass": 59,
-            "total": 59,
-            "fails": 0
-          },
-          {
-            "name": "regress-krjam-fnc",
-            "pass": 92,
-            "total": 92,
-            "fails": 0
-          },
-          {
-            "name": "regress-krjam-fnc-board",
-            "pass": 86,
-            "total": 86,
+            "pass": 43,
+            "total": 43,
             "fails": 0
           },
           {
@@ -69,8 +45,8 @@
           },
           {
             "name": "regress-krjam-news",
-            "pass": 112,
-            "total": 112,
+            "pass": 113,
+            "total": 113,
             "fails": 0
           },
           {
@@ -93,8 +69,8 @@
           },
           {
             "name": "regress-krjam-planning-server",
-            "pass": 104,
-            "total": 104,
+            "pass": 94,
+            "total": 94,
             "fails": 0
           },
           {
@@ -105,8 +81,14 @@
           },
           {
             "name": "regress-landing",
-            "pass": 45,
-            "total": 45,
+            "pass": 46,
+            "total": 46,
+            "fails": 0
+          },
+          {
+            "name": "regress-service-ended",
+            "pass": 31,
+            "total": 31,
             "fails": 0
           },
           {
@@ -119,16 +101,10 @@
       },
       {
         "round": 2,
-        "checks": 959,
+        "checks": 738,
         "fails": 0,
         "failures": [],
         "items": [
-          {
-            "name": "audit-krjam-fnc",
-            "pass": null,
-            "total": null,
-            "fails": 0
-          },
           {
             "name": "audit-krjam-planning",
             "pass": null,
@@ -143,32 +119,14 @@
           },
           {
             "name": "regress-a11y-sweep",
-            "pass": 36,
-            "total": 36,
+            "pass": 28,
+            "total": 28,
             "fails": 0
           },
           {
             "name": "regress-admin",
-            "pass": 42,
-            "total": 42,
-            "fails": 0
-          },
-          {
-            "name": "regress-fnc-stability",
-            "pass": 59,
-            "total": 59,
-            "fails": 0
-          },
-          {
-            "name": "regress-krjam-fnc",
-            "pass": 92,
-            "total": 92,
-            "fails": 0
-          },
-          {
-            "name": "regress-krjam-fnc-board",
-            "pass": 86,
-            "total": 86,
+            "pass": 43,
+            "total": 43,
             "fails": 0
           },
           {
@@ -179,8 +137,8 @@
           },
           {
             "name": "regress-krjam-news",
-            "pass": 112,
-            "total": 112,
+            "pass": 113,
+            "total": 113,
             "fails": 0
           },
           {
@@ -203,8 +161,8 @@
           },
           {
             "name": "regress-krjam-planning-server",
-            "pass": 104,
-            "total": 104,
+            "pass": 94,
+            "total": 94,
             "fails": 0
           },
           {
@@ -215,8 +173,14 @@
           },
           {
             "name": "regress-landing",
-            "pass": 45,
-            "total": 45,
+            "pass": 46,
+            "total": 46,
+            "fails": 0
+          },
+          {
+            "name": "regress-service-ended",
+            "pass": 31,
+            "total": 31,
             "fails": 0
           },
           {
@@ -229,7 +193,7 @@
       }
     ],
     "green": true,
-    "checksPerRound": 959
+    "checksPerRound": 738
   },
   "services": [
     {
