@@ -46,7 +46,7 @@
 
 | 라우트 | 서비스 | 모듈/엔트리 | 문서 |
 |---|---|---|---|
-| `/` · `/tour` · `/tour/admin` | Scout Tour Assistant | `app.js`·`admin.js`·`tour/` | [brief](docs/scout-finder/brief.md) · [changelog](docs/scout-finder/changelog.md) |
+| `/` · `/tour` · `/tour/admin` | Scout Tour Assistant | `index.html` · `tour/`(app.js·admin.js·data.js·styles.css) | [brief](docs/scout-finder/brief.md) · [changelog](docs/scout-finder/changelog.md) |
 | `/krjam-planning` | 홍보부 통합 관리 플랫폼 | `jamboree-plan/` | [changelog](docs/krjam-planning/changelog.md) |
 | `/krjam-jebo` | 공개 소식 제보 | `krjam-jebo.html` | [changelog](docs/krjam-jebo/changelog.md) |
 
@@ -63,4 +63,4 @@
 - ⚠️ **라이브 KV 는 그대로 둔다**(사용자 지시) — 특히 디데이 참가자 사진 29장. 아카이브에 사본이 있지만 원본을 지우지 않는다
 - 회귀: `test/regress-service-ended.js`(25건) 가 '덜 지움(죽은 링크)'과 '더 지움(공유 자산 파괴)'을 양쪽으로 막는다
 
-> ⚠️ **폴더 구조 이행 중**: 현재 앱 코드는 배포 라우팅 유지를 위해 루트에 그대로 있고(`app.js`·`jamboree/`·`tour/` 등), **지식/문서만** `rules/`·`docs/<service>/` 로 재구성했다. 코드의 서비스 폴더 이동은 라우팅 재배선이 필요한 별도 단계 → [rules/stack-routing.md](rules/stack-routing.md) 참조.
+> ✅ **폴더 정리 완료(v0.9.299)**: **엔트리 HTML 은 루트 고정**(Pages 는 파일명이 곧 주소), **모듈·자산은 서비스 폴더로**. `/tour` 앱 4개(`app.js`·`admin.js`·`data.js`·`styles.css`)를 `tour/` 로, `jamboree/assets/` 를 `assets/` 로 합치고, 배치도 고해상 원본을 `_private/` 로 옮겼다(루트 파일 25→19). 옮긴 자산의 옛 주소는 `_redirects` 301 — **이미 공유된 링크의 SNS 미리보기가 깨지지 않게** 한 것이다. 구조는 [rules/stack-routing.md §3](rules/stack-routing.md) 참조.

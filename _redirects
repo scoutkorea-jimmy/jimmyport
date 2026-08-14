@@ -22,3 +22,15 @@
 /krjam-fnc.html      /service-ended?s=fnc        302
 /krjam-fnc-book      /service-ended?s=fnc        302
 /krjam-fnc-book.html /service-ended?s=fnc        302
+
+# ── 2026-08-14 폴더 정리(v0.9.299) — 옮긴 자산의 옛 주소 ──
+# ⚠️ OG 이미지 주소가 바뀌면 **이미 카카오톡·페이스북에 공유된 링크의 미리보기가 깨진다**
+#    (크롤러가 옛 URL 을 캐시하고 있다). 301 로 새 위치를 가리켜 그 링크들을 살린다.
+#    자산이라 301(영구)이 맞다 — 되돌릴 일이 없다.
+/jamboree/assets/logo.png         /assets/logo.png          301
+/jamboree/assets/og-planning.png  /assets/og-planning.png   301
+# /tour 앱 자산도 tour/ 안으로 들어갔다(옛 ?v= 를 물고 있는 브라우저 대비)
+/app.js      /tour/app.js      301
+/admin.js    /tour/admin.js    301
+/data.js     /tour/data.js     301
+/styles.css  /tour/styles.css  301

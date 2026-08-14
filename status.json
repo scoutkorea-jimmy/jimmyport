@@ -1,9 +1,9 @@
 {
-  "version": "0.9.298",
-  "commit": "1178e4e",
-  "commitSubject": "refactor(v0.9.297): quiet the landing - strip decoration, rebuild its regression",
-  "commitAt": "2026-08-14T21:53:26+09:00",
-  "deployedAt": "2026-08-14T13:04:48.107Z",
+  "version": "0.9.299",
+  "commit": "f0b0806",
+  "commitSubject": "chore(v0.9.298): contact -> scoutkorea@kakao.com; harden the year-end purge script",
+  "commitAt": "2026-08-14T22:08:50+09:00",
+  "deployedAt": "2026-08-14T13:18:33.802Z",
   "verification": {
     "at": "2026-08-03T19:54:00.100Z",
     "rounds": [

@@ -12,9 +12,11 @@ const BLOCKED = [
   /^\/\.claude(\/|$)/i,      // local tooling/settings
   /^\/test(\/|$)/i,          // regression suite — internal only (*.md is covered above, but the .js is not)
   /^\/scripts(\/|$)/i,       // 배포 때만 쓰는 생성 스크립트(gen-status.js) — 공개할 것이 아니다
-  // Site-map original from 시설물자관리본부 (internal doc). Kept in the repo as the
-  // high-res source for jamboree-plan/assets/sitemap.png, which is what the app
-  // actually serves — the original itself must not be public.
+  // 시설물자관리본부 배치도 고해상 원본(내부 자료). 앱이 실제로 내보내는 것은
+  // jamboree-plan/assets/sitemap.png 이고, 원본 자체는 공개되면 안 된다.
+  // v0.9.299 에서 루트에 흩어져 있던 파일을 _private/ 로 모았다 — 폴더째 막는다.
+  /^\/_private(\/|$)/i,
+  // (옛 위치도 계속 막는다 — 되돌아오더라도 새어 나가지 않게)
   /^\/KakaoTalk_Photo_[\d-]+\.png$/i,
 ];
 

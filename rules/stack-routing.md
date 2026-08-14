@@ -9,28 +9,46 @@
 - UI 텍스트 **한국어**, 식별자/코드 **영어**.
 - 디자인: 깔끔한 '필드 가이드/지도' 무드. generic AI 톤·보라 그라데이션 남발 금지.
 
-## 3. 파일 구조 (라우팅 개편 v0.9.107 반영)
+## 3. 파일 구조 (v0.9.299 폴더 정리 반영)
+
+**Cloudflare Pages 는 루트의 `.html` 파일명이 곧 주소**다(`krjam-planning.html` → `/krjam-planning`).
+그래서 **엔트리 HTML 은 루트를 못 벗어난다.** 반대로 **js·css·이미지는 옮겨도 된다** — HTML 의 `src` 만 고치면 된다.
+v0.9.299 에서 그 구분대로 정리했다(루트 파일 25 → 19개).
+
 ```
-index.html           루트 = 도구 모음 랜딩 허브(noindex) → /tour·/krjam-* 카드 링크   [/]
-tour/index.html      Scout Tour Assistant 공개 (지도·검색·거리정렬·댓글)              [/tour]
-tour/admin.html      Tour 관리자 (TOTP 로그인, 단위대 CRUD + 좌표)                     [/tour/admin]
-app.js, admin.js     공개·관리자 로직 (루트 위치, tour/* 는 절대경로 /app.js 로 참조)
-styles.css           공개+관리자 공용 테마 (Bricolage + Hanken, 보라 #6336B5)
-data.js              SCOUT_UNITS + SCOUT_NSOS(176) + SCOUT_REGION_COLORS (← 데이터 교체 지점)
-krjam-cardnews.html  잼버리 카드뉴스 제작기(React) — 모듈은 jamboree/           [/krjam-cardnews] (구 /jamboree)
-krjam-planning.html  잼버리 SNS 운영 캘린더(vanilla) — 모듈은 jamboree-plan/     [/krjam-planning]  (구 /jamboree-plan)
-krjam-dcount.html    D-Count 자리(라우팅만 확보, 내용은 사용자가 작성)          [/krjam-dcount]
-krjam-fnc.html       급식편의본부 OT 플립북(vanilla) — 모듈은 krjam-fnc/       [/krjam-fnc]
-jamboree/ , jamboree-plan/   각 앱의 모듈·자산 폴더 (이름 유지)
-krjam-fnc/           app.js·styles.css + pages/(31쪽 webp)·thumbs/·assets/(내려받기 PDF·OG)
-functions/_middleware.js     내부파일(*.md·wrangler.toml·CNAME·package*.json·.claude 등) 404 차단
-functions/api/*      백엔드 (units/submissions/comments/jamboree/jamboree-plan/jp-members/jp-news/login/image/file/log + _lib)
-_redirects           구 경로(/jamboree·/jamboree-plan·/admin) → 신 경로 301
-_headers             전 자산 no-cache(배포 즉시 반영)
-version-watch.js     /VERSION 폴링 → 새 배포 시 우측 상단 새로고침 알림
-VERSION              사이트 버전 (의미 있는 변경마다 bump)
-KMS.md / FEATURES.md / README.md / DESIGN.md   내부 문서(웹 비공개 — _middleware 차단)
+── 주소가 되는 엔트리 (루트 고정) ─────────────────────────────
+index.html            도구 모음 랜딩 허브(noindex)                    [/]
+krjam-planning.html   홍보부 통합 관리 — 모듈은 jamboree-plan/        [/krjam-planning] (구 /jamboree-plan)
+krjam-jebo.html       공개 소식 제보                                  [/krjam-jebo] (+ /jebo)
+admin.html            운영 현황(TOTP) — 모듈은 admin/                 [/admin]
+privacy.html          개인정보 처리방침(영문)                          [/privacy]
+service-ended.html    종료 서비스 안내(2026-08-14~)                    [/service-ended]
+404.html              못 찾은 주소                                     ⚠️ 없으면 Pages 가 index.html 을 200 으로 준다
+
+── 서비스별 모듈·자산 폴더 ─────────────────────────────────────
+tour/     index.html·admin.html + **app.js·admin.js·data.js·styles.css**   [/tour · /tour/admin]
+          ⚠️ v0.9.299 에 이 4개를 루트에서 여기로 옮겼다. 옛 `/app.js` 등은 `_redirects` 301.
+jamboree-plan/   홍보부 모듈(app.js·core.js·editor.js·upload.js·library.js·styles.css·tokens.css·assets/)
+admin/           운영 현황 모듈(admin.js·admin.css)   ← 루트 admin.js(투어)와 **다른 앱**이었다. 이제 안 헷갈린다.
+
+── 사이트 공용 ────────────────────────────────────────────────
+assets/          logo.png(엠블럼) · og-landing.png · og-tour.png · og-planning.png
+                 ⚠️ v0.9.299 에 `jamboree/assets/` 를 여기로 합쳤다(OG 가 두 군데로 갈려 있었다).
+                 옛 경로는 `_redirects` 301 — **이미 공유된 링크의 SNS 미리보기를 살리기 위해서다.**
+countdown.js     개영식 카운트다운 공용 모듈(랜딩·홍보부·제보가 함께 씀)
+version-watch.js /VERSION 폴링 → 새 배포 시 새로고침 알림
+_private/        시설물자관리본부 배치도 **고해상 원본**(내부 자료) — `_middleware` 가 폴더째 404
+
+── 배포·백엔드 ────────────────────────────────────────────────
+functions/_middleware.js  내부파일(*.md·wrangler.toml·test/·scripts/·_private/ …) 404 차단 + 캐시 헤더
+functions/api/*           백엔드(units·submissions·comments·jamboree-plan·jp-*·login·image·file·r2·log + _lib)
+_redirects                구 경로 → 신 경로 · 종료 서비스 → /service-ended(302) · 옮긴 자산(301)
+_headers                  캐시 규칙
+VERSION · status.json · wrangler.toml
+KMS.md · FEATURES.md · README.md · DESIGN.md · CLAUDE.md   내부 문서(_middleware 차단)
+rules/ · docs/ · test/ · scripts/                          내부(공개 차단)
 ```
+
 > **모든 데이터·사양은 [KMS.md](../KMS.md)에 통합.** 작업 전 KMS.md + 이 문서 함께 확인.
 
 ## 8. 운영 규칙

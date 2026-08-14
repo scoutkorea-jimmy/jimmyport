@@ -38,7 +38,7 @@ const GONE_FILES = [
   'functions/api/jp-fnc-staff.js', 'functions/api/jp-fnc-content.js',
 ];
 /* 종료했어도 **남아 있어야** 하는 것 — 살아 있는 화면이 쓰는 공유 자산 */
-const KEPT_FILES = ['jamboree/assets/logo.png', 'jamboree/assets/og-planning.png', 'countdown.js', 'functions/api/jp-meals.js', 'functions/api/image.js'];
+const KEPT_FILES = ['assets/logo.png', 'assets/og-planning.png', 'countdown.js', 'functions/api/jp-meals.js', 'functions/api/image.js'];
 /* 문의처 — 종료한 서비스는 이 주소 하나로만 연락이 닿는다.
    ⚠️ 주소를 바꿀 때 한 곳만 고치면 **죽은 주소가 남는다**. 여기와 개인정보 처리방침을 함께 잰다. */
 const CONTACT = 'scoutkorea@kakao.com';
@@ -75,7 +75,7 @@ const CASES = [
     chk('404.html 이 있다(Pages catch-all 을 끈다)', has('404.html'));
     const f404 = has('404.html') ? rd('404.html') : '';
     chk('404 화면이 도구 모음으로 돌아가는 길을 준다', /href="\/"/.test(f404));
-    chk('404 화면도 공유 엠블럼을 쓴다(경로 살아 있음 확인)', /jamboree\/assets\/logo\.png/.test(f404));
+    chk('404 화면도 공유 엠블럼을 쓴다(경로 살아 있음 확인)', /\/assets\/logo\.png/.test(f404));
   }
 
   console.log('\n[살아 있는 화면 — 죽은 링크가 남지 않았다]');

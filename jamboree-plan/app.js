@@ -1400,7 +1400,7 @@ function scanDueNotify(){
   var notified=notifiedSet(), today=todayISO(), changed=false;
   dueItems().forEach(function(it){ var key=it.s.k+'|'+today; if(notified[key]) return; notified[key]=1; changed=true;
     var title=it.e.title||it.s.seedTitle||'콘텐츠';
-    try{ new Notification(it.ds==='over'?'마감 지난 콘텐츠':'마감 임박 콘텐츠',{body:title+' — 마감 '+(it.e.due||''),icon:'/jamboree/assets/logo.png',tag:it.s.k}); }catch(e){}
+    try{ new Notification(it.ds==='over'?'마감 지난 콘텐츠':'마감 임박 콘텐츠',{body:title+' — 마감 '+(it.e.due||''),icon:'/assets/logo.png',tag:it.s.k}); }catch(e){}
   });
   if(changed){ try{ localStorage.setItem(NOTIF_KEY,JSON.stringify(notified)); }catch(e){} }
 }

@@ -23,13 +23,13 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const NEWS = [
   { id: 'n1', title: '개영식 현장', subtitle: '첫날 밤의 기록', body: '<p>본문 <b>서식</b></p>',
-    images: ['/jamboree/assets/logo.png'], tags: ['개영식', '현장'], stage: 'published', cardnewsDone: true, photographer: '김사진', reporter: '박취재', depts: ['기획조정본부', '운영본부'], priority: 3.5, en: 'need',
+    images: ['/assets/logo.png'], tags: ['개영식', '현장'], stage: 'published', cardnewsDone: true, photographer: '김사진', reporter: '박취재', depts: ['기획조정본부', '운영본부'], priority: 3.5, en: 'need',
     author: 'jimmy', authorName: '박지민', createdAt: '2026-07-01T10:00:00Z',
     version: 3,
     history: [
       { v: 1, title: '개영식', subtitle: '', body: '<p>첫 판</p>', images: [], tags: [], at: '2026-07-01T10:00:00Z', by: 'jimmy', byName: '박지민' },
       { v: 2, title: '개영식 현장(수정)', subtitle: '', body: '<p>둘째 판</p>', images: [], tags: ['개영식'], at: '2026-07-02T10:00:00Z', by: 'jimmy', byName: '박지민' },
-      { v: 3, title: '개영식 현장', subtitle: '첫날 밤의 기록', body: '<p>본문 <b>서식</b></p>', images: ['/jamboree/assets/logo.png'], tags: ['개영식', '현장'], at: '2026-07-03T10:00:00Z', by: 'jimmy', byName: '박지민' },
+      { v: 3, title: '개영식 현장', subtitle: '첫날 밤의 기록', body: '<p>본문 <b>서식</b></p>', images: ['/assets/logo.png'], tags: ['개영식', '현장'], at: '2026-07-03T10:00:00Z', by: 'jimmy', byName: '박지민' },
     ],
     comments: [{ id: 'c1', username: 'jimmy', author: '박지민', text: '사진 교체 바랍니다', ts: '2026-07-02T01:00:00Z', v: 1 },
                { id: 'c2', username: 'kim', author: '김검수', text: '제목 확정 바랍니다', ts: '2026-07-03T20:00:00Z', v: 3 }] },

@@ -122,6 +122,13 @@
 
 > ⚠️ v0.9.295 아래의 이력은 **그때의 기록**이다. `docs/krjam-fnc/`·`docs/krjam-dcount/`·`docs/krjam-cardnews/` 로 가는 링크는 그 문서들을 서비스와 함께 지웠으므로 **끊겨 있다** — 원본은 종료 아카이브(`KRJAM16-종료서비스-아카이브-20260814.zip`) 안에 있다.
 
+### 2026-08-14 — 폴더트리 정리 (v0.9.299)
+대상: 저장소 전역(파일 이동 + `src` 재배선). 상세: [scout-finder §v0.9.299](../docs/scout-finder/changelog.md) · 구조는 [stack-routing §3](stack-routing.md).
+- 🔑 **경계**: Pages 는 **루트 `.html` 파일명 = 주소**라 엔트리 HTML 은 루트 고정. **js·css·이미지는 옮겨도 된다**(HTML `src` 만 고치면 라우팅 무관). 그 선대로만 정리했다 — handoff 가 '큰 리스크'로 적어 둔 **코드 폴더 이동과는 다른 일**이다.
+- 옮김: `app.js`·`admin.js`·`data.js`·`styles.css` → **`tour/`**(루트에 있는데 tour 전용이었고, `admin/admin.js` 와 이름이 겹쳤다) · `jamboree/assets/*` → **`assets/`**(OG 가 두 군데로 갈려 있었다, `jamboree/` 폴더 소멸) · 배치도 고해상 원본 → **`_private/`**(미들웨어가 폴더째 차단). 루트 파일 **25→19**.
+- ⚠️ **옛 자산 주소를 `_redirects` 301 로 살렸다** — 안 하면 **이미 공유된 링크의 SNS 미리보기가 깨진다**(크롤러가 옛 OG URL 을 캐시한다).
+- 라우팅·화면·기능 무변경. **737건 2라운드 ALL GREEN.**
+
 ### 2026-08-14 — 문의처를 `scoutkorea@kakao.com` 으로 + 삭제 스크립트 하드닝 (v0.9.298)
 대상: `service-ended.html`(종료 안내) 2곳 + `privacy.html`(개인정보 처리방침) 6곳. 사용자 지시.
 - ⚠️ **주소는 두 화면에 흩어져 있다** — 한 곳만 고치면 법적 고지에 **죽은 주소가 남는다**. `regress-service-ended` 에 검사 2건 추가(옛 주소 잔존 0 · 문의 버튼이 현재 주소로). privacy 한 곳만 되돌려 FAIL 하는 것까지 확인.
