@@ -1,9 +1,9 @@
 {
-  "version": "0.9.296",
-  "commit": "f363a84",
-  "commitSubject": "feat(v0.9.295): retire cardnews / d-count / food-service; add service-ended notice",
-  "commitAt": "2026-08-14T20:53:38+09:00",
-  "deployedAt": "2026-08-14T12:02:49.942Z",
+  "version": "0.9.297",
+  "commit": "fda55c6",
+  "commitSubject": "docs: back up retired-service KV locally; add year-end purge script",
+  "commitAt": "2026-08-14T21:24:37+09:00",
+  "deployedAt": "2026-08-14T12:50:05.881Z",
   "verification": {
     "at": "2026-08-03T19:54:00.100Z",
     "rounds": [
