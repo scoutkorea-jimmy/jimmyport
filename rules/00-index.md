@@ -13,6 +13,7 @@
 - [ui-ux.md](ui-ux.md) — 규칙 ④ UI/UX 디자인 규칙
 - [stack-routing.md](stack-routing.md) — 스택·제약 · 파일구조 · 라우팅 · 도메인 · 운영(§2·§3·§8·§18)
 - [operations-log.md](operations-log.md) — 라이브 KV/데이터/인프라 조치 로그(버전 bump 없는 조치도 모두)
+- [failures.md](failures.md) — **실패 기록** · 틀린 판단 · 헛돌던 검사 · **구조적으로 못 하는 것**. 작업을 마칠 때마다 갱신
 
 ## 서비스별 문서 (`docs/<service>/`)
 - [../docs/scout-finder/brief.md](../docs/scout-finder/brief.md) · [changelog.md](../docs/scout-finder/changelog.md) — Scout Tour Assistant (`/`·`/tour`)

@@ -1,9 +1,9 @@
 {
-  "version": "0.9.299",
-  "commit": "f0b0806",
-  "commitSubject": "chore(v0.9.298): contact -> scoutkorea@kakao.com; harden the year-end purge script",
-  "commitAt": "2026-08-14T22:08:50+09:00",
-  "deployedAt": "2026-08-14T13:18:33.802Z",
+  "version": "0.9.300",
+  "commit": "efff061",
+  "commitSubject": "refactor(v0.9.299): tidy the folder tree - entries stay at root, assets move in",
+  "commitAt": "2026-08-14T22:23:14+09:00",
+  "deployedAt": "2026-08-14T13:39:04.087Z",
   "verification": {
     "at": "2026-08-03T19:54:00.100Z",
     "rounds": [

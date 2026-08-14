@@ -140,6 +140,10 @@ const PROBE_A11Y = () => {
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   p.on('requestfailed', (r) => errors.push('요청 실패 ' + r.url()));
+  /* ⚠️ 크롬 콘솔 메시지에는 **어떤 주소가 404 였는지 안 들어 있다**("Failed to load resource: … 404 ()").
+     v0.9.299 에서 재현 안 되는 404 를 만나 원인을 특정하지 못했다 → 응답 상태를 직접 남긴다.
+     다음에 같은 일이 나면 로그만 보고 URL 을 알 수 있다. */
+  p.on('response', (r) => { if (r.status() >= 400) errors.push('HTTP ' + r.status() + ' ' + r.url()); });
   await p.goto(`${base}/`, { waitUntil: 'networkidle2' }); await wait(900);
 
   chk('도구 카드 3개', await p.evaluate(() => document.querySelectorAll('.card').length) === 3);

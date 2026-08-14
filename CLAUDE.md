@@ -26,6 +26,7 @@
 ## 📐 작업 기준 (governance — 아래 규칙은 기본 동작을 오버라이드)
 
 1. **단일 메모리**: 합의된 내용은 다시 설명하지 말고 바로 반영. 의미 있는 변경/새 지시는 해당 `docs/<service>/changelog.md` 맨 아래에 한 줄 append. 라이브 KV/데이터 조치는 [rules/operations-log.md](rules/operations-log.md) 에 기록(버전 bump 없어도 **모두**).
+   - **틀린 판단·헛돌던 검사·못 한 것은 [rules/failures.md](rules/failures.md) 에 남긴다.** changelog 는 *한 일*, failures 는 ***틀린 일***. 특히 **구조적으로 못 하는 것(§3)** 은 시도하기 전에 먼저 확인한다.
 2. **작업 대상 먼저 확인** → [rules/target-check.md](rules/target-check.md) *(위 규칙 0)*
 3. **코드 작업·리팩터링 원칙** → [rules/code-work.md](rules/code-work.md)
    - 기존 기능/UX 깨지 않기 · 실행흐름·의존관계 먼저 파악 · 스파게티 복제 금지 · 신규는 별도 함수/모듈로 분리 · 점진적 · 수정 전후 동작 동일성 검증(회귀 `test/`).

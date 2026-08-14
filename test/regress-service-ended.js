@@ -98,6 +98,19 @@ const CASES = [
       !/krjam-cardnews|krjam-dcount|krjam-fnc/.test(rd('functions/api/hit.js').split('export const ROUTES')[1].split(']')[0]));
   }
 
+  console.log('\n[파비콘 — 브라우저가 /favicon.ico 를 찾다가 404 내지 않게]');
+  {
+    /* 선언이 없으면 브라우저가 **알아서 `/favicon.ico` 를 요청**하고, 그런 파일이 없으니 404 가 난다.
+       v0.9.299 까지 `/tour`·`/tour/admin` 이 그랬다(라이브 콘솔에서 잡힘).
+       ⚠️ 잼버리 화면은 엠블럼(`/assets/logo.png`), 그 밖은 **인라인 SVG 브랜드 마크**를 쓴다 —
+          영문 Scout Tour Assistant 에 잼버리 엠블럼을 붙이면 뜻이 어긋난다. */
+    const ENTRIES = ['index.html', 'tour/index.html', 'tour/admin.html', 'admin.html',
+                     'krjam-planning.html', 'krjam-jebo.html', 'privacy.html',
+                     'service-ended.html', '404.html'];
+    const noIcon = ENTRIES.filter((f) => !/rel="icon"/.test(rd(f)));
+    chk('모든 엔트리 화면이 파비콘을 선언한다', noIcon.length === 0, noIcon.join(', '));
+  }
+
   console.log('\n[문의처]');
   {
     const stale = [];
@@ -127,6 +140,10 @@ const CASES = [
   const p = await b.newPage(); await p.setViewport({ width: 1440, height: 900 });
   p.on('pageerror', (e) => errors.push(e.message));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  /* ⚠️ 크롬 콘솔 메시지에는 **어떤 주소가 404 였는지 안 들어 있다**("Failed to load resource: … 404 ()").
+     v0.9.299 에서 재현 안 되는 404 를 만나 원인을 특정하지 못했다 → 응답 상태를 직접 남긴다.
+     다음에 같은 일이 나면 로그만 보고 URL 을 알 수 있다. */
+  p.on('response', (r) => { if (r.status() >= 400) errors.push('HTTP ' + r.status() + ' ' + r.url()); });
 
   for (const [key, label] of CASES) {
     await p.goto(`${base}/service-ended?s=${key}`, { waitUntil: 'networkidle2' }); await wait(120);
