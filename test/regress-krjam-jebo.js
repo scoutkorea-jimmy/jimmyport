@@ -135,8 +135,19 @@ const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  P
      정본이고, 여기서는 **이 화면에 그려지는가 · 언어를 따라가는가**를 본다.
      ⚠️ 이 화면은 해외 참가자도 본다 → 영문 문구가 빠지면 숫자만 덩그러니 남는다. */
   console.log('\n[개영식 카운트다운]');
-  await page.click('#lang-ko'); await new Promise((r) => setTimeout(r, 250));
-  const cdKo = await page.evaluate(() => {
+  /* ⚠️ **실제 시계로 재면 안 된다** — 8/9 12:00 이후에는 통째로 숨기므로 행사가 지난 날에는
+     이 블록이 전부 FAIL 한다(v0.9.295, 2026-08-14 에 실제로 그렇게 됐다).
+     얼리지도 않는다 — 아래에서 '초가 건너뛰지 않는다'를 재기 때문에 **흐르는** 시계여야 한다. */
+  const page2 = await b.newPage(); await page2.setViewport({ width: 1440, height: 900 });
+  await page2.evaluateOnNewDocument(() => {
+    const _D = Date, base = new _D('2026-08-04T20:00:00+09:00').getTime(), t0 = _D.now();
+    const shift = () => base + (_D.now() - t0);
+    window.Date = class extends _D { constructor(...a) { if (!a.length) super(shift()); else super(...a); } static now() { return shift(); } };
+  });
+  await page2.goto(`http://localhost:${PORT}/krjam-jebo.html`, { waitUntil: 'networkidle2' });
+  await new Promise((r) => setTimeout(r, 300));
+  await page2.click('#lang-ko'); await new Promise((r) => setTimeout(r, 250));
+  const cdKo = await page2.evaluate(() => {
     const box = document.getElementById('cd-box');
     return { shown: !!box && !box.hidden && getComputedStyle(box).display !== 'none',
       lab: (document.getElementById('cd-lab') || {}).textContent || '',
@@ -147,8 +158,8 @@ const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  P
   chk('한글 라벨 = 개영식까지', cdKo.lab === '개영식까지', cdKo.lab);
   chk('값이 D-형식 또는 D-DAY', /^(D-\d+ )?\d{2}:\d{2}:\d{2}$/.test(cdKo.v) || /D-DAY/.test(cdKo.v), cdKo.v);
   chk('글자 13px 이상', cdKo.fs >= 13, cdKo.fs + 'px');
-  await page.click('#lang-en'); await new Promise((r) => setTimeout(r, 250));
-  const cdEn = await page.evaluate(() => ({
+  await page2.click('#lang-en'); await new Promise((r) => setTimeout(r, 250));
+  const cdEn = await page2.evaluate(() => ({
     lab: (document.getElementById('cd-lab') || {}).textContent || '',
     v: (document.getElementById('cd-v') || {}).textContent || '' }));
   chk('영문 라벨로 바뀐다', cdEn.lab === 'Opening Ceremony in', cdEn.lab);
@@ -157,16 +168,17 @@ const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  P
   /* ⚠️ 언어를 바꿀 때마다 mount 를 다시 걸면 **1초 타이머가 쌓인다** — 쌓이면 같은 초가
      여러 번 덮여 쓰이고 결국 초가 건너뛴다. 8번 바꾼 뒤에도 값이 1초에 1씩만 줄어야 한다. */
   for (let i = 0; i < 4; i++) {
-    await page.click('#lang-ko'); await new Promise((r) => setTimeout(r, 60));
-    await page.click('#lang-en'); await new Promise((r) => setTimeout(r, 60));
+    await page2.click('#lang-ko'); await new Promise((r) => setTimeout(r, 60));
+    await page2.click('#lang-en'); await new Promise((r) => setTimeout(r, 60));
   }
-  chk('언어 8회 전환 후에도 타이머가 하나(초가 건너뛰지 않는다)', await page.evaluate(async () => {
+  chk('언어 8회 전환 후에도 타이머가 하나(초가 건너뛰지 않는다)', await page2.evaluate(async () => {
     const sec = () => { const m = /(\d{2}):(\d{2}):(\d{2})/.exec(document.getElementById('cd-v').textContent); return m ? (+m[1] * 3600 + +m[2] * 60 + +m[3]) : null; };
     const a = sec(); if (a === null) return true;            // D-DAY 구간이면 검사 대상 아님
     await new Promise((r) => setTimeout(r, 3100));
     const b2 = sec();
     return b2 !== null && a - b2 >= 2 && a - b2 <= 4;        // 3초 지났으면 2~4초만 줄어야 한다
   }));
+  await page2.close();
   await page.click('#lang-ko'); await new Promise((r) => setTimeout(r, 200));
   {
     // 8/9 12:00 이후에는 통째로 숨긴다(사용자 확정) — 시계를 갈아끼워 지금 재현한다

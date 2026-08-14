@@ -8,7 +8,8 @@
 
 ## 0. 한눈에
 - **제품**: 전세계 스카우트 단위대를 지도/거리순으로 찾는 정적 웹앱. **영어 전용.**
-- **라이브**: https://scoutingapp.net (+ https://jimmypark.net, 둘 다 Active·동일 콘텐츠). 루트 `/`=도구 모음 랜딩 · 공개 앱 `/tour` · 관리자 `/tour/admin` · 잼버리 `/krjam-cardnews`·`/krjam-planning`·`/krjam-dcount`. (구 `/jamboree`·`/jamboree-plan`·`/admin`은 301)
+- **라이브**: https://scoutingapp.net (+ https://jimmypark.net, 둘 다 Active·동일 콘텐츠). 루트 `/`=도구 모음 랜딩 · 공개 앱 `/tour` · 관리자 `/tour/admin` · 잼버리 `/krjam-planning`·`/krjam-jebo`. (구 `/jamboree-plan`·`/admin`은 301)
+  - ⛔ **2026-08-14(v0.9.295) 종료**: `/krjam-cardnews`·`/krjam-dcount`·`/krjam-fnc`(+`-book`) → `_redirects` **302** 로 `/service-ended`. 아래 이력 절의 해당 서술은 **그때의 기록**이지 현재 상태가 아니다.
 - **호스팅**: Cloudflare Pages 프로젝트 `jimmyport` (커스텀 도메인 `scoutingapp.net` + `jimmypark.net`). 내부 문서·설정은 `functions/_middleware.js`가 웹에서 404 차단.
 - **스택**: Vanilla HTML/CSS/JS + Leaflet 1.9.4(cdnjs) + OpenStreetMap. 백엔드 = Cloudflare Pages Functions + KV.
 - **버전**: `VERSION` 파일 (현재 0.9.107).

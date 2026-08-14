@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>서비스 종료 안내 — 제16회 한국잼버리</title>
+  <meta name="description" content="제16회 한국잼버리 운영 서비스가 종료되었습니다." />
+  <meta name="theme-color" content="#f3f1f7" />
+  <link rel="icon" type="image/png" href="/jamboree/assets/logo.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="서비스 종료 안내 — 제16회 한국잼버리" />
+  <meta property="og:description" content="행사 종료와 함께 서비스 운영을 마쳤습니다." />
+  <meta property="og:url" content="https://scoutingapp.net/service-ended" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#1E1730;--muted:#5c5568;--soft:#7c7589;--line:#e6def4;--accent:#6336B5;--bg:#f3f1f7}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',system-ui,sans-serif;
+         line-height:1.6;-webkit-font-smoothing:antialiased}
+    .wrap{max-width:620px;margin:0 auto;padding:56px 20px 72px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:20px;
+          box-shadow:0 18px 50px rgba(30,18,55,.08);padding:36px 32px}
+    .emblem{width:56px;height:56px;display:block;margin-bottom:20px}
+    .kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin:0 0 10px}
+    h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;letter-spacing:-.02em;
+       font-size:28px;line-height:1.2;margin:0 0 14px}
+    .name{color:var(--accent)}
+    p{margin:0 0 13px;font-size:15px;color:var(--muted)}
+    .ended{display:inline-flex;align-items:center;gap:7px;background:#f6f3fa;border:1px solid var(--line);
+           border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:20px}
+    .dot{width:7px;height:7px;border-radius:50%;background:#b4271f;flex:0 0 auto}
+    .note{background:#f6f3fa;border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+          font-size:13.5px;color:var(--muted);margin:18px 0 0}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+    .btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+         padding:0 20px;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;
+         border:1px solid transparent;transition:background .15s,border-color .15s}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.primary:hover{background:#52299b}
+    .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+    .btn.ghost:hover{border-color:#cdbcec}
+    .foot{margin-top:24px;padding-top:16px;border-top:1px solid #efe9f7;font-size:13px;color:var(--soft)}
+    @media(max-width:560px){.wrap{padding:36px 16px 56px}.card{padding:28px 20px}h1{font-size:24px}
+      .actions .btn{flex:1 1 100%}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <img class="emblem" src="/jamboree/assets/logo.png" width="56" height="56" alt="제16회 한국잼버리 엠블럼" />
+      <p class="kicker">제16회 한국잼버리</p>
+      <h1><span class="name" id="svc">이 서비스</span>는<br />운영을 마쳤습니다.</h1>
+      <div class="ended"><span class="dot"></span><span id="when">2026년 8월 14일 종료</span></div>
+      <p id="desc">행사 기간 동안 운영하던 서비스로, 제16회 한국잼버리 일정이 끝나면서 공식적으로 종료했습니다. 그동안 함께해 주셔서 고맙습니다.</p>
+      <div class="note" id="datanote">
+        서비스에 남아 있던 자료는 <b>홍보부가 따로 보관</b>합니다. 자료 확인이 필요하시면 아래로 문의해 주세요.
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="/">도구 모음으로 가기</a>
+        <a class="btn ghost" href="mailto:tsak1420@naver.com">문의하기</a>
+      </div>
+      <!-- 주소를 또 링크로 걸지 않는다 — 위 '문의하기' 버튼이 같은 mailto 이고,
+           본문 속 인라인 링크는 높이가 17px 이라 40px 조작 기준을 못 지킨다. -->
+      <div class="foot">제16회 한국잼버리 홍보부 · tsak1420@naver.com</div>
+    </div>
+  </div>
+
+  <script>
+  /* 종료한 서비스가 여럿이라 화면은 하나만 두고 이름·설명만 갈아 끼운다.
+     주소는 _redirects 가 /service-ended?s=<키> 로 넘겨 준다.
+     ⚠️ 키를 모르거나 빠졌을 때도 화면은 그대로 성립해야 한다(기본 문구가 이미 HTML 에 박혀 있다). */
+  (function () {
+    var SERVICES = {
+      cardnews: {
+        name: '카드뉴스 제작기',
+        desc: '제16회 한국잼버리 카드뉴스를 만들어 이미지로 내려받던 도구입니다. 행사가 끝나면서 운영을 마쳤습니다.',
+        data: '저장해 두신 카드뉴스 작업본은 <b>홍보부가 따로 보관</b>합니다. 필요하시면 아래로 문의해 주세요.'
+      },
+      dcount: {
+        name: '디데이 프로젝트',
+        desc: '개영식까지 남은 날을 하루에 한 팀씩 맡아 디데이 카드를 만들고 인증 사진을 남기던 참여 기획입니다. 개영과 함께 목적을 다해 종료했습니다.',
+        data: '보내 주신 <b>신청 정보와 인증 사진은 모두 안전하게 보관</b>하고 있습니다. 사진 원본이나 신청 내역 확인이 필요하시면 아래로 문의해 주세요.'
+      },
+      fnc: {
+        name: '급식편의본부 안내',
+        desc: '급식편의본부 운영요원을 위한 안내 보드와 오리엔테이션 자료 화면입니다. 행사 운영이 끝나면서 종료했습니다.',
+        data: '조직표·근무 배정·오리엔테이션 자료 <b>원본은 모두 보관</b>돼 있습니다. 자료가 필요하시면 아래로 문의해 주세요.'
+      }
+    };
+    var key = '';
+    try { key = new URLSearchParams(location.search).get('s') || ''; } catch (e) {}
+    var s = SERVICES[key];
+    if (!s) return;                     // 모르는 키 → 기본 문구 그대로 둔다
+    document.getElementById('svc').textContent = s.name;
+    document.getElementById('desc').textContent = s.desc;
+    document.getElementById('datanote').innerHTML = s.data;
+    document.title = s.name + ' 운영 종료 — 제16회 한국잼버리';
+  })();
+  </script>
+</body>
+</html>

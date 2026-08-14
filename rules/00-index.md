@@ -16,11 +16,10 @@
 
 ## 서비스별 문서 (`docs/<service>/`)
 - [../docs/scout-finder/brief.md](../docs/scout-finder/brief.md) · [changelog.md](../docs/scout-finder/changelog.md) — Scout Tour Assistant (`/`·`/tour`)
-- [../docs/krjam-cardnews/changelog.md](../docs/krjam-cardnews/changelog.md) — 카드뉴스 제작기 (`/krjam-cardnews`)
 - [../docs/krjam-planning/changelog.md](../docs/krjam-planning/changelog.md) — 홍보부 통합 관리 (`/krjam-planning`)
-- [../docs/krjam-dcount/changelog.md](../docs/krjam-dcount/changelog.md) — 디데이 프로젝트 (`/krjam-dcount`)
 - [../docs/krjam-jebo/changelog.md](../docs/krjam-jebo/changelog.md) — 공개 소식 제보 (`/krjam-jebo`)
-- [../docs/krjam-fnc/changelog.md](../docs/krjam-fnc/changelog.md) — 급식편의본부 OT 플립북 (`/krjam-fnc`)
+
+⛔ **종료(2026-08-14 · v0.9.295)** — 카드뉴스 제작기 · 디데이 프로젝트 · 급식편의본부. 각 changelog 는 코드와 함께 삭제했고 **종료 아카이브(`KRJAM16-종료서비스-아카이브-20260814.zip`)** 안에만 있다. 종료 경위는 [CLAUDE.md §종료 서비스](../CLAUDE.md) · [handoff.md](handoff.md) 최신 세션.
 
 ## 기타 내부 문서 (웹 비공개 — `_middleware` 차단)
 `KMS.md`(데이터·사양 통합) · `FEATURES.md`(전 기능) · `README.md` · `DESIGN.md`(scout-finder 디자인 토큰).

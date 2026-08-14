@@ -18,7 +18,10 @@ const server = http.createServer((req, res) => {
 });
 const R = []; const chk = (n, p, d) => { R.push({ n, p }); console.log((p ? '  PASS ' : '  FAIL ') + n + (d ? ' — ' + d : '')); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const LINKS = ['/tour', '/krjam-cardnews', '/krjam-planning', '/krjam-dcount', 'https://bpmedia.net/'];
+// v0.9.295 — 카드뉴스 제작기·디데이 카드는 서비스 종료로 랜딩에서 내렸다.
+const LINKS = ['/tour', '/krjam-planning', 'https://bpmedia.net/'];
+// 내린 주소가 랜딩에 되살아나면 실패한다(실수로 되돌리는 것을 막는 이빨).
+const GONE_LINKS = ['/krjam-cardnews', '/krjam-dcount', '/krjam-fnc', '/krjam-fnc-book'];
 
 // 요소 영역을 캡처해 **실제 픽셀**로 명암비를 잰다(가장 밝은 픽셀=바탕, 가장 어두운=글자).
 // 움직이는 배경·그라데이션 글자는 눈으로 못 잡으므로 이 방식이 유일하게 확실하다.
@@ -62,13 +65,23 @@ async function contrastOf(page, sel) {
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await p.goto(`${base}/`, { waitUntil: 'networkidle2' }); await wait(1100);
 
-  chk('도구 카드 5개', await p.evaluate(() => document.querySelectorAll('.card').length) === 5);
+  chk('도구 카드 3개', await p.evaluate(() => document.querySelectorAll('.card').length) === 3);
+  // v0.9.295 — 종료한 주소가 랜딩에 되살아나면 참가자가 안내 화면으로 새어 나간다.
+  chk('종료한 서비스 링크가 없다', await p.evaluate((gone) => {
+    const hrefs = [...document.querySelectorAll('a')].map((a) => a.getAttribute('href') || '');
+    return gone.every((g) => hrefs.indexOf(g) < 0);
+  }, GONE_LINKS));
   chk('링크 5종 정확', await p.evaluate((want) => {
     const got = [...document.querySelectorAll('.card')].map((a) => a.getAttribute('href'));
     return JSON.stringify(got) === JSON.stringify(want);
   }, LINKS));
-  chk('진입 연출 후 전부 보임(opacity 1)', await p.evaluate(() =>
-    [...document.querySelectorAll('.reveal')].every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98)));
+  /* ⚠️ **숨긴 요소는 검사 대상이 아니다** — 개영식 카운트다운(#cd-box)은 8/9 12:00 이후
+     통째로 숨기므로(사용자 확정) opacity 가 0 인 게 정상이다. 이 필터가 없어서
+     행사가 끝난 날(2026-08-14)에 이 검사가 빨개졌다 — v0.9.295 에서 고침. */
+  chk('진입 연출 후 (보이는 것은) 전부 보임(opacity 1)', await p.evaluate(() =>
+    [...document.querySelectorAll('.reveal')]
+      .filter((e) => !e.hidden && getComputedStyle(e).display !== 'none')
+      .every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98)));
   chk('카드가 실제로 클릭 가능(배경이 안 가림)', await p.evaluate(() =>
     [...document.querySelectorAll('.card')].every((a) => {
       const r = a.getBoundingClientRect();
@@ -85,7 +98,7 @@ async function contrastOf(page, sel) {
     return bs.length === 11 && bs.every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98);
   }));
   chk('카드마다 아우라·시트 요소', await p.evaluate(() =>
-    document.querySelectorAll('.card .ring').length === 5 && document.querySelectorAll('.card .sheen').length === 5));
+    document.querySelectorAll('.card .ring').length === 3 && document.querySelectorAll('.card .sheen').length === 3));
   // v0.9.240 실제 버그: .card>*:not(.ring) 이 .sheen 까지 position:relative 로 덮어
   // 크기 0인 인라인 박스가 되면서 빛 줄기가 카드 밖으로 새어나갔다.
   chk('빛 줄기가 카드 안에 갇힘', await p.evaluate(() => {
@@ -232,37 +245,52 @@ async function contrastOf(page, sel) {
     return parseFloat(getComputedStyle(b).opacity) > 0.98;
   }));
   chk('그래도 내용은 다 보임', await rm.evaluate(() =>
-    [...document.querySelectorAll('.reveal')].every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98)
-    && document.querySelectorAll('.card').length === 5));
+    [...document.querySelectorAll('.reveal')]
+      .filter((e) => !e.hidden && getComputedStyle(e).display !== 'none')
+      .every((e) => parseFloat(getComputedStyle(e).opacity) > 0.98)
+    && document.querySelectorAll('.card').length === 3));
 
   /* 개영식 카운트다운 (v0.9.294) — 경계값은 공용 모듈 검사가 정본이고, 여기서는 **이 화면에
      제대로 그려지는가**를 본다. ⚠️ 2026-08-09 12:00 이후에는 통째로 숨긴다(사용자 확정) →
      실제 시각을 기다리지 않고 시계를 갈아끼워 지금 재현한다. */
   console.log('\n[개영식 카운트다운]');
-  chk('카운트다운이 보인다', await p.evaluate(() => {
+  /* ⚠️ 이 검사는 **실제 시계로 재면 안 된다** — 개영식 뒤(8/9 12:00~)에는 배너를 숨기므로
+     행사가 지난 날에는 무조건 FAIL 한다. v0.9.292·293 에서 같은 함정에 두 번 걸렸고
+     v0.9.295(2026-08-14)에 실제로 빨개졌다. 카운트다운이 떠 있는 시각으로 갈아끼워 잰다. */
+  const CD = await b.newPage(); await CD.setViewport({ width: 1440, height: 900 });
+    await CD.evaluateOnNewDocument(() => {
+      /* ⚠️ **얼리면 안 된다** — '초 단위로 흐른다' 를 같이 재기 때문이다.
+         고정 시각에서 **출발해 실제 속도로 흐르는** 시계로 갈아끼운다. */
+      const _D = Date, base = new _D('2026-08-04T20:00:00+09:00').getTime(), t0 = _D.now();
+      const shift = () => base + (_D.now() - t0);
+      window.Date = class extends _D { constructor(...a) { if (!a.length) super(shift()); else super(...a); } static now() { return shift(); } };
+    });
+    await CD.goto(`${base}/`, { waitUntil: 'networkidle2' }); await wait(300);
+  chk('카운트다운이 보인다', await CD.evaluate(() => {
     const b = document.getElementById('cd-box');
     return !!b && !b.hidden && getComputedStyle(b).display !== 'none';
   }));
-  chk('라벨에 개영식이 적혀 있다', await p.evaluate(() =>
+  chk('라벨에 개영식이 적혀 있다', await CD.evaluate(() =>
     /개영식까지/.test((document.querySelector('#cd-box .cd-lab') || {}).textContent || '')));
-  chk('값이 D-형식 또는 D-DAY', await p.evaluate(() => {
+  chk('값이 D-형식 또는 D-DAY', await CD.evaluate(() => {
     const t = (document.getElementById('cd-v') || {}).textContent || '';
     return /^(D-\d+ )?\d{2}:\d{2}:\d{2}$/.test(t) || /D-DAY/.test(t);
-  }), await p.evaluate(() => (document.getElementById('cd-v') || {}).textContent));
-  chk('초 단위로 흐른다', await p.evaluate(async () => {
+  }), await CD.evaluate(() => (document.getElementById('cd-v') || {}).textContent));
+  chk('초 단위로 흐른다', await CD.evaluate(async () => {
     const v = () => (document.getElementById('cd-v') || {}).textContent;
     const t0 = v();
     await new Promise((r) => setTimeout(r, 2200));
     return !!t0 && t0 !== v();
   }));
-  chk('글자 13px 이상 · 대비 확보용 크기', await p.evaluate(() => {
+  chk('글자 13px 이상 · 대비 확보용 크기', await CD.evaluate(() => {
     const s = getComputedStyle(document.getElementById('cd-v'));
     const l = getComputedStyle(document.querySelector('#cd-box .cd-lab'));
     return parseFloat(s.fontSize) >= 13 && parseFloat(l.fontSize) >= 13;
   }));
-  chk('가로 넘침 없음', await p.evaluate(() =>
+  chk('가로 넘침 없음', await CD.evaluate(() =>
     document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1));
   {
+  await CD.close();
     // 시계를 8/9 12:00 이후로 밀고 새 탭에서 다시 연다(모듈은 로드 시점에 판단한다)
     const over = await b.newPage();
     await over.evaluateOnNewDocument(() => {

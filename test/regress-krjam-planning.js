@@ -70,7 +70,6 @@ const SEED = () => {
         return J({ ok: true, item: Object.assign({ id: b.id || 'newpress', author: 'tester', authorName: '테스터', createdAt: '2026-07-15T00:00:00Z', updatedAt: '2026-07-15T00:00:00Z' }, b) }); }
       return J({ ok: true, press: [window.__press0] });
     }
-    if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
     if (u.startsWith('/api/r2?action=create')) { window.__r2.creates++; return J({ ok: true, key: 'jpa/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', uploadId: 'U1' }); }
     if (u.startsWith('/api/r2?action=part')) { const n = +new URL(u, location.origin).searchParams.get('part');
       return Promise.resolve(o.body.arrayBuffer()).then((b) => { window.__r2.parts.push(b.byteLength); return J({ ok: true, partNumber: n, etag: 'e' + n }); }); }
@@ -719,15 +718,25 @@ const SEED = () => {
   chk('공용 모듈이 실려 있다', await page.evaluate(() => !!window.KJCountdown));
   chk('개영 기준이 8/5 20:00 KST', await page.evaluate(() =>
     window.KJCountdown && window.KJCountdown.OPEN_ISO === '2026-08-05T20:00:00+09:00'));
-  chk('대시보드 D-day 배너가 있다', await page.evaluate(() => !!document.getElementById('dash-dday-t')));
-  chk('배너 값이 D-형식 또는 D-DAY', await page.evaluate(() => {
-    const t = (document.getElementById('dash-dday-t') || {}).textContent || '';
-    return /^(D-\d+ )?\d{2}:\d{2}:\d{2}$/.test(t.trim()) || /D-DAY/.test(t);
-  }), await page.evaluate(() => ((document.getElementById('dash-dday-t') || {}).textContent || '').trim()));
-  chk('상단 시계도 같은 기준으로 찍힌다', await page.evaluate(() => {
-    const t = (document.getElementById('m-clock') || {}).textContent || '';
-    return /\d{2}:\d{2}:\d{2}/.test(t) || /D-DAY/.test(t);
-  }));
+  /* ⚠️ **'배너가 그려지는가'는 실제 시계로 재면 안 된다** — 8/9 12:00 이후엔 숨기는 게 정상이라
+     행사가 지난 날에는 무조건 FAIL 한다(v0.9.295, 2026-08-14 에 실제로 빨개졌다).
+     아래 '사라지는가' 검사와 대칭으로, **떠 있어야 하는 시각**을 갈아끼워 잰다. */
+  const cdOn = await page.evaluate(() => {
+    const real = window.Date;
+    try {
+      const FIXED = new real('2026-08-04T20:00:00+09:00').getTime();
+      window.Date = class extends real { constructor(...a) { if (!a.length) super(FIXED); else super(...a); } static now() { return FIXED; } };
+      renderDashboard(); renderClock();
+      return { banner: ((document.getElementById('dash-dday-t') || {}).textContent || '').trim(),
+        hasBanner: !!document.getElementById('dash-dday-t'),
+        clock: (document.getElementById('m-clock') || {}).textContent || '' };
+    } finally { window.Date = real; renderDashboard(); renderClock(); }
+  });
+  chk('대시보드 D-day 배너가 있다', cdOn.hasBanner);
+  chk('배너 값이 D-형식 또는 D-DAY',
+    /^(D-\d+ )?\d{2}:\d{2}:\d{2}$/.test(cdOn.banner) || /D-DAY/.test(cdOn.banner), cdOn.banner);
+  chk('상단 시계도 같은 기준으로 찍힌다',
+    /\d{2}:\d{2}:\d{2}/.test(cdOn.clock) || /D-DAY/.test(cdOn.clock), cdOn.clock);
   // 시계를 8/9 12:00 이후로 밀면 배너가 사라져야 한다(렌더 함수를 직접 다시 부른다)
   const cdOver = await page.evaluate(() => {
     const real = window.Date;
@@ -744,7 +753,17 @@ const SEED = () => {
   chk('행사 종료 후 대시보드 배너가 사라진다', cdOver.banner === false, '배너 존재=' + cdOver.banner);
   chk('행사 종료 후 상단 시계도 비운다', cdOver.clockText === '' && cdOver.clockBoxHidden === true,
     JSON.stringify(cdOver.clockText) + ' / 숨김=' + cdOver.clockBoxHidden);
-  chk('원복하면 배너가 다시 나온다', await page.evaluate(() => !!document.getElementById('dash-dday-t')));
+  /* '원복' 은 **시계를 되돌리면 다시 그려지는가**를 보는 것이지 '오늘 배너가 있는가'가 아니다.
+     오늘이 8/9 12:00 을 지났으면 원복해도 배너는 없는 게 맞다 — 시계를 다시 앞으로 밀어 확인한다. */
+  chk('원복하면 배너가 다시 나온다', await page.evaluate(() => {
+    const real = window.Date;
+    try {
+      const FIXED = new real('2026-08-04T20:00:00+09:00').getTime();
+      window.Date = class extends real { constructor(...a) { if (!a.length) super(FIXED); else super(...a); } static now() { return FIXED; } };
+      renderDashboard(); renderClock();
+      return !!document.getElementById('dash-dday-t');
+    } finally { window.Date = real; renderDashboard(); renderClock(); }
+  }));
   /* ⚠️ **'지금 현장' 갱신이 카운트다운 타이머에 얹혀 있었다**(v0.9.294). 배너를 없애자
      `dash-dday-t` 가 사라지고 타이머가 통째로 멈춰 현장 목록까지 죽었다 — 둘을 떼어 놨다. */
   chk('배너가 없어도 "지금 현장" 갱신 타이머는 산다', await page.evaluate(() => {

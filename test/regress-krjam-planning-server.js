@@ -290,51 +290,12 @@ console.log('\n[구역 목록 — 보드와 제보가 같은가]');
   chk('순서까지 같다(드롭다운과 지도 범례가 어긋나지 않게)', pk.join(',') === jk.join(','), true);
 }
 
-/* ── D-Count 관리자 응답에 비밀번호 자료가 새지 않는가 (v0.9.293) ─────────────
- * 신청 비밀번호는 **전화 끝 4자리**(경우의 수 1만)다. 관리자 목록이 KV 레코드를 통째로 실어
- * salt·hash 를 내보내고 있었고, 그 응답은 **공유 비밀번호 한 개로 열린다**. hash 를 얻으면
- * 오프라인으로 전부 맞춰 볼 수 있어 남의 신청을 조회·수정·철회할 수 있다.
- * 화면은 이 둘을 쓰지도 않았다 → 안 쓰는 비밀을 내보내던 것. 여기서 못 박는다. */
-console.log('\n[D-Count 관리자 목록 — 비밀번호 자료 비노출]');
-{
-  const dcIndex = [{ applicationNo: '김참가', targetDate: '2026-07-30', dNumber: 6, name: '김참가', status: '승인' }];
-  const dcRec = { applicationNo: '김참가', salt: 'U0FMVA==', hash: 'SEFTSA==', targetDate: '2026-07-30', dNumber: 6,
-    name: '김참가', contact: '010-1234-5678', org: '서울연맹', teaser: '기대돼요', status: '승인',
-    consents: { a: true }, ip: '1.2.3.4', approvedBy: 'admin', photos: [], createdAt: '2026-07-01T00:00:00Z' };
-  const store = new Map([
-    ['dcount:index', JSON.stringify(dcIndex)],
-    ['dcount:app:김참가', JSON.stringify(dcRec)],
-    ['dcount:closed', JSON.stringify([])],
-  ]);
-  const env = { TOTP_SECRET: 'test-secret-for-regression', CC_PASS: 'test-shared-pass', SCOUT_KV: {
-    list: async ({ prefix }) => ({ keys: [...store.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
-    get: async (k) => (store.has(k) ? store.get(k) : null), put: async () => {}, delete: async () => {},
-  } };
-  const dc = await import('../functions/api/krjam-dcount.js');
-  const adminGet = (pass) => dc.onRequestGet({ env, request: new Request('https://x/api/krjam-dcount?admin=1',
-    pass ? { headers: { 'X-CC-Pass': pass } } : undefined) });
-
-  chk('무인증 관리자 조회는 401', (await adminGet(null)).status, 401);
-  chk('틀린 공유 비밀번호는 401', (await adminGet('nope')).status, 401);
-  const r = await adminGet('test-shared-pass');
-  chk('맞는 공유 비밀번호는 200', r.status, 200);
-  const j = await r.json();
-  const app0 = (j.applications || [])[0] || {};
-  chk('신청 건이 실린다', (j.applications || []).length, 1);
-  chk('salt 가 응답에 없다', 'salt' in app0, false);
-  chk('hash 가 응답에 없다', 'hash' in app0, false);
-  // 화면이 실제로 쓰는 필드는 그대로 있어야 한다 — 지우려다 관리자 화면을 깨면 안 된다
-  chk('관리자 화면이 쓰는 필드는 남는다(name·contact·ip·approvedBy·status)',
-    app0.name === '김참가' && app0.contact === '010-1234-5678' && app0.ip === '1.2.3.4' &&
-    app0.approvedBy === 'admin' && app0.status === '승인', true);
-
-  // 공개(비관리자) 응답에도 개인정보가 새면 안 된다 — 승인 카드는 게시용 정보만
-  const pub = await (await dc.onRequestGet({ env, request: new Request('https://x/api/krjam-dcount') })).json();
-  const ap0 = (pub.approved || [])[0] || {};
-  chk('공개 응답에 신청 원본(applications)이 없다', 'applications' in pub, false);
-  chk('공개 승인 카드에 전화·salt·hash 가 없다', !('contact' in ap0) && !('salt' in ap0) && !('hash' in ap0), true);
-  chk('공개 승인 카드는 게시용 정보만 준다', ap0.dNumber === 6 && ap0.teaser === '기대돼요', true);
-}
+/* ── D-Count(디데이 프로젝트) 서버 검사 — 2026-08-14 서비스 종료로 제거 ──────────
+ * v0.9.293 의 'salt·hash 비노출' 검사 10건이 여기 있었다. `functions/api/krjam-dcount.js`
+ * 자체가 사라졌으므로 검사도 함께 뺀다. 코드·검사 원본은 종료 아카이브
+ * (KRJAM16-종료서비스-아카이브-20260814) 에 그대로 있다.
+ * ⚠️ 되살릴 때는 이 검사도 같이 되살릴 것 — 그 결함은 화면이 안 쓰는 비밀을 내보내던 것이라
+ *    눈으로는 절대 안 보인다. */
 
 /* ── 개영식 카운트다운 공용 모듈 (v0.9.294) ────────────────────────────────────
  * 사용자 확정: 행사의 공식 시작은 **개영식 2026-08-05 20:00**. 그 뒤로는 'D-DAY · 개영!' 을

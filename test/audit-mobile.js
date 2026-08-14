@@ -9,7 +9,8 @@
 const puppeteer=require('puppeteer-core'); const http=require('http'); const fs=require('fs'); const path=require('path');
 const path0=require('path'); const ROOT=path0.resolve(__dirname,'..'); const PORT=8911;
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp','.jsx':'text/jsx'};
-const R={'/krjam-planning':'/krjam-planning.html','/krjam-fnc':'/krjam-fnc.html','/krjam-fnc-book':'/krjam-fnc-book.html'};
+// v0.9.295 — 급식본부 종료로 홍보부만 남았다.
+const R={'/krjam-planning':'/krjam-planning.html'};
 const NEWS=[{id:'n1',title:'개영식 현장 스케치 물놀이존 취재기',subtitle:'첫날 밤, 4만 명의 함성이 울려 퍼졌다',body:'<p>본문</p>',images:[],tags:['개영식','현장','주경기장'],stage:'published',cardnewsDone:true,photographer:'김사진',reporter:'박취재',depts:['기획조정본부','운영본부','급식편의본부'],priority:3.5,en:'need',author:'jimmy',authorName:'박지민',createdAt:'2026-08-05T22:10:00Z',comments:[{id:'c1',username:'kim',author:'김검수',text:'사진 교체 바랍니다',ts:'2026-08-06T01:00:00Z',v:1}]}];
 const srv=http.createServer((q,r)=>{let p=decodeURIComponent(q.url.split('?')[0]);
   if(p==='/api/hit'){r.writeHead(204);return r.end();}
@@ -72,19 +73,6 @@ const PROBE=()=>{
     }
     if(errs.length)(res['홍보부 '+vn]=res['홍보부 '+vn]||{}).errors=errs.slice(0,3);
     await p.close();
-    // 급식본부 — 전 화면
-    const q=await b.newPage(); await q.setViewport(vp);
-    const errs2=[]; q.on('pageerror',e=>errs2.push(e.message));
-    await q.goto(`http://localhost:${PORT}/krjam-fnc`,{waitUntil:'networkidle2'}); await wait(1200);
-    const views=await q.evaluate(()=>window.__fncBoard?window.__fncBoard.VIEWS.map(v=>v.id):[]);
-    for(const v of views){
-      await q.evaluate(x=>window.__fncBoard.setView(x),v); await wait(320);
-      const r=await q.evaluate(PROBE);
-      const hit=['over','tap','small','charbreak','outside'].filter(k=>k==='over'?r.over>0:r[k].length);
-      if(hit.length)(res['급식본부 '+vn]=res['급식본부 '+vn]||{})[v]=r;
-    }
-    if(errs2.length)(res['급식본부 '+vn]=res['급식본부 '+vn]||{}).errors=errs2.slice(0,3);
-    await q.close();
   }
   const groups=Object.keys(res);
   if(!groups.length){ console.log('  PASS 모바일 실측 — 가로 넘침·조작 40px·글자 13px·글자단위 줄바꿈·칸 밖 밀림 0건');

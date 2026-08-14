@@ -3,7 +3,10 @@
 > 이 문서는 **사이트(scoutingapp.net) 안의 모든 페이지·기능·API**를 한 곳에 정리한 단일 참조 문서입니다.
 > 데이터 스키마·운영 규칙의 상세는 [KMS.md](KMS.md), 의사결정/변경 이력은 [CLAUDE.md](CLAUDE.md) 참조.
 > 스택: **Vanilla HTML/CSS/JS** (프레임워크/번들러 없음) + **Cloudflare Pages Functions**(백엔드) + **KV**(저장). 지도는 Leaflet + OSM.
-> `/krjam-cardnews`만 예외적으로 격리된 React 페이지.
+> ⛔ **2026-08-14(v0.9.295) 종료**: 카드뉴스 제작기(`/krjam-cardnews`) · 디데이 프로젝트(`/krjam-dcount`) · 급식편의본부(`/krjam-fnc`·`/krjam-fnc-book`).
+> 코드·API·문서를 전부 지웠고 이 문서에서도 해당 절(§3·§4-B)을 뺐다. 원본은 종료 아카이브
+> `KRJAM16-종료서비스-아카이브-20260814.zip` 에만 있다. 세 주소는 `_redirects` 302 로 `/service-ended` 로 간다.
+> (React 는 카드뉴스·디데이에만 쓰였으므로, 이제 사이트 전체가 **Vanilla 뿐**이다.)
 
 ---
 
@@ -14,11 +17,9 @@
 | `/` | **도구 모음 랜딩 허브**(/tour·/krjam-* 링크, 연출·이동 로딩 표시) | Vanilla | 비공개(noindex) | — |
 | `/tour` | **scout-finder** — 가까운 스카우트 단위대 찾기 | Vanilla + Leaflet | 공개(영문) | — |
 | `/tour/admin` | scout-finder **관리자**(단위대 CRUD) | Vanilla + Leaflet | 비공개(noindex) | **TOTP**(인증 앱 6자리) |
-| `/krjam-cardnews` | 한국잼버리 **카드뉴스 제작기** | React(격리) | 비공개(홈 링크 없음) | 서버 백업만 **TOTP** 세션 |
 | `/krjam-planning` | 미디어부(홍보부) **SNS 운영 보드** | Vanilla | 비공개(noindex) | 대원 개별 ID/PW + 관리자 TOTP |
-| `/krjam-dcount` | 한국잼버리 **D-Count**(준비 중·자리만) | Vanilla | 비공개(noindex) | — |
 | `/krjam-jebo` | 한국잼버리 **공개 소식 제보** | Vanilla | 공개(ko/en) | — |
-| `/krjam-fnc` | **급식편의본부 OT 플립북**(31쪽) | Vanilla | 비공개(noindex·**랜딩 미노출**) | — |
+| `/service-ended` | **서비스 종료 안내**(종료한 3개 주소가 302 로 도착) | Vanilla | 비공개(noindex) | — |
 | `/api/*` | 백엔드(Pages Functions) | JS modules | — | 공개 GET / 관리 TOTP 세션 |
 
 > 구 경로 `/`·`/admin`·`/jamboree`·`/jamboree-plan` 은 `_redirects`로 신 경로 301. 내부 파일(*.md·wrangler.toml·CNAME·.claude 등)은 `functions/_middleware.js`가 404.
@@ -86,30 +87,6 @@
 
 ---
 
-## 3. /krjam-cardnews — 한국잼버리 카드뉴스 제작기 (`krjam-cardnews.html` + `jamboree/*.jsx`)
-
-**목적**: 제16회 한국잼버리(2026.8.5–8.9, 강원 고성) 카드뉴스를 **제작·편집·PNG 출력·저장**하는 미니앱. 본 앱과 **격리된 React 페이지**(CDN React18 + Babel standalone + html-to-image).
-
-### 6개 카드 패밀리
-표지(5) · 콘텐츠(14, 절차/방법 5단계·엔딩 포함) · 소식형(3, 1080×1350) · D-피드(8) · D-스토리(1080×1920) · D-가로(1480×1047). 기본 크기 **1080×1350**(인스타 4:5). 색 = WOSM 팔레트.
-
-### 편집
-- 모든 텍스트 **더블클릭 인라인 편집** + 우측 패널 **자동 생성 폼**(카드별 텍스트/사진 자동 등록). 줄바꿈 지원.
-- **전역 브랜드**(행사명/날짜/장소/주최/개영문구) 폼.
-- **사진 업로드**(슬롯별 교체, 자동 다운스케일) · **엠블럼 선택**(저장 에셋 3종 + 업로드, 밝은/어두운 배경용 2슬롯, 흰색 자동 전환).
-- **가운데 오브제(캠프 풍경) 10종 선택** + 형상화 모티프(나무/산/텐트/모닥불/가방 등, 결정론적 스캐터).
-- **자동 푸터**(페이지번호+제목, 표지 기준 색).
-- **트윅**: 글자색·폰트·자간(track)·글자크기(fz)·여백(pad)·D-day 여백·정렬·D-숫자·워터마크(크기/위치/회전/투명도)·엠블럼(크기/위치).
-
-### 출력 / 저장
-- **이 카드 PNG** / **카드뉴스 ZIP**(덱 순서대로 JSZip) / **한 편 PNG**(덱 세로 결합 단일 이미지). 네이티브 해상도 캡처.
-- **덱 빌더**(하단 가로 슬라이드): 표지→본문→엔딩 담기/순서변경/빼기, 칩=실제 카드 썸네일.
-- **저장(기본 로컬)**: 명명된 카드뉴스를 `localStorage`(`jamboree:projects`)에 저장/불러오기/삭제 + 자동저장. 작성자 이름 선택.
-- **서버 백업(선택, 비밀번호 `scout1922`)**: 잠금 해제 후 `/api/jamboree`(POST/GET/DELETE)로 KV 저장.
-- 에러 경계(`ErrorBoundary`)로 카드 1개 오류가 앱 전체를 죽이지 않음.
-
----
-
 ## 4. /krjam-planning — 미디어부 SNS 운영 보드 (`krjam-planning.html` + `jamboree-plan/`)
 
 **목적**: 제16회 한국잼버리 **홍보부(기획조정본부)** SNS 운영/콘텐츠/일정/인원을 관리하는 보드. Vanilla. **비밀번호 게이트 `scout1922`**(최초 1회, 이후 기억).
@@ -173,23 +150,6 @@
 
 ---
 
-## 4-B. /krjam-fnc — 급식편의본부 OT 플립북 (`krjam-fnc.html` + `krjam-fnc/`)
-
-**제16회 한국잼버리 급식편의본부** (The 16th KNJ Food Service & Convenience Division) 운영요원(IST) 오리엔테이션 자료 31쪽을 넘겨 보는 정적 뷰어. **백엔드/저장 없음** — 정적 자산만 사용한다.
-
-- **자료**: 원본 PDF를 1920×1080 WebP(`pages/`) + 320×180 썸네일(`thumbs/`)로 사전 렌더(16:9 31쪽 — 원본 34쪽 중 IST 업무배정표 3쪽은 본부 요청으로 삭제). 내려받기용 PDF·OG 이미지는 `assets/`.
-- **넘김**: 3D 책장 넘김(480ms) · 좌우 버튼 · 키보드(← → PageUp/Down Space Home End) · 스와이프 · 휠 · 하단 스크러버.
-- **목차**: 썸네일 31개 + 쪽 제목을 **8개 챕터**로 묶어 표시. PC 는 **좌측 상시 사이드바**(접으면 뷰어가 넓어짐, 상태 기억) / 모바일은 좌측 드로어(`T` 토글, `Esc` 닫기).
-- **확대**: 더블클릭·더블탭(240%) · 핀치 · `Ctrl/⌘+휠` · `+ - 0`, 드래그 팬.
-- **가로 보기**: 좁은 세로 화면 전용 토글 — 슬라이드를 90° 돌려 약 1.85배 크게. 기기를 가로로 돌리면 자동 해제.
-- **기타**: 전체화면(`F`) · PDF 원본 내려받기 · 쪽 딥링크 `#p12`(공유용).
-- **공개 범위**: `noindex` + **루트 랜딩 카드 미노출** — 자료에 운영요원 실명 업무배정표가 포함되어 URL 공유로만 접근한다.
-- **이어보기(모바일·터치)**: 31쪽을 세로로 죽 잇는 연속 스크롤(쪽마다 번호·제목 캡션). 확대는 브라우저 기본 핀치줌. 하단 바 버튼으로 `이어보기 ↔ 한 장씩` 전환(기억). PC 는 책장 넘기기 유지.
-- **로딩 표시**: 부팅 진행바(글꼴·첫 장 기준) · 넘김 시 상단 진행바(캐시 미스일 때만) · 이어보기 스켈레톤.
-- 회귀: `node test/regress-krjam-fnc.js` (89 케이스) · `node test/regress-landing.js` (29 케이스).
-
----
-
 ## 5. 백엔드 API (`functions/api/`)
 
 > 공개 GET은 인증 불필요. **관리 작업은 TOTP 세션 토큰(Bearer)** 필요(`isAdmin`/`adminUser`).
@@ -212,7 +172,6 @@
 ### jamboree / jamboree-plan
 | 엔드포인트 | 메서드 | 설명 |
 |-----------|--------|------|
-| `/api/jamboree` | GET / PUT / POST / DELETE | 카드뉴스 작업 슬롯 + 명명 저장(목록/개별). 서버 백업은 비번 `scout1922` 게이트(프런트) |
 | `/api/jamboree-plan` | GET / PUT | 미디어부 보드. per-card 키(`jp:s:<slotKey>`) + `jp:marketing/types/events/timetable/roster/offtimes/contacts/divisions/protocol/ttcats` 등 |
 
 ### 인증 메커니즘 (`_lib.js`)
@@ -226,7 +185,7 @@
 ## 6. 저장소 (Cloudflare KV: `SCOUT_KV`)
 
 - scout-finder: `units` · `pending` · `comments` · `log`
-- jamboree: `jamboree`(작업 슬롯) · `jamboree:index` · `jamboree:item:<id>`
+- ⛔ **종료 서비스 키는 지우지 않았다**(사용자 지시) — `jamboree*`(카드뉴스 저장본) · `dcount:*`(디데이 신청·사진) · `jp-fnc*`/`fnc:*`(급식본부). API 만 제거했고 **KV 값은 그대로 남아 있다.** 특히 `img:<id>` 안의 디데이 참가자 사진은 지우지 말 것.
 - jamboree-plan: `jamboree-plan`(구) · per-card `jp:s:<slotKey>` · `jp:marketing/types/events/timetable/roster/placement/ttcats/offtimes/contacts/divisions/protocol/launch`
 - 첨부: `file:<id>`, 이미지 업로드
 

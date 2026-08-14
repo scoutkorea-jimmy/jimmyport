@@ -53,7 +53,9 @@ function buildDays(){
 }
 var DAYS = buildDays();
 var byDate={}; DAYS.forEach(function(d){byDate[d.date]=d;});
-var dcountApproved=[];   // 디데이 프로젝트(krjam-dcount) 승인 카드 — 캘린더 자동 연동
+/* v0.9.295 — 디데이 프로젝트(/krjam-dcount)·카드뉴스 제작기(/krjam-cardnews) 종료.
+   캘린더 자동 연동(dcountApproved)·대시보드 요약·제작기 연결을 함께 걷어냈다.
+   되살릴 일이 생기면 종료 아카이브(KRJAM16-종료서비스-아카이브-20260814)에 코드가 통째로 있다. */
 
 /* ===== overlay state ===== */
 var LS='jamboree-plan:state', LS_AUTHOR='jamboree-plan:author';
@@ -509,7 +511,7 @@ function mergeBusTrack(){
 function defaultRoster(){ return [
   {id:mkid(),name:'',role:'홍보부장',duty:'홍보 전략 총괄 · 대외 협력 · 최종 승인',contact:'',channel:'',team:'lead'},
   {id:mkid(),name:'',role:'콘텐츠 기획',duty:'카드뉴스/영상 기획 · 운영 캘린더 관리 · 일정 조율',contact:'',channel:'페이스북',team:'t1'},
-  {id:mkid(),name:'',role:'디자인',duty:'카드뉴스 · 웹포스터 제작 (/krjam-cardnews 제작기)',contact:'',channel:'인스타그램',team:'t1'},
+  {id:mkid(),name:'',role:'디자인',duty:'카드뉴스 · 웹포스터 제작',contact:'',channel:'인스타그램',team:'t1'},
   {id:mkid(),name:'',role:'사진 · 아카이브',duty:'현장 사진 · 자료 정리 · 보도자료 지원',contact:'',channel:'블로그',team:'t1'},
   {id:mkid(),name:'',role:'영상 · 촬영',duty:'현장 촬영 · 편집 · 릴스/숏폼',contact:'',channel:'유튜브·인스타',team:'t2'},
   {id:mkid(),name:'',role:'채널 운영',duty:'SNS 업로드 · 댓글/DM 응대 · 통계',contact:'',channel:'페이스북·인스타·유튜브',team:'t2'}
@@ -1225,16 +1227,6 @@ function renderCalendar(){
         html+='<div class="cline protocol citem-pr'+(pg?' ghost':'')+'" data-pid="'+esc(g.first.id)+'" title="'+esc('의전 · '+(g.time||'')+' '+evName+' · '+pplRaw.join(', '))+'"><span class="prtag">의전</span>'+(g.time?('<span class="pr-time">'+esc(g.time)+'</span> '):'')+'<b class="pr-name">'+esc(evName)+'</b> '+pplRaw.map(function(t){return esc(t);}).join(' · ')+'</div>';
       });
     }
-    // 디데이 프로젝트 승인 카드(자동 연동) — 사진·문구 표시(홍보부 SNS 카드뉴스 준비용)
-    dcountApproved.filter(function(a){ return a.targetDate===rec.date; }).forEach(function(a){
-      // 사진 URL 도 외부 입력(디데이 신청자 업로드) — esc 없이 넣으면 속성 탈출 XSS 경로가 된다
-      var ph=(a.photos||[]).slice(0,3).map(function(u){ return /^\/api\/image\?id=[A-Za-z0-9_-]+$/.test(u||'') ? '<img src="'+esc(u)+'" data-img="'+esc(u)+'" class="dcph" alt="">' : ''; }).join('');
-      html+='<div class="cline dcard" title="'+esc('디데이 카드 D-'+a.dNumber+(a.name?(' · '+a.name):'')+(a.teaser?(' — '+a.teaser):''))+'" style="cursor:pointer;border-left:3px solid #C8821C;background:rgba(216,162,74,.14);color:#E3C07E;font-weight:700">'
-        +'★ 디데이 D-'+a.dNumber+(a.name?(' · '+esc(a.name)):'')
-        +(a.teaser?('<div style="font-weight:400;font-size:11px;color:#CBA968;white-space:normal;margin-top:2px">'+esc(a.teaser)+'</div>'):'')
-        +(ph?('<div class="dcphs">'+ph+'</div>'):'<div style="font-weight:400;font-size:10px;color:#B99458;margin-top:2px">사진 업로드 대기</div>')
-        +'</div>';
-    });
     html+='<button class="cadd" title="이 날짜에 콘텐츠 추가" aria-label="콘텐츠 추가">'+icon('plus',13)+'</button>';
     cell.innerHTML=html;
     (function(rc){
@@ -1249,9 +1241,6 @@ function renderCalendar(){
       });
       cell.querySelectorAll('.citem-pr[data-pid]').forEach(function(el){
         el.addEventListener('click',function(ev){ ev.stopPropagation(); setView('protocol'); });
-      });
-      cell.querySelectorAll('.cline.dcard').forEach(function(el){
-        el.addEventListener('click',function(ev){ ev.stopPropagation(); var im=ev.target.closest('.dcph'); if(im&&im.getAttribute('data-img')){ window.open(im.getAttribute('data-img'),'_blank'); } else { window.open('/krjam-dcount','_blank'); } });
       });
       // 드래그앤드랍: 실제 콘텐츠(filled)만 드래그해 다른 날짜로 이동
       cell.querySelectorAll('.cline.filled[data-sk]').forEach(function(el){
@@ -1756,7 +1745,7 @@ function slotEl(rec,s,e){
   }
   imgFld.appendChild(grid);
   var hint=document.createElement('div'); hint.className='note'; hint.style.marginTop='6px';
-  hint.innerHTML='최대 '+MAX_IMG+'장 · 자동 축소(1600px) 후 서버 저장 · <a href="/krjam-cardnews" target="_blank" rel="noopener">'+icon('image',13)+' 카드뉴스 제작기 열기</a>';
+  hint.innerHTML='최대 '+MAX_IMG+'장 · 자동 축소(1600px) 후 서버 저장';
   imgFld.appendChild(hint);
   wrap.appendChild(imgFld);
 
@@ -4217,13 +4206,9 @@ function toggleNewsFlag(id, flag){
     .then(function(j){ if(j&&j.ok&&j.article){ var i=newsItems.map(function(x){return x.id;}).indexOf(id); if(i>=0) newsItems[i]=j.article; renderNews(); if(newsView===id) renderNewsView(); } else if(j) toast('변경 실패'); })
     .catch(function(){ toast('네트워크 오류'); });
 }
-// 이 기사 내용·사진을 카드뉴스 제작기로 가져가기(localStorage 전달 → 제작기가 현재 카드에 채움)
-function articleToCardnews(id){
-  var a=newsItems.filter(function(x){return x.id===id;})[0]; if(!a) return;
-  try{ localStorage.setItem('cc-import', JSON.stringify({title:a.title||'', body:a.body||'', images:(a.images||[]).slice(0,3), at:Date.now()})); }catch(e){}
-  window.open('/krjam-cardnews','_blank','noopener');
-  toast('카드뉴스 제작기에서 상단 “기사 가져오기”를 눌러 채우세요');
-}
+/* v0.9.295 — '카드뉴스 만들기'(기사 → 제작기 넘기기)는 제작기 종료와 함께 제거했다.
+   ⚠️ 기사의 `cardnewsDone` 플래그('카드뉴스 가공됨')는 **남겨 둔다** — 제작기와 무관한
+   홍보부 업무 표시라, 같이 지우면 진행 상태를 잃는다. */
 // ── 기사 검수 코멘트 ──
 function renderArticleComments(a){
   var list=(a.comments||[]).map(function(c){
@@ -4370,8 +4355,6 @@ function renderNewsView(){
     return '<button type="button" class="btn sm'+(newsEnDef(a.en)[0]===d[0]?' solid':' ghost')+'" data-nv-en="'+esc(a.id)+'~'+d[0]+'">'+esc(d[1])+'</button>'; }).join('')+'</div>';
   if(canFlagNews(a)) t+='<button type="button" class="btn sm'+(a.cardnewsDone?' solid':' ghost')+'" data-news-flag="'+esc(a.id)+'~cardnewsDone">'+
     icon('check',13)+' 카드뉴스 '+(a.cardnewsDone?'가공됨':'미가공')+'</button>';
-  // 카드뉴스 만들기도 아코디언 시절 도구다 — 이 기사 내용·사진으로 제작기를 채운다.
-  t+='<button type="button" class="btn sm ghost" data-news-tocard="'+esc(a.id)+'" title="이 기사 내용·사진으로 카드뉴스 제작기 채우기">'+icon('image',13)+' 카드뉴스 만들기</button>';
   foot.innerHTML=t;
   renderNewsVerView();
   var ed=document.getElementById('nv-edit'), dl=document.getElementById('nv-del');
@@ -5454,8 +5437,6 @@ function renderDashboard(){
   var tipsNew = tipLoaded ? tipItems.filter(function(t){ return t.status==='new'; }).length : 0;
   var tipsUnassigned = tipLoaded ? tipItems.filter(function(t){ return t.status==='new' && !t.assignee; }).length : 0;
   var newsComments = newsLoaded ? newsItems.reduce(function(a,x){ return a+((x.comments||[]).length); },0) : 0;
-  var dcApproved = dcountApproved.length;
-  var dcWeek = dcountApproved.filter(function(a){ var dl=dayDiff(a.targetDate, today); return dl>=0 && dl<=7; }).length;
   var staff=Auth.isStaff(), admin=Auth.isAdmin();
 
   function statCard(label, big, sub, color){
@@ -5491,7 +5472,6 @@ function renderDashboard(){
   html+=statCard('게시 완료', posted+' / '+titled, titled?(Math.round(posted/titled*100)+'% 게시'):'게시할 콘텐츠 없음', 'var(--c-intl)');
   html+=statCard('운영 일정', evs.length+'건', '다가오는 회의 · 공모전 · 행사', 'var(--c-intl)');
   html+=statCard('시간 일정', ttN+'건', '잼버리 일정표 (8/2~8/9)', 'var(--accent)');
-  html+=statCard('디데이 신청', dcApproved+'건', dcWeek?('이번 주 확정 '+dcWeek+'건'):'승인 확정 카드', 'var(--c-sub)');
   html+='</div>';
 
   // ===== E. 콘텐츠 파이프라인 (제목 있는 실제 콘텐츠 기준) =====
@@ -5569,13 +5549,6 @@ function renderDashboard(){
   html+='<button class="dp-more" data-goto="news">기사 전체 보기 →</button></div>';
   html+='</div>';
 
-  // ===== D. 디데이 프로젝트 요약 =====
-  html+='<div class="dashpanel dcsum"><div class="dp-h">디데이 프로젝트 (D-count)</div>'+
-    '<div class="dcsum-row"><span class="dcsum-stat"><b>'+dcApproved+'</b> 승인 확정</span><span class="dcsum-stat"><b>'+dcWeek+'</b> 이번 주 디데이</span>'+
-    '<a class="dp-more" href="/krjam-dcount" target="_blank" rel="noopener">디데이 프로젝트 열기 →</a></div>';
-  if(dcApproved){ var dcSorted=dcountApproved.slice().sort(function(a,b){ return dayDiff(a.targetDate,today)-dayDiff(b.targetDate,today); }); html+='<div class="dp-list">'+dcSorted.slice(0,5).map(function(a){ return '<a class="dp-item" href="/krjam-dcount" target="_blank" rel="noopener"><span class="dp-d">D-'+a.dNumber+' · '+esc(a.targetDate.slice(5))+'</span><span class="dp-t">'+esc(a.name||'')+(a.org?(' <span class="dp-place">· '+esc(a.org)+'</span>'):'')+'</span></a>'; }).join('')+'</div>'; }
-  html+='</div>';
-
   box.innerHTML=html;
   renderDashNow();   // '지금 현장' 채우기 — 이후 갱신은 startDashClock 이 분 단위로
   startDashClock();
@@ -5650,8 +5623,6 @@ function init(){
   document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=icon(el.getAttribute('data-ic'), +(el.getAttribute('data-ic-size')||16)); });
   renderAll();
   setInterval(renderClock,1000);
-  // 디데이 프로젝트(krjam-dcount) 승인 카드 → 캘린더 자동 연동
-  fetch('/api/krjam-dcount').then(function(r){return r.json();}).then(function(j){ dcountApproved=(j&&j.approved)||[]; renderCalendar(); }).catch(function(){});
   // try server (shared board) — MERGE into local (never wipes local-only content)
   if(Auth.authed()) loadBoard();
 
@@ -5703,7 +5674,6 @@ function init(){
     var lb=e.target.closest('[data-lb]'); if(lb){ openLightbox(lb.getAttribute('data-lb')); return; }
     var ed=e.target.closest('[data-news-edit]'); if(ed){ openNewsEditor(ed.getAttribute('data-news-edit')); return; }
     var dl=e.target.closest('[data-news-del]'); if(dl){ deleteNews(dl.getAttribute('data-news-del')); return; }
-    var tc=e.target.closest('[data-news-tocard]'); if(tc){ articleToCardnews(tc.getAttribute('data-news-tocard')); return; }
     var nv=e.target.closest('[data-news-view]'); if(nv){ openNewsView(nv.getAttribute('data-news-view')); return; }
     // 버전 기록을 펼치는 순간 그 기사 본문 전체를 미리 받아 둔다 → 판을 눌렀을 때 기다리지 않는다
     var nh=e.target.closest('[data-nv-hist]'); if(nh){ var hid=nh.getAttribute('data-nv-hist'); newsVerOpen[hid]=!newsVerOpen[hid]; renderNewsView(); if(newsVerOpen[hid]) ensureNewsDetail(hid); return; }

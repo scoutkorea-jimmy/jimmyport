@@ -1384,11 +1384,7 @@ html.pw-ok #auth-gate{display:none}
 .rlib-img{display:block;aspect-ratio:1;border-radius:var(--r-1);background-size:cover;background-position:center;border:1px solid var(--line)}
 .rlib-doc{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:var(--r-1);background:var(--surface-2);border:1px solid var(--line);color:var(--accent-ink)}
 .rlib-n{display:block;font-size:var(--fs-1);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* D. 디데이 요약 */
-/* .dcsum 의 margin-top 제거 — #dash-stats gap 이 담당 */
-.dcsum-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
-.dcsum-stat{font-size:var(--fs-1);color:var(--ink-2)} .dcsum-stat b{font-size:var(--fs-6);font-weight:800;color:var(--ink);margin-right:3px}
-.dcsum .dp-more{width:auto;margin:0 0 0 auto;padding:6px 12px;border-style:solid;text-decoration:none}
+/* (v0.9.295) D. 디데이 요약 패널 — 디데이 프로젝트 종료로 제거 */
 @media(max-width:680px){
   .dashcols{grid-template-columns:1fr}
   .wxloc{text-align:left}
@@ -1487,9 +1483,7 @@ tr.rowdim{opacity:.34}
 .eband.ghost{color:#9aa094 !important}
 @media(max-width:680px){ .rd-note{display:none} }
 
-/* 디데이 프로젝트 승인 카드 — 캘린더 사진 썸네일(홍보부 SNS 준비용) */
-.cline.dcard .dcphs{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
-.cline.dcard .dcph{width:34px;height:34px;object-fit:cover;border-radius:4px;border:1px solid #e0d4be;cursor:zoom-in}
+/* (v0.9.295) 디데이 승인 카드 캘린더 썸네일 — 디데이 프로젝트 종료로 제거 */
 
 /* ===== 현장 위치 지도 (site map) ===== */
 .smctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0 6px}

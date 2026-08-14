@@ -75,11 +75,7 @@ const data = {
     { route: '/', name: '도구 모음' },
     { route: '/tour', name: 'Scout Tour Assistant' },
     { route: '/krjam-planning', name: '홍보부 운영보드' },
-    { route: '/krjam-fnc', name: '급식편의본부 안내' },
-    { route: '/krjam-fnc-book', name: '급식편의본부 자료 원문' },
     { route: '/krjam-jebo', name: '공개 소식 제보' },
-    { route: '/krjam-cardnews', name: '카드뉴스 제작기' },
-    { route: '/krjam-dcount', name: '디데이' },
   ],
 };
 

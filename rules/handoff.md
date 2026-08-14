@@ -12,7 +12,8 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 2회 연속 통과**한다(2026-07-28 사용자 확정: 3회→2회). 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 234 · nav 19 · server 104 · motion 33 · press 31 · news 112 · jebo 40 · fnc(플립북) 92 · fnc보드 86 · 랜딩 45 · a11y스윕 36 · admin 42 · tour-csv 25 · fnc안정성 59 · audit-mobile 1` = **959건** + 감사 2종(`audit-krjam-planning`·`audit-krjam-fnc`) (한 바퀴 약 6분)
+   - `planning 234 · nav 19 · server 94 · motion 33 · press 31 · news 113 · jebo 40 · 랜딩 46 · a11y스윕 24 · admin 43 · tour-csv 25 · 서비스종료 25 · audit-mobile 1` = **728건** + 감사 1종(`audit-krjam-planning`) (한 바퀴 약 5분)
+   - (v0.9.295) 급식본부 스위트 3종 + `audit-krjam-fnc` 는 **서비스 종료로 삭제**, 신규 `regress-service-ended` 25건 추가.
    - 러너 예시(종료코드로 판정 — DoD 2-1): 각 스위트를 `node test/<s>.js > 로그 2>&1` 로 돌리고 **그 직후 `$?`** 를 본다. `| tail` 을 붙이면 tail 의 종료코드를 읽게 된다.
    - **2회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
      (v0.9.244 실제 사례: 장식 애니메이션이 기하 검사를 흔들고 있었다).
@@ -42,7 +43,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - /admin: `test/regress-admin.js`, 디자인 감사: `test/audit-krjam-fnc.js`·`test/audit-krjam-planning.js`, fnc 보드: `test/regress-krjam-fnc-board.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, fnc(플립북): `test/regress-krjam-fnc.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`
+  - /admin: `test/regress-admin.js`, 디자인 감사: `test/audit-krjam-planning.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`, **서비스 종료: `test/regress-service-ended.js`**
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)
@@ -55,6 +56,12 @@
 - **동시편집 병합**: 서버 `saveDomain` 이 `conflictByOther(baseVer,storedVer,storedAuthor,author)` 로 판정 — **다른 작성자**가 그 사이 바꿨을 때만 병합('다른 사람이 편집 중'). 같은 작성자면 통짜 저장(혼자 오탐 방지).
 - **저장 flush**: 디바운스 저장(`debouncedPut`·카드·마케팅·이벤트)이 flush 레지스트리에 등록. `window.flushPendingSaves()` 가 대기분을 즉시 발사. `version-watch.js` 가 새 배포 감지 시 flush → **5초 뒤 강제 새로고침**(전 페이지 공용).
 - **현장 지도 구역(`ZONES`)**: 좌표는 배치도 이미지 **2000×1414 기준 비율(0~1)**. 기준본 = **2026-07-23 시설물자관리본부 최종본**(고해상 원본은 리포 루트 `KakaoTalk_Photo_2026-08-02-00-13-17.png`, `_middleware` 가 공개 차단). ⚠️ **배치도를 갈아끼우면 좌표를 같이 재실측**하고 `img src` 의 **`?v=` 도 올릴 것**(파일명이 같아 안 올리면 옛 지도가 그대로 나온다). ⚠️ 구역 목록은 `/krjam-jebo` 에도 **같은 key 로 복제**돼 있다 — 한쪽만 고치면 제보의 `zone` 이 어긋난다. ⚠️ 별칭(`al`)은 **부분문자열 매칭**이라 넓은 낱말을 넣으면 남의 구역을 삼킨다(`'무대'`→소무대 v0.9.212, `'본부'`→안전본부·급식편의본부 v0.9.292).
+- 🛑 **종료 서비스 3종(2026-08-14 · v0.9.295)** — 카드뉴스 제작기 `/krjam-cardnews` · 디데이 프로젝트 `/krjam-dcount` · 급식편의본부 `/krjam-fnc`(+`-book`).
+  - 코드·API·문서·회귀를 **전부 지웠다.** 되살릴 근거는 **종료 아카이브 `KRJAM16-종료서비스-아카이브-20260814.zip`(사용자 보관)** 하나뿐이다.
+  - ⚠️ **`jamboree/` 를 통째로 지우지 말 것** — `assets/logo.png`·`og-planning.png` 는 랜딩·홍보부·제보가 **아직 쓰는 공유 자산**이다. 지우면 아이콘이 다 사라지는데 **화면은 그대로 떠서 안 보인다.** `test/regress-service-ended.js` 가 이걸 막는다.
+  - ⚠️ **`_redirects` 는 302 다. 301 로 바꾸지 말 것** — 브라우저가 영구 캐시해서 되살려도 이용자가 안 돌아온다.
+  - ⚠️ **라이브 KV 는 그대로다**(사용자 지시) — `jamboree*`·`dcount:*`·`img:*`·`jp-fnc*`. 특히 **디데이 참가자 사진 29장은 저장소에 없었고 KV 에만 있었다.** 아카이브에 사본이 있지만 **원본을 지우지 않는다.**
+  - ⚠️ 홍보부에 남긴 것: `cardnewsDone`('카드뉴스 가공됨' 업무 플래그) · 콘텐츠 유형 `'dcount'`(D-count 카드뉴스 **종류**). 이름만 같을 뿐 종료 서비스와 무관하다 — 지우면 홍보부 기능이 깨진다.
 - **개영식 카운트다운 = 공용 모듈 `/countdown.js`(`window.KJCountdown`) 하나가 정본**(v0.9.294). 랜딩 `/` · 홍보부 · 급식본부 · 제보 **네 화면이 같이 쓴다** — 기준 시각을 바꿀 일이 생기면 **여기 한 곳만** 고친다(각 화면에 복사하지 말 것).
   - 기준: 개영식 **2026-08-05 20:00 KST** · 그 뒤로는 `D-DAY · 개영!` · **2026-08-09 12:00 이후에는 아예 숨긴다**(사용자 확정 2026-08-04).
   - ⚠️ **KST 고정 오프셋(+09:00)으로 적는다.** `new Date(2026,7,5,20,0,0)` 은 브라우저 타임존 기준이라 해외에서 어긋난다(제보 화면은 영문 지원 = 해외 참가자가 본다). **이 버그는 KST 기기에서 절대 안 보이므로**, 회귀는 UTC 환산이 아니라 `OPEN_ISO` **문자열 자체**를 검사한다.
@@ -75,14 +82,10 @@
 - **8/9 저녁(폐영식) 전체 오프**: 2026-07-26 사용자 확인 = **현행 유지**(오후+저녁 모두 배정 불가). 되돌리려면 `app.js` `GLOBAL_OFF` 에서 `['2026-08-09','eve']` 제거.
 - (중장기·요청 시) `jamboree-plan/app.js` 4,700줄 단일 파일 + 전역 `state` 의 도메인별 분리. 리스크 있어 사용자 확인하에 단계적으로.
 
-**급식편의본부(`/krjam-fnc`)**
-- **결정됨(2026-07-28) — 관리자 계정 현행 유지.** 사용자 확정: *"급식관리자는 급식본부꺼라 급식본부 본부장님이 별도 요청 전까지는 그대로 유지"*. **급식본부 본부장(심호웅)의 요청이 있을 때만** 바꾼다 — 에이전트가 임의로 교체하지 않는다(교체하면 본부 쪽이 못 들어간다).
-  - ⚠️ **정본은 `functions/api/jp-fnc-auth.js` 하나뿐이다**(현재 `foodservice`/`20260803`, v0.9.283 에서 `admin`/`admin` 에서 바뀜). 이 문서와 `jp-fnc-staff.js` 주석이 **옛 계정을 그대로 안고 있어** 2026-08-04 점검에서 걸렸다 — 계정을 문서에 적지 말고 그 파일을 가리킬 것.
-  - 대신 넣어 둔 완화책: `/api/jp-fnc-auth` **IP당 10분 20회** 시도 제한 · 편집 권한은 fnc 세션에만(30분 만료) · 명단/배정 저장에 잠금·전멸가드·스냅샷·감사기록. 즉 **뚫려도 되돌릴 수 있고 누가 언제 바꿨는지 남는다.**
-
-**D-Count(`/krjam-dcount`)**
-- **판단 대기 — 공유 비밀번호 `scout1922`**(2026-08-04 사용자 확정: **지금은 현행 유지**). `env.CC_PASS` 가 라이브에 설정돼 있지 않아 **소스에 적힌 기본값이 그대로 통한다**(`functions/api/krjam-dcount.js`·`jamboree.js` 의 `env.CC_PASS || "scout1922"`). 이걸로 신청자 이름·전화·소속·IP·동의기록이 열린다. 행사 중 운영 혼선을 피해 유지 — 닫으려면 (ㄱ) Cloudflare 에 `CC_PASS` 설정 (ㄴ) 소스 기본값 제거해 fail-closed (ㄷ) D-Count 관리자만 TOTP 전용. 어느 쪽이든 **쓰는 사람에게 통지가 먼저**다.
-  - v0.9.293 에서 **salt·hash 유출은 이미 막았다** — 남은 것은 이름·전화 등 신청 정보 노출뿐이다.
+**⛔ 종료된 서비스 — 남은 일 없음(2026-08-14)**
+- 급식편의본부·D-Count·카드뉴스 제작기의 열린 항목(급식 관리자 계정 유지 · D-Count 공유 비밀번호 `scout1922` 판단 대기)은 **서비스가 없어져 무의미**해졌다. 참고 기록은 종료 아카이브의 각 changelog.
+- ⚠️ 다만 **`env.CC_PASS` 미설정 자체는 그대로**다 — 소스에서 그 폴백을 쓰던 API 를 전부 지웠으므로 지금은 열리는 문이 없다. 되살릴 때는 **비밀번호부터 닫고** 올릴 것.
+- ⏭️ **판단 대기(사용자)**: 종료 서비스의 라이브 KV 를 **언제 정리할지**. 지금은 전부 보존 중이고, 디데이 사진은 아카이브에 사본이 있다. 정리한다면 `img:*` 는 **제보 사진과 같은 네임스페이스**라 통째 삭제 불가 — `dcount:app:*` 이 참조하는 id 만 골라야 한다.
 
 **저장소 전역**
 - **문서 이행 마지막 단계(미착수·큰 리스크)**: 코드의 서비스 폴더 이동(`app.js`·`tour/`·`jamboree/`·`jamboree-plan/` → 서비스 폴더)은 **라우팅·`?v=`·HTML src 전면 재배선** 필요. 라이브 라우팅이 깨질 수 있어 반드시 계획+단계적+회귀·헤드리스 검증 후, 사용자 확인하에 진행. → [stack-routing.md](stack-routing.md).
@@ -111,6 +114,19 @@
 ---
 
 ## 🗓 세션 이력 (최신 순)
+
+> ⚠️ v0.9.295 아래의 이력은 **그때의 기록**이다. `docs/krjam-fnc/`·`docs/krjam-dcount/`·`docs/krjam-cardnews/` 로 가는 링크는 그 문서들을 서비스와 함께 지웠으므로 **끊겨 있다** — 원본은 종료 아카이브(`KRJAM16-종료서비스-아카이브-20260814.zip`) 안에 있다.
+
+### 2026-08-14 — 3개 서비스 공식 종료 + 종료 안내 화면 (v0.9.295)
+대상: 카드뉴스 제작기 `/krjam-cardnews` · 디데이 프로젝트 `/krjam-dcount` · 급식편의본부 `/krjam-fnc`(+`-book`) 종료, `/krjam-planning`·`/`(랜딩) 연동 제거. 상세: [planning §v0.9.295](../docs/krjam-planning/changelog.md).
+- 사용자 지시: *"…한곳에 모아서 알집으로 모아놔줘. … 서비스는 공식적으로 그만할꺼야"* + *"디데이 프로젝트 사진들은 삭제하면 안된다잉"*. 확정 3건: **종료 안내 페이지**(404 아님) · **홍보부 연동도 같이 제거** · **문서까지 전부 삭제**.
+- 🔴 **디데이 사진 29장은 저장소에 없었다** — 라이브 KV(`img:<id>`)에만 있고 `dcount:app:*` 이 URL 로만 참조. **코드만 백업했으면 그대로 잃을 뻔했다.** 승인 26건을 훑어 전부 내려받아 아카이브에 넣었다. **KV 원본은 지우지 않았다.**
+- 🔴 **`jamboree/` 는 카드뉴스 전용 폴더가 아니다** — `assets/logo.png`·`og-planning.png` 를 랜딩·홍보부·제보가 아직 쓴다. 통째로 지웠으면 아이콘이 다 사라지는데 **화면은 그대로 떠서 눈으로는 안 보인다.** 모듈·폰트·전용 이미지만 지웠다.
+- 🔴 **회귀가 오늘부터 이미 빨간 상태였다(내 변경과 무관)** — 랜딩·제보·홍보부의 카운트다운 '그려지는가' 검사가 **실제 시계**로 재고 있었다. 8/9 12:00 이후엔 숨기는 게 정상이라 **행사 뒤로는 영원히 FAIL**. v0.9.292·293 과 **같은 함정의 세 번째 재발** → 카운트다운이 떠 있는 시각으로 갈아끼워 잰다. ⚠️ **얼리면 안 된다**(초가 흐르는지도 같이 재므로) — 고정 시각에서 **출발해 실제 속도로 흐르는** 시계를 넣었다.
+- 종료 안내는 **화면 하나**(`/service-ended`) + `_redirects` 가 `?s=<키>` 로 넘긴다(3개를 복제하지 않는다). ⚠️ **302 다 — 301 은 브라우저가 영구 캐시해서 되살려도 이용자가 안 돌아온다.**
+- 홍보부에서 **남긴 것**: `cardnewsDone`(업무 플래그) · 콘텐츠 유형 `'dcount'`. 이름만 같고 종료 서비스와 무관하다 — 그래서 종료 회귀는 문자열이 아니라 **따옴표로 감싼 링크 형태**로만 잰다.
+- 신규 `test/regress-service-ended.js` **25건** — '덜 지움(죽은 링크)'과 '더 지움(공유 자산 파괴)'을 양쪽에서 막는다. 이빨 확인 4종(공유자산 삭제→3건 FAIL · 302→301→2건 FAIL · 삭제파일 부활→FAIL · 보관 문구 제거→FAIL).
+- 회귀: 삭제 4종(fnc 3 + fnc감사) · 신규 1종 → **14종 728건, 2라운드 ALL GREEN** + 감사 1종 0건.
 
 ### 2026-08-04 — 개영식 기준 카운트다운 전 사이트 공용화 (v0.9.294)
 대상: 랜딩 `/` · `/krjam-planning` · `/krjam-fnc` · `/krjam-jebo` (D-Count 제외 — 사용자 지시). 신규 `countdown.js`. 상세: [planning §v0.9.294](../docs/krjam-planning/changelog.md) · [fnc §v0.9.294](../docs/krjam-fnc/changelog.md).

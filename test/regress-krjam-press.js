@@ -55,7 +55,6 @@ const SEED = function (press, role) {
     if (u.startsWith('/api/jp-news')) return J({ ok: true, articles: [] });
     if (u.startsWith('/api/jp-tips')) return J({ ok: true, tips: [] });
     if (u.startsWith('/api/jp-assets')) return J({ ok: true, assets: [] });
-    if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
     if (u.startsWith('/api/jamboree-plan')) return J({ ok: true, slots: {}, types: [], events: [], ttcats: [], offtimes: {},
       marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], timetable: [], roster: [] });
     if (u.startsWith('/api/')) return J({ ok: true });

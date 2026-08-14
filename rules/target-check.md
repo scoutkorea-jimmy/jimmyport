@@ -14,9 +14,10 @@
 | 라우트 | 서비스 | 문서 |
 |---|---|---|
 | `/` (랜딩) · `/tour` · `/tour/admin` | Scout Tour Assistant | [docs/scout-finder/](../docs/scout-finder/) |
-| `/krjam-cardnews` | 카드뉴스 제작기 | [docs/krjam-cardnews/](../docs/krjam-cardnews/) |
 | `/krjam-planning` | 홍보부 통합 관리 플랫폼 | [docs/krjam-planning/](../docs/krjam-planning/) |
-| `/krjam-dcount` | 디데이 프로젝트 | [docs/krjam-dcount/](../docs/krjam-dcount/) |
 | `/krjam-jebo` | 공개 소식 제보 | [docs/krjam-jebo/](../docs/krjam-jebo/) |
+
+⛔ **종료된 서비스(2026-08-14)**: `/krjam-cardnews` · `/krjam-dcount` · `/krjam-fnc`·`/krjam-fnc-book`.
+사용자가 이 셋을 대상으로 지목하면 **이미 종료됐음을 먼저 알리고**, 복원이 필요한지 확인한 뒤 진행한다(코드는 종료 아카이브에만 있다).
 
 대상이 확정되면 **해당 `docs/<service>/` 문서를 먼저 읽고** 착수한다.

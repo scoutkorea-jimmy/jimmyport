@@ -79,7 +79,6 @@ const SEED = function (news, role) {
     if (u.startsWith('/api/jp-press')) return J({ ok: true, press: [] });
     if (u.startsWith('/api/jp-tips')) return J({ ok: true, tips: [] });
     if (u.startsWith('/api/jp-assets')) return J({ ok: true, assets: [] });
-    if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
     if (u.startsWith('/api/jamboree-plan')) return J({ ok: true, slots: {}, types: [], events: [], ttcats: [], offtimes: {},
       marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], timetable: [], roster: [] });
     if (u.startsWith('/api/')) return J({ ok: true });
@@ -385,7 +384,11 @@ async function boardPage(b, base, role) {
     const t = document.querySelector('#nv-body .ac-t');
     return getComputedStyle(t).whiteSpace === 'pre-wrap';
   }));
-  chk('카드뉴스 만들기 버튼 유지', await p.evaluate(() => !!document.querySelector('#nv-tools [data-news-tocard]')));
+  // v0.9.295 — 카드뉴스 제작기 종료로 '카드뉴스 만들기'(기사 → 제작기) 버튼을 뺐다.
+  //  되살아나면 죽은 주소로 새 창이 열린다.
+  chk('카드뉴스 만들기 버튼이 없다(제작기 종료)', await p.evaluate(() => !document.querySelector('[data-news-tocard]')));
+  // ⚠️ 다만 '카드뉴스 가공됨' 업무 플래그는 제작기와 무관하다 — 같이 지우면 진행 상태를 잃는다.
+  chk('카드뉴스 가공 여부 플래그는 남아 있다', await p.evaluate(() => !!document.querySelector('#nv-tools [data-news-flag$="cardnewsDone"]')));
   chk('모달에 영문 4단계 버튼 · 현재 상태 강조', await p.evaluate(() => {
     const bs = [...document.querySelectorAll('#nv-tools [data-nv-en]')];
     return bs.length === 4 && bs.map((x) => x.getAttribute('data-nv-en').split('~')[1]).join(',') === ',need,done,skip'

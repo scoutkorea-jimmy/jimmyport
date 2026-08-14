@@ -16,7 +16,7 @@ const HISTORY = Array.from({ length: 22 }, (_, i) => ({
   startedAt: '2026-07-2' + (i % 7) + 'T01:00:00Z', finishedAt: '2026-07-2' + (i % 7) + 'T01:20:00Z',
   label: '전체 회귀', rounds: 3, roundTotal: 3, done: 42, total: 42, checks: 1180,
   fails: i === 0 ? 1 : 0, ok: i !== 0,
-  suites: ['regress-krjam-news', 'regress-krjam-fnc-board', 'regress-landing'],
+  suites: ['regress-krjam-news', 'regress-krjam-jebo', 'regress-landing'],
   failures: i === 0 ? [{ round: 2, file: 'regress-krjam-news', check: '콘솔 에러 0', detail: 'TypeError: x' }] : [],
 })).slice(0, 20);
 const RUN = { ok: true, configured: true, staleMs: 90000, now: new Date().toISOString(), history: HISTORY, run: {
@@ -25,7 +25,7 @@ const RUN = { ok: true, configured: true, staleMs: 90000, now: new Date().toISOS
           { round: 2, name: 'regress-krjam-press', pass: 30, total: 31, ok: false }],
   failures: [{ round: 2, file: 'regress-krjam-press', check: '표가 가로로 넘치지 않음', detail: '48px 넘침' },
              { round: 2, file: 'regress-krjam-news', check: '콘솔 에러 0', detail: 'TypeError: x is not a function' }],
-  running: 'test/regress-krjam-fnc.js', startedAt: new Date(Date.now() - 300000).toISOString(),
+  running: 'test/regress-krjam-jebo.js', startedAt: new Date(Date.now() - 300000).toISOString(),
   updatedAt: new Date().toISOString(), finishedAt: '', ok: false } };
 const CONTENT = { ok: true, counts: [{ key: 'news', label: '기사', n: 12 }, { key: 'press', label: '보도자료', n: 3 },
   { key: 'tips', label: '소식 제보', n: 5 }, { key: 'members', label: '회원', n: 9 }, { key: 'assets', label: '자료실', n: 21 }],
@@ -35,7 +35,7 @@ const STATS = {
   days: ['2026-07-24', '2026-07-25', '2026-07-26', '2026-07-27'],
   routes: [
     { route: '/krjam-planning', counts: [10, 20, 30, 40], total: 100 },
-    { route: '/krjam-fnc', counts: [1, 2, 3, 4], total: 10 },
+    { route: '/krjam-jebo', counts: [1, 2, 3, 4], total: 10 },
     { route: '/', counts: [0, 0, 1, 1], total: 2 },
   ],
   totals: [11, 22, 34, 45],
@@ -144,7 +144,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   }));
   chk('진행률·검사 수·지금 도는 검사', await p.evaluate(() => {
     var t = document.querySelector('.runhead').textContent + document.querySelector('.runnow').textContent;
-    return /40%/.test(t) && /17 \/ 42/.test(t) && /regress-krjam-fnc\.js/.test(t);
+    return /40%/.test(t) && /17 \/ 42/.test(t) && /regress-krjam-jebo\.js/.test(t);
   }));
   chk('실패 사유가 비개발자 말로 항상 보인다', await p.evaluate(() => {
     var cards = [...document.querySelectorAll('#views .sec:first-child .failcard')];
@@ -300,8 +300,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   console.log('\n[서버 · 집계]');
   const hit = await import('../functions/api/hit.js');
-  chk('라우트 화이트리스트만 센다', hit.cleanRoute('/krjam-fnc/') === '/krjam-fnc'
+  chk('라우트 화이트리스트만 센다', hit.cleanRoute('/krjam-jebo/') === '/krjam-jebo'
     && hit.cleanRoute('/krjam-planning.html') === '/krjam-planning' && hit.cleanRoute('/nope') === null);
+  // v0.9.295 — 종료한 서비스 주소는 더 이상 세지 않는다(화이트리스트에서 뺐다).
+  chk('종료한 서비스 주소는 집계에서 거부된다',
+    hit.cleanRoute('/krjam-fnc') === null && hit.cleanRoute('/krjam-cardnews') === null
+    && hit.cleanRoute('/krjam-dcount') === null);
   chk('집계 날짜는 한국 시간 기준', /^\d{4}-\d{2}-\d{2}$/.test(hit.dayKey(new Date())));
   const hsrc = fs.readFileSync(path.join(ROOT, 'functions/api/hit.js'), 'utf8');
   chk('IP·UA 를 저장하지 않는다', !/clientIp|user-agent|referer/i.test(hsrc));

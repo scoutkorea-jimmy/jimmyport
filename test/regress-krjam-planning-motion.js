@@ -45,7 +45,6 @@ const SEED = function () {
     if (u.startsWith('/api/jp-news')) return J({ ok: true, articles: [] });
     if (u.startsWith('/api/jp-assets')) return J({ ok: true, assets: [] });
     if (u.startsWith('/api/jp-tips')) return J({ ok: true, tips: [] });
-    if (u.startsWith('/api/krjam-dcount')) return J({ ok: true, slots: [], approved: [] });
     if (u.startsWith('/api/jamboree-plan')) return J({ ok: true, slots: {}, types: [], events: [], ttcats: [], offtimes: {},
       marketing: [], contacts: [], divisions: [], protocol: [], mappos: {}, shoots: [], timetable: [],
       roster: [{ id: 'r1', name: '김기자', role: '취재', team: 't1' }] });

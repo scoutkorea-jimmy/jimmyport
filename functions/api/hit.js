@@ -12,9 +12,11 @@
  */
 import { json } from "./_lib.js";
 
+// v0.9.295 — 카드뉴스 제작기·디데이·급식편의본부 종료로 5개 라우트 제거.
+// 이미 쌓인 옛 유입 기록은 KV 에 그대로 남는다(지우지 않는다) — 화이트리스트는 '새로 받을 것'만 정한다.
 export const ROUTES = [
-  "/", "/tour", "/tour/admin", "/krjam-planning", "/krjam-fnc", "/krjam-fnc-book",
-  "/krjam-jebo", "/krjam-cardnews", "/krjam-dcount", "/privacy", "/admin",
+  "/", "/tour", "/tour/admin", "/krjam-planning",
+  "/krjam-jebo", "/privacy", "/admin",
 ];
 export const KEEP_DAYS = 90;
 

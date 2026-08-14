@@ -1,9 +1,9 @@
 {
-  "version": "0.9.294",
-  "commit": "2590a55",
-  "commitSubject": "feat(v0.9.294): opening-ceremony countdown, shared across the site",
-  "commitAt": "2026-08-04T04:47:27+09:00",
-  "deployedAt": "2026-08-03T19:54:00.097Z",
+  "version": "0.9.295",
+  "commit": "9f51bba",
+  "commitSubject": "docs(v0.9.294): record shared opening-ceremony countdown (2 rounds green, 959 checks)",
+  "commitAt": "2026-08-04T04:54:00+09:00",
+  "deployedAt": "2026-08-14T11:53:19.005Z",
   "verification": {
     "at": "2026-08-03T19:54:00.100Z",
     "rounds": [
@@ -245,24 +245,8 @@
       "name": "홍보부 운영보드"
     },
     {
-      "route": "/krjam-fnc",
-      "name": "급식편의본부 안내"
-    },
-    {
-      "route": "/krjam-fnc-book",
-      "name": "급식편의본부 자료 원문"
-    },
-    {
       "route": "/krjam-jebo",
       "name": "공개 소식 제보"
-    },
-    {
-      "route": "/krjam-cardnews",
-      "name": "카드뉴스 제작기"
-    },
-    {
-      "route": "/krjam-dcount",
-      "name": "디데이"
     }
   ]
 }

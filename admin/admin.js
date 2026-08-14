@@ -421,8 +421,8 @@
   function linksBlock() {
     var L = [
       ['/', '도구 모음'], ['/tour', 'Scout Tour Assistant'], ['/tour/admin', '투어 관리자'],
-      ['/krjam-planning', '홍보부 운영보드'], ['/krjam-fnc', '급식편의본부 안내'], ['/krjam-fnc-book', '급식편의본부 자료 원문'],
-      ['/krjam-jebo', '공개 소식 제보'], ['/krjam-cardnews', '카드뉴스 제작기'], ['/krjam-dcount', '디데이'], ['/privacy', '개인정보 안내'],
+      ['/krjam-planning', '홍보부 운영보드'],
+      ['/krjam-jebo', '공개 소식 제보'], ['/privacy', '개인정보 안내'],
     ];
     return '<div class="card tblwrap"><table class="tbl"><thead><tr><th>주소</th><th>이름</th><th class="num">' + days + '일 유입</th></tr></thead><tbody>' +
       L.map(function (x) {
@@ -433,9 +433,11 @@
   }
 
   /* ── 라우팅 점검 ── */
-  var CHECK = ['/', '/tour', '/tour/admin', '/krjam-planning', '/krjam-fnc', '/krjam-fnc-book', '/krjam-jebo',
-               '/krjam-cardnews', '/krjam-dcount', '/privacy', '/admin', '/status.json',
-               '/api/jp-meals', '/api/jp-fnc', '/api/jp-noti', '/VERSION'];
+  // v0.9.295 — 종료한 3개 서비스는 뺐다. 대신 종료 안내 화면 자체가 살아 있는지 본다
+  // (여기가 죽으면 인쇄물·QR 을 든 참가자가 그냥 404 를 본다).
+  var CHECK = ['/', '/tour', '/tour/admin', '/krjam-planning', '/krjam-jebo',
+               '/privacy', '/admin', '/status.json', '/service-ended',
+               '/api/jp-meals', '/api/jp-noti', '/VERSION'];
   function renderRoutes() {
     var t = $('routetbl'); if (!t) return;
     t.innerHTML = '<thead><tr><th>주소</th><th>상태</th><th class="num">응답</th><th>비고</th></tr></thead><tbody>' +
