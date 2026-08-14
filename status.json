@@ -1,11 +1,11 @@
 {
-  "version": "0.9.300",
-  "commit": "15dfadc",
-  "commitSubject": "docs(v0.9.300): kill the /tour favicon 404; add rules/failures.md",
-  "commitAt": "2026-08-14T22:47:55+09:00",
-  "deployedAt": "2026-08-14T13:55:35.756Z",
+  "version": "0.9.301",
+  "commit": "eddf46d",
+  "commitSubject": "docs: order failures.md entries by number",
+  "commitAt": "2026-08-14T22:55:59+09:00",
+  "deployedAt": "2026-08-14T14:13:12.934Z",
   "verification": {
-    "at": "2026-08-14T13:55:35.756Z",
+    "at": "2026-08-14T14:13:12.934Z",
     "rounds": [
       {
         "round": 1,

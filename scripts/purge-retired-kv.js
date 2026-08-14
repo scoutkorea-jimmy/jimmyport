@@ -126,13 +126,30 @@ if (!CONFIRM) {
   process.exit(0);
 }
 
-/* ── 실행 ─────────────────────────────────────────────────────────── */
+/* ── 실행 ───────────────────────────────────────────────────────────
+   🔴 처음엔 `kv key delete … --force` 를 95번 돌렸는데, **그 명령에는 `--force` 가 없다**
+      → 95번 전부 실패(다행히 아무것도 안 지워졌다). 안전장치만 검증하고 **실제 삭제 명령은
+      한 번도 안 돌려 봤던 것**이 원인이다(failures.md F-15).
+      `kv bulk delete <파일>` 은 `--force` 를 지원하고 **한 번의 호출**로 끝난다. */
 console.log('\n삭제를 시작합니다…');
-let done = 0; const failed = [];
-for (const k of plan) {
-  try { wrangler(['kv', 'key', 'delete', k, `--namespace-id=${NS}`, '--remote', '--force']); done++; }
-  catch (e) { failed.push(k); }
-  if (done % 20 === 0) console.log(`  ${done}/${plan.length}`);
+const listFile = path.join(os.tmpdir(), `purge-retired-kv-${plan.length}.json`);
+fs.writeFileSync(listFile, JSON.stringify(plan));
+try {
+  const out = wranglerSafe(['kv', 'bulk', 'delete', listFile, `--namespace-id=${NS}`, '--remote', '--force'], '일괄 삭제');
+  console.log(String(out).trim().split('\n').slice(-3).join('\n'));
+} finally {
+  try { fs.unlinkSync(listFile); } catch {}
 }
-console.log(`\n삭제 완료 ${done}/${plan.length}` + (failed.length ? ` · 실패 ${failed.length}: ${failed.slice(0, 5).join(', ')}` : ''));
+
+/* 지웠다고 믿지 말고 **다시 세어 확인한다** — 삭제가 조용히 실패한 적이 있다. */
+console.log('\n삭제 결과를 다시 읽어 확인합니다…');
+const after = JSON.parse(wranglerSafe(['kv', 'key', 'list', `--namespace-id=${NS}`, '--remote'], '삭제 후 확인')).map((k) => k.name);
+const left = plan.filter((k) => after.includes(k));
+console.log(`  전체 키 ${allKeys.length} → ${after.length}개`);
+if (left.length) {
+  console.log(`  ⚠️ 아직 남은 것 ${left.length}개: ${left.slice(0, 8).join(', ')}`);
+  process.exitCode = 1;
+} else {
+  console.log(`  ✓ 대상 ${plan.length}개가 전부 사라졌습니다.`);
+}
 console.log('⚠️ rules/operations-log.md 에 실행 사실을 기록하세요(날짜·건수·실행자).');
