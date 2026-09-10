@@ -216,6 +216,94 @@ chk('시각이 거꾸로 가지 않는다', badOrder === 0, `${badOrder}편 불�
 chk('열차가 실려 있다', totalTrains > 0, `${manifest.dates.length}일 합계 ${totalTrains}편`);
 chk('근거(basis)가 목록과 일치한다', badBasis === 0, `${badBasis}건 불일치`);
 
+/* ── 4b. 최근 실적 ────────────────────────────────────────────────
+   '어제 이 열차가 몇 시에 들어왔나'를 역별로 보여 주는 표다.
+
+   여기서 조용히 틀어질 수 있는 곳이 하나 있다. 실적의 정차역 순서와
+   화면의 정차역 순서가 어긋나면 **한 칸씩 밀린 시각**이 붙는다. 숫자는
+   그럴듯하고 화면도 멀쩡하다. 열이 한 칸 밀렸다는 것은 사람이 봐서는
+   모른다. 시각표와의 차이를 재야만 잡힌다. */
+console.log('\n[실적]');
+if (!manifest.historyDates?.length) {
+  chk('최근 실적이 준비돼 있다', false, 'index.json 에 historyDates 가 없다');
+} else {
+  chk('최근 실적 파일이 있다', has('api/history.json'));
+  const hist = readJson('api/history.json');
+  chk('실적 날짜가 목록과 같다',
+    JSON.stringify(hist.dates) === JSON.stringify(manifest.historyDates),
+    `${hist.dates?.join(',')} vs ${manifest.historyDates.join(',')}`);
+
+  /* 실적은 과거여야 한다. 미래 날짜가 들어오면 계획을 실적이라 부르는 것이다. */
+  const todayKst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
+  chk('실적 날짜가 전부 과거다',
+    hist.dates.every((d) => d < todayKst), `오늘 ${todayKst} · ${hist.dates.join(',')}`);
+  chk('실적 날짜가 최신순이다',
+    hist.dates.every((d, i) => i === 0 || d < hist.dates[i - 1]), hist.dates.join(','));
+
+  const trainNos = Object.keys(hist.trains || {});
+  chk('실적에 열차가 충분히 있다', trainNos.length > 300, `${trainNos.length}편`);
+
+  /* 배열 길이가 서로 맞는가. 어긋나면 화면이 엉뚱한 역에 시각을 붙인다. */
+  let badShape = 0;
+  for (const no of trainNos) {
+    const t = hist.trains[no];
+    if (!Array.isArray(t.s) || t.s.length === 0) { badShape++; continue; }
+    if (!Array.isArray(t.a) || t.a.length !== hist.dates.length) { badShape++; continue; }
+    if (t.a.some((row) => row !== null && row.length !== t.s.length)) badShape++;
+  }
+  chk('실적 배열 길이가 정차역 수와 맞는다', badShape === 0, `어긋남 ${badShape}편`);
+
+  /* 하루도 기록이 없는 열차를 실어 보내지 않는다 -- 빈 칸만 늘어난다. */
+  const allNull = trainNos.filter((no) => hist.trains[no].a.every((r) => r === null)).length;
+  chk('전부 빈 열차는 실리지 않는다', allNull === 0, `${allNull}편`);
+
+  /*
+   * 핵심 검사. 시각표와 실적을 역별로 맞대 본다.
+   *
+   * 실제 지연은 대개 몇 분이다. 열이 한 칸 밀리면 역간 소요시간만큼
+   * 차이가 나므로 수십 분으로 튄다. 중앙값으로 재면 개별 사고에
+   * 흔들리지 않으면서 밀림은 확실히 걸린다.
+   */
+  const today = manifest.dates[0];
+  const day = readJson(`api/day-${today}.json`);
+  const diffs = [];
+  let compared = 0;
+  for (const t of day.trains) {
+    const h = hist.trains[t.no];
+    if (!h) continue;
+    const stops = (t.route || '').split('>');
+    if (stops.length !== t.arr.length) continue;
+    for (const row of h.a) {
+      if (!row) continue;
+      compared++;
+      let k = 0;
+      for (let i = 0; i < stops.length; i++) {
+        let j = k;
+        while (j < h.s.length && h.s[j] !== stops[i]) j++;
+        if (j >= h.s.length) continue;
+        k = j + 1;
+        const actual = row[j];
+        const planned = t.arr[i] >= 0 ? t.arr[i] : t.dep[i];
+        if (actual == null || actual < 0 || planned == null || planned < 0) continue;
+        // 자정을 넘겨 달리는 열차는 한쪽만 1440 이 더해져 있을 수 있다.
+        let d = Math.abs(actual - planned);
+        if (d > 720) d = Math.abs(d - 1440);
+        diffs.push(d);
+      }
+    }
+  }
+  diffs.sort((a, b) => a - b);
+  const med = diffs.length ? diffs[Math.floor(diffs.length / 2)] : -1;
+  const p90 = diffs.length ? diffs[Math.floor(diffs.length * 0.9)] : -1;
+  chk('실적과 시각표를 맞대 볼 수 있다', compared > 200, `${compared}회 · ${diffs.length}개 지점`);
+  chk('실적이 시각표와 같은 역에 붙어 있다', med >= 0 && med <= 5,
+    `중앙값 ${med}분 · 90퍼센타일 ${p90}분`);
+  chk('한 칸 밀린 흔적이 없다', p90 >= 0 && p90 <= 20, `90퍼센타일 ${p90}분`);
+
+  const histBytes = fs.statSync(abs('api/history.json')).size;
+  chk('실적 파일이 과하게 크지 않다', histBytes < 1024 * 1024, `${(histBytes / 1024).toFixed(0)} KB`);
+}
+
 /* ── 5. 배경 선로 ─────────────────────────────────────────────── */
 console.log('\n[선로]');
 const rail = readJson('api/rail-lines.json');
@@ -339,6 +427,43 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     })()`));
     chk('열차를 눌러 상세가 열린다', clicked.ok === true && clicked.open === true, clicked.why || `열차 ${clicked.no}`);
     chk('상세의 정차역 수가 경로와 같다', clicked.ok === true && clicked.stops === clicked.routeStops, `${clicked.stops}/${clicked.routeStops}`);
+
+    /* ── 실적 표 ──
+       파일이 맞아도 화면이 안 붙일 수 있다. 실적이 있는 열차를 골라
+       직접 열어 본다 -- 클릭이 잡는 열차가 화물처럼 실적 없는 편일 수 있어
+       무작위 클릭에 기대면 이 검사가 조용히 건너뛰어진다. */
+    const histUi = JSON.parse(await evalIn(`(() => {
+      const r = window.__radar;
+      const file = r?.data?.history;
+      if (!file) return JSON.stringify({ skip: '실적 파일 없음' });
+      const t = (r.payload.trains || []).find((x) => file.trains[x.no]);
+      if (!t) return JSON.stringify({ skip: '실적 있는 열차 없음' });
+      const route = r.payload.routes[t.route];
+      r.showDetail({ train: t, route, pos: { fromIdx: 0, toIdx: 1 } });
+      const head = [...document.querySelectorAll('#stops-head span')].map((e) => e.textContent);
+      const first = document.querySelector('#detail-stops li');
+      return JSON.stringify({
+        no: t.no,
+        headHidden: document.getElementById('stops-head').hidden,
+        head,
+        cells: first ? first.querySelectorAll('.hx').length : 0,
+        legend: document.getElementById('stops-legend').textContent,
+      });
+    })()`));
+    if (histUi.skip) {
+      chk('상세에 최근 실적 표가 붙는다', false, histUi.skip);
+    } else {
+      chk('상세에 최근 실적 표가 붙는다',
+        histUi.headHidden === false && histUi.cells === manifest.historyDates.length,
+        `열차 ${histUi.no} · ${histUi.cells}칸`);
+      /* 머리글이 날짜여야 한다. '어제·그제'로 적으면 주 1회 재빌드에서
+         나흘 전 기록을 어제라 부르게 된다. */
+      chk('실적 열 머리글이 날짜다',
+        (histUi.head || []).filter((h) => /^\d{2}\.\d{2}$/.test(h)).length === manifest.historyDates.length,
+        (histUi.head || []).join(' '));
+      chk('실적이 무엇인지 화면이 설명한다',
+        /실제 착발 시각/.test(histUi.legend || ''), (histUi.legend || '').slice(0, 40));
+    }
 
     /* ── 차량 제원 ──
        Flightradar24 의 기종 표시에 해당한다. 다만 공개 API 에 편성번호가
