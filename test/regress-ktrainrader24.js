@@ -21,7 +21,15 @@ const os = require('os');
 
 const ROOT = path.resolve(__dirname, '..');
 const APP = 'ktrainrader24';
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+/* Chrome 경로. 맥 기본값을 쓰되 CI(리눅스 러너)에서는 CHROME 환경변수로 바꾼다.
+   경로를 하드코딩해 두면 이 스위트만 CI 에서 조용히 죽는다. */
+const CHROME =
+  process.env.CHROME ||
+  ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+   '/usr/bin/google-chrome',
+   '/usr/bin/chromium-browser',
+   '/usr/bin/chromium'].find((p) => fs.existsSync(p)) ||
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 8896;
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
@@ -246,8 +254,8 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
   const port = 9500 + Math.floor(Math.random() * 400);
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ktr-regress-'));
   const chrome = spawn(CHROME, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--no-first-run',
-    '--no-default-browser-check', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
-    '--window-size=1440,900', 'about:blank']);
+    '--no-default-browser-check', '--no-sandbox', `--remote-debugging-port=${port}`,
+    `--user-data-dir=${profile}`, '--window-size=1440,900', 'about:blank']);
   chrome.stderr.on('data', () => {});
 
   let ws = null, sessionId = null, nextId = 1;

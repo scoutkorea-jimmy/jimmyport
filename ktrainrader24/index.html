@@ -8,8 +8,8 @@
       name="description"
       content="한국철도공사 오픈API 기반 여객열차 운행 지도. 전국 열차의 현재 위치를 시각표 기반으로 추정해 보여줍니다."
     />
-    <script type="module" crossorigin src="/ktrainrader24/assets/index-B1d9tbeW.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-DedxgF1b.css">
+    <script type="module" crossorigin src="/ktrainrader24/assets/index-CIqQt5bk.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-CZIK2bbG.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -17,7 +17,10 @@
     <header class="hud hud--top">
       <div class="brand">
         <span class="brand__mark" aria-hidden="true"></span>
-        <span class="brand__name">K-TrainRadar<span class="brand__num">24</span></span>
+        <div class="brand__text">
+          <span class="brand__name">K-TrainRadar<span class="brand__num">24</span></span>
+          <span class="brand__meta" id="brand-meta"></span>
+        </div>
       </div>
       <div class="stats">
         <div class="stat">
@@ -39,12 +42,10 @@
       <span class="dot"></span><span id="source-text"></span>
     </div>
 
-    <aside class="hud hud--legend">
-      <div class="legend__row" data-kind="KTX"><i></i>KTX</div>
-      <div class="legend__row" data-kind="KTX_EUM"><i></i>KTX-이음</div>
-      <div class="legend__row" data-kind="ITX"><i></i>ITX</div>
-      <div class="legend__row" data-kind="SAEMAEUL"><i></i>새마을</div>
-      <div class="legend__row" data-kind="MUGUNGHWA"><i></i>무궁화</div>
+    <aside class="hud hud--legend" id="legend" aria-label="열차 등급 범례">
+      <div class="legend__title">열차 등급 <span>운전취급규정 §55</span></div>
+      <div class="legend__rows" id="legend-rows"></div>
+      <div class="legend__note">모양 = 등급 · 색 = 종별<br />위가 먼저 간다</div>
     </aside>
 
     <section class="hud hud--detail" id="detail" hidden aria-live="polite">
@@ -53,6 +54,7 @@
         <span class="detail__kind" id="detail-kind"></span>
         <span class="detail__no" id="detail-no"></span>
       </div>
+      <div class="detail__grade" id="detail-grade"></div>
       <div class="detail__od" id="detail-od"></div>
       <div class="detail__meta" id="detail-meta"></div>
       <ol class="detail__stops" id="detail-stops"></ol>
