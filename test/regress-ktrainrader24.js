@@ -365,18 +365,22 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
        끄고 켜기가 실제로 지도에 반영되는지 잰다. */
     const filter = JSON.parse(await evalIn(`(() => {
       const panel = document.getElementById('filter');
-      const kinds = [...panel.querySelectorAll('[data-kind]')].map(b => b.dataset.kind);
-      const grades = [...panel.querySelectorAll('[data-grade]')].map(b => b.dataset.grade);
+      const kinds = [...panel.querySelectorAll('input[data-kind]')].map(b => b.dataset.kind);
+      const grades = [...panel.querySelectorAll('input[data-grade]')].map(b => b.dataset.grade);
       const before = Number(document.getElementById('stat-running').textContent.replace(/,/g,''));
-      const first = panel.querySelector('[data-kind]');
+      /* data-kind 는 체크박스다. 꺼짐 표시는 그것을 감싼 라벨에 붙는다. */
+      const first = panel.querySelector('input[data-kind]');
       const firstKind = first?.dataset.kind;
       first?.click();
+      const box = panel.querySelector('input[data-kind="'+firstKind+'"]');
       return JSON.stringify({ kinds, grades, before, firstKind,
-        offNow: panel.querySelector('[data-kind="'+firstKind+'"]')?.classList.contains('is-off') });
+        unchecked: box ? !box.checked : null,
+        offNow: box?.closest('label')?.classList.contains('is-off') });
     })()`));
     chk('필터에 종별이 여럿 있다', filter.kinds.length >= 3, filter.kinds.join(', '));
     chk('필터가 등급으로 묶여 있다', filter.grades.length >= 2, filter.grades.join(', '));
-    chk('종별을 끄면 목록에 표시된다', filter.offNow === true, filter.firstKind);
+    chk('종별을 끄면 체크가 풀린다', filter.unchecked === true, filter.firstKind);
+    chk('꺼진 종별이 목록에서 흐려진다', filter.offNow === true, filter.firstKind);
 
     await wait(1200);
     const after = Number(await evalIn(`document.getElementById('stat-running').textContent.replace(/,/g,'')`));
@@ -385,9 +389,32 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     const restored = JSON.parse(await evalIn(`(() => {
       document.querySelector('[data-all]').click();
       const panel = document.getElementById('filter');
-      return JSON.stringify({ anyOff: !!panel.querySelector('[data-kind].is-off') });
+      return JSON.stringify({
+        anyOff: !!panel.querySelector('label.flt__kind.is-off'),
+        allChecked: [...panel.querySelectorAll('input[data-kind]')].every(b => b.checked),
+      });
     })()`));
-    chk('전체 버튼이 필터를 해제한다', restored.anyOff === false);
+    chk('전체 버튼이 필터를 해제한다', restored.anyOff === false && restored.allChecked === true);
+
+    /* ── 역 표시 ──
+       선로만 있고 역이 없으면 열차가 어디쯤인지 지명으로만 짐작해야 한다. */
+    const stationsRes = await evalIn(`(async () => {
+      try {
+        const r = await fetch(new URL('api/stations.json', location.href).href);
+        if (!r.ok) return JSON.stringify({ ok: false, status: r.status });
+        const j = await r.json();
+        const names = new Set(j.stations.map(s => s.n));
+        return JSON.stringify({
+          ok: true, n: j.stations.length,
+          hasMajor: ['서울','부산','대전','동대구','광주송정'].filter(x => names.has(x)),
+          inKorea: j.stations.every(s => s.y > 32 && s.y < 39.5 && s.x > 124 && s.x < 132),
+        });
+      } catch (e) { return JSON.stringify({ ok: false, err: String(e) }); }
+    })()`);
+    const st = JSON.parse(stationsRes);
+    chk('역 좌표 파일이 있다', st.ok === true, st.ok ? `${st.n}개` : String(st.status ?? st.err));
+    chk('주요 역이 들어 있다', (st.hasMajor?.length ?? 0) >= 4, (st.hasMajor ?? []).join(', '));
+    chk('역 좌표가 전부 한국 안에 있다', st.inKorea === true);
 
     /* ── 버전 표시 ── */
     const version = JSON.parse(await evalIn(`(() => {
