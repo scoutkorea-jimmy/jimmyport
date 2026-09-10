@@ -15,7 +15,8 @@
 > 이 기준은 사용자가 직접 정한 것이므로 에이전트가 임의로 낮추지 않는다.
 
 1. **회귀 전체 스위트를 2회 연속 통과**한다(2026-07-28 사용자 확정: 3회→2회). 관련 없어 보여도 매번 전부 돌린다.
-   - `planning 234 · nav 19 · server 94 · motion 33 · press 31 · news 113 · jebo 40 · 랜딩 46 · a11y스윕 24 · admin 43 · tour-csv 25 · 서비스종료 25 · audit-mobile 1` = **728건** + 감사 1종(`audit-krjam-planning`) (한 바퀴 약 5분)
+   - `planning 234 · nav 19 · server 94 · motion 33 · press 31 · news 113 · jebo 40 · 랜딩 46 · a11y스윕 28 · admin 43 · tour-csv 25 · 서비스종료 31 · audit-mobile 1 · 열차레이더 42` = **780건** + 감사 1종(`audit-krjam-planning`) (한 바퀴 약 4분)
+   - (2026-09-10 실측) 옛 표기 728건은 a11y스윕·서비스종료 건수가 낡은 값이었다. 스위트가 실제로 찍는 수로 고쳤다.
    - (v0.9.295) 급식본부 스위트 3종 + `audit-krjam-fnc` 는 **서비스 종료로 삭제**, 신규 `regress-service-ended` 25건 추가.
    - 러너 예시(종료코드로 판정 — DoD 2-1): 각 스위트를 `node test/<s>.js > 로그 2>&1` 로 돌리고 **그 직후 `$?`** 를 본다. `| tail` 을 붙이면 tail 의 종료코드를 읽게 된다.
    - **2회 중 1회라도 실패하면 통과가 아니다.** 플레이키는 "가끔 실패"가 아니라 **결함**으로 취급한다
@@ -38,6 +39,35 @@
 6. **성능·접근성 기준을 실측으로 확인**한다 — 대비 4.5+ · 터치 타깃 40px+ · 폰트 13px+ ·
    `prefers-reduced-motion` 대응 · 콘솔 에러 0 · 요청 실패 0.
 
+## 🆕 최신 세션 — v0.9.302 · `/ktrainrader24` 신설 (2026-09-10)
+
+> **K-TrainRadar24** — 한국철도공사 오픈API + OpenStreetMap 선로 형상으로 전국
+> 여객열차의 위치를 지도에 추정 표시하는 화면. 상세는 [docs/ktrainrader24/changelog.md](../docs/ktrainrader24/changelog.md).
+
+- **이 저장소에 있는 것은 빌드 산출물뿐이다.** 소스는 별도 저장소
+  [scoutkorea-jimmy/K-TrainRader24](https://github.com/scoutkorea-jimmy/K-TrainRader24) (비공개,
+  로컬 `~/Desktop/VS_Code/K-TrainRader24`). 거기서 `npm run build:static` 후 `web/dist/` 를
+  `ktrainrader24/` 로 통째로 복사한다. **`ktrainrader24/assets/*.js` 를 여기서 고치지 마라**
+  — 번들이고, 다음 복사 때 사라진다.
+  - 이 저장소의 "빌드 단계 도입 금지" 와 충돌하지 않는다. 빌드는 저쪽에서 끝나고
+    여기엔 완성된 정적 파일만 들어온다(카드뉴스·디데이 React 격리와 같은 방식).
+- **서버가 없다.** 열차 위치 계산은 전부 브라우저가 한다. `ktrainrader24/api/*.json` 이 곧 데이터다.
+  Pages Functions 도 KV 도 쓰지 않는다.
+- ⏰ **30일치를 미리 구워 둔다.** `api/index.json` 의 `dates` 범위를 넘기면 화면이
+  가장 가까운 날의 시각표로 돈다(배지에 `오늘치 없음` 표시). 회귀
+  `regress-ktrainrader24` 의 **'오늘 날짜가 준비돼 있다'** 가 빨개지면 재빌드·재배포 신호다.
+  → **약 2026-10-09 이후 재빌드 필요.**
+- ⚠️ **지금은 시연용 표본 데이터다.** 공공데이터포털 인증키를 아직 안 받았다.
+  화면 좌상단 배지가 그 사실을 그대로 표시한다. 키가 들어오면
+  `K-TrainRader24` 의 `.env` 에 넣고 `npm run probe` → `npm run build:static` → 재복사.
+- ⚠️ **실시간이라고 표현하지 마라.** 코레일 실적 API 는 어제까지만 제공한다.
+  화면이 쓰는 것은 공표 시각표 + 과거 실적 평균 지연이고, 하단 고지문이 그것을 밝힌다.
+- 회귀 `test/regress-ktrainrader24.js` **42건** 추가 (전체 738 → **780건**).
+  ⚠️ 이 문서의 '728건' 은 실측과 달랐다 — a11y스윕 24→**28**, 서비스종료 25→**31** 이다(2026-09-10 실측).
+  puppeteer 없이 CDP 로 직접 붙어 이 저장소에 의존성을 늘리지 않는다.
+
+---
+
 ## 🧭 빠른 시작 (환경·검증·배포)
 
 - **주 대상**: `/krjam-planning`(홍보부 통합 관리, 모듈 `jamboree-plan/`, 엔트리 `krjam-planning.html`). 배포처: Cloudflare Pages 프로젝트 `jimmyport` → `scoutingapp.net`.
@@ -46,7 +76,7 @@
   - `node --check jamboree-plan/app.js` (문법)
   - 클라 회귀(실제 Chrome + `/api` 목업, 운영 KV 무접촉): `node test/regress-krjam-planning.js` — **puppeteer-core 필요**(리포에 없음). 스크래치패드 등에 `npm i puppeteer-core@22` 후 `NODE_PATH=<경로>/node_modules node test/regress-krjam-planning.js`. Chrome 경로 하드코딩: `/Applications/Google Chrome.app/...`.
   - 서버 순수함수 회귀(브라우저 불필요): `node test/regress-krjam-planning-server.js`
-  - /admin: `test/regress-admin.js`, 디자인 감사: `test/audit-krjam-planning.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`, **서비스 종료: `test/regress-service-ended.js`**
+  - /admin: `test/regress-admin.js`, 디자인 감사: `test/audit-krjam-planning.js`, nav: `test/regress-krjam-planning-nav.js`, 모션: `test/regress-krjam-planning-motion.js`, 보도자료: `test/regress-krjam-press.js`, 기사: `test/regress-krjam-news.js`, jebo: `test/regress-krjam-jebo.js`, 랜딩: `test/regress-landing.js`, 접근성 전수: `test/regress-a11y-sweep.js`, **서비스 종료: `test/regress-service-ended.js`**, **열차 레이더: `test/regress-ktrainrader24.js`**(puppeteer 불필요 — CDP 직결)
 - **배포**(검증 통과 시): `git commit && git push && wrangler pages deploy . --project-name jimmyport --branch main --commit-dirty=true`. 의미 있는 변경마다 `VERSION` + `krjam-planning.html` 의 `?v=` 동시 bump, 커밋 메시지 ASCII 권장.
 - **버전 확인**: `curl -s https://scoutingapp.net/VERSION` / 자산 `?v=`.
 - ⚠️ **운영 KV(`SCOUT_KV`) 파괴적 쓰기 금지**. 검증은 GET·헤드리스 목업. 라이브 데이터 조치는 read-modify-write(비파괴) + [operations-log.md](operations-log.md) 기록. (API 쓰기는 회원/관리자 세션 필요 — 무인증 curl PUT 불가.)

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>K-TrainRadar24 — 실시간 열차 레이더</title>
+    <meta
+      name="description"
+      content="한국철도공사 오픈API 기반 여객열차 운행 지도. 전국 열차의 현재 위치를 시각표 기반으로 추정해 보여줍니다."
+    />
+    <script type="module" crossorigin src="/ktrainrader24/assets/index-sG6KdGxm.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-n0WSpqOK.css">
+  </head>
+  <body>
+    <div id="map" aria-label="전국 철도 지도"></div>
+
+    <header class="hud hud--top">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span class="brand__name">K-TrainRadar<span class="brand__num">24</span></span>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat__value" id="stat-running">—</span>
+          <span class="stat__label">운행 중</span>
+        </div>
+        <div class="stat">
+          <span class="stat__value" id="stat-total">—</span>
+          <span class="stat__label">오늘 전체</span>
+        </div>
+        <div class="stat">
+          <span class="stat__value" id="stat-clock">--:--:--</span>
+          <span class="stat__label">한국 표준시</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="hud hud--source" id="source-badge" hidden>
+      <span class="dot"></span><span id="source-text"></span>
+    </div>
+
+    <aside class="hud hud--legend">
+      <div class="legend__row" data-kind="KTX"><i></i>KTX</div>
+      <div class="legend__row" data-kind="KTX_EUM"><i></i>KTX-이음</div>
+      <div class="legend__row" data-kind="ITX"><i></i>ITX</div>
+      <div class="legend__row" data-kind="SAEMAEUL"><i></i>새마을</div>
+      <div class="legend__row" data-kind="MUGUNGHWA"><i></i>무궁화</div>
+    </aside>
+
+    <section class="hud hud--detail" id="detail" hidden aria-live="polite">
+      <button class="detail__close" id="detail-close" aria-label="닫기">×</button>
+      <div class="detail__head">
+        <span class="detail__kind" id="detail-kind"></span>
+        <span class="detail__no" id="detail-no"></span>
+      </div>
+      <div class="detail__od" id="detail-od"></div>
+      <div class="detail__meta" id="detail-meta"></div>
+      <ol class="detail__stops" id="detail-stops"></ol>
+    </section>
+
+    <footer class="hud hud--note">
+      표시 위치는 <strong>공표 시각표에 평소 지연을 더한 추정치</strong>입니다. 실시간 관제 정보가
+      아닙니다.
+    </footer>
+
+    <div class="boot" id="boot"><span></span>선로망을 불러오는 중…</div>
+
+  </body>
+</html>
