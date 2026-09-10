@@ -428,6 +428,79 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     chk('열차를 눌러 상세가 열린다', clicked.ok === true && clicked.open === true, clicked.why || `열차 ${clicked.no}`);
     chk('상세의 정차역 수가 경로와 같다', clicked.ok === true && clicked.stops === clicked.routeStops, `${clicked.stops}/${clicked.routeStops}`);
 
+    /* ── 갱신 끊김 표시 ──
+       이 화면에서 가장 위험한 실패는 멈추는 것이 아니라 **멀쩡해 보이는
+       것**이다. 위치를 브라우저가 계산하므로 서버가 죽어도 열차는 계속
+       부드럽게 움직인다. 시각표가 어제 것이 되어도 화면만 봐서는 모른다.
+       그래서 '끊겼다'고 적는 자리가 살아 있는지 직접 잰다. */
+    const health = JSON.parse(await evalIn(`(() => {
+      const r = window.__radar;
+      if (!r || typeof r.renderHealth !== 'function') return JSON.stringify({ skip: '손잡이 없음' });
+      const box = document.getElementById('source-health');
+      const badge = document.getElementById('source-badge');
+      const before = { hidden: box.hidden, state: badge.dataset.health ?? null };
+
+      // 마지막 성공을 5분 전으로 되돌려 끊긴 상황을 만든다.
+      const real = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(r.data), 'lastSuccessAt');
+      Object.defineProperty(r.data, 'lastSuccessAt', {
+        get: () => Date.now() - 5 * 60 * 1000, configurable: true,
+      });
+      r.renderHealth();
+      const dot = getComputedStyle(document.querySelector('.hud--source .dot')).backgroundColor;
+      const stale = { hidden: box.hidden, state: badge.dataset.health ?? null, text: box.textContent, dot };
+
+      // 되돌린다. 뒤에 오는 검사가 이 상태를 물려받으면 안 된다.
+      delete r.data.lastSuccessAt;
+      if (real) Object.defineProperty(Object.getPrototypeOf(r.data), 'lastSuccessAt', real);
+      r.renderHealth();
+      const after = { hidden: box.hidden, state: badge.dataset.health ?? null };
+      return JSON.stringify({ before, stale, after });
+    })()`));
+    if (health.skip) {
+      chk('갱신이 끊기면 화면이 알린다', false, health.skip);
+    } else {
+      chk('평상시에는 끊김 표시가 없다',
+        health.before.hidden === true && health.before.state === null);
+      chk('갱신이 끊기면 화면이 알린다',
+        health.stale.hidden === false && health.stale.state === 'stale',
+        health.stale.text);
+      chk('끊김 문구가 추정임을 밝힌다', /추정/.test(health.stale.text || ''), health.stale.text);
+      /* 점 색까지 재는 이유: 이 규칙은 출처별 점 색과 특정도가 같아서
+         파일에서 위로 올라가는 순간 조용히 진다. 규칙은 살아 있고 점만
+         초록으로 남는데, 그 상태가 제일 위험하다. */
+      chk('끊기면 점 색도 바뀐다',
+        health.stale.dot !== 'rgb(52, 211, 153)' && /^rgb/.test(health.stale.dot || ''),
+        health.stale.dot);
+      chk('회복되면 표시가 사라진다',
+        health.after.hidden === true && health.after.state === null);
+    }
+
+    /* 오늘치가 없어 다른 날 시각표로 도는 상태.
+       2주치를 미리 굽는 구조라 재빌드가 밀리면 **반드시** 오는 상태다.
+       그때 화면이 아무 말도 안 하면 사용자는 오늘 시각표로 읽는다. */
+    const old = JSON.parse(await evalIn(`(() => {
+      const r = window.__radar;
+      if (!r || typeof r.renderHealth !== 'function') return JSON.stringify({ skip: '손잡이 없음' });
+      const p = r.payload;
+      const real = p.date;
+      p.date = '20200101';           // 오늘일 리 없는 날짜
+      r.renderHealth();
+      const box = document.getElementById('source-health');
+      const badge = document.getElementById('source-badge');
+      const out = { hidden: box.hidden, state: badge.dataset.health ?? null, text: box.textContent };
+      p.date = real;
+      r.renderHealth();
+      return JSON.stringify({ ...out, restored: document.getElementById('source-health').hidden });
+    })()`));
+    if (old.skip) {
+      chk('오늘치가 없으면 화면이 알린다', false, old.skip);
+    } else {
+      chk('오늘치가 없으면 화면이 알린다',
+        old.hidden === false && old.state === 'olddata', old.text);
+      chk('어느 날짜로 돌고 있는지 밝힌다', /\d{2}월\s*\d{2}일/.test(old.text || ''), old.text);
+      chk('되돌리면 표시가 사라진다', old.restored === true);
+    }
+
     /* ── 실적 표 ──
        파일이 맞아도 화면이 안 붙일 수 있다. 실적이 있는 열차를 골라
        직접 열어 본다 -- 클릭이 잡는 열차가 화물처럼 실적 없는 편일 수 있어
