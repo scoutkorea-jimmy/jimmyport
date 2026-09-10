@@ -428,6 +428,28 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     chk('열차를 눌러 상세가 열린다', clicked.ok === true && clicked.open === true, clicked.why || `열차 ${clicked.no}`);
     chk('상세의 정차역 수가 경로와 같다', clicked.ok === true && clicked.stops === clicked.routeStops, `${clicked.stops}/${clicked.routeStops}`);
 
+    /* ── 옛 브라우저에서도 뜬다 ──
+       요청 시한을 걸면서 `AbortSignal.timeout` 을 썼는데, 이건 빌드
+       타깃(es2022)보다 늦게 나온 물건이다(Safari 16 / Chrome 103).
+       문법은 돌아가는데 이 함수만 없는 브라우저가 있고(Safari 15.4),
+       그대로 부르면 TypeError 로 **화면이 아예 안 뜬다.**
+       안정성을 높이려던 코드가 가용성을 떨어뜨리는 셈이라 직접 잰다. */
+    await evalIn(`(() => {
+      window.__fbReal = AbortSignal.timeout;
+      delete AbortSignal.timeout;
+      window.__fb = null;
+      window.__radar.data.refresh()
+        .then(() => { window.__fb = { ok: true }; })
+        .catch((e) => { window.__fb = { ok: false, err: String(e) }; })
+        .finally(() => { AbortSignal.timeout = window.__fbReal; });
+      return 'started';
+    })()`);
+    await wait(2500);
+    const fb = JSON.parse(await evalIn(`JSON.stringify(window.__fb ?? { ok: null })`));
+    chk('AbortSignal.timeout 이 없어도 데이터를 받는다', fb.ok === true, fb.err ?? String(fb.ok));
+    chk('되돌린 뒤에도 멀쩡하다',
+      (await evalIn(`typeof AbortSignal.timeout`)) === 'function');
+
     /* ── 갱신 끊김 표시 ──
        이 화면에서 가장 위험한 실패는 멈추는 것이 아니라 **멀쩡해 보이는
        것**이다. 위치를 브라우저가 계산하므로 서버가 죽어도 열차는 계속
