@@ -65,6 +65,12 @@ chk('날짜가 오름차순이다', manifest.dates.every((d, i) => i === 0 || d 
 chk('날짜에 중복이 없다', new Set(manifest.dates).size === manifest.dates.length);
 chk('날짜 형식이 YYYYMMDD 다', manifest.dates.every((d) => /^\d{8}$/.test(d)));
 chk('배포 식별자가 있다', typeof manifest.build === 'string' && manifest.build.length > 0);
+chk('날짜별 근거(bases)가 있다', manifest.bases && Object.keys(manifest.bases).length === manifest.dates.length,
+  `${Object.keys(manifest.bases ?? {}).length}/${manifest.dates.length}`);
+/* 오늘이 '공표 시각표 기준'이 아니면 화면이 추정만으로 돈다는 뜻이다.
+   재빌드가 밀렸거나 TAGO 데이터가 아직 안 올라왔다는 신호. */
+const todayBasis = manifest.bases?.[new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, '')];
+chk('오늘은 공표 시각표 기준이다', todayBasis === 'official' || todayBasis === 'fixture', `오늘 basis=${todayBasis}`);
 
 const missingDays = manifest.dates.filter((d) => !has(`api/day-${d}.json`));
 chk('목록의 모든 날짜에 파일이 있다', missingDays.length === 0, missingDays.join(', '));
@@ -78,66 +84,119 @@ chk('목록에 없는 날짜 파일이 남아 있지 않다', strayDays.length =
 const todayKST = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, '');
 chk('오늘 날짜가 준비돼 있다', manifest.dates.includes(todayKST), `오늘 ${todayKST}, 범위 ${manifest.dates[0]}~${manifest.dates.at(-1)}`);
 
-/* ── 3. 경로 사전 ─────────────────────────────────────────────── */
+/* ── 3. 경로와 구간 형상 ─────────────────────────────────────── */
 console.log('\n[경로]');
 const routesFile = readJson('api/routes.json');
 const routes = routesFile.routes;
+const segments = routesFile.segments;
 const routeIds = Object.keys(routes);
 chk('경로가 있다', routeIds.length > 0, `${routeIds.length}개`);
+chk('구간 형상이 있다', Array.isArray(segments) && segments.length > 0, `${segments?.length}개`);
 
-let badShape = 0, badCum = 0, outside = 0, badStops = 0, detour = 0;
+/* 구간 형상 자체를 먼저 잰다. 경로는 이걸 참조만 한다. */
+let segOdd = 0, segShort = 0, segOutside = 0, segPts = 0;
+for (const seg of segments) {
+  if (!Array.isArray(seg) || seg.length % 2 !== 0) { segOdd++; continue; }
+  if (seg.length < 4) { segShort++; continue; }
+  segPts += seg.length / 2;
+  for (let i = 0; i < seg.length; i += 2) {
+    if (seg[i] < KOREA.minLat || seg[i] > KOREA.maxLat || seg[i + 1] < KOREA.minLng || seg[i + 1] > KOREA.maxLng) { segOutside++; break; }
+  }
+}
+chk('구간 좌표가 쌍으로 들어 있다', segOdd === 0, `${segOdd}개 불량`);
+chk('구간이 최소 두 점을 갖는다', segShort === 0, `${segShort}개 불량`);
+chk('구간이 전부 한국 안에 있다', segOutside === 0, `${segOutside}개가 범위 밖`);
+chk('구간 정점이 충분하다', segPts > 10000, `${segPts.toLocaleString()}점`);
+
+/* 경로 → 구간 참조가 성립하는지. 하나만 끊겨도 그 경로의 열차가 통째로 사라진다. */
+let dangling = 0, lenMismatch = 0, detour = 0, tooShort = 0;
 const detours = [];
+const routeLength = new Map(); // id -> 총 길이(m). 열차 검사에서 재사용한다.
+const routeStopCount = new Map();
+
 for (const id of routeIds) {
   const r = routes[id];
-  if (!Array.isArray(r.path) || r.path.length < 4 || r.path.length % 2 !== 0) { badShape++; continue; }
-  if (!Array.isArray(r.cum) || r.cum.length !== r.path.length / 2) { badCum++; continue; }
-  for (let i = 1; i < r.cum.length; i++) if (r.cum[i] < r.cum[i - 1]) { badCum++; break; }
+  if (!Array.isArray(r.segs) || !Array.isArray(r.stops)) { lenMismatch++; continue; }
+  /* 정차역 N개면 구간은 N-1개다. 어긋나면 시각 배열과 정차역이 엇갈린다. */
+  if (r.stops.length !== r.segs.length + 1) { lenMismatch++; continue; }
+  routeStopCount.set(id, r.stops.length);
 
-  for (let i = 0; i < r.path.length; i += 2) {
-    const lat = r.path[i], lng = r.path[i + 1];
-    if (lat < KOREA.minLat || lat > KOREA.maxLat || lng < KOREA.minLng || lng > KOREA.maxLng) { outside++; break; }
+  let bad = false, total = 0, reach = 0;
+  let firstLat = null, firstLng = null, lastLat = null, lastLng = null;
+  for (const idx of r.segs) {
+    const seg = segments[idx];
+    if (!seg || seg.length < 4) { bad = true; break; }
+    if (firstLat === null) { firstLat = seg[0]; firstLng = seg[1]; }
+    lastLat = seg[seg.length - 2]; lastLng = seg[seg.length - 1];
+    for (let i = 0; i < seg.length; i += 2) {
+      if (i >= 2) total += haversine(seg[i - 2], seg[i - 1], seg[i], seg[i + 1]);
+      /* 시발역에서 가장 멀리 간 거리. 순환 경로를 재는 잣대다. */
+      const d = haversine(firstLat, firstLng, seg[i], seg[i + 1]);
+      if (d > reach) reach = d;
+    }
   }
+  if (bad) { dangling++; continue; }
+  if (total < 500) { tooShort++; continue; }
+  routeLength.set(id, total);
 
-  const total = r.cum[r.cum.length - 1];
-  if (!Array.isArray(r.stops) || r.stops.length < 2) { badStops++; continue; }
-  if (r.stops.some((s) => s.d < -1 || s.d > total + 1)) badStops++;
-  for (let i = 1; i < r.stops.length; i++) if (r.stops[i].d < r.stops[i - 1].d - 1) { badStops++; break; }
+  /* 우회 검사 -- 선로망 공백을 돌아간 경로는 지도에서 정상으로 보이므로
+     숫자로만 잡힌다. 영동선 통리재(실측 3.4배)는 실제 지형이라 통과시키고,
+     진짜 공백(군산→익산 26배)은 잡는다.
 
-  /* 우회 검사 — 시·종착 직선거리 대비 선로 거리. 3배를 넘으면 선로망 공백을
-     돌아간 것이다. 지도에서는 정상으로 보이므로 숫자로만 잡힌다. */
-  const first = 0, last = r.path.length / 2 - 1;
-  const straight = haversine(r.path[0], r.path[1], r.path[last * 2], r.path[last * 2 + 1]);
-  if (total > 6000 && straight > 0 && total / straight > 3.0) {
+     기준을 시·종착 직선거리로만 잡으면 순환 열차에서 무너진다 -- 서해선·
+     장항선을 도는 홍성→홍성 열차는 직선거리가 0 이라 비율이 무한대가 된다.
+     그래서 시발역에서 가장 멀리 간 거리(reach)를 잣대로 쓴다. 왕복이면
+     최소 2배는 나오므로 여유를 두고 8배를 넘을 때만 문제로 본다. */
+  const straight = haversine(firstLat, firstLng, lastLat, lastLng);
+  const isLoop = straight < Math.max(2000, reach * 0.05);
+  const yardstick = isLoop ? reach : straight;
+  const limit = isLoop ? 8.0 : 6.0;
+  if (total > 6000 && yardstick > 0 && total / yardstick > limit) {
     detour++;
-    detours.push(`${r.stops[0].name}→${r.stops.at(-1).name} ${(total / 1000).toFixed(0)}km/직선 ${(straight / 1000).toFixed(0)}km`);
+    if (detours.length < 3) {
+      detours.push(
+        `${r.stops[0]}→${r.stops[r.stops.length - 1]} ${(total / 1000).toFixed(0)}km/` +
+        `${isLoop ? '최원거리' : '직선'} ${(yardstick / 1000).toFixed(0)}km`,
+      );
+    }
   }
-  void first;
 }
-chk('경로 형상이 온전하다 (좌표쌍)', badShape === 0, `${badShape}개 불량`);
-chk('누적거리가 단조증가한다', badCum === 0, `${badCum}개 불량`);
-chk('모든 경로가 한국 안에 있다', outside === 0, `${outside}개가 범위 밖`);
-chk('정차역 거리가 경로 안에 순서대로 있다', badStops === 0, `${badStops}개 불량`);
-chk('터무니없이 도는 경로가 없다', detour === 0, detours.slice(0, 3).join(' / '));
+chk('모든 경로의 구간 참조가 유효하다', dangling === 0, `${dangling}개 끊김`);
+chk('정차역 수 = 구간 수 + 1', lenMismatch === 0, `${lenMismatch}개 불일치`);
+chk('길이가 0에 가까운 경로가 없다', tooShort === 0, `${tooShort}개`);
+chk('터무니없이 도는 경로가 없다', detour === 0, detours.join(' / '));
+
+/* 중복 제거가 실제로 되고 있는지. 안 되면 용량이 8배로 튄다(실측 8.25MB → 1.15MB). */
+let segRefs = 0;
+for (const id of routeIds) segRefs += routes[id].segs?.length ?? 0;
+const dedup = segRefs > 0 ? 1 - segments.length / segRefs : 0;
+chk('구간 중복이 제거돼 있다', dedup > 0.5, `${(dedup * 100).toFixed(0)}% 감소 (${segRefs}회 참조 → ${segments.length}개)`);
+
+const routesBytes = fs.statSync(abs('api/routes.json')).size;
+chk('경로 파일이 과하게 크지 않다', routesBytes < 4 * 1024 * 1024, `${(routesBytes / 1024 / 1024).toFixed(2)} MB`);
 
 /* ── 4. 날짜 파일과 열차 ──────────────────────────────────────── */
 console.log('\n[열차]');
-let danglingRoute = 0, badLen = 0, badOrder = 0, totalTrains = 0;
+let danglingRoute = 0, badLen = 0, badOrder = 0, totalTrains = 0, badBasis = 0;
 const danglingSample = [];
+const BASES = new Set(['official', 'pattern', 'fixture']);
 for (const date of manifest.dates) {
   const day = readJson(`api/day-${date}.json`);
   if (day.date !== date) chk(`day-${date} 의 date 필드가 파일명과 같다`, false, day.date);
+  if (!BASES.has(day.basis)) badBasis++;
+  if (day.basis !== manifest.bases?.[date]) badBasis++;
   totalTrains += day.trains.length;
 
   for (const t of day.trains) {
-    const r = routes[t.route];
-    if (!r) { danglingRoute++; if (danglingSample.length < 3) danglingSample.push(`${date} ${t.no}`); continue; }
-    if (t.arr.length !== r.stops.length || t.dep.length !== r.stops.length) { badLen++; continue; }
+    const stops = routeStopCount.get(t.route);
+    if (stops === undefined) { danglingRoute++; if (danglingSample.length < 3) danglingSample.push(`${date} ${t.no}`); continue; }
+    if (t.arr.length !== stops || t.dep.length !== stops) { badLen++; continue; }
     /* 시각은 자정 기준 분이고 되돌아가면 안 된다(-1 은 '없음'). */
     let prev = -Infinity;
-    for (let i = 0; i < r.stops.length; i++) {
+    for (let i = 0; i < stops; i++) {
       for (const v of [t.arr[i], t.dep[i]]) {
         if (v < 0) continue;
-        if (v < prev) { badOrder++; i = r.stops.length; break; }
+        if (v < prev) { badOrder++; i = stops; break; }
         prev = v;
       }
     }
@@ -147,6 +206,7 @@ chk('모든 열차의 경로가 사전에 있다', danglingRoute === 0, dangling
 chk('시각 배열 길이가 정차역 수와 같다', badLen === 0, `${badLen}편 불량`);
 chk('시각이 거꾸로 가지 않는다', badOrder === 0, `${badOrder}편 불량`);
 chk('열차가 실려 있다', totalTrains > 0, `${manifest.dates.length}일 합계 ${totalTrains}편`);
+chk('근거(basis)가 목록과 일치한다', badBasis === 0, `${badBasis}건 불일치`);
 
 /* ── 5. 배경 선로 ─────────────────────────────────────────────── */
 console.log('\n[선로]');
