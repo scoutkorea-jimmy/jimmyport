@@ -8,8 +8,8 @@
       name="description"
       content="한국철도공사 오픈API 기반 여객열차 운행 지도. 전국 열차의 현재 위치를 시각표 기반으로 추정해 보여줍니다."
     />
-    <script type="module" crossorigin src="/ktrainrader24/assets/index-CIqQt5bk.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-CZIK2bbG.css">
+    <script type="module" crossorigin src="/ktrainrader24/assets/index-ph0wdApD.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-CkEEUKd_.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -42,11 +42,7 @@
       <span class="dot"></span><span id="source-text"></span>
     </div>
 
-    <aside class="hud hud--legend" id="legend" aria-label="열차 등급 범례">
-      <div class="legend__title">열차 등급 <span>운전취급규정 §55</span></div>
-      <div class="legend__rows" id="legend-rows"></div>
-      <div class="legend__note">모양 = 등급 · 색 = 종별<br />위가 먼저 간다</div>
-    </aside>
+    <aside class="hud hud--filter" id="filter" aria-label="열차 종류 필터"></aside>
 
     <section class="hud hud--detail" id="detail" hidden aria-live="polite">
       <button class="detail__close" id="detail-close" aria-label="닫기">×</button>
@@ -61,8 +57,48 @@
     </section>
 
     <footer class="hud hud--note">
-      <span id="note-basis">표시 위치는 추정치입니다. 실시간 관제 정보가 아닙니다.</span>
+      <span class="note__warn">
+        ⚠️ 이 정보로 관련 기관에 <strong>민원을 제기하지 마십시오.</strong> 정확성을 책임지지
+        않으니 맹신하지 마십시오.
+      </span>
+      <span class="note__basis" id="note-basis">
+        표시 위치는 추정치입니다. 실시간 관제 정보가 아닙니다.
+      </span>
     </footer>
+
+    <!--
+      첫 방문 안내.
+      하단 고지만으로는 눈에 안 띈다. 한 번은 반드시 읽고 넘어가게 한다.
+      확인하면 브라우저에 기억해 다시 띄우지 않는다.
+    -->
+    <div class="notice" id="notice" hidden role="dialog" aria-modal="true" aria-labelledby="notice-title">
+      <div class="notice__box">
+        <h2 class="notice__title" id="notice-title">읽고 시작해 주세요</h2>
+
+        <p class="notice__warn">
+          이 화면의 정보로 관련 기관에 <strong>민원을 제기하지 마십시오.</strong><br />
+          정보의 정확성을 책임지지 않으니 <strong>맹신하지 마십시오.</strong>
+        </p>
+
+        <div class="notice__body">
+          <p>
+            <b>실시간 관제 정보가 아닙니다.</b> 어떤 공개 API 도 당일 지연을 제공하지 않습니다.
+            지도 위 위치는 공표 시각표와 최근 운행 실적으로 낸 <b>추정치</b>입니다.
+          </p>
+          <p>
+            실제 열차는 지연·운휴·임시편성으로 여기와 다르게 움직일 수 있습니다.
+            승차 계획은 반드시 <a href="https://www.letskorail.com" target="_blank" rel="noopener">코레일</a>
+            등 공식 창구에서 확인하십시오.
+          </p>
+        </div>
+
+        <button class="notice__ok" id="notice-ok" type="button">확인했습니다</button>
+        <p class="notice__foot">
+          데이터 출처 · 한국철도공사 열차운행정보 · 국토교통부 TAGO 열차정보 ·
+          한국철도공사 화물열차운행 시간표 · 선로 형상 OpenStreetMap
+        </p>
+      </div>
+    </div>
 
     <div class="boot" id="boot"><span></span>선로망을 불러오는 중…</div>
 

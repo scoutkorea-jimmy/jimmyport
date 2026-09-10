@@ -329,6 +329,73 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     chk('열차를 눌러 상세가 열린다', clicked.ok === true && clicked.open === true, clicked.why || `열차 ${clicked.no}`);
     chk('상세의 정차역 수가 경로와 같다', clicked.ok === true && clicked.stops === clicked.routeStops, `${clicked.stops}/${clicked.routeStops}`);
     chk('콘솔 오류가 없다', errors.length === 0, errors.slice(0, 2).join(' | '));
+
+    /* ── 고지 ──
+       "민원을 제기하지 마십시오 / 맹신하지 마십시오"는 사용자가 직접 요구한
+       문구다. 화면 어딘가에 조용히 사라지면 안 된다. 첫 방문 안내와 하단
+       고지 양쪽에서 확인한다. */
+    const notice = JSON.parse(await evalIn(`(() => {
+      const box = document.getElementById('notice');
+      const warnText = (document.querySelector('.notice__warn')?.textContent || '').replace(/\\s+/g,' ');
+      const footText = (document.querySelector('.note__warn')?.textContent || '').replace(/\\s+/g,' ');
+      return JSON.stringify({
+        shown: box && !box.hidden,
+        warnText, footText,
+        hasOk: !!document.getElementById('notice-ok'),
+      });
+    })()`));
+    chk('첫 방문에 안내가 뜬다', notice.shown === true);
+    chk('안내에 민원 문구가 있다', /민원을 제기하지 마십시오/.test(notice.warnText), notice.warnText.slice(0, 40));
+    chk('안내에 맹신 금지 문구가 있다', /맹신하지 마십시오/.test(notice.warnText));
+    chk('하단 고지에도 같은 경고가 있다',
+      /민원을 제기하지 마십시오/.test(notice.footText) && /맹신하지 마십시오/.test(notice.footText),
+      notice.footText.slice(0, 50));
+
+    const dismissed = JSON.parse(await evalIn(`(() => {
+      document.getElementById('notice-ok').click();
+      let stored = null;
+      try { stored = window.localStorage.getItem('ktr24.notice.v1'); } catch {}
+      return JSON.stringify({ hidden: document.getElementById('notice').hidden, stored });
+    })()`));
+    chk('확인하면 안내가 닫힌다', dismissed.hidden === true);
+    chk('확인을 기억한다', dismissed.stored === '1', String(dismissed.stored));
+
+    /* ── 종류 필터 ──
+       등급(모양)만으로는 ITX-마음과 무궁화호를 못 가른다. 종별 목록과
+       끄고 켜기가 실제로 지도에 반영되는지 잰다. */
+    const filter = JSON.parse(await evalIn(`(() => {
+      const panel = document.getElementById('filter');
+      const kinds = [...panel.querySelectorAll('[data-kind]')].map(b => b.dataset.kind);
+      const grades = [...panel.querySelectorAll('[data-grade]')].map(b => b.dataset.grade);
+      const before = Number(document.getElementById('stat-running').textContent.replace(/,/g,''));
+      const first = panel.querySelector('[data-kind]');
+      const firstKind = first?.dataset.kind;
+      first?.click();
+      return JSON.stringify({ kinds, grades, before, firstKind,
+        offNow: panel.querySelector('[data-kind="'+firstKind+'"]')?.classList.contains('is-off') });
+    })()`));
+    chk('필터에 종별이 여럿 있다', filter.kinds.length >= 3, filter.kinds.join(', '));
+    chk('필터가 등급으로 묶여 있다', filter.grades.length >= 2, filter.grades.join(', '));
+    chk('종별을 끄면 목록에 표시된다', filter.offNow === true, filter.firstKind);
+
+    await wait(1200);
+    const after = Number(await evalIn(`document.getElementById('stat-running').textContent.replace(/,/g,'')`));
+    chk('종별을 끄면 지도에서도 줄어든다', after < filter.before, `${filter.before} → ${after}`);
+
+    const restored = JSON.parse(await evalIn(`(() => {
+      document.querySelector('[data-all]').click();
+      const panel = document.getElementById('filter');
+      return JSON.stringify({ anyOff: !!panel.querySelector('[data-kind].is-off') });
+    })()`));
+    chk('전체 버튼이 필터를 해제한다', restored.anyOff === false);
+
+    /* ── 버전 표시 ── */
+    const version = JSON.parse(await evalIn(`(() => {
+      const t = (document.getElementById('brand-meta')?.textContent || '').replace(/\\s+/g,' ');
+      return JSON.stringify({ t });
+    })()`));
+    chk('앱 버전이 보인다', /v\d+\.\d+\.\d+/.test(version.t), version.t);
+    chk('데이터 갱신 시각이 보인다', /데이터\s*\d{2}\.\d{2}/.test(version.t), version.t);
   } catch (e) {
     chk('화면 검사가 끝까지 돈다', false, e.message);
   } finally {
