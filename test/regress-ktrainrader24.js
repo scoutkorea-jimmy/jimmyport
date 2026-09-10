@@ -296,14 +296,21 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     const state = JSON.parse(await evalIn(`JSON.stringify({
       boot: !document.getElementById('boot') || document.getElementById('boot').hidden,
       running: Number(document.getElementById('stat-running').textContent.replace(/,/g,'')),
-      total: Number(document.getElementById('stat-total').textContent.replace(/,/g,'')),
+      filterRunning: Number((document.getElementById('flt-running')?.textContent || '0').replace(/,/g,'')),
+      hasTotal: !!document.getElementById('stat-total'),
       source: document.getElementById('source-text').textContent,
       detailHidden: document.getElementById('detail').hidden,
       canvases: document.querySelectorAll('canvas').length
     })`));
 
     chk('부팅 오버레이가 사라진다', state.boot === true);
-    chk('오늘 전체 편수가 날짜 파일과 같다', state.total === readJson(`api/day-${todayKST}.json`).trains.length, `화면 ${state.total}`);
+    /* 하루 총편수는 화면에서 뺐다(사용자 요청) -- 지도에 12편이 떠 있는데
+       807이라고 적히면 무엇을 세는 숫자인지 헷갈리기 때문이다.
+       대신 상단과 필터의 '운행 중'이 서로 맞는지 잰다. */
+    chk('상단과 필터의 운행 중 편수가 같다',
+      Math.abs(state.running - state.filterRunning) <= 2,
+      `상단 ${state.running} · 필터 ${state.filterRunning}`);
+    chk('하루 총편수는 화면에 없다', state.hasTotal === false);
     chk('운행 중인 열차가 있다', state.running > 0, `${state.running}편`);
     chk('출처 배지가 채워져 있다', typeof state.source === 'string' && state.source.length > 0, state.source);
     chk('상세 패널은 처음에 닫혀 있다', state.detailHidden === true);
@@ -321,6 +328,10 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
             return JSON.stringify({ ok:true, no:hit.train.no,
               open: !document.getElementById('detail').hidden,
               stops: document.querySelectorAll('#detail-stops li').length,
+              kind: hit.train.kind,
+              stockShown: !document.getElementById('detail-stock').hidden,
+              stockRows: document.querySelectorAll('#detail-stock .stock__grid dt').length,
+              stockText: (document.getElementById('detail-stock').textContent||'').replace(/\\s+/g,' '),
               routeStops: hit.route.stops.length }); }
         }
       }
@@ -328,6 +339,19 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     })()`));
     chk('열차를 눌러 상세가 열린다', clicked.ok === true && clicked.open === true, clicked.why || `열차 ${clicked.no}`);
     chk('상세의 정차역 수가 경로와 같다', clicked.ok === true && clicked.stops === clicked.routeStops, `${clicked.stops}/${clicked.routeStops}`);
+
+    /* ── 차량 제원 ──
+       Flightradar24 의 기종 표시에 해당한다. 다만 공개 API 에 편성번호가
+       없어 개체가 아니라 **형식**을 보여 준다. 그 한계를 적은 문장이
+       화면에서 사라지면, 사용자는 이 값을 당일 실제 투입 차량으로 읽는다.
+       제원표만 남고 단서가 빠지는 쪽이 제일 위험해서 둘을 같이 잰다. */
+    chk('상세에 차량 제원이 나온다',
+      clicked.stockShown === true && clicked.stockRows >= 3,
+      `${clicked.kind} · ${clicked.stockRows}행`);
+    chk('차량 제원이 형식 기준임을 밝힌다',
+      /편성번호가 없어/.test(clicked.stockText || ''),
+      (clicked.stockText || '').slice(-60));
+
     chk('콘솔 오류가 없다', errors.length === 0, errors.slice(0, 2).join(' | '));
 
     /* ── 고지 ──
@@ -419,10 +443,15 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     /* ── 버전 표시 ── */
     const version = JSON.parse(await evalIn(`(() => {
       const t = (document.getElementById('brand-meta')?.textContent || '').replace(/\\s+/g,' ');
-      return JSON.stringify({ t });
+      const clock = (document.querySelector('#stat-clock')?.closest('.stat')?.textContent || '').replace(/\\s+/g,' ');
+      return JSON.stringify({ t, clock });
     })()`));
     chk('앱 버전이 보인다', /v\d+\.\d+\.\d+/.test(version.t), version.t);
     chk('데이터 갱신 시각이 보인다', /데이터\s*\d{2}\.\d{2}/.test(version.t), version.t);
+    /* 시각의 기준 시간대를 화면에 못박아 둔다. 해외에서 열면 09:00 이
+       현지 시각인지 한국 시각인지 알 길이 없다. */
+    chk('데이터 시각에 KST 표기가 붙는다', /KST/.test(version.t), version.t);
+    chk('시계에 GMT+9 가 적혀 있다', /GMT\+9/.test(version.clock), version.clock);
   } catch (e) {
     chk('화면 검사가 끝까지 돈다', false, e.message);
   } finally {

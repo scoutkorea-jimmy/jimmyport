@@ -8,8 +8,8 @@
       name="description"
       content="한국철도공사 오픈API 기반 여객열차 운행 지도. 전국 열차의 현재 위치를 시각표 기반으로 추정해 보여줍니다."
     />
-    <script type="module" crossorigin src="/ktrainrader24/assets/index-BKJo8PhU.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-D-lxcJ5E.css">
+    <script type="module" crossorigin src="/ktrainrader24/assets/index-BlNBEwml.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index--20wsgPd.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -28,12 +28,8 @@
           <span class="stat__label">운행 중</span>
         </div>
         <div class="stat">
-          <span class="stat__value" id="stat-total">—</span>
-          <span class="stat__label">오늘 전체</span>
-        </div>
-        <div class="stat">
           <span class="stat__value" id="stat-clock">--:--:--</span>
-          <span class="stat__label">한국 표준시</span>
+          <span class="stat__label">한국 표준시 (GMT+9)</span>
         </div>
       </div>
     </header>
@@ -53,6 +49,7 @@
       <div class="detail__grade" id="detail-grade"></div>
       <div class="detail__od" id="detail-od"></div>
       <div class="detail__meta" id="detail-meta"></div>
+      <div class="detail__stock" id="detail-stock" hidden></div>
       <ol class="detail__stops" id="detail-stops"></ol>
     </section>
 
