@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>K-TrainRadar24 — 실시간 열차 레이더</title>
+    <title>K-TrainRadar24 — 시각표 기반 열차 레이더</title>
     <meta
       name="description"
       content="한국철도공사 오픈API 기반 여객열차 운행 지도. 전국 열차의 현재 위치를 시각표 기반으로 추정해 보여줍니다."
     />
-    <script type="module" crossorigin src="/ktrainrader24/assets/index-oHoeBmiB.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-DmGi2gNX.css">
+    <script type="module" crossorigin src="/ktrainrader24/assets/index-8jDN-GfS.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktrainrader24/assets/index-Bb0GnDYW.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -25,7 +25,7 @@
       <div class="stats">
         <div class="stat">
           <span class="stat__value" id="stat-running">—</span>
-          <span class="stat__label">운행 중</span>
+          <span class="stat__label">운행 추정</span>
         </div>
         <div class="stat">
           <span class="stat__value" id="stat-clock">--:--:--</span>
@@ -43,8 +43,30 @@
       <span class="source__health" id="source-health" hidden></span>
     </div>
 
-    <aside class="hud hud--filter" id="filter" aria-label="열차 종류 필터"></aside>
-
+    <details class="hud hud--tools" id="tools">
+      <summary>열차·역 검색 / 필터</summary>
+      <button id="filter-toggle" aria-controls="filter" aria-expanded="false">종류 필터 열기</button>
+      <div id="search-panel">
+      <label for="train-search">열차번호 또는 역명</label>
+      <input id="train-search" type="search" placeholder="예: 101, 부산" autocomplete="off" />
+      <p id="search-status" role="status"></p>
+      <div id="search-results"></div>
+      </div>
+      <aside class="hud hud--filter" id="filter" aria-label="열차 종류 필터"></aside>
+      <details><summary>데이터 제공 범위</summary><div id="coverage-info"></div></details>
+    </details>
+    <button class="ask__launcher" id="ask-open" aria-controls="ask" aria-expanded="false">
+      <span class="ask__glyph" aria-hidden="true">?</span><span class="ask__launcher-text">묻기</span>
+    </button>
+    <section class="hud hud--ask" id="ask" hidden aria-label="묻고 답하기">
+      <div class="ask__head">
+        <span class="ask__title">묻고 답하기</span>
+        <button class="ask__close" id="ask-close" aria-label="닫기">×</button>
+      </div>
+      <input id="ask-input" type="search" placeholder="예: 부산 가는 KTX, 지금 몇 대" autocomplete="off" />
+      <div class="ask__board" id="ask-board" aria-live="polite"></div>
+    </section>
+    <p class="hud hud--map-health" id="map-health" hidden role="status"></p>
     <section class="hud hud--detail" id="detail" hidden aria-live="polite">
       <button class="detail__close" id="detail-close" aria-label="닫기">×</button>
       <div class="detail__head">
@@ -54,6 +76,9 @@
       <div class="detail__grade" id="detail-grade"></div>
       <div class="detail__od" id="detail-od"></div>
       <div class="detail__meta" id="detail-meta"></div>
+      <p id="detail-evidence" class="detail-evidence"></p>
+      <div class="detail-actions"><label><input type="checkbox" id="follow-train" /> 선택 열차 따라가기</label><button id="share-train">링크 복사</button></div>
+      <p id="share-status" role="status"></p>
       <div class="detail__stock" id="detail-stock" hidden></div>
       <div class="stops__head" id="stops-head" hidden></div>
       <ol class="detail__stops" id="detail-stops"></ol>
@@ -86,7 +111,7 @@
 
         <div class="notice__body">
           <p>
-            <b>실시간 관제 정보가 아닙니다.</b> 어떤 공개 API 도 당일 지연을 제공하지 않습니다.
+            <b>실시간 관제 정보가 아닙니다.</b> 현재 연결된 데이터에는 당일 지연을 반영하지 않습니다.
             지도 위 위치는 공표 시각표와 최근 운행 실적으로 낸 <b>추정치</b>입니다.
           </p>
           <p>
