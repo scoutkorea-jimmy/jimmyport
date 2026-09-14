@@ -36,6 +36,8 @@ chk('now 는 밀리초 그대로', out.now, 1789366492000);
 chk('now 가 초로 오면 밀리초로', trimAircraft({ now: 1789366492, ac: [] }).now, 1789366492000);
 chk('모양이 깨지면 빈 목록(던지지 않음)', trimAircraft({ ac: 'x' }).count + trimAircraft(null).count, 0);
 chk('상자는 지도 KOREA_BOUNDS 와 같다', [BOUNDS.latMin, BOUNDS.latMax, BOUNDS.lonMin, BOUNDS.lonMax].join(','), '32,39.6,123.5,132');
+// adsb.fi 는 목록 키가 `aircraft` 다. 엣지에서 adsb.lol 이 막힐 때 이쪽으로 넘어간다(2026-09-14 실측).
+chk('adsb.fi 형식(aircraft 키)도 같은 결과', trimAircraft({ now: 1789366492000, aircraft: [base] }).count, 1);
 
 const fail = R.filter((p) => !p).length;
 console.log(`\n${R.length - fail}/${R.length} PASS`);

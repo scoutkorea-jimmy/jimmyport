@@ -1,6 +1,7 @@
 /* K-TrainRadar24 항공기 중계 (v0.9.313)
  *
- *  GET /api/ktrainrader24-aircraft   (공개) → { ok, now(ms), count, hidden, aircraft:[{hex,flight,type,reg,lat,lon,alt,gs,track,seen}] }
+ *  GET /api/ktrainrader24-aircraft   (공개) → { ok, source, now(ms), count, hidden, aircraft:[{hex,flight,type,reg,lat,lon,alt,gs,track,seen}] }
+ *                                              실패 시 502 { ok:false, error, errors:["adsb.lol: …","adsb.fi: …"] }
  *
  * 왜 중계하나. adsb.lol 은 CORS 헤더를 주지 않아 브라우저가 직접 부를 수 없다(실측 2026-09-14).
  * OpenSky 는 자기 도메인에만 허용하고 익명 하루 400회라 방문자 브라우저에 맡길 수 없다.
@@ -17,7 +18,16 @@
  */
 import { json } from "./_lib.js";
 
-const UPSTREAM = "https://api.adsb.lol/v2/lat/36/lon/128/dist/250";
+/*
+ * 원천은 둘, 순서대로 시도한다. 둘 다 readsb 형식(hex·flight·t·r·lat·lon·alt_baro·gs·track·seen_pos·dbFlags)이고
+ * 목록 키만 다르다(adsb.lol `ac` · adsb.fi `aircraft`).
+ * ⚠️ adsb.lol 은 내 맥에서는 200 인데 **Cloudflare 엣지에서 부르면 실패한다**(2026-09-14 배포 직후 502 실측).
+ *    그래서 adsb.fi 를 뒤에 둔다. 둘 다 실패하면 502 에 **어느 원천이 왜** 실패했는지 담는다 — 조용히 빈 하늘로 두지 않는다.
+ */
+const SOURCES = [
+  { name: "adsb.lol", url: "https://api.adsb.lol/v2/lat/36/lon/128/dist/250", list: "ac" },
+  { name: "adsb.fi", url: "https://opendata.adsb.fi/api/v2/lat/36/lon/128/dist/250", list: "aircraft" },
+];
 const TTL = 15;
 const MAX_SEEN_POS = 60;
 // 레이더 지도의 KOREA_BOUNDS 와 같은 상자. 지도가 이 밖으로 못 나가므로 밖의 기체는 보낼 이유가 없다.
@@ -27,7 +37,7 @@ const str = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 
 export function trimAircraft(raw, nowMs = Date.now()) {
-  const list = raw && Array.isArray(raw.ac) ? raw.ac : [];
+  const list = raw && Array.isArray(raw.ac) ? raw.ac : raw && Array.isArray(raw.aircraft) ? raw.aircraft : [];
   const aircraft = [];
   let hidden = 0;
   for (const a of list) {
@@ -55,18 +65,25 @@ export async function onRequestGet(context) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  let body;
-  try {
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 8000);
-    // ⚠️ adsb.lol 은 흔한 UA(node·undici 기본값)를 "User-Agent too generic; include valid contact info" 로 거절한다(실측).
-    const r = await fetch(UPSTREAM, { signal: ctl.signal, headers: { "user-agent": "K-TrainRadar24/0.6 (+https://scoutingapp.net/ktrainrader24)" } });
-    clearTimeout(timer);
-    if (!r.ok) throw new Error("upstream " + r.status);
-    body = { ok: true, ...trimAircraft(await r.json()) };
-  } catch {
-    return json({ ok: false, error: "항공기 자료를 받지 못했습니다" }, 502);
+  let body = null;
+  const errors = [];
+  for (const src of SOURCES) {
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 8000);
+      // ⚠️ adsb.lol 은 흔한 UA(node·undici 기본값)를 "User-Agent too generic; include valid contact info" 로 거절한다(실측).
+      const r = await fetch(src.url, { signal: ctl.signal, headers: { "user-agent": "K-TrainRadar24/0.6 (+https://scoutingapp.net/ktrainrader24)", accept: "application/json" } });
+      clearTimeout(timer);
+      if (!r.ok) throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0, 80).replace(/\s+/g, " "));
+      const raw = await r.json();
+      if (!Array.isArray(raw && raw[src.list])) throw new Error("응답에 " + src.list + " 목록이 없음");
+      body = { ok: true, source: src.name, ...trimAircraft(raw) };
+      break;
+    } catch (e) {
+      errors.push(src.name + ": " + String(e && e.message ? e.message : e).slice(0, 160));
+    }
   }
+  if (!body) return json({ ok: false, error: "항공기 자료를 받지 못했습니다", errors }, 502);
   const res = new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": `public, max-age=${TTL}` },
   });
