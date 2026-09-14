@@ -598,7 +598,8 @@ for (const must of ['경부선', '경부고속선', '호남선', '중앙선', '�
     const dismissed = JSON.parse(await evalIn(`(() => {
       document.getElementById('notice-ok').click();
       let stored = null;
-      try { stored = window.localStorage.getItem('ktr24.notice.v1'); } catch {}
+      // 고지 문구가 바뀌면 앱이 뒤의 숫자를 올린다(v2 · 앱 v0.5.0). 옛 키를 보면 '기억 안 함'으로 오탐한다.
+      try { stored = window.localStorage.getItem('ktr24.notice.v2'); } catch {}
       return JSON.stringify({ hidden: document.getElementById('notice').hidden, stored });
     })()`));
     chk('확인하면 안내가 닫힌다', dismissed.hidden === true);
