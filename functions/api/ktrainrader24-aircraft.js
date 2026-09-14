@@ -1,7 +1,7 @@
 /* K-TrainRadar24 항공기 중계 (v0.9.313)
  *
  *  GET /api/ktrainrader24-aircraft   (공개) → { ok, source, now(ms), count, hidden, aircraft:[{hex,flight,type,reg,lat,lon,alt,gs,track,seen}] }
- *                                              실패 시 502 { ok:false, error, errors:["adsb.lol: …","adsb.fi: …"] }
+ *                                              실패 시 200 { ok:false, error, errors:["adsb.lol: …","adsb.fi: …"] }
  *
  * 왜 중계하나. adsb.lol 은 CORS 헤더를 주지 않아 브라우저가 직접 부를 수 없다(실측 2026-09-14).
  * OpenSky 는 자기 도메인에만 허용하고 익명 하루 400회라 방문자 브라우저에 맡길 수 없다.
@@ -83,7 +83,9 @@ export async function onRequestGet(context) {
       errors.push(src.name + ": " + String(e && e.message ? e.message : e).slice(0, 160));
     }
   }
-  if (!body) return json({ ok: false, error: "항공기 자료를 받지 못했습니다", errors }, 502);
+  // ⚠️ 5xx 로 주면 커스텀 도메인에서 Cloudflare 가 본문을 자기 오류 페이지("error code: 502")로 바꿔
+  //    `errors` 를 아무도 못 읽는다(2026-09-14 실측). 200 에 ok:false 로 준다 — 화면은 ok 만 본다.
+  if (!body) return json({ ok: false, error: "항공기 자료를 받지 못했습니다", errors });
   const res = new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": `public, max-age=${TTL}` },
   });
