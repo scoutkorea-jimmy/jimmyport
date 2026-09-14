@@ -47,8 +47,10 @@
 - **`functions/api/ktrainrader24-aircraft.js` — 이 저장소가 처음으로 `/ktrainrader24` 를 위해 갖는 서버 코드다.**
   ADS-B 를 15초 엣지 캐시로 중계한다. 브라우저가 직접 못 부르는 이유(CORS 없음)와
   비공개 기체(LADD·PIA)를 **여기서** 버리는 이유가 파일 머리에 있다. 회귀 `test/regress-ktrainrader24-aircraft.js` 12건.
-  - ⚠️ **adsb.lol 은 Cloudflare 엣지에서 실패한다**(내 맥에선 200). 배포 직후 502 로 알았다. 그래서 adsb.fi 가 뒤에 있고,
-    둘 다 실패하면 502 본문의 `errors` 가 원천별 이유를 말한다. **함수를 고치면 라이브 `/api/…` 를 curl 로 쳐 봐야 끝이다.**
+  - ⚠️ **엣지에서 무료 집계기가 전부 막힌다** — adsb.lol 429(공유 IP), adsb.fi 403(봇 차단). 내 맥에선 둘 다 200.
+    **함수를 고치면 라이브 `/api/…` 를 curl 로 쳐 봐야 끝이다.** 실패는 200 `ok:false` + `errors[]`(5xx 는 CF 가 본문을 덮는다).
+  - **지금 항공기 오버레이는 "받지 못했습니다" 상태다.** 살리려면 OpenSky 자격증명 둘을 Pages 환경변수로:
+    `npx wrangler pages secret put OPENSKY_CLIENT_ID --project-name jimmyport` / `…_SECRET`. 넣으면 다음 요청부터 산다(60초 캐시).
   - adsb.lol 은 흔한 User-Agent 를 거절한다 — UA 문자열을 바꾸면 반드시 실물로 다시 쳐 볼 것.
 - 강수 레이더(RainViewer)는 브라우저가 직접 받는다. 이 저장소엔 아무것도 없다.
 - **데이터 범위 20260913~20260927, 공표 기준 9/15일(09-13~09-22).** TAGO 는 약 9일 앞까지만 올라온다(실측).
