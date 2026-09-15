@@ -93,6 +93,40 @@ chk('나이를 초로 말한다', freshness(stored, now + 125000).age, 125);
 chk('저장본 없음 → 나이 null', freshness(null, now).age, null);
 chk('모양이 깨진 저장본은 안 쓴다', freshness({ receivedAt: now, aircraft: 'x' }, now).fresh, false);
 
+console.log('\n[공항 좌표 — 남은 길 (v0.9.322)]');
+const withCoords = relay.cleanRoute({ ...kr, coords: [37.558311, 126.790611, 33.51113, 126.49306] });
+chk('공항 좌표를 소수 셋째 자리로 넘긴다', JSON.stringify(withCoords.coords), '[37.558,126.791,33.511,126.493]');
+chk('좌표 길이가 공항 수와 안 맞으면 좌표만 뺀다', 'coords' in relay.cleanRoute({ ...kr, coords: [37.5, 126.8] }), false);
+chk('좌표 범위 밖이면 좌표만 뺀다(경로는 남는다)', JSON.stringify(relay.cleanRoute({ ...kr, coords: [37.5, 126.8, 95, 126] })), JSON.stringify(kr));
+chk('좌표에 문자열이 섞이면 좌표만 뺀다', 'coords' in relay.cleanRoute({ ...kr, coords: [37.5, '126.8', 33.5, 126.4] }), false);
+
+console.log('\n[항적 (v0.9.322) — 비공개 기체 항적이 새지 않는다]');
+const { cleanTrails, trailBody, TRAILS_KV_KEY, TRAIL_MAX_POINTS, TRAIL_FRESH_SEC, HEX } = relay;
+const kept = trimAircraft({ now, ac: [base, { ...base, hex: 'ladd01', dbFlags: 8 }, { ...base, hex: 'grd001', alt_baro: 'ground' }] }).aircraft;
+const trails = cleanTrails({
+  '71C123': [37.11111, 126.22222, 37.2, 126.3, 'x', 1, 37.3, 126.4],
+  ladd01: [37.1, 126.2, 37.2, 126.3],
+  grd001: [37.1, 126.2, 37.2, 126.3],
+  zzz999: [37.1, 126.2, 37.2, 126.3],
+}, kept);
+chk('정리된 목록에 남은 기체 항적만 싣는다', Object.keys(trails).join(','), '71c123');
+chk('LADD 항적은 저장본에 없다', JSON.stringify(trails).includes('ladd01'), false);
+chk('점은 소수 셋째 자리, 대문자 hex 는 소문자로', JSON.stringify(trails['71c123'].slice(0, 2)), '[37.111,126.222]');
+chk('모양이 틀린 점은 그 점만 버린다', trails['71c123'].length, 6);
+const long = Array.from({ length: (TRAIL_MAX_POINTS + 30) * 2 }, (_, i) => (i % 2 ? 126 + i / 1e4 : 37 + i / 1e4));
+chk(`기체마다 최근 ${TRAIL_MAX_POINTS}점까지(오래된 점부터 버린다)`, cleanTrails({ '71c123': long }, kept)['71c123'].length, TRAIL_MAX_POINTS * 2);
+chk('최근 점이 남는다', cleanTrails({ '71c123': long }, kept)['71c123'].at(-1), Math.round(long.at(-1) * 1e3) / 1e3);
+chk('점 하나뿐인 항적은 싣지 않는다', 'x' in cleanTrails({ '71c123': [37, 126] }, kept) || Object.keys(cleanTrails({ '71c123': [37, 126] }, kept)).length, 0);
+chk('항적 모양이 아니면 null', cleanTrails([1, 2], kept), null);
+chk('항적 KV 키는 목록과 따로', TRAILS_KV_KEY !== KV_KEY && TRAILS_KV_KEY, 'ktransportradar24:aircraft-trails:v1');
+chk('hex 모양 — 비ICAO ~ 허용', HEX.test('~abc12') && HEX.test('71c123') && !HEX.test('71c12') && !HEX.test('../../x'), true);
+const tStored = { receivedAt: now, trails };
+chk('?trail= 저장본에 있으면 준다', trailBody(tStored, '71c123', now + 5000).path.length, 6);
+chk('없는 기체는 ok:false', trailBody(tStored, 'abcdef', now).ok, false);
+chk(`${TRAIL_FRESH_SEC}초 넘게 낡은 항적은 안 준다(지금 기체에 옛 선을 잇지 않는다)`, trailBody(tStored, '71c123', now + (TRAIL_FRESH_SEC + 1) * 1000).ok, false);
+chk('모양이 틀린 hex 는 ok:false', trailBody(tStored, '<script>', now).ok, false);
+chk('저장본이 없으면 ok:false', trailBody(null, '71c123', now).ok, false);
+
 const fail = R.filter((p) => !p).length;
 console.log(`\n${R.length - fail}/${R.length} PASS`);
 process.exit(fail ? 1 : 0);
