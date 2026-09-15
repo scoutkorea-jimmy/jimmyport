@@ -39,9 +39,12 @@
 6. **성능·접근성 기준을 실측으로 확인**한다 — 대비 4.5+ · 터치 타깃 40px+ · 폰트 13px+ ·
    `prefers-reduced-motion` 대응 · 콘솔 에러 0 · 요청 실패 0.
 
-## 🆕 최신 세션 — v0.9.319→320 · `/ktransportradar24` 항공기 태그 통일·국내선 시각표·축척·여객선 (2026-09-15)
+## 🆕 최신 세션 — v0.9.319→321 · `/ktransportradar24` 항공기 태그 통일·국내선 시각표·축척·여객선·위젯 규칙·지도 고정 (2026-09-15)
 
-> 상세 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.319·320. 디자인 규칙은 소스 저장소 `K-TrainRader24/DESIGN.md`('야간 관제실').
+> 상세 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.319~321. 디자인 규칙은 소스 저장소 `K-TrainRader24/DESIGN.md`('야간 관제실'),
+> **위젯·구분 기준 규칙은 `K-TrainRader24/rules/`**(design·widgets·classification) — 새 수단은 `rules/widgets.md` 의 추가 절차대로 붙이고, 화면 문구와 문서가 글자 단위로 맞는지 소스 회귀가 잰다.
+
+- **지도는 최소 확대 7.5(축척 50 km)·대한민국 경계 안으로 고정**(v0.9.321). 좁은 화면에서 한반도가 한 화면에 다 안 들어오는 것은 요청의 결과다 — 고장으로 보고 풀지 말 것.
 
 - **산출물이 늘었다**: `ktransportradar24/api/flights/`(국내선 시각표) · `api/ships-index.json`·`ships-YYYYMMDD.json`(여객선). 재빌드 순서 `build:static` → `build-flights.ts` → `build:ships`.
 - **항공기 중계 함수가 기종 이름(`desc`)·경로(`route`)를 넘긴다** — 수집기가 adsb.im routeset 으로 붙이고 함수가 모양을 한 번 더 검증(`cleanRoute`). 회귀 44건.
