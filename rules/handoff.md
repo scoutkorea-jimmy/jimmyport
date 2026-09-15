@@ -39,7 +39,23 @@
 6. **성능·접근성 기준을 실측으로 확인**한다 — 대비 4.5+ · 터치 타깃 40px+ · 폰트 13px+ ·
    `prefers-reduced-motion` 대응 · 콘솔 에러 0 · 요청 실패 0.
 
-## 🆕 최신 세션 — v0.9.313→314 · `/ktrainrader24` 강수 레이더·항공기·공표 재빌드 (2026-09-14)
+## 🆕 최신 세션 — v0.9.317→318 · `/ktransportradar24` 이름 변경·교통수단 위젯·키 없는 항공기 (2026-09-15)
+
+> 상세는 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.317·318. 소스 저장소 `K-TrainRader24`(이름은 그대로, 앱 v0.7.0).
+
+- **경로가 바뀌었다.** `/ktrainrader24` → **`/ktransportradar24`** (옛 주소·하위 경로 301, `?train=` 쿼리 유지 — 배포 후 실물 확인).
+  폴더·회귀(`regress-ktransportradar24`, `regress-ktransportradar24-aircraft` 37건)·문서 폴더 전부 새 이름. DoD 표의 '열차레이더'가 이 스위트다.
+- **항공기는 맥미니 수집기에 기대고 있다.** launchd `com.jimmy-os.ktransportradar24-aircraft` 가 15초마다 adsb.lol(→adsb.fi)을 받아
+  `POST /api/ktransportradar24-aircraft`(Bearer = Pages secret `KTR24_AIRCRAFT_INGEST_TOKEN` ↔ 맥 `~/.ktransportradar24/collector.env`) → `SCOUT_KV` `ktransportradar24:aircraft:v1`.
+  - 수집기가 멎으면 90초 뒤부터 화면이 '받지 못했습니다'라고 말하고 응답 `errors[0]` 이 `collector: 마지막 수신 N초 전`. 확인: `tail ~/.ktransportradar24/logs/aircraft.log`.
+  - 토큰을 바꾸면 **두 곳 다** 바꾸고 재배포한다(Pages secret 은 다음 배포부터 먹는다). KV 쓰기 하루 5,760회(Workers Paid 포함량 안).
+  - 키가 필요한 원천은 쓰지 않는다(지미 2026-09-15). OpenSky 코드는 지웠다. 옛 `/api/ktrainrader24-aircraft` 는 GET 별칭 — **2026-10-15 무렵 지운다.**
+- 데이터 **20260914~20260928**(공표 9/15), 최근 실적 09-12~14. 다음 재빌드 기한 **2026-09-28**.
+- 관측기 `com.jimmy-os.ktransportradar24-observe`(2026-10-02 까지, 하루 6회): 여객선·항공 조회 범위, ADS-B 매칭률, 버스 한도 초기화 등을 `~/.ktransportradar24/observe/*.jsonl` 에 남긴다.
+- **진행 중(지미: 교통수단 하나 끝날 때마다 배포):** 여객선(TAGO 국내선박) → 국내선 편명 툴팁(TAGO 국내항공) → 시내버스(선택 노선만 실시간 중계) → 지하철(시각표 추정).
+  새 데이터 빌더는 `build:static` **뒤에** 돈다 — build:static 이 대상 폴더를 통째로 갈아 끼운다.
+
+## 최신 세션(이전) — v0.9.313→314 · `/ktrainrader24` 강수 레이더·항공기·공표 재빌드 (2026-09-14)
 
 > 상세는 [docs/ktrainrader24/changelog.md](../docs/ktrainrader24/changelog.md) v0.9.313·314. 소스는 별도 저장소
 > `K-TrainRader24`(앱 v0.6.0) — 여기엔 빌드 산출물 + **중계 함수 하나**가 들어왔다.
