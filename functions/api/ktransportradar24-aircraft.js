@@ -44,6 +44,21 @@ const str = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 const msg = (e) => String(e && e.message ? e.message : e).slice(0, 160);
 
+/*
+ * 경로(v0.9.319): 수집기가 adsb.im routeset 에서 받아 붙인 {codes, countries, names}.
+ * 바깥에서 온 값이다 — 모양이 하나라도 어긋나면 통째로 버린다(틀린 목적지를 보여 주느니 모른다고 한다).
+ */
+const CODE = /^[A-Z0-9]{3,4}$/;
+const ISO2 = /^[A-Z]{2}$/;
+export function cleanRoute(r) {
+  if (!r || !Array.isArray(r.codes) || !Array.isArray(r.countries) || !Array.isArray(r.names)) return null;
+  const n = r.codes.length;
+  if (n < 2 || n > 6 || r.countries.length !== n || r.names.length !== n) return null;
+  if (!r.codes.every((c) => typeof c === "string" && CODE.test(c))) return null;
+  if (!r.countries.every((c) => typeof c === "string" && ISO2.test(c))) return null;
+  return { codes: [...r.codes], countries: [...r.countries], names: r.names.map((x) => str(x, 40)) };
+}
+
 export function trimAircraft(raw, nowMs = Date.now()) {
   const list = raw && Array.isArray(raw.ac) ? raw.ac : raw && Array.isArray(raw.aircraft) ? raw.aircraft : [];
   const aircraft = [];
@@ -55,10 +70,12 @@ export function trimAircraft(raw, nowMs = Date.now()) {
     if (a.lat < BOUNDS.latMin || a.lat > BOUNDS.latMax || a.lon < BOUNDS.lonMin || a.lon > BOUNDS.lonMax) continue;
     const seen = num(a.seen_pos) ?? 0;
     if (seen > MAX_SEEN_POS) continue;
+    const route = cleanRoute(a.route);
     aircraft.push({
-      hex: str(a.hex, 6), flight: str(a.flight, 8).trim(), type: str(a.t, 4), reg: str(a.r, 10),
+      hex: str(a.hex, 6), flight: str(a.flight, 8).trim(), type: str(a.t, 4), desc: str(a.desc, 40), reg: str(a.r, 10),
       lat: Math.round(a.lat * 1e5) / 1e5, lon: Math.round(a.lon * 1e5) / 1e5,
       alt: num(a.alt_baro), gs: num(a.gs), track: num(a.track), seen: Math.round(seen),
+      ...(route ? { route } : {}),
     });
   }
   // adsb.lol 의 now 는 밀리초, adsb.fi 는 초다.

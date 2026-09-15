@@ -39,6 +39,22 @@ chk('now 는 밀리초 그대로', out.now, 1789366492000);
 chk('now 가 초로 오면 밀리초로', trimAircraft({ now: 1789366492, ac: [] }).now, 1789366492000);
 chk('모양이 깨지면 빈 목록(던지지 않음)', trimAircraft({ ac: 'x' }).count + trimAircraft(null).count, 0);
 chk('상자는 지도 KOREA_BOUNDS 와 같다', [BOUNDS.latMin, BOUNDS.latMax, BOUNDS.lonMin, BOUNDS.lonMax].join(','), '32,39.6,123.5,132');
+
+console.log('\n[기종 이름·경로 (v0.9.319)]');
+const kr = { codes: ['GMP', 'CJU'], countries: ['KR', 'KR'], names: ['Seoul', 'Jeju'] };
+const enriched = trimAircraft({ now: 1789366492000, ac: [
+  { ...base, desc: 'BOEING 777-300ER', route: kr },
+  { ...base, hex: 'bad001', route: { codes: ['GMP'], countries: ['KR'], names: ['Seoul'] } },
+  { ...base, hex: 'bad002', route: { codes: ['GMP', '<b>'], countries: ['KR', 'KR'], names: ['a', 'b'] } },
+  { ...base, hex: 'bad003', route: { codes: ['GMP', 'CJU'], countries: ['KR'], names: ['a', 'b'] } },
+] });
+chk('기종 이름을 넘긴다', enriched.aircraft[0].desc, 'BOEING 777-300ER');
+chk('검증된 경로를 넘긴다', JSON.stringify(enriched.aircraft[0].route), JSON.stringify(kr));
+chk('공항 하나짜리 경로는 버린다', 'route' in enriched.aircraft[1], false);
+chk('코드 모양이 틀린 경로는 버린다', 'route' in enriched.aircraft[2], false);
+chk('길이가 안 맞는 경로는 버린다', 'route' in enriched.aircraft[3], false);
+chk('경로가 없어도 기체는 남는다', enriched.count, 4);
+chk('도시 이름은 40자로 자른다', relay.cleanRoute({ codes: ['ICN', 'LAX'], countries: ['KR', 'US'], names: ['x'.repeat(99), 'LA'] }).names[0].length, 40);
 chk('adsb.fi 형식(aircraft 키)도 같은 결과', trimAircraft({ now: 1789366492000, aircraft: [base] }).count, 1);
 
 console.log('\n[키 없는 무료 원천만]');
