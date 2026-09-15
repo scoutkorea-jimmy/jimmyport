@@ -18,7 +18,7 @@
 - **repo 단위**: `jimmyport`(이 repo · scoutingapp.net) · `gilwell-media`(별도 repo) · `jimmyport` 포트폴리오(예정)
 - **서비스 단위**(이 repo): `/`·`/tour` · `/krjam-planning` · `/krjam-jebo`
   - ⛔ **종료됨(2026-08-14)**: `/krjam-cardnews`·`/krjam-dcount`·`/krjam-fnc` — 코드·데이터는 종료 아카이브에만 있다(§종료 서비스).
-  - 🚆 `/ktrainrader24` — **소스가 이 repo 에 없다.** 별도 repo `K-TrainRader24` 에서 빌드한 정적 산출물만 들어와 있다. 고칠 일이 있으면 그쪽에서 고치고 다시 복사한다.
+  - 🚆 `/ktransportradar24` — **소스가 이 repo 에 없다.** 별도 repo `K-TrainRader24` 에서 빌드한 정적 산출물만 들어와 있다. 고칠 일이 있으면 그쪽에서 고치고 다시 복사한다.
 
 대상 확정 후 **해당 `docs/<service>/` 문서를 먼저 읽고** 착수한다.
 
@@ -36,7 +36,7 @@
 
 ## 🧱 스택·라우팅·운영 → [rules/stack-routing.md](rules/stack-routing.md)
 
-- **Vanilla HTML/CSS/JS만.** 프레임워크·번들러·**빌드 단계 도입 금지**(카드뉴스·디데이 React는 해당 페이지에만 격리). `/ktrainrader24` 도 같은 격리 방식 — 빌드는 별도 repo 에서 끝나고 **이 repo 에는 완성된 정적 파일만** 들어온다.
+- **Vanilla HTML/CSS/JS만.** 프레임워크·번들러·**빌드 단계 도입 금지**(카드뉴스·디데이 React는 해당 페이지에만 격리). `/ktransportradar24` 도 같은 격리 방식 — 빌드는 별도 repo 에서 끝나고 **이 repo 에는 완성된 정적 파일만** 들어온다.
 - 배포: 검증 통과 즉시 `git commit + push + wrangler pages deploy . --project-name jimmyport --branch main` (별도 지시 없어도 진행). 커밋 메시지 **ASCII 권장**.
 - 의미 있는 변경마다 `VERSION` bump. 로컬 dev server 상시 구동 금지.
 - 도메인: `scoutingapp.net`(주력) + `jimmypark.net`. 내부문서·설정은 `functions/_middleware.js` 가 404 차단.
@@ -51,7 +51,7 @@
 | `/` · `/tour` · `/tour/admin` | Scout Tour Assistant | `index.html` · `tour/`(app.js·admin.js·data.js·styles.css) | [brief](docs/scout-finder/brief.md) · [changelog](docs/scout-finder/changelog.md) |
 | `/krjam-planning` | 홍보부 통합 관리 플랫폼 | `jamboree-plan/` | [changelog](docs/krjam-planning/changelog.md) |
 | `/krjam-jebo` | 공개 소식 제보 | `krjam-jebo.html` | [changelog](docs/krjam-jebo/changelog.md) |
-| `/ktrainrader24` | K-TrainRadar24 (여객열차 레이더) | `ktrainrader24/` ⚠️**빌드 산출물** | [changelog](docs/ktrainrader24/changelog.md) |
+| `/ktransportradar24` | K-TransportRadar24 (전국 교통수단 레이더, 옛 K-TrainRadar24) | `ktransportradar24/` ⚠️**빌드 산출물** | [changelog](docs/ktransportradar24/changelog.md) |
 
 - 백엔드(Cloudflare Pages Functions): `functions/api/*`, 저장소 KV `SCOUT_KV` + R2 `SCOUT_R2`.
 - 데이터·사양 통합: `KMS.md` · 전 기능: `FEATURES.md` · 규칙/문서 전체 색인: [rules/00-index.md](rules/00-index.md).

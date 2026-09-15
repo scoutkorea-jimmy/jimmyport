@@ -1,9 +1,9 @@
-# K-TrainRadar24 (`/ktrainrader24`) — 변경 이력
+# K-TransportRadar24 (`/ktransportradar24`, 옛 K-TrainRadar24 `/ktrainrader24`) — 변경 이력
 
-> 한국철도공사 오픈API + OpenStreetMap 선로 형상으로 전국 여객열차의 위치를
-> 지도에 추정 표시하는 화면. **소스는 이 저장소에 없다** — 별도 저장소
-> [scoutkorea-jimmy/K-TrainRader24](https://github.com/scoutkorea-jimmy/K-TrainRader24)(비공개)
-> 에서 빌드해 산출물만 `ktrainrader24/` 로 복사한다.
+> 전국 열차·항공기(·여객선·버스·지하철 순차 추가)와 강수 레이더를 한 화면에 올리는 지도.
+> 열차 위치는 공표 시각표·실적 기반 추정, 항공기는 ADS-B 수신값이다. **소스는 이 저장소에 없다** — 별도 저장소
+> [scoutkorea-jimmy/K-TrainRader24](https://github.com/scoutkorea-jimmy/K-TrainRader24)(비공개, 저장소 이름은 옛 이름 그대로)
+> 에서 빌드해 산출물만 `ktransportradar24/` 로 복사한다. 2026-09-15(v0.9.318) 에 이름과 경로를 바꿨다.
 
 ---
 
@@ -137,6 +137,23 @@ TAGO 는 "오늘 이 열차가 다니는가"도 알려 주므로, 안 다니는 
 - 자정을 넘겨 달리는 열차가 사라지던 것을 고쳤다. ITX-새마을 01025 는
   서울 20:09 → 부산 다음날 00:57 인데, 자정에 날짜 파일이 바뀌는 순간
   아직 달리는 이 열차가 지도에서 사라졌다.
+
+### v0.9.318 — K-TransportRadar24 로 이름 변경 · 교통수단 위젯 · 항공기는 키 없이 (앱 v0.7.0, 2026-09-15)
+지미 요청: "강수레이더와 항공기 정보를 별도의 위젯으로", "교통수단 단위로 켜고 끄고", "항공기는 무료 API 만, 키가 필요한 API 는 쓰지 말 것",
+"K-TransportRadar 이런 식으로 이름을 바꾸고 라우팅 사이트 명도".
+
+- **경로** `/ktrainrader24` → **`/ktransportradar24`**. 폴더를 옮기고(`git mv`) `_redirects` 에 301 두 줄 — 공유된 `?train=` 링크를 살린다.
+  옛 폴더 이름에 있던 'rader' 오타는 새 경로에서 바로잡았다. 이 문서 폴더도 `docs/ktransportradar24/` 로 옮겼다.
+- **위젯**: 검색/필터 상자 안 체크박스 두 줄이던 겹쳐 보기를 꺼내 열차·항공기·강수 레이더를 **수단 단위로** 켜고 끈다(`ktr24.modes.v1` 기억).
+  종류 필터(KTX·무궁화…)는 상자에 남는다. 열차를 끄면 레이어를 떼고 **마지막 프레임의 클릭 좌표를 비운다** — 안 비우면 보이지 않는 열차가 클릭에 걸린다.
+  상단 '운행 추정'은 `—` 로 둔다(0 은 '운행 없음'으로 읽힌다).
+- **항공기 — 키 없는 원천만.** OpenSky 등록 경로(v0.9.316)를 지웠다. 엣지에서는 adsb.lol 429·adsb.fi 403 이고 둘 다 CORS 가 없어 브라우저도 못 부른다.
+  그래서 **맥미니 수집기**(K-TrainRader24 `collector/aircraft.ts`, launchd `com.jimmy-os.ktransportradar24-aircraft`)가 가정 회선으로 15초마다 받아
+  `POST /api/ktransportradar24-aircraft` 에 수집 토큰(Pages secret `KTR24_AIRCRAFT_INGEST_TOKEN`)으로 올리고, 함수가 LADD·PIA 를 **받을 때** 버린 뒤
+  `SCOUT_KV` 키 `ktransportradar24:aircraft:v1`(10분 만료)에 둔다. GET 은 저장본이 90초 안이면 그대로, 아니면 원천 직접 시도 → 실패면 `errors` 에 `collector: 마지막 수신 N초 전`.
+  옛 주소 `/api/ktrainrader24-aircraft` 는 GET 만 넘기는 별칭(한 달 뒤 삭제).
+- 회귀: `regress-ktrainrader24*` → `regress-ktransportradar24*`. 항공기 중계 20 → **37건**(수집 토큰·저장본 신선도·OpenSky 제거·옛 주소 별칭).
+  K-TrainRader24 `test:ui` 가 위젯 겹침(좌표)·누름 영역 40px·끈 열차의 클릭 좌표를 잰다 — 390px 에서 위젯이 접힌 검색 상자와 **4px 겹친 것**을 배포 전에 잡았다.
 
 ### v0.9.317 — 주간 재빌드 (데이터만, 2026-09-15)
 코드는 앱 v0.6.0 그대로다. 데이터만 새로 구웠다.

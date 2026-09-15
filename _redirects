@@ -34,3 +34,9 @@
 /admin.js    /tour/admin.js    301
 /data.js     /tour/data.js     301
 /styles.css  /tour/styles.css  301
+
+# ── 2026-09-15 이름 변경 (v0.9.318): K-TrainRadar24 /ktrainrader24 → K-TransportRadar24 /ktransportradar24 ──
+# 공유된 열차 링크(?train=…)와 즐겨찾기를 살린다. 옛 폴더를 옮겨 그 경로에 정적 파일이 없으므로 규칙이 적용된다.
+# 301(영구) — 이름을 되돌릴 일이 없다. 쿼리스트링이 넘어가는지는 배포 후 실물로 확인한다.
+/ktrainrader24     /ktransportradar24/          301
+/ktrainrader24/*   /ktransportradar24/:splat    301

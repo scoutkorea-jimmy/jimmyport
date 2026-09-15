@@ -1,4 +1,4 @@
-/* K-TrainRadar24 (/ktrainrader24) 회귀 — 여객열차 레이더
+/* K-TransportRadar24 (/ktransportradar24, 옛 K-TrainRadar24) 회귀 — 전국 교통수단 레이더
  *
  * 왜 이 스위트가 따로 있나:
  *  ① 이 화면의 데이터는 **미리 구워 둔 정적 파일**이다. 서버가 없으니 잘못된
@@ -12,7 +12,7 @@
  *     덜 되거나 낡아도 이 저장소에서는 티가 안 난다.
  *
  * 의존성 없음 — 헤드리스 Chrome 에 DevTools 프로토콜로 직접 붙는다(Node 내장 WebSocket).
- * 실행: node test/regress-ktrainrader24.js */
+ * 실행: node test/regress-ktransportradar24.js */
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -20,7 +20,7 @@ const { spawn } = require('child_process');
 const os = require('os');
 
 const ROOT = path.resolve(__dirname, '..');
-const APP = 'ktrainrader24';
+const APP = 'ktransportradar24';
 /* Chrome 경로. 맥 기본값을 쓰되 CI(리눅스 러너)에서는 CHROME 환경변수로 바꾼다.
    경로를 하드코딩해 두면 이 스위트만 CI 에서 조용히 죽는다. */
 const CHROME =
