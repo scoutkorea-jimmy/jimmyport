@@ -39,7 +39,17 @@
 6. **성능·접근성 기준을 실측으로 확인**한다 — 대비 4.5+ · 터치 타깃 40px+ · 폰트 13px+ ·
    `prefers-reduced-motion` 대응 · 콘솔 에러 0 · 요청 실패 0.
 
-## 🆕 최신 세션 — v0.9.317→318 · `/ktransportradar24` 이름 변경·교통수단 위젯·키 없는 항공기 (2026-09-15)
+## 🆕 최신 세션 — v0.9.319→320 · `/ktransportradar24` 항공기 태그 통일·국내선 시각표·축척·여객선 (2026-09-15)
+
+> 상세 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.319·320. 디자인 규칙은 소스 저장소 `K-TrainRader24/DESIGN.md`('야간 관제실').
+
+- **산출물이 늘었다**: `ktransportradar24/api/flights/`(국내선 시각표) · `api/ships-index.json`·`ships-YYYYMMDD.json`(여객선). 재빌드 순서 `build:static` → `build-flights.ts` → `build:ships`.
+- **항공기 중계 함수가 기종 이름(`desc`)·경로(`route`)를 넘긴다** — 수집기가 adsb.im routeset 으로 붙이고 함수가 모양을 한 번 더 검증(`cleanRoute`). 회귀 44건.
+  ⚠️ 함수를 배포하면 KV 에 옛 함수가 쓴 저장본이 1분쯤 남는다 — 배포 직후 필드가 비어 보여도 1분 뒤 다시 쳐 볼 것(09-15 실측).
+- 여객선은 **시각표 추정**이다(AIS 아님, 결항 미반영, 09-24~26 추석은 평일 복사). 화면이 그렇게 말하는지 test:ui 가 잰다.
+- K-TrainRader24 CI(회귀 검사)가 8a80d21 에서 한 번 실패 — test:ui 의 캔버스 대기 400ms 고정이 러너에서 모자랐다. 그려질 때까지 기다리게 고쳤다.
+
+## 최신 세션(이전) — v0.9.317→318 · `/ktransportradar24` 이름 변경·교통수단 위젯·키 없는 항공기 (2026-09-15)
 
 > 상세는 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.317·318. 소스 저장소 `K-TrainRader24`(이름은 그대로, 앱 v0.7.0).
 

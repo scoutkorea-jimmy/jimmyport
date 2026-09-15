@@ -8,8 +8,8 @@
       name="description"
       content="전국 열차·항공기와 강수 레이더를 한 화면에. 열차 위치는 공표 시각표 기반 추정, 항공기는 ADS-B 수신값입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-C8IEskVz.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-B-x4WDfy.css">
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-CUn1FwUW.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-CmOr3J44.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -75,6 +75,13 @@
           <span class="mode__name">항공기</span><span class="mode__knob" aria-hidden="true"></span>
         </button>
         <p class="mode__status" id="mode-aircraft-status" role="status"></p>
+      </div>
+      <div class="mode" data-mode="ship">
+        <button class="mode__switch" id="mode-ship" type="button" aria-pressed="false" aria-describedby="mode-ship-status">
+          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.2 3.9 4.6 7.8 4.6 11.7v5.4c0 1.3-1 2.4-2.3 2.4H9.7c-1.3 0-2.3-1.1-2.3-2.4v-5.4c0-3.9 1.4-7.8 4.6-11.7z"/></svg>
+          <span class="mode__name">여객선</span><span class="mode__knob" aria-hidden="true"></span>
+        </button>
+        <p class="mode__status" id="mode-ship-status" role="status"></p>
       </div>
       <div class="mode" data-mode="weather">
         <button class="mode__switch" id="mode-weather" type="button" aria-pressed="false" aria-describedby="mode-weather-status">
