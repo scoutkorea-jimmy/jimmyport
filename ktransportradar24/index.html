@@ -8,7 +8,7 @@
       name="description"
       content="전국 열차·항공기와 강수 레이더를 한 화면에. 열차 위치는 공표 시각표 기반 추정, 항공기는 ADS-B 수신값입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-D0zK2x4j.js"></script>
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-B3oglsf5.js"></script>
     <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-A29uYbTj.css">
   </head>
   <body>
@@ -69,6 +69,18 @@
         </button>
         <p class="mode__status" id="mode-train-status" role="status"></p>
         <details class="mode__legend" id="mode-train-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+      </div>
+      <!--
+        지하철 — 열차와 같은 시각표 수단이라 바로 아래에 둔다. 켜면 목록(subway-index.json)을 받고,
+        그 다음은 **지금 보이는 곳과 겹치는 구역 파일만** 받는다(파일 하나가 gzip 200KB 안팎이라 전국을 다 받을 수 없다).
+      -->
+      <div class="mode" data-mode="subway">
+        <button class="mode__switch" id="mode-subway" type="button" aria-pressed="false" aria-describedby="mode-subway-status">
+          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-2.3 0-4.2 1.9-4.2 4.2v5.3h8.4V6.4c0-2.3-1.9-4.2-4.2-4.2zM7.8 12.9h8.4v4.9c0 2.3-1.9 4.2-4.2 4.2s-4.2-1.9-4.2-4.2v-4.9z"/></svg>
+          <span class="mode__name">지하철</span><span class="mode__knob" aria-hidden="true"></span>
+        </button>
+        <p class="mode__status" id="mode-subway-status" role="status"></p>
+        <details class="mode__legend" id="mode-subway-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
       </div>
       <div class="mode" data-mode="aircraft">
         <button class="mode__switch" id="mode-aircraft" type="button" aria-pressed="false" aria-describedby="mode-aircraft-status">
@@ -185,7 +197,8 @@
         <p class="notice__foot">
           데이터 출처 · 한국철도공사 열차운행정보 · 국토교통부 TAGO 열차정보 ·
           한국철도공사 화물열차운행 시간표 · 선로 형상 OpenStreetMap · 강수 레이더 RainViewer · 항공기 adsb.fi·adsb.lol (ODbL) · 항공 경로 adsb.im · 국내선 시각표 국토교통부 TAGO ·
-          여객선 운항 국토교통부 TAGO · 뱃길 OpenStreetMap · 시내버스 위치 국토교통부 TAGO
+          여객선 운항 국토교통부 TAGO · 뱃길 OpenStreetMap · 시내버스 위치 국토교통부 TAGO ·
+          지하철 시각표 국토교통부 TAGO
         </p>
       </div>
     </div>
