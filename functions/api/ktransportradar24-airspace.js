@@ -199,20 +199,29 @@ export async function handleGet(context, deps) {
     return fail("원천이 그림을 주지 않았습니다", 502, TTL_FAIL);
   }
 
-  const out = new Response(res.body, {
-    status: 200,
-    headers: {
-      "content-type": "image/png",
-      "cache-control": `public, max-age=${TTL_OK}`,
-    },
-  });
+  /*
+   * ⚠️ **본문을 통째로 읽는다 — 원천 스트림을 그대로 넘기지 않는다.**
+   *    처음엔 `new Response(res.body)` 를 만들고 `clone()` 으로 캐시에 넣었다. 그러면 스트림이 둘로 갈라지고(tee),
+   *    캐시 쪽이 늦거나 막히면 **방문자에게 가는 쪽까지 끊긴다.**
+   *    2026-09-16 라이브에서 성공 경로만 본문 없는 502(`error code: 502` · server: cloudflare)가 났고,
+   *    `onRequestGet` 전체를 try/catch 로 감쌌는데도 **안 잡혔다** — JS 예외가 아니라 런타임이 응답을 중단시킨 것이다.
+   *    타일은 최대 수십 KB라 통째로 읽어도 가볍고, 그러면 캐시본과 응답본이 서로 아무 관계도 없는 두 덩어리가 된다.
+   */
+  let body;
   try {
-    if (waitUntil) waitUntil(cache.put(hitKey, out.clone()));
-    else await cache.put(hitKey, out.clone());
+    body = await res.arrayBuffer();
+  } catch (e) {
+    return fail("원천 본문을 읽지 못했습니다: " + (e && e.name ? e.name : "unknown"), 502, TTL_FAIL);
+  }
+  const headers = { "content-type": "image/png", "cache-control": `public, max-age=${TTL_OK}` };
+  try {
+    const forCache = new Response(body, { status: 200, headers });
+    if (waitUntil) waitUntil(cache.put(hitKey, forCache));
+    else await cache.put(hitKey, forCache);
   } catch {
     // 담지 못해도 그림은 나간다. 다음 요청이 원천을 한 번 더 부를 뿐이다.
   }
-  return out;
+  return new Response(body, { status: 200, headers });
 }
 
 export async function onRequestGet(context) {
