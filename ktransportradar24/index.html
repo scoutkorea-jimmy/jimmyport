@@ -8,8 +8,8 @@
       name="description"
       content="전국 열차·항공기와 강수 레이더를 한 화면에. 열차 위치는 공표 시각표 기반 추정, 항공기는 ADS-B 수신값입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-B3oglsf5.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-A29uYbTj.css">
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-GTtI2wzo.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-B9QVTdtN.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -57,76 +57,134 @@
       <details><summary>데이터 제공 범위</summary><div id="coverage-info"></div></details>
     </details>
     <!--
-      교통수단 위젯. 수단마다 따로 켜고 끈다. 종류 필터(KTX·무궁화…)는 위 상자에 남는다 —
-      위젯은 수단 단위, 필터는 열차 안의 종류 단위다. 상태 줄은 켰을 때만 보이고, 무엇이
-      추정이고 무엇이 수신값인지 말한다.
+      교통수단 카드 — **카드 하나가 수단 하나다**(rules/widgets.md '카드').
+      여섯 수단이 한 상자(#modes)에 세로로 쌓여 있던 것을 수단마다 따로 떠 있는 카드로 나눴다.
+      머리 = 끌기 손잡이 · 스위치 · 접기, 몸통 = 상태 줄 · 고르기 줄 · 구분 기준(켰을 때만).
+      기본 자리는 지금까지와 같은 오른쪽 위 세로 쌓기이고, 넓은 화면에서는 머리를 끌어 옮긴다.
+      옮긴 카드는 쌓기에서 빠져 본문에 붙는다 — 남은 카드가 위로 당겨 붙어 빈 구멍을 남기지 않는다.
+      종류 필터(KTX·무궁화…)는 왼쪽 상자에 남는다 — 카드는 수단 단위, 필터는 열차 안의 종류 단위다.
     -->
-    <section class="hud hud--modes" id="modes" aria-label="교통수단별 켜고 끄기">
-      <div class="mode" data-mode="train">
-        <button class="mode__switch" id="mode-train" type="button" aria-pressed="true" aria-describedby="mode-train-status">
-          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-2.2 2.9l1.9 2.6h-2.3L15.8 18H8.2l-1.6 2.5H4.3l1.9-2.6A3 3 0 0 1 4 15V6a3 3 0 0 1 3-3zm-.5 3.5v4h11v-4h-11zM8 13.3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zm8 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z"/></svg>
-          <span class="mode__name">열차</span><span class="mode__knob" aria-hidden="true"></span>
-        </button>
-        <p class="mode__status" id="mode-train-status" role="status"></p>
-        <details class="mode__legend" id="mode-train-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
-      </div>
+    <div class="cards-dock" id="cards-dock">
+    <section class="mode-cards" id="modes" aria-label="교통수단별 켜고 끄기">
+      <section class="hud card" id="mode-card-train" data-mode="train" aria-label="열차 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-train" type="button" aria-pressed="true" aria-describedby="mode-train-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10a3 3 0 0 1 3 3v9a3 3 0 0 1-2.2 2.9l1.9 2.6h-2.3L15.8 18H8.2l-1.6 2.5H4.3l1.9-2.6A3 3 0 0 1 4 15V6a3 3 0 0 1 3-3zm-.5 3.5v4h11v-4h-11zM8 13.3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zm8 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z"/></svg>
+            <span class="mode__name">열차</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-train-fold" type="button" aria-expanded="true" aria-controls="mode-card-train-body" aria-label="열차 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card__body" id="mode-card-train-body">
+          <p class="mode__status" id="mode-train-status" role="status"></p>
+          <details class="mode__legend" id="mode-train-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+        </div>
+      </section>
       <!--
         지하철 — 열차와 같은 시각표 수단이라 바로 아래에 둔다. 켜면 목록(subway-index.json)을 받고,
         그 다음은 **지금 보이는 곳과 겹치는 구역 파일만** 받는다(파일 하나가 gzip 200KB 안팎이라 전국을 다 받을 수 없다).
       -->
-      <div class="mode" data-mode="subway">
-        <button class="mode__switch" id="mode-subway" type="button" aria-pressed="false" aria-describedby="mode-subway-status">
-          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-2.3 0-4.2 1.9-4.2 4.2v5.3h8.4V6.4c0-2.3-1.9-4.2-4.2-4.2zM7.8 12.9h8.4v4.9c0 2.3-1.9 4.2-4.2 4.2s-4.2-1.9-4.2-4.2v-4.9z"/></svg>
-          <span class="mode__name">지하철</span><span class="mode__knob" aria-hidden="true"></span>
-        </button>
-        <p class="mode__status" id="mode-subway-status" role="status"></p>
-        <details class="mode__legend" id="mode-subway-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
-      </div>
-      <div class="mode" data-mode="aircraft">
-        <button class="mode__switch" id="mode-aircraft" type="button" aria-pressed="false" aria-describedby="mode-aircraft-status">
-          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.8 0 1.3.9 1.3 2v5.2l7.7 4.5v2l-7.7-2.3v4.4l2.3 1.7V21L12 20l-3.6 1v-1.5l2.3-1.7v-4.4L3 15.7v-2l7.7-4.5V4c0-1.1.5-2 1.3-2z"/></svg>
-          <span class="mode__name">항공기</span><span class="mode__knob" aria-hidden="true"></span>
-        </button>
-        <p class="mode__status" id="mode-aircraft-status" role="status"></p>
-        <details class="mode__legend" id="mode-aircraft-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
-      </div>
-      <div class="mode" data-mode="ship">
-        <button class="mode__switch" id="mode-ship" type="button" aria-pressed="false" aria-describedby="mode-ship-status">
-          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.2 3.9 4.6 7.8 4.6 11.7v5.4c0 1.3-1 2.4-2.3 2.4H9.7c-1.3 0-2.3-1.1-2.3-2.4v-5.4c0-3.9 1.4-7.8 4.6-11.7z"/></svg>
-          <span class="mode__name">여객선</span><span class="mode__knob" aria-hidden="true"></span>
-        </button>
-        <p class="mode__status" id="mode-ship-status" role="status"></p>
-        <details class="mode__legend" id="mode-ship-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
-      </div>
+      <section class="hud card" id="mode-card-subway" data-mode="subway" aria-label="지하철 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-subway" type="button" aria-pressed="false" aria-describedby="mode-subway-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c-2.3 0-4.2 1.9-4.2 4.2v5.3h8.4V6.4c0-2.3-1.9-4.2-4.2-4.2zM7.8 12.9h8.4v4.9c0 2.3-1.9 4.2-4.2 4.2s-4.2-1.9-4.2-4.2v-4.9z"/></svg>
+            <span class="mode__name">지하철</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-subway-fold" type="button" aria-expanded="true" aria-controls="mode-card-subway-body" aria-label="지하철 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card__body" id="mode-card-subway-body">
+          <p class="mode__status" id="mode-subway-status" role="status"></p>
+          <details class="mode__legend" id="mode-subway-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+        </div>
+      </section>
+      <section class="hud card" id="mode-card-aircraft" data-mode="aircraft" aria-label="항공기 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-aircraft" type="button" aria-pressed="false" aria-describedby="mode-aircraft-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.8 0 1.3.9 1.3 2v5.2l7.7 4.5v2l-7.7-2.3v4.4l2.3 1.7V21L12 20l-3.6 1v-1.5l2.3-1.7v-4.4L3 15.7v-2l7.7-4.5V4c0-1.1.5-2 1.3-2z"/></svg>
+            <span class="mode__name">항공기</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-aircraft-fold" type="button" aria-expanded="true" aria-controls="mode-card-aircraft-body" aria-label="항공기 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card__body" id="mode-card-aircraft-body">
+          <p class="mode__status" id="mode-aircraft-status" role="status"></p>
+          <details class="mode__legend" id="mode-aircraft-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+        </div>
+      </section>
+      <section class="hud card" id="mode-card-ship" data-mode="ship" aria-label="여객선 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-ship" type="button" aria-pressed="false" aria-describedby="mode-ship-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.2 3.9 4.6 7.8 4.6 11.7v5.4c0 1.3-1 2.4-2.3 2.4H9.7c-1.3 0-2.3-1.1-2.3-2.4v-5.4c0-3.9 1.4-7.8 4.6-11.7z"/></svg>
+            <span class="mode__name">여객선</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-ship-fold" type="button" aria-expanded="true" aria-controls="mode-card-ship-body" aria-label="여객선 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card__body" id="mode-card-ship-body">
+          <p class="mode__status" id="mode-ship-status" role="status"></p>
+          <details class="mode__legend" id="mode-ship-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+        </div>
+      </section>
       <!--
         시내버스 — 해부에 '고르기 줄'(mode__picker) 하나가 더 붙는다(rules/widgets.md 해부 2-1).
         하루 조회 한도 때문에 전국·도시 전체를 그릴 수 없어 방문자가 노선을 고른다(최대 3).
       -->
-      <div class="mode" data-mode="bus">
-        <button class="mode__switch" id="mode-bus" type="button" aria-pressed="false" aria-describedby="mode-bus-status">
-          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M6.5 2h11A2.5 2.5 0 0 1 20 4.5V17a2 2 0 0 1-1 1.73V21a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2H8v2a.5.5 0 0 1-.5.5h-2A.5.5 0 0 1 5 21v-2.27A2 2 0 0 1 4 17V4.5A2.5 2.5 0 0 1 6.5 2zM6 5.5V11h12V5.5H6zm2 8.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zm8 0a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z"/></svg>
-          <span class="mode__name">시내버스</span><span class="mode__knob" aria-hidden="true"></span>
-        </button>
-        <p class="mode__status" id="mode-bus-status" role="status"></p>
-        <div class="mode__picker" id="mode-bus-picker" hidden>
-          <button class="bus__resume" id="bus-resume" type="button" hidden>시내버스 다시 받기</button>
-          <select class="bus__field" id="bus-city" aria-label="시내버스 도시"><option value="">도시 고르기</option></select>
-          <input class="bus__field" id="bus-route" type="search" placeholder="노선 번호 (예: 105)" aria-label="노선 번호로 찾기" autocomplete="off" disabled />
-          <div class="bus__results" id="bus-results"></div>
-          <ul class="bus__chips" id="bus-chips" aria-label="고른 노선"></ul>
-          <p class="bus__note" id="bus-note" role="status"></p>
+      <section class="hud card" id="mode-card-bus" data-mode="bus" aria-label="시내버스 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-bus" type="button" aria-pressed="false" aria-describedby="mode-bus-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M6.5 2h11A2.5 2.5 0 0 1 20 4.5V17a2 2 0 0 1-1 1.73V21a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2H8v2a.5.5 0 0 1-.5.5h-2A.5.5 0 0 1 5 21v-2.27A2 2 0 0 1 4 17V4.5A2.5 2.5 0 0 1 6.5 2zM6 5.5V11h12V5.5H6zm2 8.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zm8 0a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z"/></svg>
+            <span class="mode__name">시내버스</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-bus-fold" type="button" aria-expanded="true" aria-controls="mode-card-bus-body" aria-label="시내버스 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
-        <details class="mode__legend" id="mode-bus-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
-      </div>
-      <div class="mode" data-mode="weather">
-        <button class="mode__switch" id="mode-weather" type="button" aria-pressed="false" aria-describedby="mode-weather-status">
-          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 15A4.5 4.5 0 0 1 7 6.03 6 6 0 0 1 18.4 7.6 3.75 3.75 0 0 1 17.5 15h-10zm.2 2.2 1.5.6-1.2 3-1.5-.6 1.2-3zm4.5 0 1.5.6-1.2 3-1.5-.6 1.2-3zm4.5 0 1.5.6-1.2 3-1.5-.6 1.2-3z"/></svg>
-          <span class="mode__name">강수 레이더</span><span class="mode__knob" aria-hidden="true"></span>
-        </button>
-        <p class="mode__status" id="mode-weather-status" role="status"></p>
-        <details class="mode__legend" id="mode-weather-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
-      </div>
+        <div class="card__body" id="mode-card-bus-body">
+          <p class="mode__status" id="mode-bus-status" role="status"></p>
+          <div class="mode__picker" id="mode-bus-picker" hidden>
+            <button class="bus__resume" id="bus-resume" type="button" hidden>시내버스 다시 받기</button>
+            <select class="bus__field" id="bus-city" aria-label="시내버스 도시"><option value="">도시 고르기</option></select>
+            <input class="bus__field" id="bus-route" type="search" placeholder="노선 번호 (예: 105)" aria-label="노선 번호로 찾기" autocomplete="off" disabled />
+            <div class="bus__results" id="bus-results"></div>
+            <ul class="bus__chips" id="bus-chips" aria-label="고른 노선"></ul>
+            <p class="bus__note" id="bus-note" role="status"></p>
+          </div>
+          <details class="mode__legend" id="mode-bus-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+        </div>
+      </section>
+      <section class="hud card" id="mode-card-weather" data-mode="weather" aria-label="강수 레이더 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-weather" type="button" aria-pressed="false" aria-describedby="mode-weather-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 15A4.5 4.5 0 0 1 7 6.03 6 6 0 0 1 18.4 7.6 3.75 3.75 0 0 1 17.5 15h-10zm.2 2.2 1.5.6-1.2 3-1.5-.6 1.2-3zm4.5 0 1.5.6-1.2 3-1.5-.6 1.2-3zm4.5 0 1.5.6-1.2 3-1.5-.6 1.2-3z"/></svg>
+            <span class="mode__name">강수 레이더</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-weather-fold" type="button" aria-expanded="true" aria-controls="mode-card-weather-body" aria-label="강수 레이더 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card__body" id="mode-card-weather-body">
+          <p class="mode__status" id="mode-weather-status" role="status"></p>
+          <details class="mode__legend" id="mode-weather-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+        </div>
+      </section>
     </section>
+    <!--
+      옮긴 카드를 한 번에 되돌린다. 옮기기 전에는 할 일이 없어 숨어 있고(좁은 화면은 끌기가 없어 늘 숨는다),
+      **쌓기 바깥, 그 아래**에 선다 — 스크롤 상자 안에 두면 밀려 사라지거나(그냥 두면) 카드 내용을 덮는다(sticky).
+    -->
+    <button class="cards__home" id="cards-home" type="button" hidden>카드 제자리로</button>
+    </div>
     <button class="ask__launcher" id="ask-open" aria-controls="ask" aria-expanded="false">
       <span class="ask__glyph" aria-hidden="true">?</span><span class="ask__launcher-text">묻기</span>
     </button>
