@@ -39,7 +39,17 @@
 6. **성능·접근성 기준을 실측으로 확인**한다 — 대비 4.5+ · 터치 타깃 40px+ · 폰트 13px+ ·
    `prefers-reduced-motion` 대응 · 콘솔 에러 0 · 요청 실패 0.
 
-## 🆕 최신 세션 — v0.9.319→321 · `/ktransportradar24` 항공기 태그 통일·국내선 시각표·축척·여객선·위젯 규칙·지도 고정 (2026-09-15)
+## 🆕 최신 세션 — v0.9.322 · `/ktransportradar24` 항공기 항적·상세 패널·시내버스·한국어 도시명 (2026-09-16)
+
+> 상세 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.322.
+
+- **새 중계 하나 더**: `functions/api/ktransportradar24-bus.js`(시내버스 위치·정류소). 인증키는 **Pages secret `DATA_GO_KR_SERVICE_KEY`**(2026-09-16 등록, 인코딩된 값 그대로) — 저장소·응답·로그 어디에도 없다.
+  하루 조회 한도(오퍼레이션마다 10,000회, 오류도 셈)를 KV 에 기록해 1,000 밑이면 멈춘다. 회귀 `test/regress-ktransportradar24-bus.js` 112건.
+- **항공기 중계에 항적**: `?trail=<hex>` + KV 키 하나 더(`ktransportradar24:aircraft-trails:v1`, 1분에 한 번 씀). 맥미니 수집기가 함께 올린다.
+- ⚠️ 수집기를 다시 설치할 때 `launchctl bootout` 직후 `bootstrap` 이 I/O 오류(5)로 실패할 수 있다 — install.sh 가 재시도하지만, 끝에 `state = running` 을 꼭 볼 것.
+- ⚠️ 공항 한국어 이름표(`shared/airport-ko.ts`)는 항목별 근거 기록이 빠진 채로 들어갔다(작성 에이전트가 세션 한도로 멈춤). 남은 대조 목록은 소스 저장소 `docs/research/2026-09-16-airport-names-ko.md`.
+
+## 최신 세션(이전) — v0.9.319→321 · `/ktransportradar24` 항공기 태그 통일·국내선 시각표·축척·여객선·위젯 규칙·지도 고정 (2026-09-15)
 
 > 상세 [docs/ktransportradar24/changelog.md](../docs/ktransportradar24/changelog.md) v0.9.319~321. 디자인 규칙은 소스 저장소 `K-TrainRader24/DESIGN.md`('야간 관제실'),
 > **위젯·구분 기준 규칙은 `K-TrainRader24/rules/`**(design·widgets·classification) — 새 수단은 `rules/widgets.md` 의 추가 절차대로 붙이고, 화면 문구와 문서가 글자 단위로 맞는지 소스 회귀가 잰다.

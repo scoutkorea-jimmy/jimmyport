@@ -8,8 +8,8 @@
       name="description"
       content="전국 열차·항공기와 강수 레이더를 한 화면에. 열차 위치는 공표 시각표 기반 추정, 항공기는 ADS-B 수신값입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-CuwwUm3Q.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-sp1rSm8G.css">
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-BbuyvDtk.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-A29uYbTj.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -86,6 +86,26 @@
         <p class="mode__status" id="mode-ship-status" role="status"></p>
         <details class="mode__legend" id="mode-ship-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
       </div>
+      <!--
+        시내버스 — 해부에 '고르기 줄'(mode__picker) 하나가 더 붙는다(rules/widgets.md 해부 2-1).
+        하루 조회 한도 때문에 전국·도시 전체를 그릴 수 없어 방문자가 노선을 고른다(최대 3).
+      -->
+      <div class="mode" data-mode="bus">
+        <button class="mode__switch" id="mode-bus" type="button" aria-pressed="false" aria-describedby="mode-bus-status">
+          <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M6.5 2h11A2.5 2.5 0 0 1 20 4.5V17a2 2 0 0 1-1 1.73V21a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2H8v2a.5.5 0 0 1-.5.5h-2A.5.5 0 0 1 5 21v-2.27A2 2 0 0 1 4 17V4.5A2.5 2.5 0 0 1 6.5 2zM6 5.5V11h12V5.5H6zm2 8.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zm8 0a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z"/></svg>
+          <span class="mode__name">시내버스</span><span class="mode__knob" aria-hidden="true"></span>
+        </button>
+        <p class="mode__status" id="mode-bus-status" role="status"></p>
+        <div class="mode__picker" id="mode-bus-picker" hidden>
+          <button class="bus__resume" id="bus-resume" type="button" hidden>시내버스 다시 받기</button>
+          <select class="bus__field" id="bus-city" aria-label="시내버스 도시"><option value="">도시 고르기</option></select>
+          <input class="bus__field" id="bus-route" type="search" placeholder="노선 번호 (예: 105)" aria-label="노선 번호로 찾기" autocomplete="off" disabled />
+          <div class="bus__results" id="bus-results"></div>
+          <ul class="bus__chips" id="bus-chips" aria-label="고른 노선"></ul>
+          <p class="bus__note" id="bus-note" role="status"></p>
+        </div>
+        <details class="mode__legend" id="mode-bus-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
+      </div>
       <div class="mode" data-mode="weather">
         <button class="mode__switch" id="mode-weather" type="button" aria-pressed="false" aria-describedby="mode-weather-status">
           <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 15A4.5 4.5 0 0 1 7 6.03 6 6 0 0 1 18.4 7.6 3.75 3.75 0 0 1 17.5 15h-10zm.2 2.2 1.5.6-1.2 3-1.5-.6 1.2-3zm4.5 0 1.5.6-1.2 3-1.5-.6 1.2-3zm4.5 0 1.5.6-1.2 3-1.5-.6 1.2-3z"/></svg>
@@ -117,7 +137,7 @@
       <div class="detail__od" id="detail-od"></div>
       <div class="detail__meta" id="detail-meta"></div>
       <p id="detail-evidence" class="detail-evidence"></p>
-      <div class="detail-actions"><label><input type="checkbox" id="follow-train" /> 선택 열차 따라가기</label><button id="share-train">링크 복사</button></div>
+      <div class="detail-actions"><label><input type="checkbox" id="follow-train" /> <span id="follow-label">선택 열차 따라가기</span></label><button id="share-train">링크 복사</button></div>
       <p id="share-status" role="status"></p>
       <div class="detail__stock" id="detail-stock" hidden></div>
       <div class="stops__head" id="stops-head" hidden></div>
@@ -164,7 +184,8 @@
         <button class="notice__ok" id="notice-ok" type="button">확인했습니다</button>
         <p class="notice__foot">
           데이터 출처 · 한국철도공사 열차운행정보 · 국토교통부 TAGO 열차정보 ·
-          한국철도공사 화물열차운행 시간표 · 선로 형상 OpenStreetMap · 강수 레이더 RainViewer · 항공기 adsb.fi·adsb.lol (ODbL) · 항공 경로 adsb.im · 국내선 시각표 국토교통부 TAGO
+          한국철도공사 화물열차운행 시간표 · 선로 형상 OpenStreetMap · 강수 레이더 RainViewer · 항공기 adsb.fi·adsb.lol (ODbL) · 항공 경로 adsb.im · 국내선 시각표 국토교통부 TAGO ·
+          여객선 운항 국토교통부 TAGO · 뱃길 OpenStreetMap · 시내버스 위치 국토교통부 TAGO
         </p>
       </div>
     </div>
