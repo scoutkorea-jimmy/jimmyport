@@ -6,10 +6,10 @@
     <title>K-TransportRadar24 — 전국 교통수단 레이더</title>
     <meta
       name="description"
-      content="전국 열차·항공기와 강수 레이더를 한 화면에. 열차 위치는 공표 시각표 기반 추정, 항공기는 ADS-B 수신값입니다."
+      content="전국 열차·지하철·시내버스·여객선·항공기와 강수 레이더를 한 화면에. 열차·지하철·여객선은 공표 시각표 기반 추정, 항공기는 ADS-B 수신값, 시내버스는 운영기관 제공 위치, 강수는 레이더 관측입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-BzYb2IoW.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-Da-Fe__7.css">
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-9d5-Bv82.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-C5XGsOJP.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -44,7 +44,7 @@
     </div>
 
     <details class="hud hud--tools" id="tools">
-      <summary>열차·역 검색 / 필터</summary>
+      <summary>검색 / 필터</summary>
       <div id="search-panel">
       <label for="train-search">열차 · 지하철 · 항공기 · 여객선 검색</label>
       <input id="train-search" type="search" placeholder="예: 101, 부산, KE1201, 2호선, 제주" autocomplete="off" />
@@ -185,9 +185,13 @@
       열차 종별만 예외로 토글이 없다: 검색/필터 상자가 이미 맡고 있어 여기에 또 두면 두 문법이 서로 어긋난다.
     -->
     <section class="hud hud--legend" id="legend" hidden aria-label="범례">
-      <div class="legend__head">
+      <div class="legend__head" id="legend-head">
+        <span class="card__grip" aria-hidden="true"></span>
         <span class="legend__title">범례</span>
         <button class="legend__reset" id="legend-reset" type="button" hidden>전부 켜기</button>
+        <button class="card__fold legend__fold" id="legend-fold" type="button" aria-expanded="true" aria-controls="legend-body" aria-label="범례 접기·펴기">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
       <div class="legend__body" id="legend-body"></div>
     </section>
