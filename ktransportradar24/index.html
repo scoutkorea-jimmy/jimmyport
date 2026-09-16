@@ -8,8 +8,8 @@
       name="description"
       content="전국 열차·항공기와 강수 레이더를 한 화면에. 열차 위치는 공표 시각표 기반 추정, 항공기는 ADS-B 수신값입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-DLkRX_89.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-B9QVTdtN.css">
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-CSfokMvm.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-Da-Fe__7.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -46,8 +46,8 @@
     <details class="hud hud--tools" id="tools">
       <summary>열차·역 검색 / 필터</summary>
       <div id="search-panel">
-      <label for="train-search">열차번호 또는 역명</label>
-      <input id="train-search" type="search" placeholder="예: 101, 부산" autocomplete="off" />
+      <label for="train-search">열차 · 지하철 · 항공기 · 여객선 검색</label>
+      <input id="train-search" type="search" placeholder="예: 101, 부산, KE1201, 2호선, 제주" autocomplete="off" />
       <p id="search-status" role="status"></p>
       <div id="search-results"></div>
       </div>
@@ -79,7 +79,6 @@
         </div>
         <div class="card__body" id="mode-card-train-body">
           <p class="mode__status" id="mode-train-status" role="status"></p>
-          <details class="mode__legend" id="mode-train-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
         </div>
       </section>
       <!--
@@ -99,7 +98,6 @@
         </div>
         <div class="card__body" id="mode-card-subway-body">
           <p class="mode__status" id="mode-subway-status" role="status"></p>
-          <details class="mode__legend" id="mode-subway-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
         </div>
       </section>
       <section class="hud card" id="mode-card-aircraft" data-mode="aircraft" aria-label="항공기 카드">
@@ -115,7 +113,6 @@
         </div>
         <div class="card__body" id="mode-card-aircraft-body">
           <p class="mode__status" id="mode-aircraft-status" role="status"></p>
-          <details class="mode__legend" id="mode-aircraft-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
         </div>
       </section>
       <section class="hud card" id="mode-card-ship" data-mode="ship" aria-label="여객선 카드">
@@ -131,7 +128,6 @@
         </div>
         <div class="card__body" id="mode-card-ship-body">
           <p class="mode__status" id="mode-ship-status" role="status"></p>
-          <details class="mode__legend" id="mode-ship-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
         </div>
       </section>
       <!--
@@ -159,7 +155,6 @@
             <ul class="bus__chips" id="bus-chips" aria-label="고른 노선"></ul>
             <p class="bus__note" id="bus-note" role="status"></p>
           </div>
-          <details class="mode__legend" id="mode-bus-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
         </div>
       </section>
       <section class="hud card" id="mode-card-weather" data-mode="weather" aria-label="강수 레이더 카드">
@@ -175,7 +170,6 @@
         </div>
         <div class="card__body" id="mode-card-weather-body">
           <p class="mode__status" id="mode-weather-status" role="status"></p>
-          <details class="mode__legend" id="mode-weather-legend" hidden><summary>구분 기준</summary><div class="mode__legend-body"></div></details>
         </div>
       </section>
     </section>
@@ -185,16 +179,17 @@
     -->
     <button class="cards__home" id="cards-home" type="button" hidden>카드 제자리로</button>
     </div>
-    <button class="ask__launcher" id="ask-open" aria-controls="ask" aria-expanded="false">
-      <span class="ask__glyph" aria-hidden="true">?</span><span class="ask__launcher-text">묻기</span>
-    </button>
-    <section class="hud hud--ask" id="ask" hidden aria-label="묻고 답하기">
-      <div class="ask__head">
-        <span class="ask__title">묻고 답하기</span>
-        <button class="ask__close" id="ask-close" aria-label="닫기">×</button>
+    <!--
+      범례 — 켜 둔 수단을 우측 아래 한 곳에 모은다(2026-09-16 지미 지시). 수단 카드 안에 흩어져 있던 '구분 기준'을 옮긴 것이다.
+      행마다 켜고 끌 수 있고, 끈 것은 **지도에서만** 숨는다 — 수치는 그대로 남아야 "있는데 내가 껐다"가 읽힌다.
+      열차 종별만 예외로 토글이 없다: 검색/필터 상자가 이미 맡고 있어 여기에 또 두면 두 문법이 서로 어긋난다.
+    -->
+    <section class="hud hud--legend" id="legend" hidden aria-label="범례">
+      <div class="legend__head">
+        <span class="legend__title">범례</span>
+        <button class="legend__reset" id="legend-reset" type="button" hidden>전부 켜기</button>
       </div>
-      <input id="ask-input" type="search" placeholder="예: 부산 가는 KTX, 지금 몇 대" autocomplete="off" />
-      <div class="ask__board" id="ask-board" aria-live="polite"></div>
+      <div class="legend__body" id="legend-body"></div>
     </section>
     <p class="hud hud--map-health" id="map-health" hidden role="status"></p>
     <section class="hud hud--detail" id="detail" hidden aria-live="polite">
