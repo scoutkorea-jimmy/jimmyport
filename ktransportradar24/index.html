@@ -8,7 +8,7 @@
       name="description"
       content="전국 열차·지하철·시내버스·여객선·항공기와 강수 레이더를 한 화면에. 열차·지하철·여객선은 공표 시각표 기반 추정, 항공기는 ADS-B 수신값, 시내버스는 운영기관 제공 위치, 강수는 레이더 관측입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-Bi9_iJUt.js"></script>
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-BDL1dyyI.js"></script>
     <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-CF0BOQJc.css">
   </head>
   <body>
@@ -181,6 +181,21 @@
           <p class="mode__status" id="mode-weather-status" role="status"></p>
         </div>
       </section>
+      <section class="hud card" id="mode-card-airspace" data-mode="airspace" aria-label="항공정보도 카드">
+        <div class="card__head">
+          <span class="card__grip" aria-hidden="true"></span>
+          <button class="mode__switch" id="mode-airspace" type="button" aria-pressed="false" aria-describedby="mode-airspace-status">
+            <svg class="mode__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2.2a7.8 7.8 0 1 1 0 15.6 7.8 7.8 0 0 1 0-15.6zm0 3.1a4.7 4.7 0 1 0 0 9.4 4.7 4.7 0 0 0 0-9.4zM2.6 11h3.2v2H2.6v-2zm15.6 0h3.2v2h-3.2v-2zM11 2.6h2v3.2h-2V2.6zm0 15.6h2v3.2h-2v-3.2z"/></svg>
+            <span class="mode__name">항공정보도</span><span class="mode__knob" aria-hidden="true"></span>
+          </button>
+          <button class="card__fold" id="mode-card-airspace-fold" type="button" aria-expanded="true" aria-controls="mode-card-airspace-body" aria-label="항공정보도 카드 접기·펴기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5 12 15.5 18 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card__body" id="mode-card-airspace-body">
+          <p class="mode__status" id="mode-airspace-status" role="status"></p>
+        </div>
+      </section>
     </section>
     <!--
       옮긴 카드를 한 번에 되돌린다. 옮기기 전에는 할 일이 없어 숨어 있고(좁은 화면은 끌기가 없어 늘 숨는다),
@@ -264,7 +279,7 @@
           데이터 출처 · 한국철도공사 열차운행정보 · 국토교통부 TAGO 열차정보 ·
           한국철도공사 화물열차운행 시간표 · 선로 형상 OpenStreetMap · 강수 레이더 RainViewer · 항공기 adsb.fi·adsb.lol (ODbL) · 항공 경로 adsb.im · 국내선 시각표 국토교통부 TAGO · 실시간 운항정보 한국공항공사 ·
           여객선 운항 국토교통부 TAGO · 뱃길 OpenStreetMap · 시내버스 위치 국토교통부 TAGO ·
-          지하철 시각표 국토교통부 TAGO
+          지하철 시각표 국토교통부 TAGO · 항공정보도 국토교통부 V-World (공공누리 제1유형)
         </p>
       </div>
     </div>
