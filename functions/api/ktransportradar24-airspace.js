@@ -63,6 +63,8 @@ export const TTL_OK = 3600;
 /** 실패는 짧게 — 방문자마다 원천을 다시 두들기지 않으면서, 곧 나을 장애를 오래 붙들지 않는다. */
 export const TTL_FAIL = 30;
 const TIMEOUT_MS = 8000;
+/** 원천에 우리를 밝힌다. 시내버스 중계도 같은 꼴을 쓴다 — 이름 없는 요청을 막는 원서버가 있다. */
+const UA = "K-TransportRadar24/0.9 (+https://scoutingapp.net/ktransportradar24)";
 
 /* ------------------------------------------------------------------ */
 /* 입력                                                                 */
@@ -192,7 +194,11 @@ export async function handleGet(context, deps) {
   const timer = setTimeout(() => abort.abort(), TIMEOUT_MS);
   let res;
   try {
-    res = await doFetch(sourceUrl(p, key), { signal: abort.signal });
+    // 원천에 우리를 밝힌다(시내버스 중계와 같은 꼴). 이름 없는 요청을 막는 원서버가 있다.
+    res = await doFetch(sourceUrl(p, key), {
+      headers: { "user-agent": UA, accept: "image/png,image/*;q=0.8,*/*;q=0.5" },
+      signal: abort.signal,
+    });
   } catch (e) {
     // ⚠️ 오류 원문에 URL(=키)이 섞일 수 있다. 이름만 남긴다.
     return fail("원천 오류: " + (e && e.name ? e.name : "unknown"), 502, TTL_FAIL);
@@ -240,7 +246,7 @@ const diag = (text) =>
  * 2026-09-16: 라이브가 본문 없는 502 를 주는데 내 오류 문구는 하나도 안 나와,
  * 배포된 코드가 내가 고친 코드인지부터 확인해야 했다.
  */
-export const BUILD = "v4";
+export const BUILD = "v5";
 
 export async function onRequestGet(context) {
   try {
@@ -251,15 +257,25 @@ export async function onRequestGet(context) {
       const has = !!(context.env && String(context.env.VWORLD_API_KEY ?? "").trim());
       return diag("airspace relay " + BUILD + " · key=" + (has ? "있음" : "없음"));
     }
-    if (d === "2") {
-      // 캐시도 스트림도 쓰지 않고 **원천 fetch 만** 잰다. 어디서 막히는지 이 한 줄이 가른다.
+    if (d === "2" || d === "3") {
+      /*
+       * 캐시도 스트림도 쓰지 않고 **원천 fetch 만** 잰다. 2026-09-16 실측에서 여기가 `원천 520` 이었다 —
+       * 내 맥에서는 같은 요청이 200·PNG 인데 Cloudflare 엣지에서만 막힌다.
+       * `diag=2` 는 헤더 없이, `diag=3` 은 우리를 밝히고(UA·Accept) 불러 **둘을 견준다**.
+       */
       const key = String((context.env && context.env.VWORLD_API_KEY) || "").trim();
       if (!key) return diag(BUILD + " · 키가 없어 원천을 못 부른다");
       const probe = { layers: "lt_c_aisprhc", bbox: "14100000,4500000,14200000,4600000", width: 256, height: 256, transparent: true, styles: "" };
+      const init = d === "3" ? { headers: { "user-agent": UA, accept: "image/png,image/*;q=0.8,*/*;q=0.5" } } : {};
       try {
-        const r = await fetch(sourceUrl(probe, key));
+        const r = await fetch(sourceUrl(probe, key), init);
         const buf = await r.arrayBuffer();
-        return diag(BUILD + " · 원천 " + r.status + " · " + (r.headers.get("content-type") || "?") + " · " + buf.byteLength + "B");
+        // 본문 앞머리를 보여 준다 — 어느 계층이 낸 오류인지는 그 글자에 있다. 키가 섞여 오면 지운다.
+        const head = new TextDecoder().decode(buf.slice(0, 160)).replace(/\s+/g, " ").trim();
+        return diag(
+          BUILD + " · " + (d === "3" ? "우리를 밝힘" : "헤더 없음") + " · 원천 " + r.status +
+          " · " + (r.headers.get("content-type") || "?") + " · " + buf.byteLength + "B · " + head.split(key).join("«KEY»"),
+        );
       } catch (e) {
         // 오류 원문은 URL(=키)을 담을 수 있다. 이름만.
         return diag(BUILD + " · 원천 오류 " + (e && e.name ? e.name : "unknown"));
