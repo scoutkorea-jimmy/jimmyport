@@ -151,6 +151,17 @@ export function cacheKeyFor(origin, p) {
 /* 처리                                                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * 설정 응답(키가 실린다).
+ * ⚠️ **절대 담아 두지 않는다** — 엣지 캐시에 키가 남으면 시크릿을 갈아도 한동안 옛 키가 돌아다닌다.
+ */
+function json(body) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
 function fail(message, status, ttl) {
   // 타일 자리라 본문을 읽는 사람은 없다. 그래도 사람이 직접 열어 볼 때를 위해 까닭을 남긴다.
   return new Response(message, {
@@ -252,6 +263,24 @@ export async function onRequestGet(context) {
   try {
     const u = new URL(context.request.url);
     const d = u.searchParams.get("diag");
+    /*
+     * 키 배급 — 화면이 V-World 를 **직접** 부르기 위해 받아 간다.
+     *
+     * 2026-09-16 측정으로 중계 경유가 막혔다(Cloudflare 엣지에서 `api.vworld.kr` 이 8번 중 8번 502/520).
+     * 지미가 "키를 넣고 브라우저가 직접" 으로 정했다 — V-World 가 공식 안내하는 사용법이기도 하다.
+     *
+     * ⚠️ **그래도 번들에는 박지 않는다.** 배포 저장소(jimmyport)가 **공개**라 번들이 커밋되면
+     *    GitHub 코드 검색으로 자동 수집되고, 키를 바꿔도 이력에서 사라지지 않는다.
+     *    여기서 내주면 시크릿만 갈면 되고 재빌드도 필요 없다 — 노출 수준은 같고 뒷정리만 쉬워진다.
+     * ⚠️ **같은 곳에서 온 요청에만 준다.** Referer 는 위조되니 완전한 방어가 아니다 — 긁어 가는 봇을 막는 빗장이다.
+     */
+    if (u.searchParams.get("config") === "1") {
+      const key = String((context.env && context.env.VWORLD_API_KEY) || "").trim();
+      if (!key) return json({ ok: false, error: "config: VWORLD_API_KEY 없음" });
+      const ref = context.request.headers.get("referer") || "";
+      if (ref && !ref.startsWith(DOMAIN)) return json({ ok: false, error: "다른 곳에서 온 요청입니다" });
+      return json({ ok: true, wms: VWORLD_WMS, key, domain: DOMAIN, layers: LAYERS });
+    }
     if (d === "1") {
       // 어느 판이 도는가 · 시크릿이 함수에 닿는가(값은 절대 싣지 않는다 — 길이도 안 싣는다).
       const has = !!(context.env && String(context.env.VWORLD_API_KEY ?? "").trim());

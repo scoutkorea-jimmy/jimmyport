@@ -141,6 +141,38 @@ const run = async (deps, env, query) => {
   chk('입력 오류는 400', res.status, 400);
 }
 
+console.log('\n[키 배급 — 화면이 V-World 를 직접 부른다]');
+{
+  const ask = async (headers) => {
+    const res = await relay.onRequestGet({
+      request: new Request(ORIGIN + '/api/ktransportradar24-airspace?config=1', headers ? { headers } : undefined),
+      env: { VWORLD_API_KEY: KEY },
+    });
+    return { res, body: await res.json() };
+  };
+  const a = await ask();
+  chk('설정을 내준다', a.body.ok, true);
+  chk('키를 담아 준다', a.body.key, KEY);
+  chk('원천 주소도 함께', a.body.wms, VWORLD_WMS);
+  chk('DOMAIN 도 함께(없으면 정상 키라도 INCORRECT_KEY 다)', a.body.domain, DOMAIN);
+  chk('도면 목록도 같이 준다', (a.body.layers || []).join(','), LAYERS.join(','));
+  // ⚠️ 키가 엣지 캐시에 남으면 시크릿을 갈아도 한동안 옛 키가 돌아다닌다.
+  chk('키가 실린 응답은 절대 담아 두지 않는다', a.res.headers.get('cache-control'), 'no-store');
+
+  const same = await ask({ referer: DOMAIN + '/ktransportradar24/' });
+  chk('우리 화면에서 온 요청은 받는다', same.body.ok, true);
+  const other = await ask({ referer: 'https://example.com/steal' });
+  chk('다른 곳에서 온 요청은 거절', other.body.ok, false);
+  chk('거절할 때 키를 흘리지 않는다', JSON.stringify(other.body).includes(KEY), false);
+
+  const bare = await relay.onRequestGet({
+    request: new Request(ORIGIN + '/api/ktransportradar24-airspace?config=1'),
+    env: {},
+  });
+  const bareBody = await bare.json();
+  chk('시크릿이 없으면 설정도 없다', bareBody.ok, false);
+}
+
 console.log('\n[목록이 화면과 같아야 한다]');
 chk('도면 넷', LAYERS.length, 4);
 chk('web/src/legend.ts 의 AIRSPACE_LAYERS 와 같은 이름·차례', LAYERS.join(','), 'lt_c_aisprhc,lt_c_aisctrc,lt_c_aisadzc,lt_c_aisfirc');
