@@ -8,8 +8,8 @@
       name="description"
       content="전국 열차·지하철·시내버스·여객선·항공기와 강수 레이더를 한 화면에. 열차·지하철·여객선은 공표 시각표 기반 추정, 항공기는 ADS-B 수신값, 시내버스는 운영기관 제공 위치, 강수는 레이더 관측입니다."
     />
-    <script type="module" crossorigin src="/ktransportradar24/assets/index-CeXfh7K0.js"></script>
-    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index--s3_lkVm.css">
+    <script type="module" crossorigin src="/ktransportradar24/assets/index-BMTFGgIC.js"></script>
+    <link rel="stylesheet" crossorigin href="/ktransportradar24/assets/index-DPATz7HG.css">
   </head>
   <body>
     <div id="map" aria-label="전국 철도 지도"></div>
@@ -53,7 +53,16 @@
       </div>
       <!-- 필터는 기본 펼침(넓은 화면). 접은 상태는 브라우저가 기억한다. 검색 중에는 결과가 보이게 잠시 접힌다. -->
       <button id="filter-toggle" aria-controls="filter" aria-expanded="false">종류 필터 펼치기</button>
-      <aside class="hud hud--filter" id="filter" aria-label="열차 종류 필터"></aside>
+      <!--
+        필터 상자는 **칸이 둘**이다(rules/widgets.md '검색 / 필터 상자').
+        KindFilter 가 자기 칸을 innerHTML 로 통째로 덮어쓰기 때문에, 다른 수단 줄과
+        한 칸을 나눠 쓰면 서로 지운다. 켜고 끈 상태는 두 칸이 legendOff 하나를 함께 쓴다 —
+        저장소를 따로 두면 범례와 필터가 같은 것을 두고 다른 말을 하게 된다.
+      -->
+      <aside class="hud hud--filter" id="filter" aria-label="켜 둔 수단 필터">
+        <div id="filter-train"></div>
+        <div id="filter-modes"></div>
+      </aside>
       <details><summary>데이터 제공 범위</summary><div id="coverage-info"></div></details>
     </details>
     <!--
