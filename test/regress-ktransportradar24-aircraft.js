@@ -112,6 +112,11 @@ const trails = cleanTrails({
 chk('정리된 목록에 남은 기체 항적만 싣는다', Object.keys(trails).join(','), '71c123');
 chk('LADD 항적은 저장본에 없다', JSON.stringify(trails).includes('ladd01'), false);
 chk('점은 소수 셋째 자리, 대문자 hex 는 소문자로', JSON.stringify(trails['71c123'].slice(0, 2)), '[37.111,126.222]');
+// 2026-09-16: 수집기가 [lat,lon,alt] 셋씩 올린다. 옛 둘씩도 계속 받아야 재설치 전에 항적이 비지 않는다.
+const trails3 = cleanTrails({ '71C123': [37.1111, 126.2222, 33000, 37.2, 126.3, 34000] }, [{ hex: '71c123' }], 3);
+chk('셋씩 올리면 고도까지 싣는다', JSON.stringify(trails3['71c123']), '[37.111,126.222,33000,37.2,126.3,34000]');
+const trailsNoAlt = cleanTrails({ '71C123': [37.1111, 126.2222, -1, 37.2, 126.3, -1] }, [{ hex: '71c123' }], 3);
+chk('고도를 모르는 점은 -1 로 남는다', JSON.stringify(trailsNoAlt['71c123']), '[37.111,126.222,-1,37.2,126.3,-1]');
 chk('모양이 틀린 점은 그 점만 버린다', trails['71c123'].length, 6);
 const long = Array.from({ length: (TRAIL_MAX_POINTS + 30) * 2 }, (_, i) => (i % 2 ? 126 + i / 1e4 : 37 + i / 1e4));
 chk(`기체마다 최근 ${TRAIL_MAX_POINTS}점까지(오래된 점부터 버린다)`, cleanTrails({ '71c123': long }, kept)['71c123'].length, TRAIL_MAX_POINTS * 2);

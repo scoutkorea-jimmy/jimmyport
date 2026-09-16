@@ -111,7 +111,7 @@ export function trimAircraft(raw, nowMs = Date.now()) {
  * 비공개(LADD·PIA)·지상·범위 밖으로 버린 기체의 항적은 여기서 함께 사라진다.
  * 점은 소수 셋째 자리(약 110 m)로 줄이고, 기체마다 최근 TRAIL_MAX_POINTS 점까지. 모양이 틀린 점은 그 점만 버린다.
  */
-export function cleanTrails(trails, aircraft) {
+export function cleanTrails(trails, aircraft, dims = 2) {
   if (!trails || typeof trails !== "object" || Array.isArray(trails) || !Array.isArray(aircraft)) return null;
   const keep = new Set(aircraft.map((a) => a.hex));
   const out = {};
@@ -120,15 +120,26 @@ export function cleanTrails(trails, aircraft) {
     if (n >= TRAIL_MAX_AIRCRAFT) break;
     const hex = String(rawHex).toLowerCase().slice(0, 6);
     if (!HEX.test(hex) || !keep.has(hex) || !Array.isArray(path)) continue;
+    /*
+     * 점 하나가 몇 수인가. 2026-09-16 부터 수집기는 [lat,lon,alt] **셋씩** 올린다.
+     * ⚠️ 길이로는 못 가른다 — 6 은 2 와 3 의 배수다. 그래서 **올린 쪽이 말하게** 한다(dims).
+     *    옛 수집기(둘씩)도 계속 받는다. 수집기를 다시 깔기 전에도 항적이 비지 않아야 한다.
+     */
+    const dim = dims === 3 ? 3 : 2;
     const pts = [];
-    for (let i = Math.max(0, path.length - TRAIL_MAX_POINTS * 4); i + 1 < path.length; i += 2) {
+    for (let i = Math.max(0, path.length - TRAIL_MAX_POINTS * dim * 2); i + dim - 1 < path.length; i += dim) {
       const lat = num(path[i]);
       const lon = num(path[i + 1]);
       if (lat === null || lon === null || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
-      pts.push(round3(lat), round3(lon));
+      if (dim === 2) pts.push(round3(lat), round3(lon));
+      else {
+        const alt = num(path[i + 2]);
+        // 고도를 모르는 점은 -1 로 온다. 음수 고도는 없으니 그대로 -1 로 둔다.
+        pts.push(round3(lat), round3(lon), alt === null || alt < 0 ? -1 : Math.round(alt));
+      }
     }
-    const recent = pts.slice(-TRAIL_MAX_POINTS * 2);
-    if (recent.length >= 4) {
+    const recent = pts.slice(-TRAIL_MAX_POINTS * dim);
+    if (recent.length >= dim * 2) {
       out[hex] = recent;
       n++;
     }
@@ -145,8 +156,10 @@ export function trailBody(stored, hex, nowMs = Date.now()) {
   const age = Math.max(0, Math.round((nowMs - stored.receivedAt) / 1000));
   if (age > TRAIL_FRESH_SEC) return { ok: false, error: `항적 저장본이 ${age}초 전 것 — 맥미니 수집기를 확인` };
   const path = stored.trails[hex];
-  if (!Array.isArray(path) || path.length < 4) return { ok: false, error: "이 기체의 항적이 아직 없음" };
-  return { ok: true, hex, receivedAt: stored.receivedAt, path };
+  const dim = stored.trailDim === 3 ? 3 : 2;
+  if (!Array.isArray(path) || path.length < dim * 2) return { ok: false, error: "이 기체의 항적이 아직 없음" };
+  // dim 을 함께 준다 — 화면이 길이로 짐작하지 않게(6 은 2 와 3 의 배수라 모호하다).
+  return { ok: true, hex, receivedAt: stored.receivedAt, path, dim };
 }
 
 /** Authorization 헤더가 수집 토큰과 같은지. 토큰이 설정 안 됐거나 짧으면 아무도 통과시키지 않는다. 비교는 끝까지 돈다. */
@@ -191,9 +204,15 @@ export async function onRequestPost({ request, env }) {
   const stored = ingestBody(body, Date.now());
   if (!stored) return json({ ok: false, error: "ac 목록 없음" }, 400);
   await env.SCOUT_KV.put(KV_KEY, JSON.stringify(stored), { expirationTtl: KV_EXPIRE });
-  const trails = body.trails === undefined ? null : cleanTrails(body.trails, stored.aircraft);
+  /*
+   * ⚠️ 올린 쪽이 말한 형식을 그대로 넘긴다. 이 인자를 빠뜨리면 수집기가 셋씩(고도 포함) 올려도
+   *    2 로 읽어 **고도를 통째로 버린다** — 사슬이 조용히 끊긴다.
+   */
+  const dims = body.dims === 3 ? 3 : 2;
+  const trails = body.trails === undefined ? null : cleanTrails(body.trails, stored.aircraft, dims);
   if (trails) {
-    await env.SCOUT_KV.put(TRAILS_KV_KEY, JSON.stringify({ receivedAt: stored.receivedAt, trails }), { expirationTtl: KV_EXPIRE });
+    // 형식을 함께 적어 둔다 — 읽는 쪽이 길이로 짐작하지 않게(6 은 2 와 3 의 배수라 모호하다).
+    await env.SCOUT_KV.put(TRAILS_KV_KEY, JSON.stringify({ receivedAt: stored.receivedAt, trails, trailDim: dims }), { expirationTtl: KV_EXPIRE });
   }
   return json({ ok: true, count: stored.count, hidden: stored.hidden, ...(trails ? { trails: Object.keys(trails).length } : {}) });
 }
