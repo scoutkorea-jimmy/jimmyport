@@ -172,7 +172,13 @@ export async function handleGet(context, deps) {
   if (!key) return fail("config: VWORLD_API_KEY 없음", 502, TTL_FAIL);
 
   const hitKey = cacheKeyFor(new URL(request.url).origin, p);
-  const hit = await cache.match(hitKey);
+  // 캐시는 있으면 좋은 것이지 없으면 안 되는 것이 아니다 — 여기서 던져도 그림은 준다.
+  let hit = null;
+  try {
+    hit = await cache.match(hitKey);
+  } catch {
+    hit = null;
+  }
   if (hit) return hit;
 
   const abort = new AbortController();
@@ -200,11 +206,24 @@ export async function handleGet(context, deps) {
       "cache-control": `public, max-age=${TTL_OK}`,
     },
   });
-  if (waitUntil) waitUntil(cache.put(hitKey, out.clone()));
-  else await cache.put(hitKey, out.clone());
+  try {
+    if (waitUntil) waitUntil(cache.put(hitKey, out.clone()));
+    else await cache.put(hitKey, out.clone());
+  } catch {
+    // 담지 못해도 그림은 나간다. 다음 요청이 원천을 한 번 더 부를 뿐이다.
+  }
   return out;
 }
 
 export async function onRequestGet(context) {
-  return handleGet(context, { cache: caches.default });
+  try {
+    return await handleGet(context, { cache: caches.default });
+  } catch (e) {
+    /*
+     * ⚠️ 여기서 안 잡으면 **Cloudflare 가 본문 없는 502(`error code: 502`)로 덮어** 까닭이 통째로 사라진다.
+     *    2026-09-16 첫 배포에서 실제로 그랬다 — 입력 오류(400)는 내 문구가 나오는데 성공 경로만 남의 502 였다.
+     *    오류 원문은 URL(=키)을 담을 수 있으므로 **이름만** 싣는다.
+     */
+    return fail("중계 오류: " + (e && e.name ? e.name : "unknown"), 502, TTL_FAIL);
+  }
 }
