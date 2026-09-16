@@ -161,7 +161,14 @@ function fail(message, status, ttl) {
  * deps: { cache, fetch?, now? } — 배포에서는 caches.default·전역 fetch. 로컬 확인·회귀는 흉내 객체를 넣는다.
  */
 export async function handleGet(context, deps) {
-  const { request, env, waitUntil } = context;
+  const { request, env } = context;
+  /*
+   * ⚠️ **`waitUntil` 은 구조 분해해서 부르면 안 된다.** `context` 에서 떼어 내면 `this` 가 끊겨
+   *    Workers 가 `Illegal invocation` 을 던진다. 이 저장소에서 잘 도는 두 중계가 그 답을 갖고 있다 —
+   *    시내버스는 이 래퍼를, 항공기는 `context.waitUntil(...)` 직접 호출을 쓴다.
+   *    없는 환경(로컬 확인·회귀)에서는 약속을 그대로 돌려줘 `await` 가 완료를 기다리게 한다.
+   */
+  const waitUntil = (p) => (context && typeof context.waitUntil === "function" ? context.waitUntil(p) : p);
   const cache = deps.cache;
   const doFetch = deps.fetch ?? fetch;
 
@@ -216,16 +223,48 @@ export async function handleGet(context, deps) {
   const headers = { "content-type": "image/png", "cache-control": `public, max-age=${TTL_OK}` };
   try {
     const forCache = new Response(body, { status: 200, headers });
-    if (waitUntil) waitUntil(cache.put(hitKey, forCache));
-    else await cache.put(hitKey, forCache);
+    // 배포에서는 waitUntil 이 즉시 undefined 를 돌려주고, 흉내에서는 약속이 그대로 와 await 가 기다린다.
+    await waitUntil(cache.put(hitKey, forCache));
   } catch {
     // 담지 못해도 그림은 나간다. 다음 요청이 원천을 한 번 더 부를 뿐이다.
   }
   return new Response(body, { status: 200, headers });
 }
 
+/** 진단 응답 — 사람이 읽을 텍스트. 담아 두지 않는다(지금 무엇이 도는지를 묻는 것이다). */
+const diag = (text) =>
+  new Response(text, { status: 200, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+
+/**
+ * 이 파일의 판 번호. **배포가 실제로 반영됐는지**를 재는 유일한 방법이라 고칠 때마다 올린다.
+ * 2026-09-16: 라이브가 본문 없는 502 를 주는데 내 오류 문구는 하나도 안 나와,
+ * 배포된 코드가 내가 고친 코드인지부터 확인해야 했다.
+ */
+export const BUILD = "v4";
+
 export async function onRequestGet(context) {
   try {
+    const u = new URL(context.request.url);
+    const d = u.searchParams.get("diag");
+    if (d === "1") {
+      // 어느 판이 도는가 · 시크릿이 함수에 닿는가(값은 절대 싣지 않는다 — 길이도 안 싣는다).
+      const has = !!(context.env && String(context.env.VWORLD_API_KEY ?? "").trim());
+      return diag("airspace relay " + BUILD + " · key=" + (has ? "있음" : "없음"));
+    }
+    if (d === "2") {
+      // 캐시도 스트림도 쓰지 않고 **원천 fetch 만** 잰다. 어디서 막히는지 이 한 줄이 가른다.
+      const key = String((context.env && context.env.VWORLD_API_KEY) || "").trim();
+      if (!key) return diag(BUILD + " · 키가 없어 원천을 못 부른다");
+      const probe = { layers: "lt_c_aisprhc", bbox: "14100000,4500000,14200000,4600000", width: 256, height: 256, transparent: true, styles: "" };
+      try {
+        const r = await fetch(sourceUrl(probe, key));
+        const buf = await r.arrayBuffer();
+        return diag(BUILD + " · 원천 " + r.status + " · " + (r.headers.get("content-type") || "?") + " · " + buf.byteLength + "B");
+      } catch (e) {
+        // 오류 원문은 URL(=키)을 담을 수 있다. 이름만.
+        return diag(BUILD + " · 원천 오류 " + (e && e.name ? e.name : "unknown"));
+      }
+    }
     return await handleGet(context, { cache: caches.default });
   } catch (e) {
     /*
